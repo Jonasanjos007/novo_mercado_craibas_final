@@ -6,18 +6,18 @@ import { NotificationProvider } from './utils/NotificationCard';
 import { AuthProvider } from './context/AuthContext';
 import { AuthRedirect } from './routes/AuthRedirect';
 import { UserProvider } from './context/UserContext';
-
+import './index.css'; //
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
     <BrowserRouter>
-      <AuthProvider>
-        <UserProvider>
-          <NotificationProvider>
+      <NotificationProvider>
+        <AuthProvider>
+          <UserProvider>
             <AuthRedirect />
             <App />
-          </NotificationProvider>
-        </UserProvider>
-      </AuthProvider>
+          </UserProvider>
+        </AuthProvider>
+      </NotificationProvider>
     </BrowserRouter>
   </React.StrictMode>
 );

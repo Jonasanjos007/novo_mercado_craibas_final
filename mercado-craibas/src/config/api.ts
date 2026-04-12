@@ -1,11 +1,9 @@
-import { DashboardFilters } from "@/controllers/useCollectionController";
-import { SurveyEntry } from "@/models/SurveyEntry";
-import { TokenResponse } from "@/models/TokenResponse";
-import { Tokens } from "@/models/Tokens";
-import { UsuarioResponse } from "@/models/Usuarioresponse";
-import { PagedResult } from "@/utils/PagedResult";
-import { makeResult, Result } from "@/utils/Result";
+
 import axios from "axios";
+import { TokenResponse } from "../models/TokenResponse";
+import { Tokens } from "../models/Tokens";
+import { UsuarioResponse } from "../models/UsuarioResponse";
+import { makeResult, Result } from "../utils/Result";
 
 const baseURL = "http://localhost:5022/api/v1";
 
@@ -98,53 +96,8 @@ api.interceptors.response.use(
 );
 
 export const ApiService = {
-    getDashboardData: async (
-        pageNumber: number,
-        pageSize: number,
-        filters: DashboardFilters
-    ): Promise<Result<PagedResult<SurveyEntry>>> => {
-        try {
-            const payload = {
-                periodStatus: filters.PeriodStatus ?? null,
-                entryStatus: filters.EntryStatus ?? null,
-                vertical: filters.vertical ?? null,
-                period: filters.Period ?? null,
-                search: filters.Search ?? null,
-                pageSize,
-                pageNumber
-            };
 
-            const { data } = await api.post("/dashboard", payload);
 
-            if (data.success && data.data) {
-                const mappedItems = data.data.items.map(
-                    (item: any) => new SurveyEntry(item)
-                );
-
-                const pagedResult: PagedResult<SurveyEntry> = {
-                    items: mappedItems,
-                    totalCount: data.data.totalCount,
-                    pageNumber: data.data.pageNumber,
-                    pageSize: data.data.pageSize
-                };
-
-                return makeResult(true, pagedResult);
-            }
-
-            return makeResult(false, undefined, data.error || "Erro ao carregar dashboard");
-
-        } catch {
-            return makeResult(false, undefined, "Erro de conexão");
-        }
-    },
-    saveCollection: async (data: Partial<SurveyEntry>) => {
-
-        const res = await api.put(`/collections/${data.surveyId}`, data);
-        return res;
-
-        // const res = await api.post("/collections", data);
-        // return res.data;
-    },
 
     getCollectionByAssignmentId: async (assignmentId: string) => {
         const { data } = await api.get("/collections", {
@@ -160,26 +113,26 @@ export const ApiService = {
             return makeResult(false, undefined, data.error.message);
         }
     },
-    loginUser: async (email: string, password: string): Promise<Result<TokenResponse>> => {
-        try {
-            const { data } = await api.post<Result<TokenResponse>>("/auth/login", { email, password });
+    // loginUser: async (email: string, password: string): Promise<Result<TokenResponse>> => {
+    //     try {
+    //         const { data } = await api.post<Result<TokenResponse>>("/auth/login", { email, password });
 
-            return makeResult(data.success, data.data, data.error);
-        } catch (err: any) {
-            return makeResult(false, undefined, "Falha na comunicação");
-        }
-    },
+    //         return makeResult(data.success, data.data, data.error);
+    //     } catch (err) {
+    //         return "Falha na comunicação";
+    //     }
+    // },
 
-    getUser: async (): Promise<Result<UsuarioResponse>> => {
-        try {
-            const response = await api.get("/users/me");
-            const { success, data, error } = response.data;
+    // getUser: async (): Promise<Result<UsuarioResponse>> => {
+    //     try {
+    //         const response = await api.get("/users/me");
+    //         const { success, data, error } = response.data;
 
-            return makeResult(success, data, error);
-        } catch (error) {
-            return makeResult(false, undefined, "Erro ao buscar dados do usuário");
-        }
-    },
+    //         return makeResult(success, data, error);
+    //     } catch (error) {
+    //         return makeResult(false, undefined, "Erro ao buscar dados do usuário");
+    //     }
+    // },
 
     refreshToken: async (refreshToken: string) => {
         const { data } = await api.post("/auth/refresh", { refreshToken });

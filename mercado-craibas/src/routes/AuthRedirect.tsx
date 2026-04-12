@@ -1,14 +1,14 @@
-import { useAuth } from "@/context/AuthContext";
-import { useRolePath } from "@/utils/RoleRedirect";
 import { useEffect, } from 'react';
 import { useLocation, useNavigate } from "react-router-dom";
+import { useAuth } from "../context/AuthContext";
+import { useRolePath } from '../utils/RoleRedirect';
 
 export const AuthRedirect = () => {
     const { isAuthenticated, isReady } = useAuth();
     const { homePath } = useRolePath();
     const navigate = useNavigate();
     const location = useLocation();
-
+    console.log('AuthRedirect:', { isAuthenticated, isReady, homePath, location: location.pathname });
     useEffect(() => {
         if (!isReady) return;
 
