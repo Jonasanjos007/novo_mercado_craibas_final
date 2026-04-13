@@ -5,10 +5,14 @@ import { formatPrice, formatDiscount, badgeLabels, badgeColors, orderStatusLabel
 import ProductCard from '../components/ProductCard';
 import { useProductController } from '../controller/useProductController';
 import { useParams } from 'react-router-dom';
+import { useNotification } from '../utils/NotificationCard';
 
 export const ProductPage = () => {
-  const { result } = useProductController();
-  const { selectedProductId, products, addToCart, navigateTo, setCartOpen, ShowProduct } = useStore();
+  const Controller = useProductController();
+  const action = Controller?.action;
+  const result = Controller?.result;
+  const { selectedProductId, products, navigateTo, setCartOpen } = useStore();
+  const notify = useNotification();
   const product = products.find(p => p.id === selectedProductId);
   const [imgIndex, setImgIndex] = useState(0);
   const [selectedVariations, setSelectedVariations] = useState<Record<string, string>>({});
@@ -16,29 +20,12 @@ export const ProductPage = () => {
   const [tab, setTab] = useState<'desc' | 'reviews'>('desc');
   const [wishlist, setWishlist] = useState(false);
   const [added, setAdded] = useState(false);
+  const [variationError, setVariationError] = useState(false);
+
 
   if (!product) return null;
 
-  const discount = product.originalPrice ? formatDiscount(product.originalPrice, product.price) : 0;
-  const variationTypes = [...new Set(product.variations.map(v => v.name))];
-  const related = products.filter(p => p.category === product.category && p.id !== product.id).slice(0, 5);
 
-  const handleAddToCart = () => {
-    const firstVariation = product.variations.length > 0
-      ? product.variations.find(v => v.name === variationTypes[0] && v.value === Object.values(selectedVariations)[0])
-      : undefined;
-
-    addToCart({ product, quantity, selectedVariation: firstVariation });
-    setAdded(true);
-    setTimeout(() => setAdded(false), 2000);
-    setTimeout(() => setCartOpen(true), 300);
-  };
-
-  const fakeReviews = [
-    { name: 'Ana Lima', rating: 5, date: '12/03/2026', text: 'Produto incrível! Chegou rápido e é exatamente como descrito. Super recomendo!' },
-    { name: 'Pedro Santos', rating: 5, date: '08/03/2026', text: 'Qualidade excelente, valeu cada centavo. Embalagem perfeita.' },
-    { name: 'Maria Oliveira', rating: 4, date: '01/03/2026', text: 'Muito bom! Só achei a entrega um pouco lenta, mas o produto é ótimo.' },
-  ];
 
   return (
     <div className="min-h-screen bg-surface-50 pb-16">
@@ -142,7 +129,7 @@ export const ProductPage = () => {
               {product.originalPrice && (
                 <div className="flex items-center gap-2 mb-1">
                   <span className="text-surface-400 font-body text-sm line-through">{formatPrice(product.originalPrice)}</span>
-                  <span className="bg-rose-500 text-white text-xs font-display font-bold px-2 py-0.5 rounded-full">-{discount}%</span>
+                  <span className="bg-rose-500 text-white text-xs font-display font-bold px-2 py-0.5 rounded-full">-{result?.discount}%</span>
                 </div>
               )}
               <p className="font-display font-bold text-surface-900 text-4xl">{formatPrice(product.price)}</p>
@@ -161,7 +148,7 @@ export const ProductPage = () => {
             </div>
 
             {/* Variations */}
-            {variationTypes.map(type => {
+            {result?.variationTypes.map(type => {
               const options = product.variations.filter(v => v.name === type);
               return (
                 <div key={type}>
@@ -181,6 +168,12 @@ export const ProductPage = () => {
                       </button>
                     ))}
                   </div>
+                  {variationError && !selectedVariations[type] && (
+                    <p className="mt-1 text-xs font-body text-rose-500 flex items-center gap-1">
+                      <span className="w-1.5 h-1.5 bg-rose-500 rounded-full animate-ping"></span>
+                      Escolha uma opção
+                    </p>
+                  )}
                 </div>
               );
             })}
@@ -201,7 +194,14 @@ export const ProductPage = () => {
             {/* Actions */}
             <div className="flex gap-3">
               <button
-                onClick={handleAddToCart}
+                onClick={() => {
+                  if (action?.handleAddToCart(quantity, selectedVariations)) {
+                    setAdded(true);
+                    notify.success("Sucesso", "Produto adicionado ao carrinho.");
+
+                    setTimeout(() => setAdded(false), 2000);
+                  } else { setVariationError(true) }
+                }}
                 className={`flex-1 py-4 rounded-2xl font-display font-bold text-base flex items-center justify-center gap-2 transition-all ${added ? 'bg-green-500 text-white shadow-green-200' : 'bg-brand-500 hover:bg-brand-600 text-white shadow-brand hover:shadow-brand-lg'}`}
               >
                 {added ? <><Check className="w-5 h-5" /> Adicionado!</> : <><ShoppingCart className="w-5 h-5" /> Adicionar ao Carrinho</>}
@@ -210,7 +210,7 @@ export const ProductPage = () => {
 
             {/* Buy now */}
             <button
-              onClick={() => { handleAddToCart(); navigateTo('checkout'); }}
+              onClick={() => { action?.handleAddToCart(quantity, selectedVariations); navigateTo('checkout'); }}
               className="w-full py-3.5 rounded-2xl border-2 border-surface-200 text-surface-700 font-display font-bold hover:border-brand-300 hover:text-brand-600 hover:bg-brand-50 transition-all flex items-center justify-center gap-2"
             >
               <Zap className="w-4 h-4" /> Comprar Agora
@@ -299,7 +299,7 @@ export const ProductPage = () => {
                 </div>
               </div>
 
-              {fakeReviews.map((review, i) => (
+              {result?.fakeReviews.map((review, i) => (
                 <div key={i} className="border-b border-surface-100 pb-4 last:border-0">
                   <div className="flex items-start justify-between mb-2">
                     <div className="flex items-center gap-2">
@@ -327,11 +327,11 @@ export const ProductPage = () => {
         </div>
 
         {/* Related */}
-        {related.length > 0 && (
+        {result?.related && result.related.length > 0 && (
           <div className="mt-10">
             <h2 className="font-display font-bold text-surface-900 text-xl mb-4">Você também pode gostar</h2>
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
-              {related.map(p => <ProductCard key={p.id} product={p} compact />)}
+              {result?.related.map(p => <ProductCard key={p.id} product={p} compact />)}
             </div>
           </div>
         )}

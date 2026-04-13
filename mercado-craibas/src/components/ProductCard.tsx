@@ -27,7 +27,7 @@ export default function ProductCard({ product, compact = false }: ProductCardPro
 
   return (
     <div
-      onClick={() => navigate(`product/${product.id}`)}
+      onClick={() => navigate(`/product/${product.id}`)}
       className="group relative bg-white rounded-2xl overflow-hidden cursor-pointer transition-all duration-300 hover:-translate-y-1 hover:shadow-strong border border-surface-100 hover:border-brand-200"
     >
       <div className="relative overflow-hidden bg-surface-50">
