@@ -4,6 +4,7 @@ import { MOCK_USERS, MOCK_ORDERS } from '../data/users';
 import { PRODUCTS, PROMOTIONS as INITIAL_PROMOS } from '../data/products';
 
 interface AppState {
+  ShowProduct: (selectedProductId: string | null) => void;
   // Theme
   darkMode: boolean;
   toggleDarkMode: () => void;
@@ -85,6 +86,11 @@ export const useStore = create<AppState>((set, get) => ({
     set({ currentPage: page, selectedProductId: productId || null, selectedCategory: category || null });
     window.scrollTo({ top: 0, behavior: 'smooth' });
   },
+
+  ShowProduct: (selectedProductId: string | null) => {
+    set({ selectedProductId });
+  },
+
   setSearchQuery: (q) => set({ searchQuery: q }),
 
   // Auth

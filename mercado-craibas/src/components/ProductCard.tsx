@@ -2,6 +2,7 @@ import { ShoppingCart, Star, Zap, Heart } from 'lucide-react';
 import { Product } from '../types';
 import { formatPrice, formatDiscount, badgeLabels, badgeColors } from '../utils';
 import { useStore } from '../context/store';
+import { useNavigate } from 'react-router-dom';
 
 interface ProductCardProps {
   product: Product;
@@ -9,6 +10,7 @@ interface ProductCardProps {
 }
 
 export default function ProductCard({ product, compact = false }: ProductCardProps) {
+  const navigate = useNavigate();
   const { navigateTo, addToCart, toggleWishlist, isWishlisted } = useStore();
   const discount = product.originalPrice ? formatDiscount(product.originalPrice, product.price) : 0;
   const wishlisted = isWishlisted(product.id);
@@ -25,7 +27,7 @@ export default function ProductCard({ product, compact = false }: ProductCardPro
 
   return (
     <div
-      onClick={() => navigateTo('product', product.id)}
+      onClick={() => navigate(`product/${product.id}`)}
       className="group relative bg-white rounded-2xl overflow-hidden cursor-pointer transition-all duration-300 hover:-translate-y-1 hover:shadow-strong border border-surface-100 hover:border-brand-200"
     >
       <div className="relative overflow-hidden bg-surface-50">
@@ -59,10 +61,10 @@ export default function ProductCard({ product, compact = false }: ProductCardPro
         </h3>
         <div className="flex items-center gap-1 mb-2">
           <div className="flex items-center gap-0.5">
-            {[1,2,3,4,5].map(star => <Star key={star} className={`w-3 h-3 ${star <= Math.floor(product.rating) ? 'text-amber-400 fill-amber-400' : 'text-surface-200 fill-surface-200'}`} />)}
+            {[1, 2, 3, 4, 5].map(star => <Star key={star} className={`w-3 h-3 ${star <= Math.floor(product.rating) ? 'text-amber-400 fill-amber-400' : 'text-surface-200 fill-surface-200'}`} />)}
           </div>
           <span className="text-[10px] text-surface-400 font-body">({product.reviewCount.toLocaleString('pt-BR')})</span>
-          {product.sold > 1000 && <span className="text-[10px] text-surface-400 font-body ml-auto">{(product.sold/1000).toFixed(1)}k vendidos</span>}
+          {product.sold > 1000 && <span className="text-[10px] text-surface-400 font-body ml-auto">{(product.sold / 1000).toFixed(1)}k vendidos</span>}
         </div>
         <div>
           {product.originalPrice && <p className="text-[10px] text-surface-400 font-body line-through leading-none">{formatPrice(product.originalPrice)}</p>}

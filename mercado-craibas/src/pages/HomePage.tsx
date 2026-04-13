@@ -8,6 +8,7 @@ import { useStore } from '../context/store';
 import { BANNER_SLIDES, PROMOTIONS } from '../data/products';
 import ProductCard from '../components/ProductCard';
 import { formatPrice, categoryLabels, categoryIcons } from '../utils';
+import { useNavigate } from 'react-router-dom';
 
 const COUNTDOWN_TARGET = new Date(Date.now() + 4 * 60 * 60 * 1000 + 23 * 60 * 1000 + 45 * 1000);
 
@@ -31,12 +32,13 @@ function useCountdown() {
 
 export default function HomePage() {
   const { products, navigateTo, toggleWishlist, isWishlisted } = useStore();
+  const navigate = useNavigate();
+
   const [bannerIndex, setBannerIndex] = useState(0);
   const [autoPlay, setAutoPlay] = useState(true);
   const [activeTab, setActiveTab] = useState<'featured' | 'new' | 'bestsellers'>('featured');
   const countdown = useCountdown();
   const scrollRef = useRef<HTMLDivElement>(null);
-
   useEffect(() => {
     if (!autoPlay) return;
     const timer = setInterval(() => setBannerIndex(i => (i + 1) % BANNER_SLIDES.length), 4500);
@@ -113,7 +115,9 @@ export default function HomePage() {
                   </p>
                   <div className="flex items-center gap-3 flex-wrap">
                     <button
-                      onClick={() => navigateTo('product', slide.productId)}
+                      onClick={() => {
+                        navigate(`product/${slide.productId}`);
+                      }}
                       className="px-7 py-3.5 bg-white text-[#09090b] font-display font-bold rounded-2xl hover:bg-brand-50 hover:text-brand-600 transition-all shadow-strong text-sm flex items-center gap-2 group"
                     >
                       Ver Produto <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
@@ -354,11 +358,10 @@ export default function HomePage() {
                 <button
                   key={tab.key}
                   onClick={() => setActiveTab(tab.key)}
-                  className={`px-4 py-2 rounded-lg text-xs font-display font-bold transition-all ${
-                    activeTab === tab.key
-                      ? 'bg-white text-surface-900 shadow-soft'
-                      : 'text-surface-400 hover:text-surface-600'
-                  }`}
+                  className={`px-4 py-2 rounded-lg text-xs font-display font-bold transition-all ${activeTab === tab.key
+                    ? 'bg-white text-surface-900 shadow-soft'
+                    : 'text-surface-400 hover:text-surface-600'
+                    }`}
                 >
                   {tab.label}
                 </button>
@@ -426,7 +429,7 @@ export default function HomePage() {
               <div>
                 <span className="text-brand-400 text-xs font-bold uppercase tracking-widest mb-3 block">Por que escolher</span>
                 <h2 className="font-display font-bold text-white text-3xl mb-4 tracking-tight leading-tight">
-                  O Melhor Marketplace<br/>de Craibas-AL
+                  O Melhor Marketplace<br />de Craibas-AL
                 </h2>
                 <p className="text-white/50 font-body text-sm leading-relaxed mb-6">
                   Somos o marketplace local com os melhores preços, entrega rápida e atendimento humanizado. Produtos originais, garantia total e compra 100% segura.
@@ -489,24 +492,30 @@ export default function HomePage() {
             </div>
 
             {[
-              { title: 'Categorias', links: [
-                { label: 'Eletrônicos', action: () => navigateTo('category', undefined, 'eletronicos') },
-                { label: 'Garrafas Stanley', action: () => navigateTo('category', undefined, 'garrafas') },
-                { label: 'Acessórios', action: () => navigateTo('category', undefined, 'acessorios') },
-                { label: 'Virais 🔥', action: () => navigateTo('category', undefined, 'virais') },
-              ]},
-              { title: 'Navegação', links: [
-                { label: 'Ofertas Relâmpago', action: () => navigateTo('flash-sale') },
-                { label: 'Marcas Premium', action: () => navigateTo('brands') },
-                { label: 'Lista de Desejos', action: () => navigateTo('wishlist') },
-                { label: 'Meus Pedidos', action: () => navigateTo('orders') },
-              ]},
-              { title: 'Empresa', links: [
-                { label: 'Sobre Nós', action: () => navigateTo('about') },
-                { label: 'Contato', action: () => {} },
-                { label: 'Política de Privacidade', action: () => {} },
-                { label: 'Termos de Uso', action: () => {} },
-              ]},
+              {
+                title: 'Categorias', links: [
+                  { label: 'Eletrônicos', action: () => navigateTo('category', undefined, 'eletronicos') },
+                  { label: 'Garrafas Stanley', action: () => navigateTo('category', undefined, 'garrafas') },
+                  { label: 'Acessórios', action: () => navigateTo('category', undefined, 'acessorios') },
+                  { label: 'Virais 🔥', action: () => navigateTo('category', undefined, 'virais') },
+                ]
+              },
+              {
+                title: 'Navegação', links: [
+                  { label: 'Ofertas Relâmpago', action: () => navigateTo('flash-sale') },
+                  { label: 'Marcas Premium', action: () => navigateTo('brands') },
+                  { label: 'Lista de Desejos', action: () => navigateTo('wishlist') },
+                  { label: 'Meus Pedidos', action: () => navigateTo('orders') },
+                ]
+              },
+              {
+                title: 'Empresa', links: [
+                  { label: 'Sobre Nós', action: () => navigateTo('about') },
+                  { label: 'Contato', action: () => { } },
+                  { label: 'Política de Privacidade', action: () => { } },
+                  { label: 'Termos de Uso', action: () => { } },
+                ]
+              },
             ].map((col, i) => (
               <div key={i}>
                 <h4 className="font-display font-bold text-white text-sm mb-3">{col.title}</h4>

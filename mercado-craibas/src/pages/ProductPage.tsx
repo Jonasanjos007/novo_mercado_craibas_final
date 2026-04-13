@@ -1,13 +1,15 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { ChevronLeft, ChevronRight, Star, ShoppingCart, Zap, Shield, Truck, RefreshCw, Heart, Share2, Check, Package, ArrowLeft } from 'lucide-react';
 import { useStore } from '../context/store';
 import { formatPrice, formatDiscount, badgeLabels, badgeColors, orderStatusLabels } from '../utils';
 import ProductCard from '../components/ProductCard';
+import { useProductController } from '../controller/useProductController';
+import { useParams } from 'react-router-dom';
 
-export default function ProductPage() {
-  const { selectedProductId, products, addToCart, navigateTo, setCartOpen } = useStore();
+export const ProductPage = () => {
+  const { result } = useProductController();
+  const { selectedProductId, products, addToCart, navigateTo, setCartOpen, ShowProduct } = useStore();
   const product = products.find(p => p.id === selectedProductId);
-
   const [imgIndex, setImgIndex] = useState(0);
   const [selectedVariations, setSelectedVariations] = useState<Record<string, string>>({});
   const [quantity, setQuantity] = useState(1);
@@ -121,7 +123,7 @@ export default function ProductPage() {
                 )}
               </div>
               <h1 className="font-display font-bold text-surface-900 text-2xl md:text-3xl leading-tight">{product.name}</h1>
-              
+
               {/* Rating */}
               <div className="flex items-center gap-3 mt-3">
                 <div className="flex items-center gap-1">
@@ -277,12 +279,12 @@ export default function ProductPage() {
                 <div className="text-center">
                   <p className="font-display font-bold text-5xl text-surface-900">{product.rating}</p>
                   <div className="flex justify-center mt-1">
-                    {[1,2,3,4,5].map(s => <Star key={s} className="w-3.5 h-3.5 text-amber-400 fill-amber-400" />)}
+                    {[1, 2, 3, 4, 5].map(s => <Star key={s} className="w-3.5 h-3.5 text-amber-400 fill-amber-400" />)}
                   </div>
                   <p className="text-xs text-surface-400 font-body mt-1">{product.reviewCount.toLocaleString()} avaliações</p>
                 </div>
                 <div className="flex-1 space-y-1.5">
-                  {[5,4,3,2,1].map(s => (
+                  {[5, 4, 3, 2, 1].map(s => (
                     <div key={s} className="flex items-center gap-2">
                       <span className="text-xs text-surface-500 font-body w-4">{s}</span>
                       <Star className="w-3 h-3 text-amber-400 fill-amber-400 shrink-0" />
@@ -310,7 +312,7 @@ export default function ProductPage() {
                       </div>
                     </div>
                     <div className="flex">
-                      {[1,2,3,4,5].map(s => <Star key={s} className={`w-3.5 h-3.5 ${s <= review.rating ? 'text-amber-400 fill-amber-400' : 'text-surface-200 fill-surface-200'}`} />)}
+                      {[1, 2, 3, 4, 5].map(s => <Star key={s} className={`w-3.5 h-3.5 ${s <= review.rating ? 'text-amber-400 fill-amber-400' : 'text-surface-200 fill-surface-200'}`} />)}
                     </div>
                   </div>
                   <p className="text-sm text-surface-600 font-body leading-relaxed">{review.text}</p>
@@ -337,3 +339,4 @@ export default function ProductPage() {
     </div>
   );
 }
+export default ProductPage;
