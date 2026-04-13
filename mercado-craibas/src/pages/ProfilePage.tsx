@@ -6,6 +6,7 @@ import {
 } from 'lucide-react';
 import { useStore } from '../context/store';
 import { formatPrice, orderStatusLabels, orderStatusColors } from '../utils';
+import { useParams } from 'react-router-dom';
 
 type ProfileTab = 'overview' | 'orders' | 'wishlist' | 'addresses' | 'security' | 'preferences';
 
@@ -118,11 +119,10 @@ export default function ProfilePage() {
                 <button
                   key={t.id}
                   onClick={() => setTab(t.id)}
-                  className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all ${
-                    tab === t.id
-                      ? 'bg-brand-500 text-white'
-                      : 'text-surface-500 hover:text-surface-800 hover:bg-surface-50'
-                  }`}
+                  className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all ${tab === t.id
+                    ? 'bg-brand-500 text-white'
+                    : 'text-surface-500 hover:text-surface-800 hover:bg-surface-50'
+                    }`}
                 >
                   {t.icon}
                   <span>{t.label}</span>

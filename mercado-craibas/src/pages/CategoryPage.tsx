@@ -46,8 +46,8 @@ export default function CategoryPage() {
   const pageTitle = isSearch
     ? `Resultados para "${searchQuery}"`
     : selectedCategory
-    ? `${categoryIcons[selectedCategory]} ${categoryLabels[selectedCategory]}`
-    : 'Todos os Produtos';
+      ? `${categoryIcons[selectedCategory]} ${categoryLabels[selectedCategory]}`
+      : 'Todos os Produtos';
 
   return (
     <div className="min-h-screen bg-surface-50 pb-10">

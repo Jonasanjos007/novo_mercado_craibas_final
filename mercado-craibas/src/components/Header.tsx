@@ -2,8 +2,10 @@ import { useState } from 'react';
 import { ShoppingCart, Search, User, Menu, X, ChevronDown, Package, LayoutDashboard, Truck, LogOut, Heart, Moon, Sun } from 'lucide-react';
 import { useStore } from '../context/store';
 import { categoryLabels, categoryIcons } from '../utils';
+import { useNavigate } from 'react-router-dom';
 
 export default function Header() {
+  const navigate = useNavigate();
   const { user, logout, navigateTo, cartCount, setCartOpen, searchQuery, setSearchQuery, currentPage, selectedCategory, wishlist, darkMode, toggleDarkMode } = useStore();
   const [menuOpen, setMenuOpen] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
@@ -99,9 +101,9 @@ export default function Header() {
 
       <nav className="hidden md:block border-t border-surface-800">
         <div className="max-w-7xl mx-auto px-4 flex items-center gap-1 py-1.5">
-          <NavBtn active={currentPage === 'home'} onClick={() => navigateTo('home')} label="🏠 Início" />
+          <NavBtn active={currentPage === 'home'} onClick={() => navigate(`/`)} label="🏠 Início" />
           {Object.entries(categoryLabels).map(([key, label]) => (
-            <NavBtn key={key} active={currentPage === 'category' && selectedCategory === key} onClick={() => navigateTo('category', undefined, key)} label={`${categoryIcons[key]} ${label}`} />
+            <NavBtn key={key} active={currentPage === 'category' && selectedCategory === key} onClick={() => navigate(`/category/${key}`)} label={`${categoryIcons[key]} ${label}`} />
           ))}
           <div className="mx-1 h-4 w-px bg-surface-700" />
           <NavBtn active={currentPage === 'flash-sale'} onClick={() => navigateTo('flash-sale')} label="⚡ Relâmpago" highlight />

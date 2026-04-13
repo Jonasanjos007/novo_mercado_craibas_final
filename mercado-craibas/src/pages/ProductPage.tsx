@@ -4,14 +4,15 @@ import { useStore } from '../context/store';
 import { formatPrice, formatDiscount, badgeLabels, badgeColors, orderStatusLabels } from '../utils';
 import ProductCard from '../components/ProductCard';
 import { useProductController } from '../controller/useProductController';
-import { useParams } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import { useNotification } from '../utils/NotificationCard';
 
 export const ProductPage = () => {
   const Controller = useProductController();
   const action = Controller?.action;
   const result = Controller?.result;
-  const { selectedProductId, products, navigateTo, setCartOpen } = useStore();
+  const navigate = useNavigate();
+  const { selectedProductId, products, navigateTo, cart } = useStore();
   const notify = useNotification();
   const product = products.find(p => p.id === selectedProductId);
   const [imgIndex, setImgIndex] = useState(0);
@@ -21,7 +22,6 @@ export const ProductPage = () => {
   const [wishlist, setWishlist] = useState(false);
   const [added, setAdded] = useState(false);
   const [variationError, setVariationError] = useState(false);
-
 
   if (!product) return null;
 
@@ -210,7 +210,12 @@ export const ProductPage = () => {
 
             {/* Buy now */}
             <button
-              onClick={() => { action?.handleAddToCart(quantity, selectedVariations); navigateTo('checkout'); }}
+              onClick={() => {
+                if (action?.handleAddToCart(quantity, selectedVariations)) {
+                  notify.success("Sucesso", "Produto adicionado ao carrinho.");
+                  navigate('/checkout');
+                } else { setVariationError(true) }
+              }}
               className="w-full py-3.5 rounded-2xl border-2 border-surface-200 text-surface-700 font-display font-bold hover:border-brand-300 hover:text-brand-600 hover:bg-brand-50 transition-all flex items-center justify-center gap-2"
             >
               <Zap className="w-4 h-4" /> Comprar Agora
