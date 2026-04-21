@@ -6,7 +6,8 @@ import { useNavigate } from 'react-router-dom';
 
 export default function Header() {
   const navigate = useNavigate();
-  const { user, logout, navigateTo, cartCount, setCartOpen, searchQuery, setSearchQuery, currentPage, selectedCategory, wishlist, darkMode, toggleDarkMode } = useStore();
+  const { user, logout, navigateTo, navigatePages, cartCount, setCartOpen, searchQuery, setSearchQuery, Pages, currentPage, selectedCategory, wishlist, darkMode, toggleDarkMode } = useStore();
+  console.log("Pages:", Pages);
   const [menuOpen, setMenuOpen] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const count = cartCount();
@@ -101,14 +102,14 @@ export default function Header() {
 
       <nav className="hidden md:block border-t border-surface-800">
         <div className="max-w-7xl mx-auto px-4 flex items-center gap-1 py-1.5">
-          <NavBtn active={currentPage === 'home'} onClick={() => navigate(`/`)} label="🏠 Início" />
+          <NavBtn active={Pages === 'home'} onClick={() => { navigatePages('home', null, null); navigate(`/`) }} label="🏠 Início" />
           {Object.entries(categoryLabels).map(([key, label]) => (
-            <NavBtn key={key} active={currentPage === 'category' && selectedCategory === key} onClick={() => navigate(`/category/${key}`)} label={`${categoryIcons[key]} ${label}`} />
+            <NavBtn key={key} active={Pages === 'category' && selectedCategory === key} onClick={() => { navigatePages('category', null, key); navigate(`category/${key}`) }} label={`${categoryIcons[key]} ${label}`} />
           ))}
           <div className="mx-1 h-4 w-px bg-surface-700" />
-          <NavBtn active={currentPage === 'flash-sale'} onClick={() => navigateTo('flash-sale')} label="⚡ Relâmpago" highlight />
-          <NavBtn active={currentPage === 'brands'} onClick={() => navigateTo('brands')} label="⭐ Marcas" />
-          <NavBtn active={currentPage === 'about'} onClick={() => navigateTo('about')} label="ℹ️ Sobre" />
+          <NavBtn active={Pages === 'flash-sale'} onClick={() => { navigatePages('flash-sale', null, null); navigate('/flash-sale') }} label="⚡ Relâmpago" highlight />
+          <NavBtn active={Pages === 'brands'} onClick={() => { navigatePages('brands', null, null); navigate('/brands') }} label="⭐ Marcas" />
+          <NavBtn active={Pages === 'about'} onClick={() => { navigatePages('about', null, null); navigate('/about') }} label="ℹ️ Sobre" />
         </div>
       </nav>
 

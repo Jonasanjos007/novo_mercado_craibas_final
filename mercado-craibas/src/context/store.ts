@@ -11,10 +11,13 @@ interface AppState {
 
   // Navigation
   currentPage: AppPage;
+  Pages: string;
+
   selectedProductId: string | null;
   selectedCategory: string | null;
   searchQuery: string;
   navigateTo: (page: AppPage, productId?: string, category?: string) => void;
+  navigatePages: (page: string, productId: string | null, category: string | null) => void;
   setSearchQuery: (q: string) => void;
 
   // Auth
@@ -79,6 +82,7 @@ export const useStore = create<AppState>((set, get) => ({
 
   // Navigation
   currentPage: 'home',
+  Pages: 'home',
   selectedProductId: null,
   selectedCategory: null,
   searchQuery: '',
@@ -86,7 +90,10 @@ export const useStore = create<AppState>((set, get) => ({
     set({ currentPage: page, selectedProductId: productId || null, selectedCategory: category || null });
     window.scrollTo({ top: 0, behavior: 'smooth' });
   },
-
+  navigatePages: (page, productId, category) => {
+    set({ Pages: page, selectedProductId: productId || null, selectedCategory: category || null });
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  },
   ShowProduct: (selectedProductId: string | null) => {
     set({ selectedProductId });
   },
