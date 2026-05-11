@@ -12,7 +12,7 @@ export const ProductPage = () => {
   const action = Controller?.action;
   const result = Controller?.result;
   const navigate = useNavigate();
-  const { selectedProductId, products, navigateTo, cart } = useStore();
+  const { selectedProductId, products, navigateTo, cart, user, navigatePages } = useStore();
   const notify = useNotification();
   const product = products.find(p => p.id === selectedProductId);
   const [imgIndex, setImgIndex] = useState(0);
@@ -22,8 +22,9 @@ export const ProductPage = () => {
   const [wishlist, setWishlist] = useState(false);
   const [added, setAdded] = useState(false);
   const [variationError, setVariationError] = useState(false);
-
   if (!product) return null;
+
+
 
 
 
@@ -32,11 +33,11 @@ export const ProductPage = () => {
       {/* Breadcrumb */}
       <div className="bg-white border-b border-surface-100">
         <div className="max-w-7xl mx-auto px-4 py-3 flex items-center gap-2 text-xs text-surface-400 font-body">
-          <button onClick={() => navigateTo('home')} className="hover:text-brand-500 transition-colors flex items-center gap-1">
+          <button onClick={() => navigate('/')} className="hover:text-brand-500 transition-colors flex items-center gap-1">
             <ArrowLeft className="w-3.5 h-3.5" /> Início
           </button>
           <span>/</span>
-          <button onClick={() => navigateTo('category', undefined, product.category)} className="hover:text-brand-500 transition-colors capitalize">
+          <button onClick={() => { navigatePages('category', null, product.category), navigate(`/category/${product.category}`) }} className="hover:text-brand-500 transition-colors capitalize">
             {product.category}
           </button>
           <span>/</span>

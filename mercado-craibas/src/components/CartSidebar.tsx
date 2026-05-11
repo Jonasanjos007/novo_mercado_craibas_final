@@ -1,10 +1,12 @@
 import { X, ShoppingCart, Trash2, Plus, Minus, ArrowRight, Package, Zap } from 'lucide-react';
 import { useStore } from '../context/store';
 import { formatPrice } from '../utils';
+import { useNavigate } from 'react-router-dom';
 
 export default function CartSidebar() {
   const { cart, cartOpen, setCartOpen, removeFromCart, updateQuantity, cartTotal, navigateTo, user } = useStore();
   const total = cartTotal();
+  const navigate = useNavigate();
 
   if (!cartOpen) return null;
 
@@ -122,9 +124,9 @@ export default function CartSidebar() {
               onClick={() => {
                 setCartOpen(false);
                 if (!user) {
-                  navigateTo('login');
+                  navigate('login');
                 } else {
-                  navigateTo('checkout');
+                  navigate('checkout');
                 }
               }}
               className="w-full py-3.5 bg-brand-500 hover:bg-brand-600 text-white font-display font-bold rounded-xl transition-all shadow-brand hover:shadow-brand-lg flex items-center justify-center gap-2 text-base"

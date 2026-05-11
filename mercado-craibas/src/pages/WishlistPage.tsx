@@ -1,15 +1,18 @@
 import { Heart, ArrowLeft, ShoppingCart, Trash2, Share2 } from 'lucide-react';
 import { useStore } from '../context/store';
 import { formatPrice, badgeColors, badgeLabels } from '../utils';
+import { useNavigate } from 'react-router-dom';
 
 export default function WishlistPage() {
   const { wishlist, toggleWishlist, addToCart, navigateTo } = useStore();
+  const navigate = useNavigate();
+
 
   return (
     <div className="min-h-screen bg-[#f5f5f7]">
       <div className="bg-white border-b border-surface-100">
         <div className="max-w-7xl mx-auto px-4 py-5 flex items-center gap-3">
-          <button onClick={() => navigateTo('home')} className="p-2 rounded-xl text-surface-400 hover:text-surface-700 hover:bg-surface-100 transition-all">
+          <button onClick={() => navigate(-1)} className="p-2 rounded-xl text-surface-400 hover:text-surface-700 hover:bg-surface-100 transition-all">
             <ArrowLeft className="w-5 h-5" />
           </button>
           <div className="flex items-center gap-3">

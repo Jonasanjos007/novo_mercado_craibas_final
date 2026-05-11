@@ -3,21 +3,24 @@ import { SlidersHorizontal, X, ChevronDown, ArrowLeft, Search } from 'lucide-rea
 import { useStore } from '../context/store';
 import ProductCard from '../components/ProductCard';
 import { categoryLabels, categoryIcons } from '../utils';
+import { useNavigate, useParams } from 'react-router-dom';
 
 type SortOption = 'relevancia' | 'menor-preco' | 'maior-preco' | 'avaliacao' | 'mais-vendidos';
 
 export default function CategoryPage() {
   const { products, selectedCategory, searchQuery, currentPage, navigateTo } = useStore();
+  const { search } = useParams();
+
   const [sort, setSort] = useState<SortOption>('relevancia');
   const [filterOpen, setFilterOpen] = useState(false);
   const [priceRange, setPriceRange] = useState<[number, number]>([0, 15000]);
   const [ratingFilter, setRatingFilter] = useState(0);
   const [freeShippingOnly, setFreeShippingOnly] = useState(false);
   const [badgeFilter, setBadgeFilter] = useState<string>('');
+  const navigate = useNavigate();
 
-  const isSearch = currentPage === 'search';
+  const isSearch = search === 'search';
   const query = searchQuery.toLowerCase();
-
   let filtered = products.filter(p => {
     if (isSearch) return (
       p.name.toLowerCase().includes(query) ||
@@ -55,7 +58,7 @@ export default function CategoryPage() {
       <div className="bg-white border-b border-surface-100">
         <div className="max-w-7xl mx-auto px-4 py-4">
           <div className="flex items-center gap-3 mb-3">
-            <button onClick={() => navigateTo('home')} className="text-surface-400 hover:text-surface-600 transition-colors">
+            <button onClick={() => navigate('/')} className="text-surface-400 hover:text-surface-600 transition-colors">
               <ArrowLeft className="w-5 h-5" />
             </button>
             <div>

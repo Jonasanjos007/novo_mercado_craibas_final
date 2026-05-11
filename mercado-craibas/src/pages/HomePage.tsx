@@ -31,10 +31,12 @@ function useCountdown() {
 }
 
 export default function HomePage() {
-  const { products, navigateTo, toggleWishlist, isWishlisted } = useStore();
+  const { products, navigateTo, toggleWishlist, navigatePages, isWishlisted } = useStore();
   const navigate = useNavigate();
 
   const [bannerIndex, setBannerIndex] = useState(0);
+  const [valorIDProduct, setValorIDProduct] = useState('');
+
   const [autoPlay, setAutoPlay] = useState(true);
   const [activeTab, setActiveTab] = useState<'featured' | 'new' | 'bestsellers'>('featured');
   const countdown = useCountdown();
@@ -65,6 +67,7 @@ export default function HomePage() {
   };
 
   return (
+
     <div className="min-h-screen bg-[#f5f5f7]">
 
       {/* ── PROMO TOP STRIP ── */}
@@ -81,10 +84,13 @@ export default function HomePage() {
       {/* ── HERO BANNER ── */}
       <section className="relative h-[420px] md:h-[520px] bg-[#09090b] overflow-hidden">
         {BANNER_SLIDES.map((slide, i) => (
+
           <div
             key={slide.id}
+
             className={`absolute inset-0 transition-opacity duration-700 ${i === bannerIndex ? 'opacity-100' : 'opacity-0'}`}
           >
+
             <img
               src={slide.image}
               alt={slide.title}
@@ -116,14 +122,15 @@ export default function HomePage() {
                   <div className="flex items-center gap-3 flex-wrap">
                     <button
                       onClick={() => {
-                        navigate(`product/${slide.productId}`);
+
+                        navigate(`/product/${BANNER_SLIDES[bannerIndex].productId}`)
                       }}
                       className="px-7 py-3.5 bg-white text-[#09090b] font-display font-bold rounded-2xl hover:bg-brand-50 hover:text-brand-600 transition-all shadow-strong text-sm flex items-center gap-2 group"
                     >
                       Ver Produto <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
                     </button>
                     <button
-                      onClick={() => navigateTo('flash-sale')}
+                      onClick={() => navigate(`/flash-sale`)}
                       className="px-7 py-3.5 bg-white/10 text-white font-display font-semibold rounded-2xl hover:bg-white/20 transition-all backdrop-blur-sm border border-white/20 text-sm"
                     >
                       Ver Ofertas
@@ -133,6 +140,7 @@ export default function HomePage() {
               </div>
             </div>
           </div>
+
         ))}
 
         {/* Controls */}
@@ -189,7 +197,7 @@ export default function HomePage() {
               </span>
             ))}
           </div>
-          <button onClick={() => navigateTo('flash-sale')} className="flex items-center gap-2 px-5 py-2 bg-brand-500 hover:bg-brand-600 text-white font-display font-bold text-sm rounded-xl transition-all shadow-brand">
+          <button onClick={() => navigate('/flash-sale')} className="flex items-center gap-2 px-5 py-2 bg-brand-500 hover:bg-brand-600 text-white font-display font-bold text-sm rounded-xl transition-all shadow-brand">
             Ver Todas <ArrowRight className="w-3.5 h-3.5" />
           </button>
         </div>
@@ -235,7 +243,7 @@ export default function HomePage() {
               return (
                 <button
                   key={key}
-                  onClick={() => navigateTo('category', undefined, key)}
+                  onClick={() => { navigatePages('category', null, key); navigate(`/category/${key}`); }}
                   className="relative overflow-hidden rounded-3xl p-5 text-left group hover:scale-[1.02] hover:-translate-y-0.5 transition-all duration-300"
                   style={{ background: `linear-gradient(145deg, ${c.from}, ${c.to})` }}
                 >
@@ -297,7 +305,7 @@ export default function HomePage() {
                 <p className="text-surface-400 text-xs font-body">Os mais buscados agora</p>
               </div>
             </div>
-            <button onClick={() => navigateTo('category', undefined, 'virais')} className="flex items-center gap-1 text-brand-500 hover:text-brand-600 text-sm font-display font-semibold transition-colors">
+            <button onClick={() => { navigatePages('category', null, 'virais'); navigate('/category/virais') }} className="flex items-center gap-1 text-brand-500 hover:text-brand-600 text-sm font-display font-semibold transition-colors">
               Ver todos <ChevronLeft className="w-4 h-4 rotate-180" />
             </button>
           </div>
@@ -311,7 +319,7 @@ export default function HomePage() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {/* Flash Sale */}
             <div
-              onClick={() => navigateTo('flash-sale')}
+              onClick={() => navigate('/flash-sale')}
               className="relative overflow-hidden rounded-3xl p-7 cursor-pointer group hover:scale-[1.01] transition-all"
               style={{ background: 'linear-gradient(135deg, #09090b 0%, #18181b 60%)' }}
             >
@@ -326,7 +334,7 @@ export default function HomePage() {
             </div>
             {/* Brands */}
             <div
-              onClick={() => navigateTo('brands')}
+              onClick={() => navigate('/brands')}
               className="relative overflow-hidden rounded-3xl p-7 cursor-pointer group hover:scale-[1.01] transition-all"
               style={{ background: 'linear-gradient(135deg, #0c1a4e 0%, #1e3a8a 100%)' }}
             >
@@ -385,7 +393,7 @@ export default function HomePage() {
                 <p className="text-surface-400 text-xs font-body">Preços que não duram muito</p>
               </div>
             </div>
-            <button onClick={() => navigateTo('search')} className="flex items-center gap-1 text-brand-500 hover:text-brand-600 text-sm font-display font-semibold transition-colors">
+            <button onClick={() => navigate('/search/search')} className="flex items-center gap-1 text-brand-500 hover:text-brand-600 text-sm font-display font-semibold transition-colors">
               Ver todos <ChevronLeft className="w-4 h-4 rotate-180" />
             </button>
           </div>
@@ -410,7 +418,7 @@ export default function HomePage() {
             ].map((brand, i) => (
               <button
                 key={i}
-                onClick={() => navigateTo('brands')}
+                onClick={() => navigate('/brands')}
                 className={`${brand.bg} border ${brand.border} rounded-2xl p-4 flex flex-col items-center gap-2 hover:shadow-medium hover:-translate-y-0.5 transition-all`}
               >
                 <span className="text-2xl">{brand.emoji}</span>
@@ -435,10 +443,10 @@ export default function HomePage() {
                   Somos o marketplace local com os melhores preços, entrega rápida e atendimento humanizado. Produtos originais, garantia total e compra 100% segura.
                 </p>
                 <div className="flex flex-wrap gap-3">
-                  <button onClick={() => navigateTo('about')} className="px-5 py-2.5 bg-brand-500 hover:bg-brand-600 text-white font-display font-bold text-sm rounded-xl transition-all shadow-brand">
+                  <button onClick={() => navigate('/about')} className="px-5 py-2.5 bg-brand-500 hover:bg-brand-600 text-white font-display font-bold text-sm rounded-xl transition-all shadow-brand">
                     Conheça Nossa História
                   </button>
-                  <button onClick={() => navigateTo('home')} className="px-5 py-2.5 bg-white/10 hover:bg-white/15 text-white font-display font-semibold text-sm rounded-xl transition-all border border-white/10">
+                  <button onClick={() => navigate('/products')} className="px-5 py-2.5 bg-white/10 hover:bg-white/15 text-white font-display font-semibold text-sm rounded-xl transition-all border border-white/10">
                     Ver Produtos
                   </button>
                 </div>

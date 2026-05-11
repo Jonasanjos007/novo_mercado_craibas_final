@@ -8,7 +8,6 @@ export const AuthRedirect = () => {
     const { homePath } = useRolePath();
     const navigate = useNavigate();
     const location = useLocation();
-    console.log('AuthRedirect:', { isAuthenticated, isReady, homePath, location: location.pathname });
     useEffect(() => {
         if (!isReady) return;
 

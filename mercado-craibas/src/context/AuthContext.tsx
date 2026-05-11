@@ -1,7 +1,7 @@
-import { api } from '../config/api';
 
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { Tokens } from '../models/Tokens';
+import { api } from '../config/api';
 
 interface AuthContextData {
     tokens: Tokens | null;

@@ -1,34 +1,62 @@
-export type ProductCategory = 'eletronicos' | 'garrafas' | 'acessorios' | 'virais';
+// export type ProductCategory = 'eletronicos' | 'garrafas' | 'acessorios' | 'virais';
 
-export interface ProductVariation {
-  id: string; name: string; value: string;
-  type: 'color' | 'model' | 'size'; stock: number; priceModifier?: number;
-}
+import { CartItem } from "../models/Cart";
+import { Product } from "../models/Product";
 
-export interface Product {
-  id: string; name: string; description: string;
-  price: number; originalPrice?: number; images: string[];
-  category: ProductCategory; rating: number; reviewCount: number;
-  sold: number; variations: ProductVariation[]; stock: number;
-  badge?: 'novo' | 'mais-vendido' | 'oferta' | 'viral';
-  freeShipping: boolean; installments?: number; tags: string[]; featured: boolean;
-}
+// export interface ProductVariation {
+//   id: string;
+//   name: string;
+//   value: string;
+//   type: 'color' | 'model' | 'size';
+//   stock: number;
+//   priceModifier?: number;
+// }
 
-export interface CartItem {
-  product: Product; quantity: number; selectedVariation?: ProductVariation;
-}
+// export interface Product {
+//   id: string;
+//   name: string;
+//   description: string;
+//   price: number;
+//   originalPrice?: number;
+//   images: string[];
+//   category: ProductCategory;
+//   rating: number;
+//   reviewCount: number;
+//   sold: number;
+//   variations: ProductVariation[];
+//   stock: number;
+//   badge?: 'novo' | 'mais-vendido' | 'oferta' | 'viral';
+//   freeShipping: boolean;
+//   installments?: number;
+//   tags: string[];
+//   featured: boolean;
+// }
 
-export interface User {
-  id: string; name: string; email: string; avatar?: string;
-  role: 'customer' | 'admin' | 'delivery';
-  address?: Address; phone?: string; bio?: string;
-  vehicle?: string; region?: string; joinDate?: string;
-  preferences?: UserPreferences;
-}
+// export interface CartItem {
+//   product: Product; quantity: number; selectedVariation?: ProductVariation;
+// }
 
-export interface UserPreferences {
-  notifications: boolean; newsletter: boolean; darkMode: boolean; language: string;
-}
+// export interface User {
+//   id: string;
+//   name: string;
+//   email: string;
+//   avatar?: string;
+//   role: 'customer' | 'admin' | 'delivery';
+//   address?: Address;
+//   phone?: string;
+//   bio?: string;
+//   vehicle?: string;
+//   region?: string;
+//   joinDate?: string;
+//   preferences?: UserPreferences;
+// }
+
+// export interface UserPreferences {
+//   notifications: boolean; 
+//   newsletter: boolean;
+//    darkMode: boolean;
+//     language: string;
+// }
 
 export interface Address {
   street: string; number: string; complement?: string;
@@ -38,10 +66,20 @@ export interface Address {
 export type OrderStatus = 'pendente' | 'confirmado' | 'preparando' | 'saiu_entrega' | 'entregue' | 'cancelado';
 
 export interface Order {
-  id: string; userId: string; items: CartItem[]; total: number;
-  status: OrderStatus; createdAt: Date; updatedAt: Date;
-  address: Address; paymentMethod: string; trackingCode?: string;
-  deliveryPersonId?: string; deliveryCommission?: number;
+  id: string;
+  userId:
+  string;
+  items: CartItem[];
+  total: number;
+  status: OrderStatus;
+  createdAt: Date;
+  updatedAt: Date;
+  address: Address;
+  paymentMethod: string;
+  trackingCode?: string;
+  deliveryPersonId?: string;
+  deliveryCommission?: number;
+  date?: Date;
 }
 
 export interface Promotion {

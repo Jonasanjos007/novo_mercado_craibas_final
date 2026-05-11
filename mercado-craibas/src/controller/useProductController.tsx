@@ -4,7 +4,6 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { useNotification } from '../utils/NotificationCard';
 import { useStore } from '../context/store';
 import { formatDiscount } from '../utils';
-import { Product, ProductVariation } from '../types';
 
 type ProductControllerReturn = {
     result: {
@@ -18,7 +17,7 @@ type ProductControllerReturn = {
         handleAddToCart: (quantity: number, selectedVariations: Record<string, string>) => void;
     }
 } | null;
-export const useProductController = () => {
+export const useProductController = (): ProductControllerReturn => {
     const { selectedProductId, ShowProduct, addToCart, setCartOpen } = useStore();
     const { id } = useParams();
     const navigate = useNavigate();
@@ -55,7 +54,6 @@ export const useProductController = () => {
         { name: 'Pedro Santos', rating: 5, date: '08/03/2026', text: 'Qualidade excelente, valeu cada centavo. Embalagem perfeita.' },
         { name: 'Maria Oliveira', rating: 4, date: '01/03/2026', text: 'Muito bom! Só achei a entrega um pouco lenta, mas o produto é ótimo.' },
     ];
-    console.log(fakeReviews, discount);
     return {
         result: {
             fakeReviews: fakeReviews,

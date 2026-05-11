@@ -1,33 +1,22 @@
 import { useState } from 'react';
 import { Eye, EyeOff, ArrowRight, ShoppingBag, Mail, Lock, User, AlertCircle } from 'lucide-react';
 import { useStore } from '../context/store';
+import { useNavigate } from 'react-router-dom';
+import { useLoginController } from '../controller/useLoginController';
 
 export default function AuthPage() {
-  const { login, register, navigateTo } = useStore();
+  const Controller = useLoginController();
+  const navigate = useNavigate();
+
+  const { register, navigateTo } = useStore();
+
   const [mode, setMode] = useState<'login' | 'register'>('login');
   const [showPass, setShowPass] = useState(false);
   const [error, setError] = useState('');
-  const [loading, setLoading] = useState(false);
   const [form, setForm] = useState({ name: '', email: '', password: '' });
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError('');
-    setLoading(true);
-    await new Promise(r => setTimeout(r, 800));
-    if (mode === 'login') {
-      const ok = login(form.email, form.password);
-      if (!ok) setError('Email ou senha incorretos. Tente: joao@email.com');
-      else navigateTo('home');
-    } else {
-      if (!form.name.trim()) { setError('Digite seu nome'); setLoading(false); return; }
-      if (!form.email.includes('@')) { setError('Email inválido'); setLoading(false); return; }
-      if (form.password.length < 6) { setError('Senha deve ter no mínimo 6 caracteres'); setLoading(false); return; }
-      register(form.name, form.email, form.password);
-      navigateTo('home');
-    }
-    setLoading(false);
-  };
+
+
 
   const hints = [
     { label: 'Cliente', email: 'joao@email.com', badge: '👤' },
@@ -57,7 +46,7 @@ export default function AuthPage() {
             <p className="text-white/70 font-body text-base leading-relaxed">Milhares de produtos com os melhores preços, entrega rápida e compra 100% segura.</p>
           </div>
           <div className="relative space-y-2">
-            {['✅ Mais de 500 produtos disponíveis','🚚 Entrega rápida em todo Brasil','🔒 Pagamento 100% seguro','💳 Parcele em até 12x sem juros'].map((item, i) => (
+            {['✅ Mais de 500 produtos disponíveis', '🚚 Entrega rápida em todo Brasil', '🔒 Pagamento 100% seguro', '💳 Parcele em até 12x sem juros'].map((item, i) => (
               <p key={i} className="text-white/80 font-body text-sm">{item}</p>
             ))}
           </div>
@@ -78,13 +67,13 @@ export default function AuthPage() {
           </div>
           <h1 className="font-display font-bold text-surface-900 text-2xl mb-1">{mode === 'login' ? 'Bem-vindo de volta!' : 'Crie sua conta'}</h1>
           <p className="text-surface-400 font-body text-sm mb-6">{mode === 'login' ? 'Entre com suas credenciais para continuar' : 'Preencha os dados abaixo para se cadastrar'}</p>
-          {error && (
+          {error || Controller.result.error ? (
             <div className="flex items-center gap-2 p-3 bg-red-50 border border-red-100 rounded-xl mb-4 animate-fade-in">
               <AlertCircle className="w-4 h-4 text-red-500 shrink-0" />
-              <p className="text-red-600 font-body text-sm">{error}</p>
+              <p className="text-red-600 font-body text-sm">{error || Controller.result.error}</p>
             </div>
-          )}
-          <form onSubmit={handleSubmit} className="space-y-4">
+          ) : null}
+          <form onSubmit={(e) => Controller.action.handleSubmit(e, form, mode)} className="space-y-4">
             {mode === 'register' && (
               <div>
                 <label className="block text-xs font-display font-semibold text-surface-600 mb-1.5">Nome completo</label>
@@ -111,8 +100,8 @@ export default function AuthPage() {
                 </button>
               </div>
             </div>
-            <button type="submit" disabled={loading} className="w-full py-3.5 bg-brand-500 hover:bg-brand-600 disabled:opacity-70 text-white font-display font-bold rounded-xl transition-all shadow-brand hover:shadow-brand-lg flex items-center justify-center gap-2 mt-2">
-              {loading ? <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <>{mode === 'login' ? 'Entrar' : 'Criar Conta'}<ArrowRight className="w-4 h-4" /></>}
+            <button type="submit" disabled={Controller.result.loading} className="w-full py-3.5 bg-brand-500 hover:bg-brand-600 disabled:opacity-70 text-white font-display font-bold rounded-xl transition-all shadow-brand hover:shadow-brand-lg flex items-center justify-center gap-2 mt-2">
+              {Controller.result.loading ? <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <>{mode === 'login' ? 'Entrar' : 'Criar Conta'}<ArrowRight className="w-4 h-4" /></>}
             </button>
           </form>
           {mode === 'login' && (
@@ -128,7 +117,7 @@ export default function AuthPage() {
               </div>
             </div>
           )}
-          <button onClick={() => navigateTo('home')} className="w-full mt-4 py-2.5 text-surface-400 hover:text-surface-600 font-body text-sm transition-colors">← Voltar à loja</button>
+          <button onClick={() => navigate('/')} className="w-full mt-4 py-2.5 text-surface-400 hover:text-surface-600 font-body text-sm transition-colors">← Voltar à loja</button>
         </div>
       </div>
     </div>
