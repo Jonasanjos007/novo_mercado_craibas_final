@@ -1,10 +1,12 @@
 import { useEffect, } from 'react';
 import { useLocation, useNavigate } from "react-router-dom";
-import { useAuth } from "../context/AuthContext";
+
 import { useRolePath } from '../utils/RoleRedirect';
+import { useAuthStore } from '../context/AuthContext';
 
 export const AuthRedirect = () => {
-    const { isAuthenticated, isReady } = useAuth();
+    const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
+    const isReady = useAuthStore((state) => state.isReady);
     const { homePath } = useRolePath();
     const navigate = useNavigate();
     const location = useLocation();

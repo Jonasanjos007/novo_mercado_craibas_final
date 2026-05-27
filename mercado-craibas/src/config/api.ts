@@ -1,9 +1,10 @@
 
 import axios from "axios";
-import { TokenResponse } from "../models/TokenResponse";
 import { Tokens } from "../models/Tokens";
-import { UsuarioResponse } from "../models/UsuarioResponse";
 import { makeResult, Result } from "../utils/Result";
+import { TokenResponse } from "../models/TokenResponse";
+import { UsuarioResponse } from "../models/UsuarioResponse";
+import { User } from "../models/User";
 
 const baseURL = "http://localhost:5022/api/v1";
 
@@ -27,7 +28,7 @@ const processQueue = (error: any, token: string | null = null) => {
     failedQueue = [];
 };
 
-api.interceptors.request.use((config: any) => {
+api.interceptors.request.use((config) => {
     const stored = localStorage.getItem("@app:tokens");
     if (stored) {
         const tokens: Tokens = JSON.parse(stored);
@@ -37,8 +38,8 @@ api.interceptors.request.use((config: any) => {
 });
 
 api.interceptors.response.use(
-    (response?: any) => response,
-    async (error: any) => {
+    (response) => response,
+    async (error) => {
         const originalRequest = error.config;
 
         if (error.response?.status === 401 && !originalRequest._retry) {
@@ -96,46 +97,101 @@ api.interceptors.response.use(
 );
 
 export const ApiService = {
+    //   getDashboardData: async (
+    //     pageNumber: number,
+    //     pageSize: number,
+    //     filters: DashboardFilters
+    //   ): Promise<Result<PagedResult<SurveyEntry>>> => {
+    //     try {
+    //       const payload = {
+    //         periodStatus: filters.PeriodStatus ?? null,
+    //         entryStatus: filters.EntryStatus ?? null,
+    //         vertical: filters.vertical ?? null,
+    //         period: filters.Period ?? null,
+    //         search: filters.Search ?? null,
+    //         pageSize,
+    //         pageNumber
+    //       };
+
+    //       const { data } = await api.post("/dashboard", payload);
+
+    //       if (data.success && data.data) {
+    //         const mappedItems = data.data.items.map(
+    //           (item: any) => new SurveyEntry(item)
+    //         );
+
+    //         const pagedResult: PagedResult<SurveyEntry> = {
+    //           items: mappedItems,
+    //           totalCount: data.data.totalCount,
+    //           pageNumber: data.data.pageNumber,
+    //           pageSize: data.data.pageSize
+    //         };
+
+    //         return makeResult(true, pagedResult);
+    //       }
+
+    //       return makeResult(false, undefined, data.error || "Erro ao carregar dashboard");
+
+    //     } catch {
+    //       return makeResult(false, undefined, "Erro de conexão");
+    //     }
+    //   },
 
 
+    //   saveCollection: async (data: Partial<SurveyEntry>) => {
+    //     if (data.id) {
+    //       const res = await api.put(`/collections/${data.id}`, data);
+    //       return res.data;
+    //     }
 
-    getCollectionByAssignmentId: async (assignmentId: string) => {
-        const { data } = await api.get("/collections", {
-            params: { assignmentId },
-        });
-        return data[0] || null;
-    },
-    getAssignmentById: async (id: string) => {
+    //     const res = await api.post("/collections", data);
+    //     return res.data;
+    //   },
+
+    //   getCollectionByAssignmentId: async (assignmentId: string) => {
+    //     const { data } = await api.get("/collections", {
+    //       params: { assignmentId },
+    //     });
+
+    //     return data[0] || null;
+    //   },
+
+    //   getAssignmentById: async (id: string) => {
+    //     const { data } = await api.get(`/collections/${id}`);
+    //     return data;
+    //   },
+
+    loginUser: async (email: string, password: string): Promise<Result<TokenResponse>> => {
         try {
-            const { data } = await api.get(`/collections/${id}`);
-            return makeResult(data.success, data.value, data.error);
-        } catch (data: any) {
-            return makeResult(false, undefined, data.error.message);
+            const { data } = await api.post<Result<TokenResponse>>("/auth/login", { email, password});
+
+            if (!data.data) {
+                return makeResult(false, {} as TokenResponse, "Resposta inválida do servidor");
+            }
+
+            return makeResult(data.success, data.data, data.error);
+        } catch (err) {
+            return makeResult(false, {} as TokenResponse, "Falha na comunicação");
         }
     },
-    // loginUser: async (email: string, password: string): Promise<Result<TokenResponse>> => {
-    //     try {
-    //         const { data } = await api.post<Result<TokenResponse>>("/auth/login", { email, password });
 
-    //         return makeResult(data.success, data.data, data.error);
-    //     } catch (err) {
-    //         return "Falha na comunicação";
-    //     }
-    // },
+    getUser: async (): Promise<Result<User>> => {
+        try {
+            const response = await api.get("/users/me");
+            const { success, data, error } = response.data;
 
-    // getUser: async (): Promise<Result<UsuarioResponse>> => {
-    //     try {
-    //         const response = await api.get("/users/me");
-    //         const { success, data, error } = response.data;
+            if (!data.data) {
+                return makeResult(false, {} as User, "Usuário não encontrado");
+            }
 
-    //         return makeResult(success, data, error);
-    //     } catch (error) {
-    //         return makeResult(false, undefined, "Erro ao buscar dados do usuário");
-    //     }
-    // },
-
-    refreshToken: async (refreshToken: string) => {
-        const { data } = await api.post("/auth/refresh", { refreshToken });
-        return data;
+            return makeResult(success, data, error);
+        } catch (error) {
+            return makeResult(false, {} as User, "Falha na comunicação");
+        }
     },
+
+    //   refreshToken: async (refreshToken: string) => {
+    //     const { data } = await api.post("/auth/refresh", { refreshToken });
+    //     return data;
+    //   },
 };

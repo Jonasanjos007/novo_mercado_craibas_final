@@ -1,8 +1,8 @@
 import { ShoppingCart, Star, Zap, Heart } from 'lucide-react';
-import { Product } from '../types';
 import { formatPrice, formatDiscount, badgeLabels, badgeColors } from '../utils';
 import { useStore } from '../context/store';
 import { useNavigate } from 'react-router-dom';
+import { Product } from '../models/Product';
 
 interface ProductCardProps {
   product: Product;

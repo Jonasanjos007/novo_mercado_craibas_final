@@ -2,6 +2,9 @@ import { useState } from 'react';
 import { useStore } from '../context/store';
 import { useNavigate } from 'react-router-dom';
 import { useNotification } from '../utils/NotificationCard';
+import { ApiService } from '../config/api';
+import { useAuthStore } from '../context/AuthContext';
+import { useUser } from '../context/UserContext';
 
 type loginControllerReturn = {
     action: {
@@ -12,18 +15,19 @@ type loginControllerReturn = {
 };
 
 export const useLoginController = () => {
-    const { login, register, navigateTo } = useStore();
-
+    const { login, saveUser, navigateTo } = useStore();
+    const userContext = useUser();
+    const [email, setEmail] = useState("");
+    const [password, setPassword] = useState("");
     const [error, setError] = useState('');
     const [loading, setLoading] = useState(false);
     const navigate = useNavigate();
+    const { loginUser, getUser } = ApiService;
     const notify = useNotification();
 
-    const handleSubmit = async (e: React.FormEvent, form: { name: string, email: string, password: string }, mode: 'login' | 'register') => {
+    const handleSubmit = async (e: React.FormEvent, form: { email: string, password: string }, mode: 'login' | 'register') => {
         e.preventDefault();
-        setError('');
-        setLoading(true);
-        await new Promise(r => setTimeout(r, 800));
+        console.log("Submitting form", form, "in mode", mode);
         if (mode === 'login') {
             if (!form.email) {
                 setError('Preencha campo email');
@@ -42,7 +46,8 @@ export const useLoginController = () => {
             if (!ok.success) {
                 setError('Email ou senha incorretos');
                 notify.error('Email ou senha incorretos', 'error');
-            } else {
+            } 
+        else {
                 notify.success('Login realizado com sucesso', 'success');
                 if (ok.role === 'admin') {
                     navigate('/admin');
@@ -52,24 +57,66 @@ export const useLoginController = () => {
                     navigate('/');
                 }
             }
-        } else {
-            if (!form.name.trim()) { setError('Digite seu nome'); setLoading(false); return; }
+        }else {
             if (!form.email.includes('@')) { setError('Email inválido'); setLoading(false); return; }
             if (form.password.length < 6) { setError('Senha deve ter no mínimo 6 caracteres'); setLoading(false); return; }
-            register(form.name, form.email, form.password);
+            saveUser({
+                id: `u${Date.now()}`,
+                name: '',
+                email: form.email,
+                role: 'customer',
+                phone: '',
+                //bio: '',
+                Insert_date: new Date().toLocaleDateString('pt-BR'),
+                preferences: { notifications: true, newsletter: false, darkMode: false, language: 'pt-BR' },
+                address: { street: '', number: '', neighborhood: '', city: 'Craibas', state: 'AL', zipCode: '' }
+            });
             navigate('/');
             notify.success('Cadastro realizado com sucesso', 'success');
         }
+
+        setError('');
+        setLoading(true);
+     
+
+        const finalResult = await (await loginUser(email, password))
+            .chain(async (tokens) => {
+                useAuthStore.getState().setTokens(tokens);
+                return await getUser();
+            });
+
+        finalResult.fold(
+            (user) => {
+                saveUser(user);
+                notify.success("Sucesso", "Bem-vindo!");
+                navigate("/");
+            },
+            (err) => {
+                notify.error("Erro", err);
+                cleanUserData();
+            }
+        );
+
+        setLoading(false);
+
+        await new Promise(r => setTimeout(r, 800));
+
         setLoading(false);
     };
-
+    const cleanUserData = () => {
+        userContext.clearUser();
+    };
     return {
         action: {
-            handleSubmit
+            handleSubmit,
+            setPassword,
+            setEmail
         },
         result: {
             error,
-            loading
+            loading,
+            email,
+            password
         }
 
     }

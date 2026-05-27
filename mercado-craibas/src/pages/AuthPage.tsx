@@ -3,17 +3,18 @@ import { Eye, EyeOff, ArrowRight, ShoppingBag, Mail, Lock, User, AlertCircle } f
 import { useStore } from '../context/store';
 import { useNavigate } from 'react-router-dom';
 import { useLoginController } from '../controller/useLoginController';
+import { ApiService } from '../config/api';
+import Loading from '../components/Loading';
 
 export default function AuthPage() {
   const Controller = useLoginController();
   const navigate = useNavigate();
-
-  const { register, navigateTo } = useStore();
+  const { saveUser, navigateTo } = useStore();
 
   const [mode, setMode] = useState<'login' | 'register'>('login');
   const [showPass, setShowPass] = useState(false);
   const [error, setError] = useState('');
-  const [form, setForm] = useState({ name: '', email: '', password: '' });
+  const [form, setForm] = useState({ email: '', password: '' });
 
 
 
@@ -87,16 +88,37 @@ export default function AuthPage() {
               <label className="block text-xs font-display font-semibold text-surface-600 mb-1.5">Email</label>
               <div className="relative">
                 <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-surface-300" />
-                <input type="email" value={form.email} onChange={e => setForm(f => ({ ...f, email: e.target.value }))} placeholder="seu@email.com" className="w-full pl-10 pr-4 py-3 border-2 border-surface-200 rounded-xl font-body text-sm text-surface-800 placeholder:text-surface-300 focus:border-brand-400 focus:outline-none transition-colors" />
+                <input
+                  type="email"
+                  value={Controller.result.email}
+                  onChange={(e) => {
+                    Controller.action.setEmail(e.target.value);
+                    setForm(f => ({ ...f, email: e.target.value }));
+                  }}
+                  placeholder="seu@email.com"
+                  className="w-full pl-10 pr-4 py-3 border-2 border-surface-200 rounded-xl font-body text-sm text-surface-800 placeholder:text-surface-300 focus:border-brand-400 focus:outline-none transition-colors" />
               </div>
             </div>
             <div>
               <label className="block text-xs font-display font-semibold text-surface-600 mb-1.5">Senha</label>
               <div className="relative">
                 <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-surface-300" />
-                <input type={showPass ? 'text' : 'password'} value={form.password} onChange={e => setForm(f => ({ ...f, password: e.target.value }))} placeholder="••••••••" className="w-full pl-10 pr-12 py-3 border-2 border-surface-200 rounded-xl font-body text-sm text-surface-800 placeholder:text-surface-300 focus:border-brand-400 focus:outline-none transition-colors" />
-                <button type="button" onClick={() => setShowPass(!showPass)} className="absolute right-3.5 top-1/2 -translate-y-1/2 text-surface-300 hover:text-surface-500 transition-colors">
-                  {showPass ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                <input
+                  type={showPass ? 'text' : 'password'}
+                  value={form.password}
+                  onChange={(e) => {
+                    Controller.action.setPassword(e.target.value);
+                    setForm(f => ({ ...f, password: e.target.value }));
+                  }}
+                  placeholder="••••••••"
+                  className="w-full pl-10 pr-12 py-3 border-2 border-surface-200 rounded-xl font-body text-sm text-surface-800 placeholder:text-surface-300 focus:border-brand-400 focus:outline-none transition-colors" />
+                <button
+                  type="button"
+                  onClick={() => setShowPass(!showPass)}
+                  className="absolute right-3.5 top-1/2 -translate-y-1/2 text-surface-300 hover:text-surface-500 transition-colors">
+                  {showPass ?
+                    <EyeOff className="w-4 h-4" />
+                    : <Eye className="w-4 h-4" />}
                 </button>
               </div>
             </div>
@@ -120,6 +142,11 @@ export default function AuthPage() {
           <button onClick={() => navigate('/')} className="w-full mt-4 py-2.5 text-surface-400 hover:text-surface-600 font-body text-sm transition-colors">← Voltar à loja</button>
         </div>
       </div>
+      <Loading
+        loading={Controller.result.loading}
+        message="Entrando na sua conta"
+        subMessage="Validando credenciais..."
+      />
     </div>
   );
 }

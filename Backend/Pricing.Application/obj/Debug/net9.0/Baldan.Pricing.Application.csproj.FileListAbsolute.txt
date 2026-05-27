@@ -1,0 +1,13 @@
+C:\novo_mercado_craibas_final\Backend\Pricing.Application\bin\Debug\net9.0\Baldan.Pricing.Application.deps.json
+C:\novo_mercado_craibas_final\Backend\Pricing.Application\bin\Debug\net9.0\Baldan.Pricing.Application.dll
+C:\novo_mercado_craibas_final\Backend\Pricing.Application\bin\Debug\net9.0\Baldan.Pricing.Application.pdb
+C:\novo_mercado_craibas_final\Backend\Pricing.Application\obj\Debug\net9.0\Baldan.Pricing.Application.csproj.AssemblyReference.cache
+C:\novo_mercado_craibas_final\Backend\Pricing.Application\obj\Debug\net9.0\Baldan.Pricing.Application.GeneratedMSBuildEditorConfig.editorconfig
+C:\novo_mercado_craibas_final\Backend\Pricing.Application\obj\Debug\net9.0\Baldan.Pricing.Application.AssemblyInfoInputs.cache
+C:\novo_mercado_craibas_final\Backend\Pricing.Application\obj\Debug\net9.0\Baldan.Pricing.Application.AssemblyInfo.cs
+C:\novo_mercado_craibas_final\Backend\Pricing.Application\obj\Debug\net9.0\Baldan.Pricing.Application.csproj.CoreCompileInputs.cache
+C:\novo_mercado_craibas_final\Backend\Pricing.Application\obj\Debug\net9.0\Baldan.Pricing.Application.sourcelink.json
+C:\novo_mercado_craibas_final\Backend\Pricing.Application\obj\Debug\net9.0\Baldan.Pricing.Application.dll
+C:\novo_mercado_craibas_final\Backend\Pricing.Application\obj\Debug\net9.0\refint\Baldan.Pricing.Application.dll
+C:\novo_mercado_craibas_final\Backend\Pricing.Application\obj\Debug\net9.0\Baldan.Pricing.Application.pdb
+C:\novo_mercado_craibas_final\Backend\Pricing.Application\obj\Debug\net9.0\ref\Baldan.Pricing.Application.dll

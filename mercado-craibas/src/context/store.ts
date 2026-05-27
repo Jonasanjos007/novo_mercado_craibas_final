@@ -31,7 +31,7 @@ interface AppState {
     role?: 'admin' | 'delivery' | 'customer';
   };
   logout: () => void;
-  register: (name: string, email: string, password: string) => boolean;
+  saveUser: (user: User) => boolean;
   updateUser: (updates: Partial<User>) => void;
 
   // Cart
@@ -128,15 +128,15 @@ export const useStore = create<AppState>()(
         };
       },
       logout: () => set({ user: null, currentPage: 'home' }),
-      register: (name, email, _password) => {
+      saveUser: (User: User) => {
         const newUser: User = {
           id: `u${Date.now()}`,
-          name,
-          email,
+          name: '',
+          email: '',
           role: 'customer',
           phone: '',
-          bio: '',
-          joinDate: new Date().toLocaleDateString('pt-BR'),
+          //bio: '',
+          Insert_date: new Date().toLocaleDateString('pt-BR'),
           preferences: { notifications: true, newsletter: false, darkMode: false, language: 'pt-BR' },
           address: { street: '', number: '', neighborhood: '', city: 'Craibas', state: 'AL', zipCode: '' },
         };

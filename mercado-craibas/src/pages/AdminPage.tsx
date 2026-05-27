@@ -221,7 +221,7 @@ export default function AdminPage() {
   const [profileForm, setProfileForm] = useState({ name: user?.name || '', email: user?.email || '', phone: user?.phone || '', bio: user?.bio || '' });
   const [settingsForm, setSettingsForm] = useState({
     storeName: 'Mercado Craibas', slogan: 'O melhor marketplace de Craibas',
-    primaryColor: '#f97316', freeShippingAbove: '299', baseShipping: '19.90', deliveryDays: '3-5',
+    primaryColor: '#2d14be', freeShippingAbove: '299', baseShipping: '19.90', deliveryDays: '3-5',
     twoFactor: false, sessionTimeout: '30',
   });
 

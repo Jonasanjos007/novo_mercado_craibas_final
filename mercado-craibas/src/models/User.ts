@@ -7,10 +7,10 @@ export interface User {
     role: 'customer' | 'admin' | 'delivery';
     address?: Address;
     phone?: string;
-    bio?: string;
-    vehicle?: string;
+    //bio?: string;
+   // vehicle?: string;
     region?: string;
-    joinDate?: string;
+    Insert_date?: string;
     preferences?: UserPreferences;
 }
 export interface Address {
