@@ -12,6 +12,9 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Baldan.Pricing.Application.Services;
 using backend.services.interfaces;
+using Mercado.Craibas.Application.Interfaces.Services;
+using Mercado.Craibas.Application.Services;
+using Mercado.Craibas.Application.Interfaces.Repositories;
 
 namespace Pricing.Api
 
@@ -70,6 +73,8 @@ namespace Pricing.Api
 
             // DI
             builder.Services.AddScoped<IUnitOfWork, UnitOfWorkRepository>();
+            builder.Services.AddScoped<IProductService, ProductService>();
+            builder.Services.AddScoped<IProductRepository, ProductRepository>();
             //builder.Services.AddScoped<ISurveyService, SurveyService>();
             builder.Services.AddScoped<IAuthService, AuthService>();
             builder.Services.AddScoped<IAuthRepository, AuthRepository>();

@@ -25,20 +25,20 @@ namespace Mercado.Craibas.Application.Services
             _unitOfWork = unitOfWork;
         }
 
-        public async Task<Result<List<ProducrResponse>>> GetProductList()
+        public async Task<Result<List<ProductResponse>>> GetProductList()
         {
             var products = await _productRepository.GetAllProductAsyncList<Product>();
 
             if (products == null || !products.Any())
             {
-                return Result<List<ProducrResponse>>
+                return Result<List<ProductResponse>>
                     .Failure(Error.Failure(
                         "Produtos",
                         "Produtos não encontrados!"
                     ));
             }
 
-            var productList = new List<ProducrResponse>();
+            var productList = new List<ProductResponse>();
 
             foreach (var product in products)
             {
@@ -49,16 +49,16 @@ namespace Mercado.Craibas.Application.Services
                     continue;
                 }
 
-                productList.Add(new ProducrResponse
+                productList.Add(new ProductResponse
                 {
                     Id = product.Id,
                     Name = product.Name,
-                    Price_Unit = product.Price_Unit,
-                    Variants = variants
+                    Price_Unic = product.Price_Unit,
+                    Variantes = variants
                 });
             }
 
-            return Result<List<ProducrResponse>>
+            return Result<List<ProductResponse>>
                 .Success(productList);
         }
     }

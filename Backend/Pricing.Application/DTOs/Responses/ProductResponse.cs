@@ -2,9 +2,9 @@ using Baldan.Pricing.Application.Domain.Entities;
 
 namespace Pricing.Api.DTOs.Responses;
 
-public class ProducrResponse
+public class ProductResponse
 {
-    public string Id { get; set; } = default!;
+    public int Id { get; set; } = default!;
     public string Name { get; set; } = default!;
     public string? Descripition { get; set; } = default!;
     public double? Price_Unic { get; set; } = default!;

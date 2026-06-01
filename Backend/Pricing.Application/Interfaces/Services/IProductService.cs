@@ -10,6 +10,6 @@ namespace Mercado.Craibas.Application.Interfaces.Services
 {
     public interface IProductService
     {
-        Task<Result<UserResponse>> GetProductList();
+        Task<Result<List<ProductResponse>>> GetProductList();
     }
 }
