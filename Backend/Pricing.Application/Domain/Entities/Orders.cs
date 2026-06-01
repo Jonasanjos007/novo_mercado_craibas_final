@@ -16,7 +16,7 @@ namespace Baldan.Pricing.Application.Domain.Entities
         public int? Id_Cupom { get; set; }
         public Cupom? Cupom { get; set; }
         public string Payment_terms { get; set; }
-        public int Id_User_Customer { get; set; }
+        public int? Id_User_Customer { get; set; }
         public User_Customer User_Customer { get; set; }
         public Order_Status Order_Status { get; set; }
         public int Id_Address { get; set; }

@@ -22,394 +22,673 @@ namespace Mercado.Craibas.Infrastructure.Migrations
 
             SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
 
-            modelBuilder.Entity("Baldan.Pricing.Application.Models.Entities.City", b =>
+            modelBuilder.Entity("Baldan.Pricing.Application.Domain.Entities.Address", b =>
                 {
-                    b.Property<string>("Id")
-                        .HasColumnType("char(26)");
-
-                    b.Property<DateTime>("InsertDate")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("Name")
-                        .IsRequired()
-                        .HasMaxLength(200)
-                        .HasColumnType("nvarchar(200)");
-
-                    b.Property<string>("StateId")
-                        .IsRequired()
-                        .HasColumnType("char(26)");
-
-                    b.Property<DateTime>("UpdateDate")
-                        .HasColumnType("datetime2");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("StateId");
-
-                    b.ToTable("City");
-                });
-
-            modelBuilder.Entity("Baldan.Pricing.Application.Models.Entities.Family", b =>
-                {
-                    b.Property<string>("Id")
-                        .HasColumnType("char(26)");
-
-                    b.Property<DateTime>("InsertDate")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("Name")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<DateTime>("UpdateDate")
-                        .HasColumnType("datetime2");
-
-                    b.HasKey("Id");
-
-                    b.ToTable("Family");
-                });
-
-            modelBuilder.Entity("Baldan.Pricing.Application.Models.Entities.Manufacturer", b =>
-                {
-                    b.Property<string>("Id")
-                        .HasColumnType("char(26)");
-
-                    b.Property<DateTime>("InsertDate")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("Name")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<DateTime>("UpdateDate")
-                        .HasColumnType("datetime2");
-
-                    b.HasKey("Id");
-
-                    b.ToTable("Manufacturer");
-                });
-
-            modelBuilder.Entity("Baldan.Pricing.Application.Models.Entities.OwnerProduct", b =>
-                {
-                    b.Property<string>("Id")
-                        .HasColumnType("char(26)");
-
-                    b.Property<int>("Derivation")
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
                         .HasColumnType("int");
 
-                    b.Property<string>("FamilyId")
-                        .IsRequired()
-                        .HasColumnType("char(26)");
-
-                    b.Property<DateTime>("InsertDate")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("Name")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<DateTime>("UpdateDate")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("Vertical")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("FamilyId");
-
-                    b.ToTable("OwnerProducts");
-                });
-
-            modelBuilder.Entity("Baldan.Pricing.Application.Models.Entities.Period", b =>
-                {
-                    b.Property<string>("Id")
-                        .HasColumnType("char(26)");
-
-                    b.Property<DateTime>("EndDate")
-                        .HasColumnType("datetime2");
-
-                    b.Property<DateTime>("InsertDate")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("PeriodStatus")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<DateTime>("StartdDate")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("TwoMonthPeriod")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<DateTime>("UpdateDate")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("Year")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.HasKey("Id");
-
-                    b.ToTable("Period");
-                });
-
-            modelBuilder.Entity("Baldan.Pricing.Application.Models.Entities.Profile", b =>
-                {
-                    b.Property<string>("Id")
-                        .HasColumnType("char(26)");
-
-                    b.Property<DateTime>("InsertDate")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("Profiles")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<DateTime>("UpdateDate")
-                        .HasColumnType("datetime2");
-
-                    b.HasKey("Id");
-
-                    b.ToTable("Profile");
-                });
-
-            modelBuilder.Entity("Baldan.Pricing.Application.Models.Entities.Search", b =>
-                {
-                    b.Property<string>("Id")
-                        .HasColumnType("char(26)");
-
-                    b.Property<DateTime>("InsertDate")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("OwnerProductId")
-                        .IsRequired()
-                        .HasColumnType("char(26)");
-
-                    b.Property<string>("PeriodId")
-                        .IsRequired()
-                        .HasColumnType("char(26)");
-
-                    b.Property<string>("SearchStatusId")
-                        .IsRequired()
-                        .HasColumnType("char(26)");
-
-                    b.Property<string>("ThirdProductId")
-                        .IsRequired()
-                        .HasColumnType("char(26)");
-
-                    b.Property<DateTime>("UpdateDate")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("UserId")
-                        .IsRequired()
-                        .HasColumnType("char(26)");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("OwnerProductId");
-
-                    b.HasIndex("PeriodId");
-
-                    b.HasIndex("SearchStatusId");
-
-                    b.HasIndex("ThirdProductId");
-
-                    b.HasIndex("UserId");
-
-                    b.ToTable("Search");
-                });
-
-            modelBuilder.Entity("Baldan.Pricing.Application.Models.Entities.SearchStatus", b =>
-                {
-                    b.Property<string>("Id")
-                        .HasColumnType("char(26)");
-
-                    b.Property<DateTime>("InsertDate")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("Status")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<DateTime>("UpdateDate")
-                        .HasColumnType("datetime2");
-
-                    b.HasKey("Id");
-
-                    b.ToTable("SearchStatus");
-                });
-
-            modelBuilder.Entity("Baldan.Pricing.Application.Models.Entities.State", b =>
-                {
-                    b.Property<string>("Id")
-                        .HasColumnType("char(26)");
-
-                    b.Property<string>("Code")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<DateTime>("InsertDate")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("Name")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<DateTime>("UpdateDate")
-                        .HasColumnType("datetime2");
-
-                    b.HasKey("Id");
-
-                    b.ToTable("States");
-                });
-
-            modelBuilder.Entity("Baldan.Pricing.Application.Models.Entities.SurveyEntry", b =>
-                {
-                    b.Property<string>("Id")
-                        .HasColumnType("char(26)");
-
-                    b.Property<string>("Attachment")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
                     b.Property<string>("City")
                         .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
 
-                    b.Property<string>("EntryStatus")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                    b.Property<int?>("Id_User_Customer")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("Id_User_Delivery")
+                        .HasColumnType("int");
 
                     b.Property<DateTime>("InsertDate")
                         .HasColumnType("datetime2");
 
-                    b.Property<string>("NameSource")
+                    b.Property<int>("Number")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Road")
                         .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                        .HasMaxLength(250)
+                        .HasColumnType("nvarchar(250)");
 
-                    b.Property<string>("Observation")
+                    b.Property<string>("State")
                         .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("PaymentTerms")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<decimal>("Percentage")
-                        .HasPrecision(10, 2)
-                        .HasColumnType("decimal(10,2)");
-
-                    b.Property<string>("PeriodId")
-                        .IsRequired()
-                        .HasColumnType("char(26)");
-
-                    b.Property<string>("PriceIncludingTax")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<decimal>("ResalePrice")
-                        .HasPrecision(18, 2)
-                        .HasColumnType("decimal(18,2)");
-
-                    b.Property<string>("SearchId")
-                        .IsRequired()
-                        .HasColumnType("char(26)");
-
-                    b.Property<string>("ShippingIncluded")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("Source")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("Uf")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
 
                     b.Property<DateTime>("UpdateDate")
                         .HasColumnType("datetime2");
 
                     b.HasKey("Id");
 
-                    b.HasIndex("PeriodId");
+                    b.HasIndex("Id_User_Customer")
+                        .IsUnique()
+                        .HasFilter("[Id_User_Customer] IS NOT NULL");
 
-                    b.HasIndex("SearchId");
+                    b.HasIndex("Id_User_Delivery")
+                        .IsUnique()
+                        .HasFilter("[Id_User_Delivery] IS NOT NULL");
 
-                    b.ToTable("SurveyEntry");
+                    b.ToTable("Address", (string)null);
                 });
 
-            modelBuilder.Entity("Baldan.Pricing.Application.Models.Entities.ThirdProduct", b =>
+            modelBuilder.Entity("Baldan.Pricing.Application.Domain.Entities.Cart", b =>
                 {
-                    b.Property<string>("Id")
-                        .HasColumnType("char(26)");
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("Id_User_Customer")
+                        .HasColumnType("int");
 
                     b.Property<DateTime>("InsertDate")
                         .HasColumnType("datetime2");
 
-                    b.Property<string>("ManufacturerId")
+                    b.Property<DateTime>("UpdateDate")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Id_User_Customer");
+
+                    b.ToTable("Cart", (string)null);
+                });
+
+            modelBuilder.Entity("Baldan.Pricing.Application.Domain.Entities.Cart_Item", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("Id_Cart")
+                        .HasColumnType("int");
+
+                    b.Property<int>("Id_Product")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("InsertDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("Quantity")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("UpdateDate")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Id_Cart");
+
+                    b.HasIndex("Id_Product");
+
+                    b.ToTable("Cart_Item", (string)null);
+                });
+
+            modelBuilder.Entity("Baldan.Pricing.Application.Domain.Entities.Cupom", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<bool>("Active")
+                        .HasColumnType("bit");
+
+                    b.Property<int>("Cod_Cupom")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Descriotion")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<double>("Discont")
+                        .HasColumnType("float");
+
+                    b.Property<DateTime>("InsertDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<double>("Minimum_Value")
+                        .HasColumnType("float");
+
+                    b.Property<string>("Name_Cupom")
                         .IsRequired()
-                        .HasColumnType("char(26)");
+                        .HasMaxLength(150)
+                        .HasColumnType("nvarchar(150)");
+
+                    b.Property<DateTime>("UpdateDate")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("Cupom", (string)null);
+                });
+
+            modelBuilder.Entity("Baldan.Pricing.Application.Domain.Entities.Customize_Admin", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<bool>("Dark")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("Global_Site_Color")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.Property<int>("Id_User_Admin")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("InsertDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime>("UpdateDate")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Id_User_Admin")
+                        .IsUnique();
+
+                    b.ToTable("Customize_Admin", (string)null);
+                });
+
+            modelBuilder.Entity("Baldan.Pricing.Application.Domain.Entities.Customize_Cliente", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<bool>("Dark")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("Global_Site_Color")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.Property<int>("Id_User_Customer")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("InsertDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime>("UpdateDate")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Id_User_Customer")
+                        .IsUnique();
+
+                    b.ToTable("Customize_Cliente", (string)null);
+                });
+
+            modelBuilder.Entity("Baldan.Pricing.Application.Domain.Entities.Imagens_Products", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("Id_Product")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("InsertDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime>("UpdateDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Url_Imagem")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Id_Product");
+
+                    b.ToTable("Imagens_Products", (string)null);
+                });
+
+            modelBuilder.Entity("Baldan.Pricing.Application.Domain.Entities.OrderLineItens", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<double?>("Discont")
+                        .HasColumnType("float");
+
+                    b.Property<int>("Id_Order")
+                        .HasColumnType("int");
+
+                    b.Property<int>("Id_Product")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("InsertDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Name_Product")
+                        .IsRequired()
+                        .HasMaxLength(250)
+                        .HasColumnType("nvarchar(250)");
+
+                    b.Property<double>("Origin_Price")
+                        .HasColumnType("float");
+
+                    b.Property<double>("Price_Unit")
+                        .HasColumnType("float");
+
+                    b.Property<int>("Quantity")
+                        .HasColumnType("int");
+
+                    b.Property<double>("Total_Price")
+                        .HasColumnType("float");
+
+                    b.Property<DateTime>("UpdateDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Variante_Name")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<string>("Variante_Type")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<string>("Variante_Value")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Id_Order");
+
+                    b.HasIndex("Id_Product");
+
+                    b.ToTable("OrderLineItens", (string)null);
+                });
+
+            modelBuilder.Entity("Baldan.Pricing.Application.Domain.Entities.Orders", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<double?>("Delivery_Commission")
+                        .HasColumnType("float");
+
+                    b.Property<double>("Discont")
+                        .HasColumnType("float");
+
+                    b.Property<double>("Discont_Percentage")
+                        .HasColumnType("float");
+
+                    b.Property<DateTime>("Estimated_Delivery_Date")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("Id_Address")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("Id_Cupom")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("Id_User_Customer")
+                        .HasColumnType("int");
+
+                    b.Property<int>("Id_User_Delivery")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("InsertDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Number_Order")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<int>("Order_Status")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Payment_terms")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<double>("Total_Value_Order")
+                        .HasColumnType("float");
+
+                    b.Property<DateTime>("UpdateDate")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Id_Address");
+
+                    b.HasIndex("Id_Cupom");
+
+                    b.HasIndex("Id_User_Customer");
+
+                    b.HasIndex("Id_User_Delivery");
+
+                    b.ToTable("Orders", (string)null);
+                });
+
+            modelBuilder.Entity("Baldan.Pricing.Application.Domain.Entities.Product", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Badge")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<string>("Cod_Cupom")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<int>("CountSold")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasDefaultValue(0);
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
+
+                    b.Property<bool>("Featured")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(false);
+
+                    b.Property<bool>("FreeShipping")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(false);
+
+                    b.Property<int>("Id_Category")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("InsertDate")
+                        .HasColumnType("datetime2");
 
                     b.Property<string>("Name")
                         .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                        .HasMaxLength(250)
+                        .HasColumnType("nvarchar(250)");
 
-                    b.Property<string>("OwnerProductId")
+                    b.Property<double>("Origin_Price")
+                        .HasColumnType("float");
+
+                    b.Property<double>("Price_Unit")
+                        .HasColumnType("float");
+
+                    b.Property<double>("Rating")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("float")
+                        .HasDefaultValue(0.0);
+
+                    b.Property<int>("ReviewCount")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasDefaultValue(0);
+
+                    b.Property<string>("Tags")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<int>("Total_Stock")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("UpdateDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int?>("installments")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasDefaultValue(1);
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Id_Category");
+
+                    b.ToTable("Product", (string)null);
+                });
+
+            modelBuilder.Entity("Baldan.Pricing.Application.Domain.Entities.Product_Category", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Category")
                         .IsRequired()
-                        .HasColumnType("char(26)");
+                        .HasMaxLength(150)
+                        .HasColumnType("nvarchar(150)");
+
+                    b.Property<DateTime>("InsertDate")
+                        .HasColumnType("datetime2");
 
                     b.Property<DateTime>("UpdateDate")
                         .HasColumnType("datetime2");
 
                     b.HasKey("Id");
 
-                    b.HasIndex("ManufacturerId");
-
-                    b.HasIndex("OwnerProductId")
-                        .IsUnique();
-
-                    b.ToTable("ThirdProduct");
+                    b.ToTable("Product_Category", (string)null);
                 });
 
-            modelBuilder.Entity("Baldan.Pricing.Application.Models.Entities.User", b =>
+            modelBuilder.Entity("Baldan.Pricing.Application.Domain.Entities.Rating", b =>
                 {
-                    b.Property<string>("Id")
-                        .HasColumnType("char(26)");
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Comment")
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
+
+                    b.Property<int>("Id_Product")
+                        .HasColumnType("int");
+
+                    b.Property<int>("Id_User_Customer")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("InsertDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("Ranting")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("UpdateDate")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Id_Product");
+
+                    b.HasIndex("Id_User_Customer");
+
+                    b.ToTable("Rating", (string)null);
+                });
+
+            modelBuilder.Entity("Baldan.Pricing.Application.Domain.Entities.User_Admin", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<bool>("Ativo")
+                        .HasColumnType("bit");
 
                     b.Property<string>("Avatar")
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("Email")
                         .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
 
                     b.Property<DateTime>("InsertDate")
                         .HasColumnType("datetime2");
 
                     b.Property<string>("Name")
                         .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                        .HasMaxLength(150)
+                        .HasColumnType("nvarchar(150)");
 
                     b.Property<string>("PasswordHash")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<string>("Profileid")
-                        .IsRequired()
-                        .HasColumnType("char(26)");
+                    b.Property<double?>("Phone")
+                        .HasColumnType("float");
 
                     b.Property<string>("RefreshToken")
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<DateTime>("RefreshTokenExpiresAt")
-                        .HasColumnType("datetime2");
+                    b.Property<string>("RefreshTokenExpiresAt")
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("Role")
                         .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<DateTime>("UpdateDate")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("User_Admin", (string)null);
+                });
+
+            modelBuilder.Entity("Baldan.Pricing.Application.Domain.Entities.User_Customer", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<bool>("Ativo")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("Avatar")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Email")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<DateTime>("InsertDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(150)
+                        .HasColumnType("nvarchar(150)");
+
+                    b.Property<string>("PasswordHash")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<double?>("Phone")
+                        .HasColumnType("float");
+
+                    b.Property<string>("RefreshToken")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("RefreshTokenExpiresAt")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Role")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<DateTime>("UpdateDate")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("User_Customer", (string)null);
+                });
+
+            modelBuilder.Entity("Baldan.Pricing.Application.Domain.Entities.User_Delivery", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<bool>("Ativo")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("Avatar")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<double?>("CommissionDelivers")
+                        .HasColumnType("float");
+
+                    b.Property<string>("Email")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<DateTime>("InsertDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(150)
+                        .HasColumnType("nvarchar(150)");
+
+                    b.Property<string>("PasswordHash")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<double?>("Phone")
+                        .HasColumnType("float");
+
+                    b.Property<string>("RefreshToken")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("RefreshTokenExpiresAt")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Role")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<string>("Transport")
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<DateTime>("UpdateDate")
@@ -417,175 +696,288 @@ namespace Mercado.Craibas.Infrastructure.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("Profileid");
-
-                    b.ToTable("Users");
+                    b.ToTable("User_Delivery", (string)null);
                 });
 
-            modelBuilder.Entity("Baldan.Pricing.Application.Models.Entities.City", b =>
+            modelBuilder.Entity("Baldan.Pricing.Application.Domain.Entities.Variante_Products", b =>
                 {
-                    b.HasOne("Baldan.Pricing.Application.Models.Entities.State", "State")
-                        .WithMany("Cities")
-                        .HasForeignKey("StateId")
-                        .OnDelete(DeleteBehavior.NoAction)
-                        .IsRequired();
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
 
-                    b.Navigation("State");
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("Id_Product")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("InsertDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<double?>("Price_Modifier")
+                        .HasColumnType("float");
+
+                    b.Property<int>("Stoke")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Type")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<DateTime>("UpdateDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Value")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Id_Product");
+
+                    b.ToTable("Variante_Products", (string)null);
                 });
 
-            modelBuilder.Entity("Baldan.Pricing.Application.Models.Entities.OwnerProduct", b =>
+            modelBuilder.Entity("Baldan.Pricing.Application.Domain.Entities.Address", b =>
                 {
-                    b.HasOne("Baldan.Pricing.Application.Models.Entities.Family", "Family")
-                        .WithMany("OwnerProducts")
-                        .HasForeignKey("FamilyId")
-                        .OnDelete(DeleteBehavior.NoAction)
-                        .IsRequired();
+                    b.HasOne("Baldan.Pricing.Application.Domain.Entities.User_Customer", "User_Customer")
+                        .WithOne("Address")
+                        .HasForeignKey("Baldan.Pricing.Application.Domain.Entities.Address", "Id_User_Customer")
+                        .OnDelete(DeleteBehavior.NoAction);
 
-                    b.Navigation("Family");
+                    b.HasOne("Baldan.Pricing.Application.Domain.Entities.User_Delivery", "User_Delivery")
+                        .WithOne("Address")
+                        .HasForeignKey("Baldan.Pricing.Application.Domain.Entities.Address", "Id_User_Delivery")
+                        .OnDelete(DeleteBehavior.NoAction);
+
+                    b.Navigation("User_Customer");
+
+                    b.Navigation("User_Delivery");
                 });
 
-            modelBuilder.Entity("Baldan.Pricing.Application.Models.Entities.Search", b =>
+            modelBuilder.Entity("Baldan.Pricing.Application.Domain.Entities.Cart", b =>
                 {
-                    b.HasOne("Baldan.Pricing.Application.Models.Entities.OwnerProduct", "OwnerProduct")
-                        .WithMany("Searches")
-                        .HasForeignKey("OwnerProductId")
-                        .OnDelete(DeleteBehavior.NoAction)
-                        .IsRequired();
-
-                    b.HasOne("Baldan.Pricing.Application.Models.Entities.Period", "Period")
-                        .WithMany("Searches")
-                        .HasForeignKey("PeriodId")
-                        .OnDelete(DeleteBehavior.NoAction)
-                        .IsRequired();
-
-                    b.HasOne("Baldan.Pricing.Application.Models.Entities.SearchStatus", "SearchStatus")
-                        .WithMany("Searches")
-                        .HasForeignKey("SearchStatusId")
-                        .OnDelete(DeleteBehavior.NoAction)
-                        .IsRequired();
-
-                    b.HasOne("Baldan.Pricing.Application.Models.Entities.ThirdProduct", "ThirdProduct")
-                        .WithMany("Searches")
-                        .HasForeignKey("ThirdProductId")
-                        .OnDelete(DeleteBehavior.NoAction)
-                        .IsRequired();
-
-                    b.HasOne("Baldan.Pricing.Application.Models.Entities.User", "User")
-                        .WithMany("Searches")
-                        .HasForeignKey("UserId")
-                        .OnDelete(DeleteBehavior.NoAction)
-                        .IsRequired();
-
-                    b.Navigation("OwnerProduct");
-
-                    b.Navigation("Period");
-
-                    b.Navigation("SearchStatus");
-
-                    b.Navigation("ThirdProduct");
-
-                    b.Navigation("User");
-                });
-
-            modelBuilder.Entity("Baldan.Pricing.Application.Models.Entities.SurveyEntry", b =>
-                {
-                    b.HasOne("Baldan.Pricing.Application.Models.Entities.Period", "Period")
-                        .WithMany("SurveyEntries")
-                        .HasForeignKey("PeriodId")
-                        .OnDelete(DeleteBehavior.NoAction)
-                        .IsRequired();
-
-                    b.HasOne("Baldan.Pricing.Application.Models.Entities.Search", "Search")
-                        .WithMany("SurveyEntries")
-                        .HasForeignKey("SearchId")
-                        .OnDelete(DeleteBehavior.NoAction)
-                        .IsRequired();
-
-                    b.Navigation("Period");
-
-                    b.Navigation("Search");
-                });
-
-            modelBuilder.Entity("Baldan.Pricing.Application.Models.Entities.ThirdProduct", b =>
-                {
-                    b.HasOne("Baldan.Pricing.Application.Models.Entities.Manufacturer", "Manufacturer")
-                        .WithMany("ThirdProduct")
-                        .HasForeignKey("ManufacturerId")
-                        .OnDelete(DeleteBehavior.NoAction)
-                        .IsRequired();
-
-                    b.HasOne("Baldan.Pricing.Application.Models.Entities.OwnerProduct", "OwnerProduct")
-                        .WithOne()
-                        .HasForeignKey("Baldan.Pricing.Application.Models.Entities.ThirdProduct", "OwnerProductId")
+                    b.HasOne("Baldan.Pricing.Application.Domain.Entities.User_Customer", "User_Customer")
+                        .WithMany("Carts")
+                        .HasForeignKey("Id_User_Customer")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.Navigation("Manufacturer");
-
-                    b.Navigation("OwnerProduct");
+                    b.Navigation("User_Customer");
                 });
 
-            modelBuilder.Entity("Baldan.Pricing.Application.Models.Entities.User", b =>
+            modelBuilder.Entity("Baldan.Pricing.Application.Domain.Entities.Cart_Item", b =>
                 {
-                    b.HasOne("Baldan.Pricing.Application.Models.Entities.Profile", "Profile")
-                        .WithMany("Users")
-                        .HasForeignKey("Profileid")
-                        .OnDelete(DeleteBehavior.NoAction)
+                    b.HasOne("Baldan.Pricing.Application.Domain.Entities.Cart", "Cart")
+                        .WithMany("Cart_Items")
+                        .HasForeignKey("Id_Cart")
+                        .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.Navigation("Profile");
+                    b.HasOne("Baldan.Pricing.Application.Domain.Entities.Product", "Product")
+                        .WithMany("Cart_Items")
+                        .HasForeignKey("Id_Product")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Cart");
+
+                    b.Navigation("Product");
                 });
 
-            modelBuilder.Entity("Baldan.Pricing.Application.Models.Entities.Family", b =>
+            modelBuilder.Entity("Baldan.Pricing.Application.Domain.Entities.Customize_Admin", b =>
                 {
-                    b.Navigation("OwnerProducts");
+                    b.HasOne("Baldan.Pricing.Application.Domain.Entities.User_Admin", "User_Admin")
+                        .WithOne("Customize_Admin")
+                        .HasForeignKey("Baldan.Pricing.Application.Domain.Entities.Customize_Admin", "Id_User_Admin")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("User_Admin");
                 });
 
-            modelBuilder.Entity("Baldan.Pricing.Application.Models.Entities.Manufacturer", b =>
+            modelBuilder.Entity("Baldan.Pricing.Application.Domain.Entities.Customize_Cliente", b =>
                 {
-                    b.Navigation("ThirdProduct");
+                    b.HasOne("Baldan.Pricing.Application.Domain.Entities.User_Customer", "User_Customer")
+                        .WithOne("Customize_Cliente")
+                        .HasForeignKey("Baldan.Pricing.Application.Domain.Entities.Customize_Cliente", "Id_User_Customer")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("User_Customer");
                 });
 
-            modelBuilder.Entity("Baldan.Pricing.Application.Models.Entities.OwnerProduct", b =>
+            modelBuilder.Entity("Baldan.Pricing.Application.Domain.Entities.Imagens_Products", b =>
                 {
-                    b.Navigation("Searches");
+                    b.HasOne("Baldan.Pricing.Application.Domain.Entities.Product", "Product")
+                        .WithMany("Imagens_Products")
+                        .HasForeignKey("Id_Product")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Product");
                 });
 
-            modelBuilder.Entity("Baldan.Pricing.Application.Models.Entities.Period", b =>
+            modelBuilder.Entity("Baldan.Pricing.Application.Domain.Entities.OrderLineItens", b =>
                 {
-                    b.Navigation("Searches");
+                    b.HasOne("Baldan.Pricing.Application.Domain.Entities.Orders", "Orders")
+                        .WithMany("OrderLineItens")
+                        .HasForeignKey("Id_Order")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
 
-                    b.Navigation("SurveyEntries");
+                    b.HasOne("Baldan.Pricing.Application.Domain.Entities.Product", "Product")
+                        .WithMany("OrderLineItens")
+                        .HasForeignKey("Id_Product")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Orders");
+
+                    b.Navigation("Product");
                 });
 
-            modelBuilder.Entity("Baldan.Pricing.Application.Models.Entities.Profile", b =>
+            modelBuilder.Entity("Baldan.Pricing.Application.Domain.Entities.Orders", b =>
                 {
-                    b.Navigation("Users");
+                    b.HasOne("Baldan.Pricing.Application.Domain.Entities.Address", "Address")
+                        .WithMany("Orders")
+                        .HasForeignKey("Id_Address")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Baldan.Pricing.Application.Domain.Entities.Cupom", "Cupom")
+                        .WithMany("Orders")
+                        .HasForeignKey("Id_Cupom")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("Baldan.Pricing.Application.Domain.Entities.User_Customer", "User_Customer")
+                        .WithMany("Orders")
+                        .HasForeignKey("Id_User_Customer")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("Baldan.Pricing.Application.Domain.Entities.User_Delivery", "User_Delivery")
+                        .WithMany("Orders")
+                        .HasForeignKey("Id_User_Delivery")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Address");
+
+                    b.Navigation("Cupom");
+
+                    b.Navigation("User_Customer");
+
+                    b.Navigation("User_Delivery");
                 });
 
-            modelBuilder.Entity("Baldan.Pricing.Application.Models.Entities.Search", b =>
+            modelBuilder.Entity("Baldan.Pricing.Application.Domain.Entities.Product", b =>
                 {
-                    b.Navigation("SurveyEntries");
+                    b.HasOne("Baldan.Pricing.Application.Domain.Entities.Product_Category", "Product_Category")
+                        .WithMany("Product")
+                        .HasForeignKey("Id_Category")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Product_Category");
                 });
 
-            modelBuilder.Entity("Baldan.Pricing.Application.Models.Entities.SearchStatus", b =>
+            modelBuilder.Entity("Baldan.Pricing.Application.Domain.Entities.Rating", b =>
                 {
-                    b.Navigation("Searches");
+                    b.HasOne("Baldan.Pricing.Application.Domain.Entities.Product", "Product")
+                        .WithMany("Ratings")
+                        .HasForeignKey("Id_Product")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Baldan.Pricing.Application.Domain.Entities.User_Customer", "User_Customer")
+                        .WithMany("Ratings")
+                        .HasForeignKey("Id_User_Customer")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Product");
+
+                    b.Navigation("User_Customer");
                 });
 
-            modelBuilder.Entity("Baldan.Pricing.Application.Models.Entities.State", b =>
+            modelBuilder.Entity("Baldan.Pricing.Application.Domain.Entities.Variante_Products", b =>
                 {
-                    b.Navigation("Cities");
+                    b.HasOne("Baldan.Pricing.Application.Domain.Entities.Product", "Product")
+                        .WithMany("Variante_Products")
+                        .HasForeignKey("Id_Product")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Product");
                 });
 
-            modelBuilder.Entity("Baldan.Pricing.Application.Models.Entities.ThirdProduct", b =>
+            modelBuilder.Entity("Baldan.Pricing.Application.Domain.Entities.Address", b =>
                 {
-                    b.Navigation("Searches");
+                    b.Navigation("Orders");
                 });
 
-            modelBuilder.Entity("Baldan.Pricing.Application.Models.Entities.User", b =>
+            modelBuilder.Entity("Baldan.Pricing.Application.Domain.Entities.Cart", b =>
                 {
-                    b.Navigation("Searches");
+                    b.Navigation("Cart_Items");
+                });
+
+            modelBuilder.Entity("Baldan.Pricing.Application.Domain.Entities.Cupom", b =>
+                {
+                    b.Navigation("Orders");
+                });
+
+            modelBuilder.Entity("Baldan.Pricing.Application.Domain.Entities.Orders", b =>
+                {
+                    b.Navigation("OrderLineItens");
+                });
+
+            modelBuilder.Entity("Baldan.Pricing.Application.Domain.Entities.Product", b =>
+                {
+                    b.Navigation("Cart_Items");
+
+                    b.Navigation("Imagens_Products");
+
+                    b.Navigation("OrderLineItens");
+
+                    b.Navigation("Ratings");
+
+                    b.Navigation("Variante_Products");
+                });
+
+            modelBuilder.Entity("Baldan.Pricing.Application.Domain.Entities.Product_Category", b =>
+                {
+                    b.Navigation("Product");
+                });
+
+            modelBuilder.Entity("Baldan.Pricing.Application.Domain.Entities.User_Admin", b =>
+                {
+                    b.Navigation("Customize_Admin");
+                });
+
+            modelBuilder.Entity("Baldan.Pricing.Application.Domain.Entities.User_Customer", b =>
+                {
+                    b.Navigation("Address");
+
+                    b.Navigation("Carts");
+
+                    b.Navigation("Customize_Cliente");
+
+                    b.Navigation("Orders");
+
+                    b.Navigation("Ratings");
+                });
+
+            modelBuilder.Entity("Baldan.Pricing.Application.Domain.Entities.User_Delivery", b =>
+                {
+                    b.Navigation("Address");
+
+                    b.Navigation("Orders");
                 });
 #pragma warning restore 612, 618
         }

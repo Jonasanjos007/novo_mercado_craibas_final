@@ -20,7 +20,7 @@ namespace Baldan.Pricing.Application.Domain.Entities
         public int Total_Stock { get; set; }
         public string Badge { get; set; }
         public bool FreeShipping { get; set; }
-        public int installments { get; set; }
+        public int? installments { get; set; }
         public string Tags { get; set; }
         public bool Featured { get; set; }
         public  string Cod_Cupom { get; set; }

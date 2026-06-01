@@ -1,38 +1,38 @@
-//using Baldan.Pricing.Application.Models.Entities;
-//using Microsoft.AspNetCore.Mvc;
-//using System.Text;
-//namespace Backend.Controllers.V1;
-//using Backend.Services.Interfaces;
-//using Baldan.Pricing.Application.Commons;
-//using Microsoft.AspNetCore.Authorization;
-//using Pricing.Api.Extensions;
 
-//[ApiController]
-//[Route("api/v1/users")]
-//public class UsersController : ControllerBase
-//{
-//    private readonly IUserService _service;
+namespace backend.controllers.v1;
+using backend.services.interfaces;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
+using Pricing.Api.Extensions;
+using System.Threading.Tasks;
 
-//    public UsersController(IUserService service)
-//    {
-//        _service = service;
-//    }
+[ApiController]
+[Route("api/v1/users")]
+public class userscontroller : ControllerBase
+{
+    private readonly IUserService _service;
 
-//    [HttpPost("register")] 
-//    public async Task<IActionResult> Register(CreateUserRequest request)
-//    {
-//        var result = await _service.CreateUser(request);
+    public userscontroller(IUserService service)
+    {
+        _service = service;
+    }
 
-//        return result.ToActionResult();
-//    }
+    //[httppost("register")]
+    //public async task<iactionresult> register(createuserrequest request)
+    //{
+    //    var result = await _service.createuser(request);
 
-//    [Authorize]
-//    [HttpGet("me")]
-//    public async Task<IActionResult> Me()
-//    {
-//        var userId = User.GetUserId();
-//        var result = await _service.GetLoggedUserAsync(userId);
+    //    return result.toactionresult();
+    //}
 
-//        return result.ToActionResult();
-//    }
-//}
+    //[Authorize]
+    [HttpGet("me/{role}")]
+    public async Task<IActionResult> Me(string role)
+    {
+        var userid = User.GetUserId(); // ou como você obtém o id
+
+        var result = await _service.GetbyIdUser(userid, role);
+
+        return result.ToActionResult();
+    }
+}

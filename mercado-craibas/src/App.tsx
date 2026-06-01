@@ -37,7 +37,7 @@ export default function App() {
         </Route>
 
         {/* ROTAS COM HEADER */}
-        <Route element={<ProtectedRoute allowedRoles={["customer"]} />}>
+        <Route element={<ProtectedRoute allowedRoles={["CLIENTE"]} />}>
           <Route element={<MainLayout />}>
             <Route path="/orders" element={<OrdersPage />} />
             <Route path="/wishlist" element={<WishlistPage />} />
@@ -51,13 +51,13 @@ export default function App() {
 
 
         {/* ROTAS SEM HEADER */}
-        <Route element={<ProtectedRoute allowedRoles={["admin"]} />}>
+        <Route element={<ProtectedRoute allowedRoles={["ADMIN"]} />}>
           <Route element={<AdminLayout />}>
             <Route path="/admin" element={<AdminPage />} />
           </Route>
         </Route>
 
-        <Route element={<ProtectedRoute allowedRoles={["delivery"]} />}>
+        <Route element={<ProtectedRoute allowedRoles={["DELIVERY"]} />}>
           <Route element={<AdminLayout />}>
             <Route path="/delivery" element={<DeliveryPage />} />
           </Route>

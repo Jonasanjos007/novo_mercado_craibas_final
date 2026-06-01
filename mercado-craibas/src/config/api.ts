@@ -163,7 +163,7 @@ export const ApiService = {
 
     loginUser: async (email: string, password: string): Promise<Result<TokenResponse>> => {
         try {
-            const { data } = await api.post<Result<TokenResponse>>("/auth/login", { email, password});
+            const { data } = await api.post<Result<TokenResponse>>("/auth/login", { email, password });
 
             if (!data.data) {
                 return makeResult(false, {} as TokenResponse, "Resposta inválida do servidor");
@@ -175,12 +175,14 @@ export const ApiService = {
         }
     },
 
-    getUser: async (): Promise<Result<User>> => {
+    getUser: async (Role: string): Promise<Result<User>> => {
         try {
-            const response = await api.get("/users/me");
+            console.log("Role recebida:", Role);
+            const response = await api.get("/users/me/" + Role);
+            console.log("Resposta da API:", response.data);
             const { success, data, error } = response.data;
 
-            if (!data.data) {
+            if (!data) {
                 return makeResult(false, {} as User, "Usuário não encontrado");
             }
 

@@ -15,10 +15,13 @@ namespace Baldan.Pricing.Application.Domain.Entities
         public string? Avatar { get; set; }
         public ProfileEnum Role { get; set; }
         public bool Ativo {  get; set; }
-        public double CommissionDelivers { get; set; }
+        public double? CommissionDelivers { get; set; }
         public string Transport { get; set; }
         public Address? Address { get; set; }
+        public double? Phone { get; set; }
         public ICollection<Orders> Orders { get; set; } = [];
+        public string? RefreshToken { get; set; }
+        public string? RefreshTokenExpiresAt { get; set; }
 
     }
 }

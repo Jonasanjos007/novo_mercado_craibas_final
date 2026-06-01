@@ -4,14 +4,14 @@ export interface User {
     email: string;
     senha?: string;
     avatar?: string;
-    role: 'customer' | 'admin' | 'delivery';
-    address?: Address;
+    role: string;
+    //address?: Address;
     phone?: string;
     //bio?: string;
-   // vehicle?: string;
-    region?: string;
+    // vehicle?: string;
+    //region?: string;
     Insert_date?: string;
-    preferences?: UserPreferences;
+    // preferences?: UserPreferences;
 }
 export interface Address {
     street: string;

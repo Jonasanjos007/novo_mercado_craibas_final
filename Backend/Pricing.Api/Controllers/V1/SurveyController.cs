@@ -1,56 +1,56 @@
-//using Backend.Services.Interfaces;
-//using Microsoft.AspNetCore.Mvc;
-//using Microsoft.AspNetCore.Authorization;
-//using System.Security.Claims;
-//using Pricing.Api.DTOs.Requests;
+//using backend.services.interfaces;
+//using microsoft.aspnetcore.mvc;
+//using microsoft.aspnetcore.authorization;
+//using system.security.claims;
+//using pricing.api.dtos.requests;
 
-//namespace Backend.Controllers.V1;
+//namespace backend.controllers.v1;
 
-//[ApiController]
-//[Route("api/v1/collections")]
-//public class SurveyController : ControllerBase
+//[apicontroller]
+//[route("api/v1/collections")]
+//public class surveycontroller : controllerbase
 //{
-//    private readonly ISurveyService _service;
+//    private readonly isurveyservice _service;
 
-//    public SurveyController(ISurveyService service)
+//    public surveycontroller(isurveyservice service)
 //    {
 //        _service = service;
 //    }
 
-//    [HttpPost]
-//    public async Task<IActionResult> Create([FromBody] CollectionUpsertRequest request)
+//    [httppost]
+//    public async task<iactionresult> create([frombody] collectionupsertrequest request)
 //    {
-//        var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+//        var useridclaim = user.findfirst(claimtypes.nameidentifier)?.value;
 
-//        if (!Guid.TryParse(userIdClaim, out var userId))
-//            return Unauthorized();
+//        if (!guid.tryparse(useridclaim, out var userid))
+//            return unauthorized();
 
-//        //var id = await _service.CreateAsync(userId, request);
+//        //var id = await _service.createasync(userid, request);
 
-//        return CreatedAtAction(nameof(GetById), new { userIdClaim }, new { userIdClaim });
+//        return createdataction(nameof(getbyid), new { useridclaim }, new { useridclaim });
 //    }
 
-//    [HttpPut("{id}")]
-//    public async Task<IActionResult> Update(string id, [FromBody] CollectionUpsertRequest request)
+//    [httpput("{id}")]
+//    public async task<iactionresult> update(string id, [frombody] collectionupsertrequest request)
 //    {
-//        if (!Guid.TryParse(id, out var collectionId))
-//            return BadRequest("Id inválido");
+//        if (!guid.tryparse(id, out var collectionid))
+//            return badrequest("id inválido");
 
-//        //var updated = await _service.UpdateAsync(collectionId, request);
-//        //if (!updated) return NotFound();
+//        //var updated = await _service.updateasync(collectionid, request);
+//        //if (!updated) return notfound();
 
-//        return NoContent();
+//        return nocontent();
 //    }
 
-//    [HttpGet("{id}")]
-//    public async Task<IActionResult> GetById(string id)
+//    [httpget("{id}")]
+//    public async task<iactionresult> getbyid(string id)
 //    {
-//        if (!Guid.TryParse(id, out var collectionId))
-//            return BadRequest("Id inválido");
+//        if (!guid.tryparse(id, out var collectionid))
+//            return badrequest("id inválido");
 
-//        //var collection = await _service.GetByIdAsync(collectionId);
-//        //if (collection == null) return NotFound();
+//        //var collection = await _service.getbyidasync(collectionid);
+//        //if (collection == null) return notfound();
 
-//        return NoContent();
+//        return nocontent();
 //    }
 //}

@@ -24,6 +24,10 @@ namespace Mercado.Craibas.Infrastructure.Configurations
             builder.Property(x => x.PasswordHash)
                 .IsRequired();
 
+            builder.Property(x => x.Role)
+                .HasConversion<string>()
+                .HasMaxLength(50);
+
             builder.HasOne(x => x.Address)
                 .WithOne(x => x.User_Customer)
                 .HasForeignKey<Address>(x => x.Id_User_Customer);

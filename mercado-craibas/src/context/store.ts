@@ -129,18 +129,18 @@ export const useStore = create<AppState>()(
       },
       logout: () => set({ user: null, currentPage: 'home' }),
       saveUser: (User: User) => {
-        const newUser: User = {
-          id: `u${Date.now()}`,
-          name: '',
-          email: '',
-          role: 'customer',
-          phone: '',
-          //bio: '',
-          Insert_date: new Date().toLocaleDateString('pt-BR'),
-          preferences: { notifications: true, newsletter: false, darkMode: false, language: 'pt-BR' },
-          address: { street: '', number: '', neighborhood: '', city: 'Craibas', state: 'AL', zipCode: '' },
-        };
-        set({ user: newUser }); return true;
+        // const newUser: User = {
+        //   id: `u${Date.now()}`,
+        //   name: '',
+        //   email: '',
+        //   role: 'customer',
+        //   phone: '',
+        //   //bio: '',
+        //   Insert_date: new Date().toLocaleDateString('pt-BR'),
+        //   preferences: { notifications: true, newsletter: false, darkMode: false, language: 'pt-BR' },
+        //   address: { street: '', number: '', neighborhood: '', city: 'Craibas', state: 'AL', zipCode: '' },
+        // };
+        set({ user: User }); return true;
       },
       updateUser: (updates) => set(s => ({ user: s.user ? { ...s.user, ...updates } : null })),
 

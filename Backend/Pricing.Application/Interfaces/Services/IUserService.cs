@@ -1,12 +1,10 @@
-﻿//using Baldan.Pricing.Application.Commons;
-//using Pricing.Api.DTOs.Responses;
-//using System.Security.Claims;
+﻿using Baldan.Pricing.Application.Commons;
+using Pricing.Api.DTOs.Responses;
+namespace backend.services.interfaces;
 
-//namespace Backend.Services.Interfaces;
-
-//public interface IUserService
-//{
-//    Task<Result<string>> CreateUser(CreateUserRequest request);
-//    Task<Result<LoggedUserResponse>> GetLoggedUserAsync(int userId);
-//}
+public interface IUserService
+{
+    //task<result<string>> createuser(createuserrequest request);
+    Task<Result<UserResponse>> GetbyIdUser(int userid , string role);
+}
 

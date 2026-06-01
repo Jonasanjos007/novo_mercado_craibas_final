@@ -15,7 +15,7 @@ type loginControllerReturn = {
 };
 
 export const useLoginController = () => {
-    const { login, saveUser, navigateTo } = useStore();
+    const { login, saveUser, logout, navigateTo } = useStore();
     const userContext = useUser();
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
@@ -41,48 +41,50 @@ export const useLoginController = () => {
                 setLoading(false);
                 return;
             }
-            const ok = login(form.email, form.password);
+            // const ok = login(form.email, form.password);
 
-            if (!ok.success) {
-                setError('Email ou senha incorretos');
-                notify.error('Email ou senha incorretos', 'error');
-            } 
-        else {
-                notify.success('Login realizado com sucesso', 'success');
-                if (ok.role === 'admin') {
-                    navigate('/admin');
-                } else if (ok.role === 'delivery') {
-                    navigate('/delivery');
-                } else {
-                    navigate('/');
-                }
-            }
-        }else {
-            if (!form.email.includes('@')) { setError('Email inválido'); setLoading(false); return; }
-            if (form.password.length < 6) { setError('Senha deve ter no mínimo 6 caracteres'); setLoading(false); return; }
-            saveUser({
-                id: `u${Date.now()}`,
-                name: '',
-                email: form.email,
-                role: 'customer',
-                phone: '',
-                //bio: '',
-                Insert_date: new Date().toLocaleDateString('pt-BR'),
-                preferences: { notifications: true, newsletter: false, darkMode: false, language: 'pt-BR' },
-                address: { street: '', number: '', neighborhood: '', city: 'Craibas', state: 'AL', zipCode: '' }
-            });
-            navigate('/');
-            notify.success('Cadastro realizado com sucesso', 'success');
+            // if (!ok.success) {
+            //     setError('Email ou senha incorretos');
+            //     notify.error('Email ou senha incorretos', 'error');
+            // }
+            // else {
+            //     notify.success('Login realizado com sucesso', 'success');
+            //     if (ok.role === 'admin') {
+            //         navigate('/admin');
+            //     } else if (ok.role === 'delivery') {
+            //         navigate('/delivery');
+            //     } else {
+            //         navigate('/');
+            //     }
+            // }
         }
+        // else {
+        //     if (!form.email.includes('@')) { setError('Email inválido'); setLoading(false); return; }
+        //     if (form.password.length < 6) { setError('Senha deve ter no mínimo 6 caracteres'); setLoading(false); return; }
+        //     saveUser({
+        //         id: `u${Date.now()}`,
+        //         name: '',
+        //         email: form.email,
+        //         role: 'customer',
+        //         phone: '',
+        //         //bio: '',
+        //         Insert_date: new Date().toLocaleDateString('pt-BR'),
+        //         preferences: { notifications: true, newsletter: false, darkMode: false, language: 'pt-BR' },
+        //         address: { street: '', number: '', neighborhood: '', city: 'Craibas', state: 'AL', zipCode: '' }
+        //     });
+        //     navigate('/');
+        //     notify.success('Cadastro realizado com sucesso', 'success');
+        // }
 
         setError('');
         setLoading(true);
-     
+
 
         const finalResult = await (await loginUser(email, password))
             .chain(async (tokens) => {
                 useAuthStore.getState().setTokens(tokens);
-                return await getUser();
+                console.log("Tokens received:", tokens);
+                return await getUser(tokens.role || ' ');
             });
 
         finalResult.fold(
@@ -104,7 +106,7 @@ export const useLoginController = () => {
         setLoading(false);
     };
     const cleanUserData = () => {
-        userContext.clearUser();
+        logout();
     };
     return {
         action: {

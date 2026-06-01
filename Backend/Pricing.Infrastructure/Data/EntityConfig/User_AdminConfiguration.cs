@@ -20,6 +20,10 @@ namespace Mercado.Craibas.Infrastructure.Configurations
                 .IsRequired()
                 .HasMaxLength(200);
 
+            builder.Property(x => x.Role)
+                .HasConversion<string>()
+                .HasMaxLength(50);
+
             builder.Property(x => x.PasswordHash)
                 .IsRequired();
 

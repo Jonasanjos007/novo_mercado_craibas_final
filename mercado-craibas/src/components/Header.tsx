@@ -93,13 +93,13 @@ export default function Header() {
                     <p className="text-xs text-surface-500 font-body">{user.email}</p>
                   </div>
                   <div className="p-1">
-                    {user.role === 'customer' && <>
+                    {user.role === 'CLIENTE' && <>
                       <MenuItem icon={<User className="w-4 h-4" />} label="Meu Perfil" onClick={() => { navigate('/profile'); setUserMenuOpen(false); }} />
                       <MenuItem icon={<Package className="w-4 h-4" />} label="Meus Pedidos" onClick={() => { navigate('/orders'); setUserMenuOpen(false); }} />
                       <MenuItem icon={<Heart className="w-4 h-4" />} label="Favoritos" onClick={() => { navigate('/wishlist'); setUserMenuOpen(false); }} />
                     </>}
-                    {user.role === 'admin' && <MenuItem icon={<LayoutDashboard className="w-4 h-4" />} label="Painel Admin" onClick={() => { navigate('/admin'); setUserMenuOpen(false); }} />}
-                    {user.role === 'delivery' && <MenuItem icon={<Truck className="w-4 h-4" />} label="Minhas Entregas" onClick={() => { navigate('/delivery-dashboard'); setUserMenuOpen(false); }} />}
+                    {user.role === 'ADMIN' && <MenuItem icon={<LayoutDashboard className="w-4 h-4" />} label="Painel Admin" onClick={() => { navigate('/admin'); setUserMenuOpen(false); }} />}
+                    {user.role === 'DELIVERY' && <MenuItem icon={<Truck className="w-4 h-4" />} label="Minhas Entregas" onClick={() => { navigate('/delivery-dashboard'); setUserMenuOpen(false); }} />}
                     <div className="border-t border-surface-100 mt-1 pt-1">
                       <MenuItem icon={<LogOut className="w-4 h-4" />} label="Sair" onClick={() => { logout(); setUserMenuOpen(false); }} danger />
                     </div>

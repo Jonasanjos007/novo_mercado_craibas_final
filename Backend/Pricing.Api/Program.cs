@@ -1,14 +1,17 @@
-﻿using AutoMapper;
-using Backend.Middlewares;
+﻿using Backend.Middlewares;
 using Baldan.Pricing.Application;
 using Baldan.Pricing.Application.Interfaces;
-using Microsoft.AspNetCore.Authentication.JwtBearer;
-using Microsoft.EntityFrameworkCore;
-using Microsoft.IdentityModel.Tokens;
 using System.Text;
 using Mercado.Craibas.Infrastructure;
 using Mercado.Craibas.Infrastructure.Data;
 using Mercado.Craibas.Infrastructure.Data.Context;
+using Backend.Services.Interfaces;
+using Baldan.Pricing.Application.Interfaces.Repositories;
+using Mercado.Craibas.Infrastructure.Repositories;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.IdentityModel.Tokens;
+using Baldan.Pricing.Application.Services;
+using backend.services.interfaces;
 
 namespace Pricing.Api
 
@@ -66,20 +69,25 @@ namespace Pricing.Api
             builder.Services.AddAuthorization();
 
             // DI
-            //builder.Services.AddScoped<IUnitOfWork, UnitOfWorkRepository>();
+            builder.Services.AddScoped<IUnitOfWork, UnitOfWorkRepository>();
             //builder.Services.AddScoped<ISurveyService, SurveyService>();
-            //builder.Services.AddScoped<IAuthService, AuthService>();
-            //builder.Services.AddScoped<IAuthRepository, AuthRepository>();
-            //builder.Services.AddScoped<IUserRepository, UserRepository>();
-            //builder.Services.AddScoped<IUserService, UserService>();
-            //builder.Services.AddScoped<ITokenService, TokenService>();
+            builder.Services.AddScoped<IAuthService, AuthService>();
+            builder.Services.AddScoped<IAuthRepository, AuthRepository>();
+            builder.Services.AddScoped<IUserRepository, UserRepository>();
+            builder.Services.AddScoped<IUserService, UserService>();
+            builder.Services.AddScoped<ITokenService, TokenService>();
             //builder.Services.AddScoped<IProfileRepository, ProfileRepository>();
             //builder.Services.AddScoped<IDashboardRepository, DashboardRepository>();
             //builder.Services.AddScoped<IDashboardService, DashboardService>();
 
             //Trocar DI
             builder.Services.AddApplication();
-
+            builder.Services.AddControllers().AddJsonOptions(options =>
+             { 
+               options.JsonSerializerOptions.Converters.Add(
+                      new System.Text.Json.Serialization.JsonStringEnumConverter()
+                        );
+              });
             var app = builder.Build();
 
             if (app.Environment.IsDevelopment())

@@ -1,75 +1,97 @@
-﻿//using Backend.Services.Interfaces;
-//using Baldan.Pricing.Application.Commons;
-//using Baldan.Pricing.Application.Domain.Auth;
-//using Baldan.Pricing.Application.Domain.Enums;
-//using Baldan.Pricing.Application.Interfaces;
-//using Baldan.Pricing.Application.Interfaces.Repositories;
-//using Baldan.Pricing.Application.Models.Entities;
-//using Pricing.Api.DTOs.Responses;
-//using System.Security.Claims;
+﻿using backend.services.interfaces;
+using Backend.Services.Interfaces;
+using Baldan.Pricing.Application.Commons;
+using Baldan.Pricing.Application.Domain.Auth;
+using Baldan.Pricing.Application.Domain.Entities;
+using Baldan.Pricing.Application.Domain.Enums;
+using Baldan.Pricing.Application.Interfaces;
+using Baldan.Pricing.Application.Interfaces.Repositories;
+using Microsoft.EntityFrameworkCore;
+using Pricing.Api.DTOs.Responses;
+using System;
+using System.Security.Claims;
 
-//public class UserService : IUserService
-//{
-//    private readonly IUserRepository _userRepository;
-//    private readonly IProfileRepository _profileRepository;
-//    private readonly IUnitOfWork _unitOfWork;
+public class UserService : IUserService
+{
+    private readonly IUserRepository _userRepository;
+    //private readonly IProfileRepository _profileRepository;
+    private readonly IUnitOfWork _unitOfWork;
 
-//    public UserService(IUserRepository userRepository, IProfileRepository profileRepository, IUnitOfWork unitOfWork)
-//    {
-//        _userRepository = userRepository;
-//        _profileRepository = profileRepository;
-//        _unitOfWork = unitOfWork;
-//    }
+    public UserService(IUserRepository userRepository, IUnitOfWork unitOfWork)
+    {
+        _userRepository = userRepository;
+        _unitOfWork = unitOfWork;
+    }
 
-//    public async Task<Result<string>> CreateUser(CreateUserRequest request)
-//    {
-//        if (await _userRepository.ExistsByEmailAsync(request.Email))
-//            return Result<string>.Failure(AuthErrors.InvalidCredentials);
+    //public async Task<Result<string>> CreateUser(CreateUserRequest request)
+    //{
+    //    if (await _userRepository.ExistsByEmailAsync(request.Email))
+    //        return Result<string>.Failure(AuthErrors.InvalidCredentials);
 
-//        if (!Enum.TryParse<ProfileEnum>(request.Role, true, out var profileEnum))
-//            return Result<string>.Failure(AuthErrors.InvalidCredentials);
+    //    if (!Enum.TryParse<ProfileEnum>(request.Role, true, out var profileEnum))
+    //        return Result<string>.Failure(AuthErrors.InvalidCredentials);
 
-//        var profile = await _profileRepository.GetByEnumAsync(profileEnum);
+    //    var profile = await _profileRepository.GetByEnumAsync(profileEnum);
 
-//        if (profile is null)
-//            return Result<string>.Failure(AuthErrors.InvalidCredentials);
+    //    if (profile is null)
+    //        return Result<string>.Failure(AuthErrors.InvalidCredentials);
 
-//        var user = new User
-//        {
-//            Name = request.Name,
-//            Email = request.Email,
-//            PasswordHash = BCrypt.Net.BCrypt.HashPassword(request.Password),
-//            Role = profileEnum.ToString(),
-//            Avatar = request.Avatar,
-//            Profileid = profile.Id,
-//            RefreshTokenExpiresAt = DateTime.UtcNow.AddDays(7)
-//        };
+    //    var user = new User
+    //    {
+    //        Name = request.Name,
+    //        Email = request.Email,
+    //        PasswordHash = BCrypt.Net.BCrypt.HashPassword(request.Password),
+    //        Role = profileEnum.ToString(),
+    //        Avatar = request.Avatar,
+    //        Profileid = profile.Id,
+    //        RefreshTokenExpiresAt = DateTime.UtcNow.AddDays(7)
+    //    };
 
-//        await _userRepository.AddAsync(user);
-//        await _unitOfWork.CommitAsync();
+    //    await _userRepository.AddAsync(user);
+    //    await _unitOfWork.CommitAsync();
 
-//        return Result<string>.Success(user.Email);
-//    }
+    //    return Result<string>.Success(user.Email);
+    //}
 
-//    public async Task<Result<LoggedUserResponse>> GetLoggedUserAsync(int userId)
-//    {
+    public async Task<Result<UserResponse>> GetbyIdUser(int userid, string role)
+    {
+        dynamic? user = null;
 
-//        var entity = await _userRepository.GetByIdAsync(userId);
+        switch (role)
+        {
+            case "CLIENTE":
+                user = await _userRepository.GetByIdAsync<User_Customer>(userid);
+                break;
 
-//        if (entity is null)
-//            return Result<LoggedUserResponse>.Failure(AuthErrors.InvalidCredentials);
+            case "ADMIN":
+                user = await _userRepository.GetByIdAsync<User_Admin>(userid);
+                break;
 
-//        var profile = await _profileRepository.GetByEnumAsync(
-//            Enum.Parse<ProfileEnum>(entity.Role));
+            case "DELIVERY":
+                user = await _userRepository.GetByIdAsync<User_Delivery>(userid);
+                break;
 
-//        return Result<LoggedUserResponse>.Success(new LoggedUserResponse
-//        {
-//            Id = entity.Id.ToString(),
-//            Name = entity.Name,
-//            Email = entity.Email,
-//            Role = entity.Role,
-//            Avatar = entity.Avatar,
-//        });
-//    }
-//}
+            default:
+                return Result<UserResponse>.Failure(
+                    Error.Failure("Role", "Role Não Encontrado!")
+                );
+        }
+
+        if (user is null)
+        {
+            return Result<UserResponse>.Failure(AuthErrors.InvalidCredentials);
+        }
+
+        return Result<UserResponse>.Success(new UserResponse
+        {
+            Id = user.Id,
+            Name = user.Name,
+            Email = user.Email,
+            Avatar = user.Avatar,
+            Role = user.Role,
+            Phone = user.Phone,
+            Insert_Date = user.InsertDate,
+        });
+    }
+}
 

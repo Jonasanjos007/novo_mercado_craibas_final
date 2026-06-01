@@ -8,6 +8,6 @@ namespace Baldan.Pricing.Application.Domain.Enums
 {
     public enum ProfileEnum
     {
-            VENDEDOR,ADMIN,DELIVERY
+            CLIENTE,ADMIN,DELIVERY
     }
 }

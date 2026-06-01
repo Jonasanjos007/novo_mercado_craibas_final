@@ -28,8 +28,7 @@ namespace Mercado.Craibas.Infrastructure.Configurations
             builder.Property(x => x.Stoke)
                 .IsRequired();
 
-            builder.Property(x => x.Price_Modifier)
-                .HasDefaultValue(0);
+            
 
             builder.HasOne(x => x.Product)
                 .WithMany(x => x.Variante_Products)
