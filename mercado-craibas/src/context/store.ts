@@ -6,9 +6,9 @@ import { Product } from '../models/Product';
 import { CartItem } from '../models/Cart';
 import { User } from '../models/User';
 import { persist } from 'zustand/middleware';
-
+import { ApiService } from '../config/api';
 interface AppState {
-  ShowProduct: (selectedProductId: string | null) => void;
+  ShowProduct: (selectedProductId: number | null) => void;
   // Theme
   darkMode: boolean;
   toggleDarkMode: () => void;
@@ -17,11 +17,11 @@ interface AppState {
   currentPage: AppPage;
   Pages: string;
 
-  selectedProductId: string | null;
+  selectedProductId: number | null;
   selectedCategory: string | null;
   searchQuery: string;
-  navigateTo: (page: AppPage, productId?: string, category?: string) => void;
-  navigatePages: (page: string, productId: string | null, category: string | null) => void;
+  navigateTo: (page: AppPage, productId?: number, category?: string) => void;
+  navigatePages: (page: string, productId: number | null, category: string | null) => void;
   setSearchQuery: (q: string) => void;
 
   // Auth
@@ -37,8 +37,8 @@ interface AppState {
   // Cart
   cart: CartItem[];
   addToCart: (item: CartItem) => void;
-  removeFromCart: (productId: string) => void;
-  updateQuantity: (productId: string, quantity: number) => void;
+  removeFromCart: (productId: number) => void;
+  updateQuantity: (productId: number, quantity: number) => void;
   clearCart: () => void;
   cartTotal: () => number;
   cartCount: () => number;
@@ -46,7 +46,7 @@ interface AppState {
   // Wishlist
   wishlist: WishlistItem[];
   toggleWishlist: (product: Product) => void;
-  isWishlisted: (productId: string) => boolean;
+  isWishlisted: (productId: number) => boolean;
 
   // Orders
   orders: Order[];
@@ -55,10 +55,12 @@ interface AppState {
 
   // Products
   products: Product[];
+  setListProducts: (products: Product[]) => void;
+  loadProducts: () => Promise<void>;
   addProduct: (product: Product) => void;
   updateProduct: (product: Product) => void;
-  deleteProduct: (productId: string) => void;
-  applyPromoToProduct: (productId: string, discount: number) => void;
+  deleteProduct: (productId: number) => void;
+  applyPromoToProduct: (productId: number, discount: number) => void;
 
   // Promotions
   promotions: Promotion[];
@@ -104,7 +106,7 @@ export const useStore = create<AppState>()(
         set({ Pages: page, selectedProductId: productId || null, selectedCategory: category || null });
         window.scrollTo({ top: 0, behavior: 'smooth' });
       },
-      ShowProduct: (selectedProductId: string | null) => {
+      ShowProduct: (selectedProductId: number | null) => {
         set({ selectedProductId });
       },
 
@@ -162,7 +164,7 @@ export const useStore = create<AppState>()(
         set({ cart: get().cart.map(c => c.product.id === productId ? { ...c, quantity } : c) });
       },
       clearCart: () => set({ cart: [] }),
-      cartTotal: () => get().cart.reduce((sum, item) => sum + item.product.price * item.quantity, 0),
+      cartTotal: () => get().cart.reduce((sum, item) => sum + item.product.price_Unic * item.quantity, 0),
       cartCount: () => get().cart.reduce((sum, item) => sum + item.quantity, 0),
 
       // Wishlist
@@ -203,7 +205,28 @@ export const useStore = create<AppState>()(
       }),
 
       // Products
-      products: PRODUCTS,
+      products: [],
+
+      setListProducts: (products: Product[]) =>
+        set({ products }),
+
+      loadProducts: async () => {
+        const result = await ApiService.getListProducts();
+        if (result.success) {
+          set({
+            products: result.data || []
+          });
+        } else {
+          set({
+            products: []
+          });
+
+          get().showNotification(
+            result.error || "Erro ao carregar produtos",
+            "error"
+          );
+        }
+      },
       addProduct: (product) => set({ products: [product, ...get().products] }),
       updateProduct: (product) => set({ products: get().products.map(p => p.id === product.id ? product : p) }),
       deleteProduct: (productId) => set({ products: get().products.filter(p => p.id !== productId) }),
@@ -211,7 +234,7 @@ export const useStore = create<AppState>()(
         const products = get().products;
         const product = products.find(p => p.id === productId);
         if (!product) return;
-        const originalPrice = product.originalPrice || product.price;
+        const originalPrice = product.origin_Price || product.price_Unic;
         const newPrice = +(originalPrice * (1 - discount / 100)).toFixed(2);
         set({
           products: products.map(p => p.id === productId

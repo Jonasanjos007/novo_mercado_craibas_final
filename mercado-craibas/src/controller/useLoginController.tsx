@@ -6,14 +6,6 @@ import { ApiService } from '../config/api';
 import { useAuthStore } from '../context/AuthContext';
 import { useUser } from '../context/UserContext';
 
-type loginControllerReturn = {
-    action: {
-        handleSubmit: (e: React.FormEvent, form: { name: string, email: string, password: string }, mode: 'login' | 'register') => Promise<void>;
-
-    }
-    login: (email: string, password: string) => Promise<void>;
-};
-
 export const useLoginController = () => {
     const { login, saveUser, logout, navigateTo } = useStore();
     const userContext = useUser();
@@ -27,7 +19,6 @@ export const useLoginController = () => {
 
     const handleSubmit = async (e: React.FormEvent, form: { email: string, password: string }, mode: 'login' | 'register') => {
         e.preventDefault();
-        console.log("Submitting form", form, "in mode", mode);
         if (mode === 'login') {
             if (!form.email) {
                 setError('Preencha campo email');
@@ -83,7 +74,6 @@ export const useLoginController = () => {
         const finalResult = await (await loginUser(email, password))
             .chain(async (tokens) => {
                 useAuthStore.getState().setTokens(tokens);
-                console.log("Tokens received:", tokens);
                 return await getUser(tokens.role || ' ');
             });
 

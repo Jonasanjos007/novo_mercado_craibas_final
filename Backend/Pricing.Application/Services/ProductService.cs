@@ -27,9 +27,9 @@ namespace Mercado.Craibas.Application.Services
 
         public async Task<Result<List<ProductResponse>>> GetProductList()
         {
-            var products = await _productRepository.GetAllProductAsyncList<Product>();
+            var Products = await _productRepository.GetAllProductAsyncList<Product>();
 
-            if (products == null || !products.Any())
+            if (Products == null || !Products.Any())
             {
                 return Result<List<ProductResponse>>
                     .Failure(Error.Failure(
@@ -40,26 +40,50 @@ namespace Mercado.Craibas.Application.Services
 
             var productList = new List<ProductResponse>();
 
-            foreach (var product in products)
+            foreach (var Product in Products)
             {
-                var variants = await _productRepository.GetAllVariantAsyncListById<Variante_Products>(product.Id);
+                var variants = await _productRepository.GetAllVariantAsyncListById<Variante_Products>(Product.Id,"Id_Product");
 
                 if(variants == null || !variants.Any())
                 {
                     continue;
                 }
 
+                var Imagens_Product = await _productRepository.GetAllVariantAsyncListById<Imagens_Products>(Product.Id, "Id_Product");
+
+                if(Imagens_Product is null)
+                {
+                    continue;
+                }
+
+                var CategoryName = await _productRepository.GetVariantByIdAsync<Product_Category>(Product.Id_Category, "Id");
+                if(CategoryName is null)
+                {
+                    continue;
+                }
                 productList.Add(new ProductResponse
                 {
-                    Id = product.Id,
-                    Name = product.Name,
-                    Price_Unic = product.Price_Unit,
-                    Variantes = variants
+                    Id = Product.Id,
+                    Name = Product.Name,
+                    Descripition = Product.Description,
+                    Price_Unic = Product.Price_Unit,
+                    Origin_Price = Product.Origin_Price,
+                    Imagens = Imagens_Product,
+                    Category = CategoryName.Category,
+                    Count_Rating = Product.Rating,
+                    Review_Count = Product.ReviewCount,
+                    Count_Sold = Product.CountSold,
+                    variations = variants,
+                    Total_Stock = Product.Total_Stock,
+                    Badge = Product.Badge,
+                    FreeShipping = Product.FreeShipping,
+                    Installments = Product.installments,
+                    Tags = Product.Tags,
+                    Featured = Product.Featured
+
                 });
             }
-
-            return Result<List<ProductResponse>>
-                .Success(productList);
+            return Result<List<ProductResponse>>.Success(productList);
         }
     }
 }

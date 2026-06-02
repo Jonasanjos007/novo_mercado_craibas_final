@@ -12,9 +12,10 @@ export const ProductPage = () => {
   const action = Controller?.action;
   const result = Controller?.result;
   const navigate = useNavigate();
-  const { selectedProductId, products, navigateTo, cart, user, navigatePages } = useStore();
+
+  const { selectedProductId, products, navigateTo, cart, user, navigatePages, loadProducts } = useStore();
   const notify = useNotification();
-  const product = products.find(p => p.id === selectedProductId);
+  const product = products.find(p => p.id === Number(selectedProductId));
   const [imgIndex, setImgIndex] = useState(0);
   const [selectedVariations, setSelectedVariations] = useState<Record<string, string>>({});
   const [quantity, setQuantity] = useState(1);
@@ -23,11 +24,6 @@ export const ProductPage = () => {
   const [added, setAdded] = useState(false);
   const [variationError, setVariationError] = useState(false);
   if (!product) return null;
-
-
-
-
-
   return (
     <div className="min-h-screen bg-surface-50 pb-16">
       {/* Breadcrumb */}
@@ -51,7 +47,7 @@ export const ProductPage = () => {
           <div className="space-y-3">
             <div className="relative bg-white rounded-3xl overflow-hidden aspect-square shadow-soft">
               <img
-                src={product.images[imgIndex]}
+                src={`/Imagens/${product.imagens[imgIndex]?.url_Imagem}`}
                 alt={product.name}
                 className="w-full h-full object-cover"
               />
@@ -73,12 +69,12 @@ export const ProductPage = () => {
                   <Share2 className="w-4 h-4" />
                 </button>
               </div>
-              {product.images.length > 1 && (
+              {product.imagens.length > 1 && (
                 <>
-                  <button onClick={() => setImgIndex(i => (i - 1 + product.images.length) % product.images.length)} className="absolute left-3 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full bg-white/80 backdrop-blur-sm shadow-medium flex items-center justify-center hover:bg-white transition-all">
+                  <button onClick={() => setImgIndex(i => (i - 1 + product.imagens.length) % product.imagens.length)} className="absolute left-3 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full bg-white/80 backdrop-blur-sm shadow-medium flex items-center justify-center hover:bg-white transition-all">
                     <ChevronLeft className="w-4 h-4 text-surface-700" />
                   </button>
-                  <button onClick={() => setImgIndex(i => (i + 1) % product.images.length)} className="absolute right-3 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full bg-white/80 backdrop-blur-sm shadow-medium flex items-center justify-center hover:bg-white transition-all">
+                  <button onClick={() => setImgIndex(i => (i + 1) % product.imagens.length)} className="absolute right-3 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full bg-white/80 backdrop-blur-sm shadow-medium flex items-center justify-center hover:bg-white transition-all">
                     <ChevronRight className="w-4 h-4 text-surface-700" />
                   </button>
                 </>
@@ -86,13 +82,13 @@ export const ProductPage = () => {
             </div>
             {/* Thumbnails */}
             <div className="flex gap-2 overflow-x-auto pb-1">
-              {product.images.map((img, i) => (
+              {product.imagens.map((img, i) => (
                 <button
                   key={i}
                   onClick={() => setImgIndex(i)}
                   className={`shrink-0 w-16 h-16 rounded-xl overflow-hidden border-2 transition-all ${i === imgIndex ? 'border-brand-500 shadow-brand' : 'border-surface-200'}`}
                 >
-                  <img src={img} alt="" className="w-full h-full object-cover" />
+                  <img src={`/Imagens/${img.url_Imagem}`} alt="" className="w-full h-full object-cover" />
                 </button>
               ))}
             </div>
@@ -116,33 +112,33 @@ export const ProductPage = () => {
               <div className="flex items-center gap-3 mt-3">
                 <div className="flex items-center gap-1">
                   {[1, 2, 3, 4, 5].map(s => (
-                    <Star key={s} className={`w-4 h-4 ${s <= Math.floor(product.rating) ? 'text-amber-400 fill-amber-400' : 'text-surface-200 fill-surface-200'}`} />
+                    <Star key={s} className={`w-4 h-4 ${s <= Math.floor(product.count_Rating) ? 'text-amber-400 fill-amber-400' : 'text-surface-200 fill-surface-200'}`} />
                   ))}
                 </div>
-                <span className="font-display font-bold text-surface-900 text-sm">{product.rating}</span>
-                <span className="text-surface-400 font-body text-sm">({product.reviewCount.toLocaleString()} avaliações)</span>
-                <span className="text-surface-400 font-body text-sm">· {product.sold.toLocaleString()} vendidos</span>
+                <span className="font-display font-bold text-surface-900 text-sm">{product.count_Rating}</span>
+                <span className="text-surface-400 font-body text-sm">({product.review_Count.toLocaleString()} avaliações)</span>
+                <span className="text-surface-400 font-body text-sm">· {product.count_Sold.toLocaleString()} vendidos</span>
               </div>
             </div>
 
             {/* Price */}
             <div className="bg-surface-50 rounded-2xl p-4">
-              {product.originalPrice && (
+              {product.origin_Price && (
                 <div className="flex items-center gap-2 mb-1">
-                  <span className="text-surface-400 font-body text-sm line-through">{formatPrice(product.originalPrice)}</span>
+                  <span className="text-surface-400 font-body text-sm line-through">{formatPrice(product.origin_Price)}</span>
                   <span className="bg-rose-500 text-white text-xs font-display font-bold px-2 py-0.5 rounded-full">-{result?.discount}%</span>
                 </div>
               )}
-              <p className="font-display font-bold text-surface-900 text-4xl">{formatPrice(product.price)}</p>
+              <p className="font-display font-bold text-surface-900 text-4xl">{formatPrice(product.price_Unic)}</p>
               {product.installments && (
                 <p className="text-surface-500 font-body text-sm mt-1">
-                  em até <strong>{product.installments}x</strong> de <strong>{formatPrice(product.price / product.installments)}</strong> sem juros
+                  em até <strong>{product.installments}x</strong> de <strong>{formatPrice(product.price_Unic / product.installments)}</strong> sem juros
                 </p>
               )}
               <div className="flex items-center gap-2 mt-3 p-3 bg-green-50 rounded-xl border border-green-100">
                 <Zap className="w-4 h-4 text-green-600 shrink-0" />
                 <div>
-                  <span className="font-display font-bold text-green-700 text-base">{formatPrice(product.price * 0.95)}</span>
+                  <span className="font-display font-bold text-green-700 text-base">{formatPrice(product.price_Unic * 0.95)}</span>
                   <span className="text-green-600 font-body text-sm"> no PIX · 5% de desconto</span>
                 </div>
               </div>
@@ -165,7 +161,7 @@ export const ProductPage = () => {
                         disabled={opt.stock === 0}
                       >
                         {opt.value}
-                        {opt.priceModifier && opt.priceModifier > 0 ? ` (+${formatPrice(opt.priceModifier)})` : ''}
+                        {opt.price_Modifier && opt.price_Modifier > 0 ? ` (+${formatPrice(opt.price_Modifier)})` : ''}
                       </button>
                     ))}
                   </div>
@@ -186,9 +182,9 @@ export const ProductPage = () => {
                 <div className="flex items-center border-2 border-surface-200 rounded-xl overflow-hidden">
                   <button onClick={() => setQuantity(q => Math.max(1, q - 1))} className="px-3 py-2.5 hover:bg-surface-100 text-surface-600 transition-colors font-display text-lg font-medium">−</button>
                   <span className="px-4 py-2.5 font-display font-bold text-surface-900 min-w-[50px] text-center">{quantity}</span>
-                  <button onClick={() => setQuantity(q => Math.min(product.stock, q + 1))} className="px-3 py-2.5 hover:bg-surface-100 text-surface-600 transition-colors font-display text-lg font-medium">+</button>
+                  <button onClick={() => setQuantity(q => Math.min(product.total_Stock, q + 1))} className="px-3 py-2.5 hover:bg-surface-100 text-surface-600 transition-colors font-display text-lg font-medium">+</button>
                 </div>
-                <span className="text-surface-400 font-body text-sm">{product.stock} disponíveis</span>
+                <span className="text-surface-400 font-body text-sm">{product.total_Stock} disponíveis</span>
               </div>
             </div>
 
@@ -247,7 +243,7 @@ export const ProductPage = () => {
                 onClick={() => setTab(t)}
                 className={`px-5 py-2.5 rounded-xl text-sm font-display font-semibold transition-all ${tab === t ? 'bg-white text-surface-900 shadow-soft' : 'text-surface-400 hover:text-surface-600'}`}
               >
-                {t === 'desc' ? 'Descrição' : `Avaliações (${product.reviewCount.toLocaleString()})`}
+                {t === 'desc' ? 'Descrição' : `Avaliações (${product.review_Count.toLocaleString()})`}
               </button>
             ))}
           </div>
@@ -258,9 +254,9 @@ export const ProductPage = () => {
               <div className="mt-4 grid grid-cols-2 md:grid-cols-4 gap-3">
                 {[
                   { label: 'Categoria', value: product.category },
-                  { label: 'Estoque', value: `${product.stock} unidades` },
-                  { label: 'Avaliação', value: `${product.rating}/5.0` },
-                  { label: 'Vendidos', value: product.sold.toLocaleString() },
+                  { label: 'Estoque', value: `${product.total_Stock} unidades` },
+                  { label: 'Avaliação', value: `${product.count_Rating}/5.0` },
+                  { label: 'Vendidos', value: product.count_Sold.toLocaleString() },
                 ].map(info => (
                   <div key={info.label} className="p-3 bg-surface-50 rounded-xl">
                     <p className="text-xs text-surface-400 font-body">{info.label}</p>
@@ -268,10 +264,15 @@ export const ProductPage = () => {
                   </div>
                 ))}
               </div>
-              {product.tags.length > 0 && (
+              {product.tags && (
                 <div className="mt-4 flex flex-wrap gap-2">
-                  {product.tags.map(tag => (
-                    <span key={tag} className="px-3 py-1 bg-surface-100 text-surface-500 rounded-full text-xs font-body">#{tag}</span>
+                  {product.tags.split(",").map(tag => (
+                    <span
+                      key={tag}
+                      className="px-3 py-1 bg-surface-100 text-surface-500 rounded-full text-xs font-body"
+                    >
+                      #{tag.trim()}
+                    </span>
                   ))}
                 </div>
               )}
@@ -283,11 +284,11 @@ export const ProductPage = () => {
               {/* Rating summary */}
               <div className="flex items-center gap-6 p-4 bg-surface-50 rounded-2xl mb-6">
                 <div className="text-center">
-                  <p className="font-display font-bold text-5xl text-surface-900">{product.rating}</p>
+                  <p className="font-display font-bold text-5xl text-surface-900">{product.count_Rating}</p>
                   <div className="flex justify-center mt-1">
                     {[1, 2, 3, 4, 5].map(s => <Star key={s} className="w-3.5 h-3.5 text-amber-400 fill-amber-400" />)}
                   </div>
-                  <p className="text-xs text-surface-400 font-body mt-1">{product.reviewCount.toLocaleString()} avaliações</p>
+                  <p className="text-xs text-surface-400 font-body mt-1">{product.review_Count.toLocaleString()} avaliações</p>
                 </div>
                 <div className="flex-1 space-y-1.5">
                   {[5, 4, 3, 2, 1].map(s => (

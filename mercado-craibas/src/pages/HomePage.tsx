@@ -9,6 +9,7 @@ import { BANNER_SLIDES, PROMOTIONS } from '../data/products';
 import ProductCard from '../components/ProductCard';
 import { formatPrice, categoryLabels, categoryIcons } from '../utils';
 import { useNavigate } from 'react-router-dom';
+import { useHomeController } from '../controller/useHomeController';
 
 const COUNTDOWN_TARGET = new Date(Date.now() + 4 * 60 * 60 * 1000 + 23 * 60 * 1000 + 45 * 1000);
 
@@ -31,7 +32,9 @@ function useCountdown() {
 }
 
 export default function HomePage() {
-  const { products, navigateTo, toggleWishlist, navigatePages, isWishlisted } = useStore();
+  const Controller = useHomeController();
+
+  const { products, navigateTo, toggleWishlist, navigatePages, isWishlisted, setListProducts } = useStore();
   const navigate = useNavigate();
 
   const [bannerIndex, setBannerIndex] = useState(0);
@@ -49,9 +52,9 @@ export default function HomePage() {
 
   const featured = products.filter(p => p.featured);
   const viral = products.filter(p => p.badge === 'viral');
-  const offers = products.filter(p => p.badge === 'oferta' || (p.originalPrice && p.originalPrice > p.price));
+  const offers = products.filter(p => p.badge === 'oferta' || (p.origin_Price && p.origin_Price > p.price_Unic));
   const newProducts = products.filter(p => p.badge === 'novo');
-  const bestsellers = [...products].sort((a, b) => b.sold - a.sold).slice(0, 8);
+  const bestsellers = [...products].sort((a, b) => b.count_Sold - a.count_Sold).slice(0, 8);
 
   const tabProducts = {
     featured: featured.slice(0, 8),

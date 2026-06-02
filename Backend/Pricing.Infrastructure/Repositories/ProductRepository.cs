@@ -24,10 +24,18 @@ namespace Mercado.Craibas.Infrastructure.Repositories
             return await _context.Set<T>().AsNoTracking().ToListAsync();
         }
 
-        public async Task<List<T>> GetAllVariantAsyncListById<T>(int id) where T : class
+        public async Task<List<T>> GetAllVariantAsyncListById<T>(int id, string columnName) where T : class
         {
-            return await _context.Set<T>().AsNoTracking()
-            .Where(x => EF.Property<int>(x, "Id") == id).ToListAsync();
+            return await _context.Set<T>()
+                .AsNoTracking()
+                .Where(x => EF.Property<int>(x, columnName) == id)
+                .ToListAsync();
+        }
+        public async Task<T?> GetVariantByIdAsync<T>(int id, string columnName) where T : class
+        {
+            return await _context.Set<T>()
+                .AsNoTracking()
+                .FirstOrDefaultAsync(x => EF.Property<int>(x, columnName) == id);
         }
     }
 }

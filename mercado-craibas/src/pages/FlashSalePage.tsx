@@ -26,7 +26,7 @@ export default function FlashSalePage() {
     return () => clearInterval(id);
   }, []);
 
-  const saleProducts = products.filter(p => p.originalPrice && p.originalPrice > p.price);
+  const saleProducts = products.filter(p => p.origin_Price && p.origin_Price > p.price_Unic);
 
   const filtered = filter === 'all' ? saleProducts : saleProducts.filter(p => p.category === filter);
   const cats = ['all', ...Array.from(new Set(saleProducts.map(p => p.category)))];

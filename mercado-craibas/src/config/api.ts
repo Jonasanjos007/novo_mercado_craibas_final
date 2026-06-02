@@ -5,6 +5,7 @@ import { makeResult, Result } from "../utils/Result";
 import { TokenResponse } from "../models/TokenResponse";
 import { UsuarioResponse } from "../models/UsuarioResponse";
 import { User } from "../models/User";
+import { Product } from "../models/Product";
 
 const baseURL = "http://localhost:5022/api/v1";
 
@@ -189,6 +190,20 @@ export const ApiService = {
             return makeResult(success, data, error);
         } catch (error) {
             return makeResult(false, {} as User, "Falha na comunicação");
+        }
+    },
+    getListProducts: async (): Promise<Result<Product[]>> => {
+        try {
+            const response = await api.get("/product/list");
+            const { success, data, error } = response.data;
+            console.log("Resposta da API de produtos:", response.data);
+            if (!data) {
+                return makeResult(false, [] as Product[], "Produtos não encontrados");
+            }
+
+            return makeResult(success, data, error);
+        } catch (error) {
+            return makeResult(false, [] as Product[], "Falha na comunicação");
         }
     },
 

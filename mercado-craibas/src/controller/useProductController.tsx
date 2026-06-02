@@ -18,20 +18,22 @@ type ProductControllerReturn = {
     }
 } | null;
 export const useProductController = (): ProductControllerReturn => {
-    const { selectedProductId, ShowProduct, addToCart, setCartOpen } = useStore();
+    const { selectedProductId, ShowProduct, addToCart, setCartOpen, loadProducts } = useStore();
     const { id } = useParams();
     const navigate = useNavigate();
     const notify = useNotification();
     const { products } = useStore();
     useEffect(() => {
-        if (id && id !== selectedProductId) {
-            ShowProduct(id);
+        loadProducts();
+        if (id && Number(id) !== Number(selectedProductId)) {
+            ShowProduct(Number(id));
         }
     }, [id]);
-    const product = products.find(p => p.id === selectedProductId);
+
+    const product = products.find(p => p.id === Number(selectedProductId));
     if (!product) return null;
 
-    const discount = product.originalPrice ? formatDiscount(product.originalPrice, product.price) : 0;
+    const discount = product.origin_Price ? formatDiscount(product.origin_Price, product.price_Unic) : 0;
     const variationTypes = [...new Set(product.variations.map(v => v.name))];
     const related = products.filter(p => p.category === product.category && p.id !== product.id).slice(0, 5);
 
@@ -59,7 +61,7 @@ export const useProductController = (): ProductControllerReturn => {
             fakeReviews: fakeReviews,
             discount: discount,
             variationTypes: variationTypes,
-            related: related
+            related: related,
 
         },
         action: {
