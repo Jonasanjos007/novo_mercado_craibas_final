@@ -80,7 +80,7 @@ export const useLoginController = () => {
         finalResult.fold(
             (user) => {
                 saveUser(user);
-                notify.success("Sucesso", "Bem-vindo!");
+                notify.success("Sucesso", "Bem-vindo!" + " " + user.name);
                 navigate("/");
             },
             (err) => {

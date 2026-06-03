@@ -18,7 +18,7 @@ type ProductControllerReturn = {
     }
 } | null;
 export const useProductController = (): ProductControllerReturn => {
-    const { selectedProductId, ShowProduct, addToCart, setCartOpen, loadProducts } = useStore();
+    const { selectedProductId, ShowProduct, addToCart, setCartOpen, loadProducts, user } = useStore();
     const { id } = useParams();
     const navigate = useNavigate();
     const notify = useNotification();
@@ -38,6 +38,11 @@ export const useProductController = (): ProductControllerReturn => {
     const related = products.filter(p => p.category === product.category && p.id !== product.id).slice(0, 5);
 
     const handleAddToCart = (quantity: number, selectedVariations: Record<string, string>) => {
+        if (!user) {
+            navigate("/CheckoutAutUser");
+            notify.warning("Atenção", "Faça login ou crie sua conta para adicionar produtos ao carrinho");
+            return false;
+        }
         if (selectedVariations === undefined || Object.keys(selectedVariations).length === 0) {
             notify.error("Erro", "Selecione uma opção do produto.");
             return false;
@@ -65,7 +70,7 @@ export const useProductController = (): ProductControllerReturn => {
 
         },
         action: {
-            handleAddToCart
+            handleAddToCart,
         }
     }
 };

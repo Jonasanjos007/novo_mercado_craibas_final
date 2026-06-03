@@ -17,6 +17,7 @@ import CartSidebar from './components/CartSidebar';
 import { MainLayout } from './routes/MainLayout';
 import { AdminLayout } from './routes/AdminLayout';
 import { ProtectedRoute } from './routes/ProtectedRoute';
+import CheckoutAutUser from './pages/CheckoutAutUser';
 
 
 export default function App() {
@@ -25,7 +26,9 @@ export default function App() {
       <Routes>
         <Route element={<AdminLayout />}>
           <Route path="/login" element={<AuthPage />} />
-          <Route path="/register" element={<AuthPage />} />
+          <Route path="/register/:modeRegister" element={<AuthPage />} />
+          <Route path="/CheckoutAutUser" element={<CheckoutAutUser />} />
+
         </Route>
         <Route element={<MainLayout />}>
           <Route path="/" element={<HomePage />} />

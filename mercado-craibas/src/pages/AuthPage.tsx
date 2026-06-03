@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Eye, EyeOff, ArrowRight, ShoppingBag, Mail, Lock, User, AlertCircle } from 'lucide-react';
 import { useStore } from '../context/store';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import { useLoginController } from '../controller/useLoginController';
 import { ApiService } from '../config/api';
 import Loading from '../components/Loading';
@@ -10,13 +10,16 @@ export default function AuthPage() {
   const Controller = useLoginController();
   const navigate = useNavigate();
   const { saveUser, navigateTo } = useStore();
-
+  const { modeRegister } = useParams();
   const [mode, setMode] = useState<'login' | 'register'>('login');
   const [showPass, setShowPass] = useState(false);
   const [error, setError] = useState('');
   const [form, setForm] = useState({ email: '', password: '' });
 
 
+  if (modeRegister === 'register' && mode !== 'register') {
+    setMode('register');
+  }
 
 
   const hints = [
@@ -75,7 +78,7 @@ export default function AuthPage() {
             </div>
           ) : null}
           <form onSubmit={(e) => Controller.action.handleSubmit(e, form, mode)} className="space-y-4">
-            {mode === 'register' && (
+            {mode === 'register' || modeRegister === 'register' && (
               <div>
                 <label className="block text-xs font-display font-semibold text-surface-600 mb-1.5">Nome completo</label>
                 <div className="relative">

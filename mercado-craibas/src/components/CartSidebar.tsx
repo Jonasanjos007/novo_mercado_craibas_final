@@ -59,7 +59,7 @@ export default function CartSidebar() {
             cart.map(item => (
               <div key={`${item.product.id}-${item.selectedVariation?.id}`} className="flex gap-3 p-3 bg-surface-50 rounded-2xl group">
                 <img
-                  src={item.product.images[0]}
+                  src={`/Imagens/${item.product.imagens[0]?.url_Imagem}`}
                   alt={item.product.name}
                   className="w-16 h-16 object-cover rounded-xl shrink-0"
                 />
@@ -69,7 +69,7 @@ export default function CartSidebar() {
                     <p className="text-xs text-surface-400 font-body mt-0.5">{item.selectedVariation.name}: {item.selectedVariation.value}</p>
                   )}
                   <div className="flex items-center justify-between mt-2">
-                    <span className="font-display font-bold text-surface-900 text-sm">{formatPrice(item.product.price)}</span>
+                    <span className="font-display font-bold text-surface-900 text-sm">{formatPrice(item.product.price_Unic)}</span>
                     <div className="flex items-center gap-1">
                       <button
                         onClick={() => updateQuantity(item.product.id, item.quantity - 1)}

@@ -18,34 +18,38 @@ export default function CategoryPage() {
   const [freeShippingOnly, setFreeShippingOnly] = useState(false);
   const [badgeFilter, setBadgeFilter] = useState<string>('');
   const navigate = useNavigate();
-
   const isSearch = search === 'search';
   const query = searchQuery.toLowerCase();
   let filtered = products.filter(p => {
     if (isSearch) return (
       p.name.toLowerCase().includes(query) ||
       p.description.toLowerCase().includes(query) ||
-      p.tags.some(t => t.toLowerCase().includes(query)) ||
+      p.tags.split(",").some(t => t.trim().toLowerCase().includes(query.toLowerCase())) ||
       p.category.toLowerCase().includes(query)
     );
     return selectedCategory ? p.category === selectedCategory : true;
   });
 
   filtered = filtered.filter(p =>
-    p.price >= priceRange[0] && p.price <= priceRange[1] &&
-    p.rating >= ratingFilter &&
+    p.price_Unic >= priceRange[0] && p.price_Unic <= priceRange[1] &&
+    p.count_Rating >= ratingFilter &&
     (!freeShippingOnly || p.freeShipping) &&
     (!badgeFilter || p.badge === badgeFilter)
   );
 
   const sorted = [...filtered].sort((a, b) => {
-    if (sort === 'menor-preco') return a.price - b.price;
-    if (sort === 'maior-preco') return b.price - a.price;
-    if (sort === 'avaliacao') return b.rating - a.rating;
-    if (sort === 'mais-vendidos') return b.sold - a.sold;
+    if (sort === 'menor-preco') return a.price_Unic - b.price_Unic;
+    if (sort === 'maior-preco') return b.price_Unic - a.price_Unic;
+    if (sort === 'avaliacao') return b.count_Rating - a.count_Rating;
+    if (sort === 'mais-vendidos') return b.count_Sold - a.count_Sold;
     return 0;
   });
-
+  const clearFilters = () => {
+    setPriceRange([0, 15000]);
+    setRatingFilter(0);
+    setFreeShippingOnly(false);
+    setBadgeFilter('');
+  };
   const pageTitle = isSearch
     ? `Resultados para "${searchQuery}"`
     : selectedCategory
@@ -112,6 +116,19 @@ export default function CategoryPage() {
         {/* Filters sidebar */}
         {filterOpen && (
           <aside className="hidden md:block w-56 shrink-0 space-y-4 animate-slide-in-right">
+
+            <div className="flex justify-between items-center px-1">
+              <h2 className="font-display font-bold text-surface-800">
+                Filtros
+              </h2>
+
+              <button
+                onClick={clearFilters}
+                className="text-xs font-medium text-brand-500 hover:text-brand-700 transition-colors"
+              >
+                Limpar
+              </button>
+            </div>
             <div className="bg-white rounded-2xl p-4 shadow-soft">
               <h3 className="font-display font-bold text-surface-800 text-sm mb-3">Preço</h3>
               <div className="space-y-2">
