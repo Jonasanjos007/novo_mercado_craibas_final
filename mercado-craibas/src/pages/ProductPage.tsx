@@ -22,7 +22,6 @@ export const ProductPage = () => {
   const [tab, setTab] = useState<'desc' | 'reviews'>('desc');
   const [wishlist, setWishlist] = useState(false);
   const [added, setAdded] = useState(false);
-  const [variationError, setVariationError] = useState(false);
   if (!product) return null;
   return (
     <div className="min-h-screen bg-surface-50 pb-16">
@@ -165,7 +164,7 @@ export const ProductPage = () => {
                       </button>
                     ))}
                   </div>
-                  {variationError && !selectedVariations[type] && (
+                  {result.variationError && !selectedVariations[type] && (
                     <p className="mt-1 text-xs font-body text-rose-500 flex items-center gap-1">
                       <span className="w-1.5 h-1.5 bg-rose-500 rounded-full animate-ping"></span>
                       Escolha uma opção
@@ -194,10 +193,8 @@ export const ProductPage = () => {
                 onClick={() => {
                   if (action?.handleAddToCart(quantity, selectedVariations)) {
                     setAdded(true);
-                    notify.success("Sucesso", "Produto adicionado ao carrinho.");
-
                     setTimeout(() => setAdded(false), 2000);
-                  } else { setVariationError(true) }
+                  }
                 }}
                 className={`flex-1 py-4 rounded-2xl font-display font-bold text-base flex items-center justify-center gap-2 transition-all ${added ? 'bg-green-500 text-white shadow-green-200' : 'bg-brand-500 hover:bg-brand-600 text-white shadow-brand hover:shadow-brand-lg'}`}
               >
@@ -208,10 +205,8 @@ export const ProductPage = () => {
             {/* Buy now */}
             <button
               onClick={() => {
-                if (action?.handleAddToCart(quantity, selectedVariations)) {
-                  notify.success("Sucesso", "Produto adicionado ao carrinho.");
-                  navigate('/checkout');
-                } else { setVariationError(true) }
+                if (action?.handleFinishbuy(quantity, selectedVariations)) {
+                }
               }}
               className="w-full py-3.5 rounded-2xl border-2 border-surface-200 text-surface-700 font-display font-bold hover:border-brand-300 hover:text-brand-600 hover:bg-brand-50 transition-all flex items-center justify-center gap-2"
             >

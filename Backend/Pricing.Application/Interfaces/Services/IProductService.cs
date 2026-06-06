@@ -1,4 +1,6 @@
 ﻿using Baldan.Pricing.Application.Commons;
+using Mercado.Craibas.Application.DTOs.Requests;
+using Mercado.Craibas.Application.DTOs.Responses;
 using Pricing.Api.DTOs.Responses;
 using System;
 using System.Collections.Generic;
@@ -11,5 +13,9 @@ namespace Mercado.Craibas.Application.Interfaces.Services
     public interface IProductService
     {
         Task<Result<List<ProductResponse>>> GetProductList();
+        Task<Result<bool>> PostCartItensSave(CartItensRequest CartProduto);
+        Task<Result<List<CartItemResponse>>> GetProductCartList(int Id_Customer);
+        Task<Result<bool>> PostCartItensUpdate(int Id, int Quantity, string Soma_Sub);
+        Task<Result<bool>> DeleteProductCartList(int Id_Customer);
     }
 }

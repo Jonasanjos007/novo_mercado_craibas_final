@@ -2,7 +2,8 @@ import { useState, useEffect, useRef } from 'react';
 import {
   ChevronLeft, ChevronRight, Flame, Star, Zap, Shield, Truck,
   RefreshCw, Heart, TrendingUp, Award, ArrowRight,
-  Sparkles, ShoppingBag, Percent, Package
+  Sparkles, ShoppingBag, Percent, Package,
+  User
 } from 'lucide-react';
 import { useStore } from '../context/store';
 import { BANNER_SLIDES, PROMOTIONS } from '../data/products';
@@ -10,6 +11,7 @@ import ProductCard from '../components/ProductCard';
 import { formatPrice, categoryLabels, categoryIcons } from '../utils';
 import { useNavigate } from 'react-router-dom';
 import { useHomeController } from '../controller/useHomeController';
+import Loading from '../components/Loading';
 
 const COUNTDOWN_TARGET = new Date(Date.now() + 4 * 60 * 60 * 1000 + 23 * 60 * 1000 + 45 * 1000);
 
@@ -34,12 +36,11 @@ function useCountdown() {
 export default function HomePage() {
   const Controller = useHomeController();
 
-  const { products, navigateTo, toggleWishlist, navigatePages, isWishlisted, setListProducts } = useStore();
+  const { products, navigateTo, toggleWishlist, user, navigatePages, isWishlisted, setListProducts } = useStore();
   const navigate = useNavigate();
 
   const [bannerIndex, setBannerIndex] = useState(0);
   const [valorIDProduct, setValorIDProduct] = useState('');
-
   const [autoPlay, setAutoPlay] = useState(true);
   const [activeTab, setActiveTab] = useState<'featured' | 'new' | 'bestsellers'>('featured');
   const countdown = useCountdown();
@@ -49,7 +50,6 @@ export default function HomePage() {
     const timer = setInterval(() => setBannerIndex(i => (i + 1) % BANNER_SLIDES.length), 4500);
     return () => clearInterval(timer);
   }, [autoPlay]);
-
   const featured = products.filter(p => p.featured);
   const viral = products.filter(p => p.badge === 'viral');
   const offers = products.filter(p => p.badge === 'oferta' || (p.origin_Price && p.origin_Price > p.price_Unic));
@@ -557,6 +557,11 @@ export default function HomePage() {
           </div>
         </div>
       </footer>
+      <Loading
+        loading={Controller.result.Loading}
+        message="Carregando Produtos"
+        subMessage="Carregando os melhores produtos para você"
+      />
     </div>
   );
 }

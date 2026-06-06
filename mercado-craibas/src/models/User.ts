@@ -1,10 +1,13 @@
+import { CartUser } from "./CartUser";
+
 export interface User {
-    id: string;
+    id: number;
     name: string;
     email: string;
     senha?: string;
     avatar?: string;
     role: string;
+    CartUser?: CartUser;
     //address?: Address;
     phone?: string;
     //bio?: string;

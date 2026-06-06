@@ -8,6 +8,6 @@ namespace Baldan.Pricing.Application.Interfaces.Repositories
     {
         //Task AddAsync(User user);
         //Task<bool> ExistsByEmailAsync(string email);
-        Task<T?> GetByIdAsync<T>(int id) where T : class;
+        Task<T?> GetByIdAsync<T>(int id, string CollunName) where T : class;
     }
 }

@@ -10,7 +10,7 @@ type Step = 'address' | 'payment' | 'review' | 'success';
 
 export default function CheckoutPage() {
   const navigate = useNavigate();
-  const { cart, cartTotal, placeOrder, navigateTo, user } = useStore();
+  const { cart, cartTotal, placeOrder, navigateTo, setCartOpen, user } = useStore();
   const [step, setStep] = useState<Step>('address');
   const [payment, setPayment] = useState<PaymentMethod>('pix');
   const [loading, setLoading] = useState(false);
@@ -57,7 +57,11 @@ export default function CheckoutPage() {
     if (!user) {
       navigate('/login');
     }
-  }, [user, navigate]);
+    if (cart.length === 0) {
+      navigate('/');
+      setCartOpen(false);
+    }
+  }, [user, navigate, cart]);
 
   if (step === 'success' && order) {
     return (

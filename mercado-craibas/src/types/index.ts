@@ -1,6 +1,6 @@
 // export type ProductCategory = 'eletronicos' | 'garrafas' | 'acessorios' | 'virais';
 
-import { CartItem } from "../models/Cart";
+import { CartItem } from "../models/CartUser";
 import { Product } from "../models/Product";
 
 // export interface ProductVariation {

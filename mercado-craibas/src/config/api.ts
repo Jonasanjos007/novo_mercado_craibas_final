@@ -6,6 +6,7 @@ import { TokenResponse } from "../models/TokenResponse";
 import { UsuarioResponse } from "../models/UsuarioResponse";
 import { User } from "../models/User";
 import { Product } from "../models/Product";
+import { CartItensProduct } from "../models/CartItensProduct";
 
 const baseURL = "http://localhost:5022/api/v1";
 
@@ -204,6 +205,86 @@ export const ApiService = {
             return makeResult(success, data, error);
         } catch (error) {
             return makeResult(false, [] as Product[], "Falha na comunicação");
+        }
+    },
+    PostCartProduct: async (Cart_Itens: CartItensProduct): Promise<Result<CartItensProduct>> => {
+        try {
+            console.log("Role recebida:", Cart_Itens);
+            const response = await api.post("/product/postCartSave", Cart_Itens);
+            console.log("Resposta da API:", response.data);
+            const { success, data, error } = response.data;
+
+            if (!data) {
+                return makeResult(false, {} as CartItensProduct, "Itens do carrinho não Adicionados");
+            }
+
+            return makeResult(success, data, error);
+        } catch (error) {
+            return makeResult(false, {} as CartItensProduct, "Falha na comunicação");
+        }
+    },
+    PostCartProductExistent: async (Cart_Itens: CartItensProduct, Operador: string): Promise<Result<CartItensProduct>> => {
+        try {
+            console.log("Role recebida:", Cart_Itens);
+            const response = await api.post("/product/postCartUpdate", { ...Cart_Itens, operador: Operador });
+            console.log("Resposta da API:", response.data);
+            const { success, data, error } = response.data;
+
+            if (!data) {
+                return makeResult(false, {} as CartItensProduct, "Itens do carrinho não Adicionados");
+            }
+
+            return makeResult(success, data, error);
+        } catch (error) {
+            return makeResult(false, {} as CartItensProduct, "Falha na comunicação");
+        }
+    },
+    PostUpdateQuantity: async (Cart_Itens_Id: number, Quantity: number, Operador: string): Promise<Result<{ success?: boolean; error?: string }>> => {
+        try {
+            const response = await api.post("/product/PostUpdateQuantity", { Cart_Itens_Id, Quantity, Operador });
+            console.log("Resposta da API:", response.data);
+            const { success, data, error } = response.data;
+
+            if (!data) {
+                return makeResult(false, { success: false, error: "Itens do carrinho não Adicionados" }, "Erro ao atualizar quantidade");
+            }
+
+            return makeResult(success, { success: true, error: "" }, error);
+        } catch (error) {
+            return makeResult(false, { success: false, error: "Falha na comunicação" }, "Erro ao atualizar quantidade");
+        }
+    },
+    DeleteCartProduct: async (Cart_Itens_Id: number): Promise<Result<{ success?: boolean; error?: string }>> => {
+        try {
+            const response = await api.delete("/product/DeleteProductCart/" + Cart_Itens_Id);
+            console.log("Resposta da API:", response.data);
+            const { success, data, error } = response.data;
+
+            if (!data) {
+                return makeResult(false, { success: false, error: "Itens do carrinho não removidos" }, "Erro ao remover item do carrinho");
+            }
+
+            return makeResult(success, { success: true, error: "" }, error);
+        } catch (error) {
+            return makeResult(false, { success: false, error: "Falha na comunicação" }, "Erro ao remover item do carrinho");
+        }
+    },
+    getCartProducts: async (userId: number): Promise<Result<CartItensProduct[]>> => {
+        try {
+            if (userId === 0) {
+                return makeResult(false, [] as CartItensProduct[], "ID de usuário inválido");
+            }
+            console.log("ID de usuário para carrinho:", userId);
+            const response = await api.get("/product/GetProductCart/" + userId);
+            console.log("Resposta teste:", response.data);
+            const { success, data, error } = response.data;
+            if (!data) {
+                return makeResult(false, [] as CartItensProduct[], "Itens do carrinho não encontrados");
+            }
+
+            return makeResult(success, data, error);
+        } catch (error) {
+            return makeResult(false, [] as CartItensProduct[], "Falha na comunicação");
         }
     },
 

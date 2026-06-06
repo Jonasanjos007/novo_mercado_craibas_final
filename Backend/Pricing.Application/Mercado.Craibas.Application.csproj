@@ -7,8 +7,11 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <Compile Remove="Domain\Entities\TESTE\**" />
     <Compile Remove="Expcetions\**" />
+    <EmbeddedResource Remove="Domain\Entities\TESTE\**" />
     <EmbeddedResource Remove="Expcetions\**" />
+    <None Remove="Domain\Entities\TESTE\**" />
     <None Remove="Expcetions\**" />
   </ItemGroup>
 
@@ -28,10 +31,6 @@
     <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="9.0.0" />
     <PackageReference Include="System.IdentityModel.Tokens.Jwt" Version="8.5.0" />
     <PackageReference Include="Ulid" Version="1.4.1" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <Folder Include="Domain\Entities\TESTE\" />
   </ItemGroup>
 
 </Project>

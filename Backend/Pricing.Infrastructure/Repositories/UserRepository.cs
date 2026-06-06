@@ -25,12 +25,12 @@ public class UserRepository : IUserRepository
     //        .AsNoTracking()
     //        .AnyAsync(u => u.Email == email);
     //}
-    public async Task<T?> GetByIdAsync<T>(int id)
+    public async Task<T?> GetByIdAsync<T>(int id,string CollunName)
       where T : class
     {
         return await _context.Set<T>()
             .AsNoTracking()
-            .FirstOrDefaultAsync(x => EF.Property<int>(x, "Id") == id);
+            .FirstOrDefaultAsync(x => EF.Property<int>(x, CollunName) == id);
     }
     //public async Task<User_Admin?> GetByIdAsyncAdmin(int id)
     //{

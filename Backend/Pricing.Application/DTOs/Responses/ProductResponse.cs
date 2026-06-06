@@ -1,4 +1,5 @@
 using Baldan.Pricing.Application.Domain.Entities;
+using Mercado.Craibas.Application.DTOs.Responses;
 
 namespace Pricing.Api.DTOs.Responses;
 

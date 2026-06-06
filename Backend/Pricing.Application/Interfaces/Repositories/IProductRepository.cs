@@ -11,6 +11,7 @@ namespace Mercado.Craibas.Application.Interfaces.Repositories
         Task<List<T>> GetAllProductAsyncList<T>() where T : class;
         Task<List<T>> GetAllVariantAsyncListById<T>(int id, string columnName) where T : class;
         Task<T?> GetVariantByIdAsync<T>(int id, string columnName) where T : class;
-
+        Task<int> InsertCartProductAsync<T>(T entity) where T : class;
+        Task<bool> DeleteByColumnAsync<T>(string columnName, object value) where T : class;
     }
 }

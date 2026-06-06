@@ -6,6 +6,7 @@ using Baldan.Pricing.Application.Domain.Entities;
 using Baldan.Pricing.Application.Domain.Enums;
 using Baldan.Pricing.Application.Interfaces;
 using Baldan.Pricing.Application.Interfaces.Repositories;
+using Mercado.Craibas.Application.DTOs.Responses;
 using Microsoft.EntityFrameworkCore;
 using Pricing.Api.DTOs.Responses;
 using System;
@@ -56,19 +57,21 @@ public class UserService : IUserService
     public async Task<Result<UserResponse>> GetbyIdUser(int userid, string role)
     {
         dynamic? user = null;
+        dynamic? cart_User = null;
 
         switch (role)
         {
             case "CLIENTE":
-                user = await _userRepository.GetByIdAsync<User_Customer>(userid);
+                user = await _userRepository.GetByIdAsync<User_Customer>(userid,"Id");
+                cart_User = await _userRepository.GetByIdAsync<Cart>(userid, "Id_User_Customer");
                 break;
 
             case "ADMIN":
-                user = await _userRepository.GetByIdAsync<User_Admin>(userid);
+                user = await _userRepository.GetByIdAsync<User_Admin>(userid, "Id");
                 break;
 
             case "DELIVERY":
-                user = await _userRepository.GetByIdAsync<User_Delivery>(userid);
+                user = await _userRepository.GetByIdAsync<User_Delivery>(userid,"Id");
                 break;
 
             default:
@@ -91,6 +94,11 @@ public class UserService : IUserService
             Role = user.Role,
             Phone = user.Phone,
             Insert_Date = user.InsertDate,
+            Cart_User = cart_User == null ? null : new CartResponse
+                {
+                    Id = cart_User.Id,
+                    Id_User_Customer = cart_User.Id_User_Customer
+                }
         });
     }
 }

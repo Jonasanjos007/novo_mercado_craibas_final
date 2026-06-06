@@ -3,10 +3,12 @@ import { Order, AppPage, OrderStatus, WishlistItem, Promotion } from '../types';
 import { MOCK_USERS, MOCK_ORDERS } from '../data/users';
 import { PRODUCTS, PROMOTIONS as INITIAL_PROMOS } from '../data/products';
 import { Product } from '../models/Product';
-import { CartItem } from '../models/Cart';
 import { User } from '../models/User';
 import { persist } from 'zustand/middleware';
 import { ApiService } from '../config/api';
+import { CartItensProduct } from '../models/CartItensProduct';
+import { CartUser } from '../models/CartUser';
+import { makeResult, Result } from '../utils/Result';
 interface AppState {
   ShowProduct: (selectedProductId: number | null) => void;
   // Theme
@@ -35,10 +37,10 @@ interface AppState {
   updateUser: (updates: Partial<User>) => void;
 
   // Cart
-  cart: CartItem[];
-  addToCart: (item: CartItem) => void;
-  removeFromCart: (productId: number) => void;
-  updateQuantity: (productId: number, quantity: number) => void;
+  cart: CartItensProduct[];
+  addToCart: (item: CartItensProduct) => Promise<boolean>;
+  removeFromCart: (productId: number) => Promise<{ success?: boolean; error?: string }>;
+  updateQuantity: (CartId: number, productId: number, quantity: number, operador: string) => Promise<{ success?: boolean; error?: string }>;
   clearCart: () => void;
   cartTotal: () => number;
   cartCount: () => number;
@@ -56,7 +58,7 @@ interface AppState {
   // Products
   products: Product[];
   setListProducts: (products: Product[]) => void;
-  loadProducts: () => Promise<void>;
+  loadProducts: (User: User | null) => Promise<Result<boolean>>;
   addProduct: (product: Product) => void;
   updateProduct: (product: Product) => void;
   deleteProduct: (productId: number) => void;
@@ -129,7 +131,7 @@ export const useStore = create<AppState>()(
           role: found.role,
         };
       },
-      logout: () => set({ user: null, currentPage: 'home' }),
+      logout: () => set({ user: null, currentPage: 'home', cart: [] }),
       saveUser: (User: User) => {
         // const newUser: User = {
         //   id: `u${Date.now()}`,
@@ -142,31 +144,80 @@ export const useStore = create<AppState>()(
         //   preferences: { notifications: true, newsletter: false, darkMode: false, language: 'pt-BR' },
         //   address: { street: '', number: '', neighborhood: '', city: 'Craibas', state: 'AL', zipCode: '' },
         // };
-        set({ user: User }); return true;
+        set({ user: User });
+        return true;
       },
       updateUser: (updates) => set(s => ({ user: s.user ? { ...s.user, ...updates } : null })),
 
       // Cart
-      cart: [],
-      addToCart: (item) => {
-        const { cart } = get();
-        const existing = cart.find(c => c.product.id === item.product.id && c.selectedVariation?.id === item.selectedVariation?.id);
+      addToCart: async (item) => {
+        const cart = get().cart ?? [];
+        const existing = cart.find(c => c.product?.id === item.product?.id && c.selectedVariation?.id === item.selectedVariation?.id);
         if (existing) {
-          set({ cart: cart.map(c => c.product.id === item.product.id && c.selectedVariation?.id === item.selectedVariation?.id ? { ...c, quantity: c.quantity + item.quantity } : c) });
+          const result = await ApiService.PostCartProductExistent(existing, "Soma");
+          if (!result.success) {
+            return false;
+          }
+          set({ cart: cart.map(c => c.product?.id === item.product?.id && c.selectedVariation?.id === item.selectedVariation?.id ? { ...c, quantity: c.quantity + item.quantity } : c) });
+          return true;
         } else {
-          set({ cart: [...cart, item] });
+          const result = await ApiService.PostCartProduct(item);
+          console.log('API Result:', result);
+          if (!result.success) {
+            return false;
+          }
+          const NewCart = await ApiService.getCartProducts(item.user?.id || 0); // Certifique-se de que o ID retornado pela API seja usado
+          set({ cart: NewCart?.data || [] });
+          return true;
         }
-        get().showNotification(`${item.product.name.substring(0, 30)}... adicionado ao carrinho!`, 'success');
+
       },
-      removeFromCart: (productId) => set({ cart: get().cart.filter(c => c.product.id !== productId) }),
-      updateQuantity: (productId, quantity) => {
-        if (quantity <= 0) { get().removeFromCart(productId); return; }
-        set({ cart: get().cart.map(c => c.product.id === productId ? { ...c, quantity } : c) });
+      removeFromCart: async (CartId) => {
+        const deleteItem = await ApiService.DeleteCartProduct(CartId);
+        if (!deleteItem.success) {
+          return deleteItem;
+        }
+        set({ cart: get().cart.filter(c => c.id !== CartId) })
+        return deleteItem;
+      },
+      updateQuantity: async (CartId, productId, quantity, operador) => {
+        if (quantity === 1 && operador === "Subtrair") {
+          const deleteItemcart = await get().removeFromCart(CartId);
+          if (!deleteItemcart.success) {
+            return { success: false, error: deleteItemcart.error || "Erro ao remover produto do carrinho" };
+          }
+          return { success: true, error: "" };
+        }
+        const result = await ApiService.PostUpdateQuantity(CartId, quantity, operador);
+        if (operador === "Subtrair") {
+          quantity = quantity - 1;
+        }
+        else if (operador === "Soma") {
+          quantity = quantity + 1;
+        }
+        if (!result.success) {
+          return { success: false, error: result.error || "Erro ao atualizar quantidade" };
+        }
+
+        set({ cart: get().cart.map(c => c.product?.id === productId ? { ...c, quantity } : c) });
+        return { success: true, error: "" };
       },
       clearCart: () => set({ cart: [] }),
-      cartTotal: () => get().cart.reduce((sum, item) => sum + item.product.price_Unic * item.quantity, 0),
-      cartCount: () => get().cart.reduce((sum, item) => sum + item.quantity, 0),
+      cartTotal: () => {
+        const cart = get().cart || [];
 
+        return cart.reduce((acc, item) => {
+          return acc + (item.product?.price_Unic || 0) * item.quantity;
+        }, 0);
+      },
+
+      cartCount: () => {
+        const cart = get().cart || [];
+
+        return cart.reduce((acc, item) => {
+          return acc + item.quantity;
+        }, 0);
+      },
       // Wishlist
       wishlist: [],
       toggleWishlist: (product) => {
@@ -210,22 +261,23 @@ export const useStore = create<AppState>()(
       setListProducts: (products: Product[]) =>
         set({ products }),
 
-      loadProducts: async () => {
+      loadProducts: async (User: User | null): Promise<Result<boolean>> => {
         const result = await ApiService.getListProducts();
+        if (User) {
+          const Cart = await ApiService.getCartProducts(User?.id || 0);
+          set({ cart: Cart?.data || [] });
+        }
         if (result.success) {
-          set({
-            products: result.data || []
-          });
+          set({ products: result.data || [] });
         } else {
-          set({
-            products: []
-          });
-
-          get().showNotification(
-            result.error || "Erro ao carregar produtos",
-            "error"
+          set({ products: [] });
+        }
+        if (!result.success) {
+          return makeResult(false, false, "Erro ao carregar produtos"
           );
         }
+        return makeResult(true, true);
+
       },
       addProduct: (product) => set({ products: [product, ...get().products] }),
       updateProduct: (product) => set({ products: get().products.map(p => p.id === product.id ? product : p) }),

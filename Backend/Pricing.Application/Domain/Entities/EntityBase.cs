@@ -4,5 +4,5 @@ public abstract class EntityBase
 {
     public int Id { get; protected set; }
     public DateTime InsertDate { get; set; }
-    public DateTime UpdateDate { get; set; }
+    public DateTime? UpdateDate { get; set; }
 }

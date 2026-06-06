@@ -76,7 +76,7 @@ export const useLoginController = () => {
                 useAuthStore.getState().setTokens(tokens);
                 return await getUser(tokens.role || ' ');
             });
-
+        console.log('Final Result:', finalResult);
         finalResult.fold(
             (user) => {
                 saveUser(user);

@@ -1,5 +1,4 @@
 ﻿//using Baldan.Pricing.Application.Interfaces.Repositories;
-//using Baldan.Pricing.Application.Models.Entities;
 //using Mercado.Craibas.Infrastructure.Data.Context;
 //using Microsoft.EntityFrameworkCore;
 //using Pricing.Api.DTOs.Responses;
@@ -31,42 +30,42 @@
 
 //            var query = _context.SurveyEntry.AsQueryable();
 
-//            //query = query.Where(c => c.UserId == userId);
+//            query = query.Where(c => c.UserId == userId);
 
-//            //if (!string.IsNullOrEmpty(search.SearchStatus.Status))
-//            //{
-//            //    query = query.Where(c => c.CycleStatus == search.SearchStatus.Status);
-//            //}
+//            if (!string.IsNullOrEmpty(search.SearchStatus.Status))
+//            {
+//                query = query.Where(c => c.CycleStatus == search.SearchStatus.Status);
+//            }
 
-//            //if (!string.IsNullOrEmpty(search.SearchStatus.Status))
-//            //{
-//            //    query = query.Where(c => c.CycleStatus == search.SearchStatus.Status);
-//            //}
+//            if (!string.IsNullOrEmpty(search.SearchStatus.Status))
+//            {
+//                query = query.Where(c => c.CycleStatus == search.SearchStatus.Status);
+//            }
 
-//            //if (!string.IsNullOrEmpty(vertical))
-//            //{
-//            //    query = query.Where(c => c.Vertical == vertical);
-//            //}
+//            if (!string.IsNullOrEmpty(vertical))
+//            {
+//                query = query.Where(c => c.Vertical == vertical);
+//            }
 
-//            //if (!string.IsNullOrEmpty(search))
-//            //{
-//            //    query = query.Where(c =>
-//            //        c.OwnProductName.Contains(search) ||
-//            //        c.CompetitorBrand != null && c.CompetitorBrand.Contains(search) ||
-//            //        c.CompetitorModel != null && c.CompetitorModel.Contains(search)
-//            //    );
-//            //}
+//            if (!string.IsNullOrEmpty(search))
+//            {
+//                query = query.Where(c =>
+//                    c.OwnProductName.Contains(search) ||
+//                    c.CompetitorBrand != null && c.CompetitorBrand.Contains(search) ||
+//                    c.CompetitorModel != null && c.CompetitorModel.Contains(search)
+//                );
+//            }
 
-//            //if (!string.IsNullOrEmpty(searchTerm))
-//            //{
-//            //    query = query.Where(c =>
-//            //        c.OwnProductName.Contains(searchTerm) ||
-//            //        (c.CompetitorBrand != null && c.CompetitorBrand.Contains(searchTerm)) ||
-//            //        (c.CompetitorModel != null && c.CompetitorModel.Contains(searchTerm))
-//            //    );
-//            //}
+//            if (!string.IsNullOrEmpty(searchTerm))
+//            {
+//                query = query.Where(c =>
+//                    c.OwnProductName.Contains(searchTerm) ||
+//                    (c.CompetitorBrand != null && c.CompetitorBrand.Contains(searchTerm)) ||
+//                    (c.CompetitorModel != null && c.CompetitorModel.Contains(searchTerm))
+//                );
+//            }
 
-//            //return await query.ToListAsync();
+//            return await query.ToListAsync();
 
 //            return [];
 //        }
