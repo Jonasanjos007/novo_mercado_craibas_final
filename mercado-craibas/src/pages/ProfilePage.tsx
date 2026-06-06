@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
   User, Mail, Phone, MapPin, Edit3, Check, ArrowLeft, ShoppingBag,
   Heart, Star, Bell, Shield, CreditCard, Truck, Package, Globe,
@@ -6,11 +6,12 @@ import {
 } from 'lucide-react';
 import { useStore } from '../context/store';
 import { formatPrice, orderStatusLabels, orderStatusColors } from '../utils';
-import { useParams } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 
 type ProfileTab = 'overview' | 'orders' | 'wishlist' | 'addresses' | 'security' | 'preferences';
 
 export default function ProfilePage() {
+  const navigate = useNavigate();
   const { user, orders, wishlist, navigateTo, logout, updateUser } = useStore();
   const [tab, setTab] = useState<ProfileTab>('overview');
   const [editing, setEditing] = useState(false);
@@ -59,7 +60,11 @@ export default function ProfilePage() {
     { id: 'security', label: 'Segurança', icon: <Shield className="w-4 h-4" /> },
     { id: 'preferences', label: 'Preferências', icon: <Bell className="w-4 h-4" /> },
   ];
-
+  useEffect(() => {
+    if (!user) {
+      navigate('/login');
+    }
+  }, [user, navigate]);
   return (
     <div className="min-h-screen bg-[#f5f5f7]">
       {/* Header */}

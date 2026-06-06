@@ -1,16 +1,18 @@
 import { Package, MapPin, ChevronRight, ArrowLeft } from 'lucide-react';
 import { useStore } from '../context/store';
 import { formatPrice, orderStatusLabels, orderStatusColors, orderStatusSteps } from '../utils';
+import { useNavigate } from 'react-router-dom';
 
 export default function OrdersPage() {
-  const { orders, user, navigateTo } = useStore();
+  const navigate = useNavigate();
+  const { orders, user } = useStore();
   const userOrders = orders.filter(o => o.userId === user?.id);
 
   return (
     <div className="min-h-screen bg-surface-50 pb-10">
       <div className="bg-white border-b border-surface-100">
         <div className="max-w-3xl mx-auto px-4 py-5 flex items-center gap-3">
-          <button onClick={() => navigateTo('home')} className="text-surface-400 hover:text-surface-600 transition-colors">
+          <button onClick={() => navigate('/')} className="text-surface-400 hover:text-surface-600 transition-colors">
             <ArrowLeft className="w-5 h-5" />
           </button>
           <div>
@@ -26,7 +28,7 @@ export default function OrdersPage() {
             <Package className="w-16 h-16 text-surface-200 mx-auto mb-4" />
             <h2 className="font-display font-bold text-surface-700 text-xl mb-2">Nenhum pedido ainda</h2>
             <p className="text-surface-400 font-body text-sm mb-6">Explore nossos produtos incríveis</p>
-            <button onClick={() => navigateTo('home')} className="px-6 py-3 bg-brand-500 text-white font-display font-bold rounded-xl shadow-brand hover:shadow-brand-lg transition-all">
+            <button onClick={() => navigate('/')} className="px-6 py-3 bg-brand-500 text-white font-display font-bold rounded-xl shadow-brand hover:shadow-brand-lg transition-all">
               Explorar Produtos
             </button>
           </div>
@@ -83,7 +85,7 @@ export default function OrdersPage() {
                 {/* Items */}
                 <div className="p-4 space-y-2">
                   {order.items.map((item, i) => (
-                    <div key={i} className="flex gap-3 cursor-pointer group" onClick={() => navigateTo('product', item.product.id)}>
+                    <div key={i} className="flex gap-3 cursor-pointer group" onClick={() => navigate(`/product/${item.product.id}`)}>
                       <img src={item.product.images[0]} alt="" className="w-12 h-12 rounded-xl object-cover" />
                       <div className="flex-1 min-w-0">
                         <p className="font-body text-sm text-surface-700 line-clamp-1 group-hover:text-brand-600 transition-colors">{item.product.name}</p>

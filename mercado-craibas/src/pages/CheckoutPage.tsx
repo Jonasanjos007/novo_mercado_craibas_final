@@ -2,12 +2,15 @@ import { useState } from 'react';
 import { CreditCard, Smartphone, FileText, ChevronRight, Check, MapPin, ShoppingBag, Zap, ArrowLeft, Lock } from 'lucide-react';
 import { useStore } from '../context/store';
 import { formatPrice } from '../utils';
+import { useNavigate } from 'react-router-dom';
+import { useEffect } from 'react';
 
 type PaymentMethod = 'pix' | 'credit' | 'boleto';
 type Step = 'address' | 'payment' | 'review' | 'success';
 
 export default function CheckoutPage() {
-  const { cart, cartTotal, placeOrder, navigateTo, user } = useStore();
+  const navigate = useNavigate();
+  const { cart, cartTotal, placeOrder, navigateTo, setCartOpen, user } = useStore();
   const [step, setStep] = useState<Step>('address');
   const [payment, setPayment] = useState<PaymentMethod>('pix');
   const [loading, setLoading] = useState(false);
@@ -50,6 +53,16 @@ export default function CheckoutPage() {
     else if (coupon.toUpperCase() === 'BEMVINDO20') setDiscount(total * 0.20);
   };
 
+  useEffect(() => {
+    if (!user) {
+      navigate('/login');
+    }
+    if (cart.length === 0) {
+      navigate('/');
+      setCartOpen(false);
+    }
+  }, [user, navigate, cart]);
+
   if (step === 'success' && order) {
     return (
       <div className="min-h-screen bg-surface-50 flex items-center justify-center p-4">
@@ -83,10 +96,10 @@ export default function CheckoutPage() {
           </div>
 
           <div className="flex gap-3">
-            <button onClick={() => navigateTo('orders')} className="flex-1 py-3.5 bg-brand-500 hover:bg-brand-600 text-white font-display font-bold rounded-xl transition-all shadow-brand">
+            <button onClick={() => navigate('/orders')} className="flex-1 py-3.5 bg-brand-500 hover:bg-brand-600 text-white font-display font-bold rounded-xl transition-all shadow-brand">
               Ver Pedidos
             </button>
-            <button onClick={() => navigateTo('home')} className="flex-1 py-3.5 bg-surface-100 hover:bg-surface-200 text-surface-700 font-display font-bold rounded-xl transition-all">
+            <button onClick={() => navigate('/')} className="flex-1 py-3.5 bg-surface-100 hover:bg-surface-200 text-surface-700 font-display font-bold rounded-xl transition-all">
               Início
             </button>
           </div>
@@ -144,32 +157,32 @@ export default function CheckoutPage() {
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="block text-xs font-display font-semibold text-surface-600 mb-1.5">CEP</label>
-                  <input value={address.zipCode} onChange={e => setAddress({...address, zipCode: e.target.value})}
+                  <input value={address.zipCode} onChange={e => setAddress({ ...address, zipCode: e.target.value })}
                     className="w-full px-3 py-2.5 border-2 border-surface-200 rounded-xl font-body text-sm focus:outline-none focus:border-brand-400 transition-colors" />
                 </div>
                 <div className="col-span-2 sm:col-span-1">
                   <label className="block text-xs font-display font-semibold text-surface-600 mb-1.5">Rua</label>
-                  <input value={address.street} onChange={e => setAddress({...address, street: e.target.value})}
+                  <input value={address.street} onChange={e => setAddress({ ...address, street: e.target.value })}
                     className="w-full px-3 py-2.5 border-2 border-surface-200 rounded-xl font-body text-sm focus:outline-none focus:border-brand-400 transition-colors" />
                 </div>
                 <div>
                   <label className="block text-xs font-display font-semibold text-surface-600 mb-1.5">Número</label>
-                  <input value={address.number} onChange={e => setAddress({...address, number: e.target.value})}
+                  <input value={address.number} onChange={e => setAddress({ ...address, number: e.target.value })}
                     className="w-full px-3 py-2.5 border-2 border-surface-200 rounded-xl font-body text-sm focus:outline-none focus:border-brand-400 transition-colors" />
                 </div>
                 <div>
                   <label className="block text-xs font-display font-semibold text-surface-600 mb-1.5">Complemento</label>
-                  <input value={address.complement} onChange={e => setAddress({...address, complement: e.target.value})}
+                  <input value={address.complement} onChange={e => setAddress({ ...address, complement: e.target.value })}
                     placeholder="Apto, sala..." className="w-full px-3 py-2.5 border-2 border-surface-200 rounded-xl font-body text-sm focus:outline-none focus:border-brand-400 transition-colors" />
                 </div>
                 <div>
                   <label className="block text-xs font-display font-semibold text-surface-600 mb-1.5">Bairro</label>
-                  <input value={address.neighborhood} onChange={e => setAddress({...address, neighborhood: e.target.value})}
+                  <input value={address.neighborhood} onChange={e => setAddress({ ...address, neighborhood: e.target.value })}
                     className="w-full px-3 py-2.5 border-2 border-surface-200 rounded-xl font-body text-sm focus:outline-none focus:border-brand-400 transition-colors" />
                 </div>
                 <div>
                   <label className="block text-xs font-display font-semibold text-surface-600 mb-1.5">Cidade</label>
-                  <input value={address.city} onChange={e => setAddress({...address, city: e.target.value})}
+                  <input value={address.city} onChange={e => setAddress({ ...address, city: e.target.value })}
                     className="w-full px-3 py-2.5 border-2 border-surface-200 rounded-xl font-body text-sm focus:outline-none focus:border-brand-400 transition-colors" />
                 </div>
               </div>
@@ -211,7 +224,7 @@ export default function CheckoutPage() {
                 <div className="p-5 bg-green-50 rounded-2xl border border-green-200 text-center animate-fade-in">
                   <div className="w-32 h-32 bg-white rounded-2xl mx-auto flex items-center justify-center mb-3 shadow-soft">
                     <div className="grid grid-cols-5 gap-0.5">
-                      {Array.from({length: 25}).map((_, i) => (
+                      {Array.from({ length: 25 }).map((_, i) => (
                         <div key={i} className={`w-4 h-4 rounded-sm ${Math.random() > 0.5 ? 'bg-surface-900' : 'bg-white'}`} />
                       ))}
                     </div>
@@ -229,26 +242,26 @@ export default function CheckoutPage() {
                 <div className="space-y-3 animate-fade-in">
                   <div>
                     <label className="block text-xs font-display font-semibold text-surface-600 mb-1.5">Número do cartão</label>
-                    <input value={cardData.number} onChange={e => setCardData({...cardData, number: e.target.value})}
+                    <input value={cardData.number} onChange={e => setCardData({ ...cardData, number: e.target.value })}
                       placeholder="0000 0000 0000 0000" maxLength={19}
                       className="w-full px-3 py-2.5 border-2 border-surface-200 rounded-xl font-body text-sm focus:outline-none focus:border-brand-400 transition-colors" />
                   </div>
                   <div>
                     <label className="block text-xs font-display font-semibold text-surface-600 mb-1.5">Nome no cartão</label>
-                    <input value={cardData.name} onChange={e => setCardData({...cardData, name: e.target.value})}
+                    <input value={cardData.name} onChange={e => setCardData({ ...cardData, name: e.target.value })}
                       placeholder="JOÃO SILVA"
                       className="w-full px-3 py-2.5 border-2 border-surface-200 rounded-xl font-body text-sm focus:outline-none focus:border-brand-400 transition-colors" />
                   </div>
                   <div className="grid grid-cols-2 gap-3">
                     <div>
                       <label className="block text-xs font-display font-semibold text-surface-600 mb-1.5">Validade</label>
-                      <input value={cardData.expiry} onChange={e => setCardData({...cardData, expiry: e.target.value})}
+                      <input value={cardData.expiry} onChange={e => setCardData({ ...cardData, expiry: e.target.value })}
                         placeholder="MM/AA" maxLength={5}
                         className="w-full px-3 py-2.5 border-2 border-surface-200 rounded-xl font-body text-sm focus:outline-none focus:border-brand-400 transition-colors" />
                     </div>
                     <div>
                       <label className="block text-xs font-display font-semibold text-surface-600 mb-1.5">CVV</label>
-                      <input value={cardData.cvv} onChange={e => setCardData({...cardData, cvv: e.target.value})}
+                      <input value={cardData.cvv} onChange={e => setCardData({ ...cardData, cvv: e.target.value })}
                         placeholder="123" maxLength={3}
                         className="w-full px-3 py-2.5 border-2 border-surface-200 rounded-xl font-body text-sm focus:outline-none focus:border-brand-400 transition-colors" />
                     </div>

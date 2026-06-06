@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Zap, ArrowLeft, Clock, Filter } from 'lucide-react';
 import { useStore } from '../context/store';
 import ProductCard from '../components/ProductCard';
+import { useNavigate } from 'react-router-dom';
 
 const TARGET = new Date(Date.now() + 4 * 60 * 60 * 1000 + 23 * 60 * 1000 + 45 * 1000);
 
@@ -9,6 +10,7 @@ export default function FlashSalePage() {
   const { products, navigateTo } = useStore();
   const [filter, setFilter] = useState('all');
   const [timeLeft, setTimeLeft] = useState({ h: '04', m: '23', s: '45' });
+  const navigate = useNavigate();
 
   useEffect(() => {
     const tick = () => {
@@ -17,14 +19,14 @@ export default function FlashSalePage() {
       const h = Math.floor(diff / 3600000);
       const m = Math.floor((diff % 3600000) / 60000);
       const s = Math.floor((diff % 60000) / 1000);
-      setTimeLeft({ h: String(h).padStart(2,'0'), m: String(m).padStart(2,'0'), s: String(s).padStart(2,'0') });
+      setTimeLeft({ h: String(h).padStart(2, '0'), m: String(m).padStart(2, '0'), s: String(s).padStart(2, '0') });
     };
     tick();
     const id = setInterval(tick, 1000);
     return () => clearInterval(id);
   }, []);
 
-  const saleProducts = products.filter(p => p.originalPrice && p.originalPrice > p.price);
+  const saleProducts = products.filter(p => p.origin_Price && p.origin_Price > p.price_Unic);
 
   const filtered = filter === 'all' ? saleProducts : saleProducts.filter(p => p.category === filter);
   const cats = ['all', ...Array.from(new Set(saleProducts.map(p => p.category)))];
@@ -36,7 +38,7 @@ export default function FlashSalePage() {
       <div className="bg-gradient-to-r from-[#09090b] via-[#1a0a00] to-[#09090b] relative overflow-hidden">
         <div className="absolute inset-0 opacity-20" style={{ backgroundImage: 'radial-gradient(circle at 30% 50%, #f97316, transparent 60%), radial-gradient(circle at 70% 50%, #ef4444, transparent 60%)' }} />
         <div className="max-w-7xl mx-auto px-4 py-10 relative">
-          <button onClick={() => navigateTo('home')} className="flex items-center gap-2 text-white/40 hover:text-white text-sm font-body transition-colors mb-6">
+          <button onClick={() => navigate(-1)} className="flex items-center gap-2 text-white/40 hover:text-white text-sm font-body transition-colors mb-6">
             <ArrowLeft className="w-4 h-4" /> Voltar
           </button>
           <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
@@ -84,11 +86,10 @@ export default function FlashSalePage() {
               <button
                 key={c}
                 onClick={() => setFilter(c)}
-                className={`px-4 py-2 rounded-xl text-sm font-display font-semibold transition-all ${
-                  filter === c
-                    ? 'bg-brand-500 text-white shadow-brand'
-                    : 'bg-white text-surface-500 border border-surface-200 hover:border-brand-300 hover:text-brand-500'
-                }`}
+                className={`px-4 py-2 rounded-xl text-sm font-display font-semibold transition-all ${filter === c
+                  ? 'bg-brand-500 text-white shadow-brand'
+                  : 'bg-white text-surface-500 border border-surface-200 hover:border-brand-300 hover:text-brand-500'
+                  }`}
               >
                 {catLabels[c] || c}
               </button>

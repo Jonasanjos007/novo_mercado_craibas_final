@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState } from 'react';
-import { User } from '../models/Usuario';
+import { User } from '../models/User';
 
 interface UserContextData {
     user: User | null;

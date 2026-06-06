@@ -1,61 +1,65 @@
+import { create } from 'zustand';
+import { persist } from 'zustand/middleware';
+import { Tokens } from '../models/Tokens';
 import { api } from '../config/api';
 
-import React, { createContext, useContext, useEffect, useState } from 'react';
-import { Tokens } from '../models/Tokens';
+interface AuthState {
+  tokens: Tokens | null;
+  isAuthenticated: boolean;
+  isReady: boolean;
 
-interface AuthContextData {
-    tokens: Tokens | null;
-    isAuthenticated: boolean;
-    isReady: boolean;
-    saveTokens: (tokens: Tokens) => void;
-    logout: () => void;
+  setTokens: (tokens: Tokens) => void;
+  logout: () => void;
+  init: () => void;
 }
 
-const AuthContext = createContext<AuthContextData>(
-    {} as AuthContextData
-);
+export const useAuthStore = create<AuthState>()(
+  persist(
+    (set, get) => ({
+      tokens: null,
+      isAuthenticated: false,
+      isReady: false,
 
-export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
-    const [isReady, setIsReady] = useState(false);
+      init: () => {
+        const tokens = get().tokens;
 
-    const [tokens, setTokens] = useState<Tokens | null>(() => {
-        const stored = localStorage.getItem('@app:tokens');
-        if (stored) {
-            const parsedTokens = JSON.parse(stored);
-            api.defaults.headers.common.Authorization = `Bearer ${parsedTokens.accessToken}`;
-            return parsedTokens;
+        if (tokens?.accessToken) {
+          api.defaults.headers.common.Authorization =
+            `Bearer ${tokens.accessToken}`;
         }
-        return null;
-    });
 
-    useEffect(() => {
-        setIsReady(true);
-    }, []);
+        set({ isReady: true, isAuthenticated: !!tokens });
+      },
 
-    const saveTokens = (newTokens: Tokens) => {
-        localStorage.setItem('@app:tokens', JSON.stringify(newTokens));
-        api.defaults.headers.common.Authorization = `Bearer ${newTokens.accessToken}`;
-        setTokens(newTokens);
-    };
+      setTokens: (tokens) => {
+        localStorage.setItem('@app:tokens', JSON.stringify(tokens));
 
-    const logout = () => {
+        api.defaults.headers.common.Authorization =
+          `Bearer ${tokens.accessToken}`;
+
+        set({
+          tokens,
+          isAuthenticated: true,
+        });
+      },
+
+      logout: () => {
         localStorage.removeItem('@app:tokens');
         localStorage.removeItem('@app:user');
+
         delete api.defaults.headers.common.Authorization;
-        setTokens(null);
-    };
 
-    return (
-        <AuthContext.Provider value={{
-            tokens,
-            isAuthenticated: !!tokens,
-            isReady,
-            saveTokens,
-            logout
-        }}>
-            {children}
-        </AuthContext.Provider>
-    );
-};
-
-export const useAuth = () => useContext(AuthContext);
+        set({
+          tokens: null,
+          isAuthenticated: false,
+        });
+      },
+    }),
+    {
+      name: '@auth-storage',
+      partialize: (state) => ({
+        tokens: state.tokens,
+      }),
+    }
+  )
+);

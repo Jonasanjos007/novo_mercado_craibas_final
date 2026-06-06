@@ -6,3 +6,24 @@ mercado-craibas/node_modules
 mercado-craibas/package-lock.json
 mercado-craibas/node_modules/.vite/deps/_metadata.json
 mercado-craibas/node_modules/.vite/deps/_metadata.json
+# Visual Studio
+.vs/
+
+# Build
+bin/
+obj/
+
+# Rider
+.idea/
+
+# User files
+*.user
+*.suo
+
+# Cache
+*.cache
+.vs/
+bin/
+obj/
+*.user
+*.suo
