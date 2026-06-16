@@ -82,7 +82,7 @@ export const useProductController = (): ProductControllerReturn => {
         return true;
     };
     const handleAddToCart = async (quantity: number, selectedVariations: Record<string, string>) => {
-
+        console.log("teste2", quantity, selectedVariations)
         if (!user) {
             navigate("/CheckoutAutUser");
             notify.warning("Atenção", "Faça login ou crie sua conta para adicionar produtos ao carrinho");
@@ -95,15 +95,15 @@ export const useProductController = (): ProductControllerReturn => {
             return false;
         }
 
-        const firstVariation =
-            product.variations.length > 0
-                ? product.variations.find(
-                    v =>
-                        v.name === variationTypes[0] &&
-                        v.value === Object.values(selectedVariations)[0]
-                )
-                : undefined;
+        const firstVariation = product.variations.length > 0 ? product.variations.find(v => v.name === variationTypes[0] &&
+            v.value === Object.values(selectedVariations)[0]
+        )
+            : undefined;
 
+        console.log("product", product, firstVariation);
+        console.log("quantity", quantity);
+        console.log("firstVariation", firstVariation);
+        console.log("user", user)
         const result = await addToCart({ product, quantity, selectedVariation: firstVariation, user: user });
 
         if (!result) {

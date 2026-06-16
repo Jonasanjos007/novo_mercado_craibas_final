@@ -5,10 +5,11 @@ import { PRODUCTS, PROMOTIONS as INITIAL_PROMOS } from '../data/products';
 import { Product } from '../models/Product';
 import { User } from '../models/User';
 import { persist } from 'zustand/middleware';
-import { ApiService } from '../config/api';
+import { api, ApiService } from '../config/api';
 import { CartItensProduct } from '../models/CartItensProduct';
 import { CartUser } from '../models/CartUser';
 import { makeResult, Result } from '../utils/Result';
+import { Address } from '../models/Address';
 interface AppState {
   ShowProduct: (selectedProductId: number | null) => void;
   // Theme
@@ -28,12 +29,14 @@ interface AppState {
 
   // Auth
   user: User | null;
+  address: Address[] | null;
   login: (email: string, password: string) => {
     success: boolean;
     role?: 'admin' | 'delivery' | 'customer';
   };
   logout: () => void;
   saveUser: (user: User) => boolean;
+  saveAddress: (anddres: Address, Id_User: number) => Promise<{ success?: boolean; error?: string }>;
   updateUser: (updates: Partial<User>) => void;
 
   // Cart
@@ -133,6 +136,7 @@ export const useStore = create<AppState>()(
       },
       logout: () => set({ user: null, currentPage: 'home', cart: [] }),
       saveUser: (User: User) => {
+        console.log(User)
         // const newUser: User = {
         //   id: `u${Date.now()}`,
         //   name: '',
@@ -144,8 +148,20 @@ export const useStore = create<AppState>()(
         //   preferences: { notifications: true, newsletter: false, darkMode: false, language: 'pt-BR' },
         //   address: { street: '', number: '', neighborhood: '', city: 'Craibas', state: 'AL', zipCode: '' },
         // };
-        set({ user: User });
+        set({ user: User, address: User.address });
         return true;
+      },
+      saveAddress: async (anddres: Address, Id_User: number) => {
+        anddres.Id_User_Customer = Id_User;
+        const result = await ApiService.PostAddres(anddres);
+        if (!result.success) {
+          return makeResult(false, false, result.error);
+        }
+        const ListAddresNew = await ApiService.GetAddresByIdUser(Id_User);
+        if (ListAddresNew.data) {
+          set({ address: ListAddresNew.data });
+        }
+        return makeResult(true, true);
       },
       updateUser: (updates) => set(s => ({ user: s.user ? { ...s.user, ...updates } : null })),
 
@@ -162,7 +178,6 @@ export const useStore = create<AppState>()(
           return true;
         } else {
           const result = await ApiService.PostCartProduct(item);
-          console.log('API Result:', result);
           if (!result.success) {
             return false;
           }
@@ -323,8 +338,11 @@ export const useStore = create<AppState>()(
     {
       name: '@app-storage',
       partialize: (state) => ({
-        user: state.user, // 🔥 só salva user
+        user: state.user,
+        address: state.address,
+        cart: state.cart
       }),
     }
+
   )
 );

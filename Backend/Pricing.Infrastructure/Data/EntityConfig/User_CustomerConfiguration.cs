@@ -28,9 +28,10 @@ namespace Mercado.Craibas.Infrastructure.Configurations
                 .HasConversion<string>()
                 .HasMaxLength(50);
 
-            builder.HasOne(x => x.Address)
+            builder.HasMany(x => x.Address)
                 .WithOne(x => x.User_Customer)
-                .HasForeignKey<Address>(x => x.Id_User_Customer);
+                .HasForeignKey(x => x.Id_User_Customer)
+                .OnDelete(DeleteBehavior.NoAction);
 
             builder.HasOne(x => x.Customize_Cliente)
                 .WithOne(x => x.User_Customer)

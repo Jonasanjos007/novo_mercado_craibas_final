@@ -25,8 +25,7 @@ namespace Mercado.Api.Controllers.V1
             return result.ToActionResult();
         }
         [HttpPost("postCartSave")]
-        public async Task<IActionResult> PostCartSave(
-       [FromBody] CartItensRequest Cart_Itens)
+        public async Task<IActionResult> PostCartSave([FromBody] CartItensRequest Cart_Itens)
         {
             var result = await _service.PostCartItensSave(Cart_Itens);
 

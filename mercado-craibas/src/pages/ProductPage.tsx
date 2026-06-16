@@ -6,6 +6,7 @@ import ProductCard from '../components/ProductCard';
 import { useProductController } from '../controller/useProductController';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useNotification } from '../utils/NotificationCard';
+import Loading from '../components/Loading';
 
 export const ProductPage = () => {
   const Controller = useProductController();
@@ -22,7 +23,19 @@ export const ProductPage = () => {
   const [tab, setTab] = useState<'desc' | 'reviews'>('desc');
   const [wishlist, setWishlist] = useState(false);
   const [added, setAdded] = useState(false);
+
+  useEffect(() => {
+
+    setSelectedVariations({});
+
+    setQuantity(1);
+
+    setImgIndex(0);
+
+  }, [product?.id]);
+
   if (!product) return null;
+
   return (
     <div className="min-h-screen bg-surface-50 pb-16">
       {/* Breadcrumb */}
@@ -338,6 +351,7 @@ export const ProductPage = () => {
           </div>
         )}
       </div>
+
     </div>
   );
 }

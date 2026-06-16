@@ -38,7 +38,6 @@ export default function HomePage() {
 
   const { products, navigateTo, toggleWishlist, user, navigatePages, isWishlisted, setListProducts } = useStore();
   const navigate = useNavigate();
-
   const [bannerIndex, setBannerIndex] = useState(0);
   const [valorIDProduct, setValorIDProduct] = useState('');
   const [autoPlay, setAutoPlay] = useState(true);

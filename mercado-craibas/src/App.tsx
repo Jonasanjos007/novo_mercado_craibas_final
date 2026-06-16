@@ -41,11 +41,11 @@ export default function App() {
 
         {/* ROTAS COM HEADER */}
         <Route element={<ProtectedRoute allowedRoles={["CLIENTE"]} />}>
+          <Route path="/checkout" element={<CheckoutPage />} />
           <Route element={<MainLayout />}>
             <Route path="/orders" element={<OrdersPage />} />
             <Route path="/wishlist" element={<WishlistPage />} />
             <Route path="/flash-sale" element={<FlashSalePage />} />
-            <Route path="/checkout" element={<CheckoutPage />} />
             <Route path="/brands" element={<BrandsPage />} />
             <Route path="/profile" element={<ProfilePage />} />
           </Route>

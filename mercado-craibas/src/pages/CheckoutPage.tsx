@@ -1,29 +1,26 @@
 import { useState } from 'react';
-import { CreditCard, Smartphone, FileText, ChevronRight, Check, MapPin, ShoppingBag, Zap, ArrowLeft, Lock } from 'lucide-react';
+import { CreditCard, Smartphone, FileText, ChevronRight, Check, MapPin, ShoppingBag, Zap, ArrowLeft, Lock, Pencil } from 'lucide-react';
 import { useStore } from '../context/store';
 import { formatPrice } from '../utils';
 import { useNavigate } from 'react-router-dom';
 import { useEffect } from 'react';
+import Headerpages from '../components/Headerpages';
+import { Address } from '../models/Address';
+
 
 type PaymentMethod = 'pix' | 'credit' | 'boleto';
-type Step = 'address' | 'payment' | 'review' | 'success';
+type Step = 'Endereço' | 'Forma de pagamento' | 'Checkout' | 'success';
 
 export default function CheckoutPage() {
   const navigate = useNavigate();
-  const { cart, cartTotal, placeOrder, navigateTo, setCartOpen, user } = useStore();
-  const [step, setStep] = useState<Step>('address');
+  const { cart, address, cartTotal, placeOrder, navigateTo, setCartOpen, user } = useStore();
+  const [step, setStep] = useState<Step>('Endereço');
   const [payment, setPayment] = useState<PaymentMethod>('pix');
   const [loading, setLoading] = useState(false);
   const [order, setOrder] = useState<any>(null);
-  const [address, setAddress] = useState({
-    zipCode: user?.address?.zipCode || '57465-000',
-    street: user?.address?.street || 'Rua das Flores',
-    number: user?.address?.number || '123',
-    complement: user?.address?.complement || '',
-    neighborhood: user?.address?.neighborhood || 'Centro',
-    city: user?.address?.city || 'Craibas',
-    state: user?.address?.state || 'AL',
-  });
+  const [selectedAddress, setSelectedAddress] = useState(0);
+  const [address_select, setaddress_select] = useState<Address | null>(address?.[0] ?? null);
+  console.log("address_select", address_select)
   const [cardData, setCardData] = useState({ number: '', name: '', expiry: '', cvv: '' });
   const [coupon, setCoupon] = useState('');
   const [discount, setDiscount] = useState(0);
@@ -33,10 +30,14 @@ export default function CheckoutPage() {
   const paymentDiscount = payment === 'pix' ? total * 0.05 : 0;
   const finalTotal = total + shipping - paymentDiscount - discount;
 
-  const STEPS = ['address', 'payment', 'review'];
-  const stepLabels = { address: 'Endereço', payment: 'Pagamento', review: 'Revisão' };
+  const STEPS = ['Endereço', 'Checkout', 'Forma de pagamento'];
+  const stepLabels: Record<string, string> = {
+    'Endereço': 'Endereço',
+    'Checkout': 'Revisão',
+    'Forma de pagamento': 'Pagamento',
+  };
   const currentStepIdx = STEPS.indexOf(step);
-
+  console.log(currentStepIdx)
   const handlePlaceOrder = async () => {
     setLoading(true);
     await new Promise(r => setTimeout(r, 1500));
@@ -109,7 +110,9 @@ export default function CheckoutPage() {
   }
 
   return (
+
     <div className="min-h-screen bg-surface-50 pb-10">
+      <Headerpages title={`${step}`} showSecure={false} />
       <div className="bg-white border-b border-surface-100 py-4">
         <div className="max-w-4xl mx-auto px-4">
           <div className="flex items-center gap-3 mb-4">
@@ -141,59 +144,86 @@ export default function CheckoutPage() {
           </div>
         </div>
       </div>
-
       <div className="max-w-4xl mx-auto px-4 py-6 grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Main content */}
         <div className="lg:col-span-2 space-y-4">
           {/* Address Step */}
-          {step === 'address' && (
+          {step === 'Endereço' && (
             <div className="bg-white rounded-3xl p-6 shadow-soft animate-fade-in">
               <div className="flex items-center gap-2 mb-5">
                 <div className="w-8 h-8 rounded-xl bg-brand-50 flex items-center justify-center">
                   <MapPin className="w-4 h-4 text-brand-500" />
                 </div>
-                <h2 className="font-display font-bold text-surface-900 text-lg">Endereço de Entrega</h2>
+                <h2 className="font-display font-bold text-surface-900 text-lg">
+                  Escolha a forma de entrega
+                </h2>
               </div>
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-xs font-display font-semibold text-surface-600 mb-1.5">CEP</label>
-                  <input value={address.zipCode} onChange={e => setAddress({ ...address, zipCode: e.target.value })}
-                    className="w-full px-3 py-2.5 border-2 border-surface-200 rounded-xl font-body text-sm focus:outline-none focus:border-brand-400 transition-colors" />
+              {address?.map((item, index) => (
+                <div
+                  key={index}
+                  onClick={() => {
+                    setaddress_select(item);
+                    setSelectedAddress(index);
+                  }}
+                  className={`cursor-pointer rounded-2xl p-4 mb-3 transition-all border-2 ${selectedAddress === index ? 'border-brand-400 bg-brand-50/30' : 'border-surface-200 hover:border-brand-200'}`}>
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="flex items-start gap-3">
+                      {/* Radio */}
+                      <div className={` mt-0.5 w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0
+                         ${selectedAddress === index ? 'border-brand-500' : 'border-surface-300'} `} >
+                        {selectedAddress === index && (
+                          <div className="w-2.5 h-2.5 rounded-full bg-brand-500" />
+                        )}
+                      </div>
+                      <div>
+                        <p className="font-display font-semibold text-surface-900 text-sm">
+                          Enviar para o endereço
+                        </p>
+                        <p className="font-body text-surface-700 text-sm mt-0.5">
+                          {item.road}, {item.number}
+                          -
+                          {item.neighborhood} - {item.referencePoint}- {item.supplement}
+                        </p>
+                        <p className="font-body text-surface-500 text-xs mt-0.5">
+                          {item.city}/{item.state}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex flex-col items-end gap-2 shrink-0">
+                      <span className="text-sm font-display font-bold text-green-500">
+                        Grátis
+                      </span>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation(); // evita selecionar card ao clicar editar
+                          setSelectedAddress(index);
+                          // setEditingAddress(true);
+                        }}
+                        className="flex items-center gap-1 text-xs font-display font-semibold text-brand-500 hover:text-brand-700 transition-colors">
+                        <Pencil className="w-3 h-3" />
+                        Editar
+                      </button>
+                    </div>
+                  </div>
                 </div>
-                <div className="col-span-2 sm:col-span-1">
-                  <label className="block text-xs font-display font-semibold text-surface-600 mb-1.5">Rua</label>
-                  <input value={address.street} onChange={e => setAddress({ ...address, street: e.target.value })}
-                    className="w-full px-3 py-2.5 border-2 border-surface-200 rounded-xl font-body text-sm focus:outline-none focus:border-brand-400 transition-colors" />
-                </div>
-                <div>
-                  <label className="block text-xs font-display font-semibold text-surface-600 mb-1.5">Número</label>
-                  <input value={address.number} onChange={e => setAddress({ ...address, number: e.target.value })}
-                    className="w-full px-3 py-2.5 border-2 border-surface-200 rounded-xl font-body text-sm focus:outline-none focus:border-brand-400 transition-colors" />
-                </div>
-                <div>
-                  <label className="block text-xs font-display font-semibold text-surface-600 mb-1.5">Complemento</label>
-                  <input value={address.complement} onChange={e => setAddress({ ...address, complement: e.target.value })}
-                    placeholder="Apto, sala..." className="w-full px-3 py-2.5 border-2 border-surface-200 rounded-xl font-body text-sm focus:outline-none focus:border-brand-400 transition-colors" />
-                </div>
-                <div>
-                  <label className="block text-xs font-display font-semibold text-surface-600 mb-1.5">Bairro</label>
-                  <input value={address.neighborhood} onChange={e => setAddress({ ...address, neighborhood: e.target.value })}
-                    className="w-full px-3 py-2.5 border-2 border-surface-200 rounded-xl font-body text-sm focus:outline-none focus:border-brand-400 transition-colors" />
-                </div>
-                <div>
-                  <label className="block text-xs font-display font-semibold text-surface-600 mb-1.5">Cidade</label>
-                  <input value={address.city} onChange={e => setAddress({ ...address, city: e.target.value })}
-                    className="w-full px-3 py-2.5 border-2 border-surface-200 rounded-xl font-body text-sm focus:outline-none focus:border-brand-400 transition-colors" />
-                </div>
-              </div>
-              <button onClick={() => setStep('payment')} className="w-full mt-5 py-3.5 bg-brand-500 hover:bg-brand-600 text-white font-display font-bold rounded-xl transition-all shadow-brand flex items-center justify-center gap-2">
+              ))}
+              <button
+                onClick={() => setEditingAddress(true)}
+                className="text-sm font-display font-semibold text-brand-500 hover:text-brand-700 transition-colors px-1 mb-5"
+              >
+                Alterar ou escolher outro endereço
+              </button>
+
+              <button
+                onClick={() => setStep('Checkout')}
+                className="w-full py-3.5 bg-brand-500 hover:bg-brand-600 text-white font-display font-bold rounded-xl transition-all shadow-brand flex items-center justify-center gap-2"
+              >
                 Continuar <ChevronRight className="w-4 h-4" />
               </button>
             </div>
           )}
-
           {/* Payment Step */}
-          {step === 'payment' && (
+          {step === 'Forma de pagamento' && (
             <div className="bg-white rounded-3xl p-6 shadow-soft animate-fade-in">
               <div className="flex items-center gap-2 mb-5">
                 <div className="w-8 h-8 rounded-xl bg-brand-50 flex items-center justify-center">
@@ -289,49 +319,8 @@ export default function CheckoutPage() {
                 {discount > 0 && <p className="text-xs text-green-600 font-body mt-1.5 font-semibold">✓ Cupom aplicado! Desconto de {formatPrice(discount)}</p>}
               </div>
 
-              <div className="flex gap-3 mt-5">
-                <button onClick={() => setStep('address')} className="px-4 py-3 bg-surface-100 text-surface-600 font-display font-bold rounded-xl hover:bg-surface-200 transition-all text-sm">
-                  ← Voltar
-                </button>
-                <button onClick={() => setStep('review')} className="flex-1 py-3 bg-brand-500 hover:bg-brand-600 text-white font-display font-bold rounded-xl transition-all shadow-brand flex items-center justify-center gap-2">
-                  Revisar Pedido <ChevronRight className="w-4 h-4" />
-                </button>
-              </div>
-            </div>
-          )}
-
-          {/* Review Step */}
-          {step === 'review' && (
-            <div className="bg-white rounded-3xl p-6 shadow-soft animate-fade-in">
-              <div className="flex items-center gap-2 mb-5">
-                <div className="w-8 h-8 rounded-xl bg-brand-50 flex items-center justify-center">
-                  <ShoppingBag className="w-4 h-4 text-brand-500" />
-                </div>
-                <h2 className="font-display font-bold text-surface-900 text-lg">Revisão do Pedido</h2>
-              </div>
-
-              <div className="space-y-3 mb-5">
-                {cart.map(item => (
-                  <div key={item.product.id} className="flex gap-3 p-3 bg-surface-50 rounded-xl">
-                    <img src={item.product.images[0]} alt="" className="w-14 h-14 rounded-xl object-cover" />
-                    <div className="flex-1 min-w-0">
-                      <p className="font-body text-sm text-surface-800 font-medium line-clamp-1">{item.product.name}</p>
-                      {item.selectedVariation && <p className="text-xs text-surface-400 font-body">{item.selectedVariation.value}</p>}
-                      <p className="text-xs text-surface-500 font-body mt-0.5">Qtd: {item.quantity}</p>
-                    </div>
-                    <p className="font-display font-bold text-surface-900 text-sm shrink-0">{formatPrice(item.product.price * item.quantity)}</p>
-                  </div>
-                ))}
-              </div>
-
-              <div className="p-4 bg-surface-50 rounded-xl mb-5">
-                <p className="text-xs font-display font-semibold text-surface-500 mb-1">ENTREGA EM</p>
-                <p className="text-sm font-body text-surface-800">{address.street}, {address.number} · {address.neighborhood}</p>
-                <p className="text-sm font-body text-surface-500">{address.city}/{address.state} · {address.zipCode}</p>
-              </div>
-
-              <div className="flex gap-3">
-                <button onClick={() => setStep('payment')} className="px-4 py-3 bg-surface-100 text-surface-600 font-display font-bold rounded-xl hover:bg-surface-200 transition-all text-sm">
+              <div className="flex gap-3 mt-4">
+                <button onClick={() => setStep('Checkout')} className="px-4 py-3 bg-surface-100 text-surface-600 font-display font-bold rounded-xl hover:bg-surface-200 transition-all text-sm">
                   ← Voltar
                 </button>
                 <button
@@ -342,6 +331,50 @@ export default function CheckoutPage() {
                   {loading ? <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <><Check className="w-4 h-4" /> Confirmar Pedido</>}
                 </button>
               </div>
+
+
+
+            </div>
+          )}
+
+          {/* Review Step */}
+          {step === 'Checkout' && (
+            <div className="bg-white rounded-3xl p-6 shadow-soft animate-fade-in">
+              <div className="flex items-center gap-2 mb-5">
+                <div className="w-8 h-8 rounded-xl bg-brand-50 flex items-center justify-center">
+                  <ShoppingBag className="w-4 h-4 text-brand-500" />
+                </div>
+                <h2 className="font-display font-bold text-surface-900 text-lg">Revisão do Pedido</h2>
+              </div>
+
+              <div className="space-y-3 mb-5">
+                {cart.map(item => (
+                  <div key={item.product?.id} className="flex gap-3 p-3 bg-surface-50 rounded-xl">
+                    <img src={`/Imagens/${item.product?.imagens[0]?.url_Imagem}`} alt="" className="w-14 h-14 rounded-xl object-cover" />
+                    <div className="flex-1 min-w-0">
+                      <p className="font-body text-sm text-surface-800 font-medium line-clamp-1">{item.product?.name}</p>
+                      {item.selectedVariation && <p className="text-xs text-surface-400 font-body">{item.selectedVariation.value}</p>}
+                      <p className="text-xs text-surface-500 font-body mt-0.5">Qtd: {item.quantity}</p>
+                    </div>
+                    <p className="font-display font-bold text-surface-900 text-sm shrink-0">{formatPrice(item.product?.price_Unic || 0 * item.quantity)}</p>
+                  </div>
+                ))}
+              </div>
+
+              <div className="p-4 bg-surface-50 rounded-xl mb-5">
+                <p className="text-xs font-display font-semibold text-surface-500 mb-1">ENTREGA EM</p>
+                <p className="text-sm font-body text-surface-800">{address_select?.road}, {address_select?.number} - {address_select?.referencePoint} - {address_select?.supplement}</p>
+                <p className="text-sm font-body text-surface-500">{address_select?.city}/{address_select?.state} · {address_select?.neighborhood}</p>
+              </div>
+              <div className="flex gap-3 mt-5">
+                <button onClick={() => setStep('Endereço')} className="px-4 py-3 bg-surface-100 text-surface-600 font-display font-bold rounded-xl hover:bg-surface-200 transition-all text-sm">
+                  ← Voltar
+                </button>
+                <button onClick={() => setStep('Forma de pagamento')} className="flex-1 py-3 bg-brand-500 hover:bg-brand-600 text-white font-display font-bold rounded-xl transition-all shadow-brand flex items-center justify-center gap-2">
+                  Forma de pagamento <ChevronRight className="w-4 h-4" />
+                </button>
+              </div>
+
             </div>
           )}
         </div>

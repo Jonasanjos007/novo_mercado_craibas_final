@@ -1,6 +1,7 @@
 
 namespace backend.controllers.v1;
 using backend.services.interfaces;
+using Mercado.Craibas.Application.DTOs.Requests;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Pricing.Api.Extensions;
@@ -32,6 +33,23 @@ public class userscontroller : ControllerBase
         var userid = User.GetUserId(); // ou como você obtém o id
 
         var result = await _service.GetbyIdUser(userid, role);
+
+        return result.ToActionResult();
+    }
+
+    [HttpPost("postSaveAddressUser")]
+    public async Task<IActionResult> postSaveAddressUser([FromBody] AddressRequest NewAnddress )
+    {
+        var result = await _service.PostSaveAddressUserService(NewAnddress);
+
+        return result.ToActionResult();
+    }
+    [HttpGet("GetAddresByIdUser/{Id_User}")]
+
+    public async Task<IActionResult> GetAddresByIdUser( int Id_User)
+    {
+
+        var result = await _service.GetAddressbyIdUserService(Id_User);
 
         return result.ToActionResult();
     }

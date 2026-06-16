@@ -7,6 +7,7 @@ import { UsuarioResponse } from "../models/UsuarioResponse";
 import { User } from "../models/User";
 import { Product } from "../models/Product";
 import { CartItensProduct } from "../models/CartItensProduct";
+import { Address } from "../models/Address";
 
 const baseURL = "http://localhost:5022/api/v1";
 
@@ -179,15 +180,12 @@ export const ApiService = {
 
     getUser: async (Role: string): Promise<Result<User>> => {
         try {
-            console.log("Role recebida:", Role);
             const response = await api.get("/users/me/" + Role);
-            console.log("Resposta da API:", response.data);
             const { success, data, error } = response.data;
 
             if (!data) {
                 return makeResult(false, {} as User, "Usuário não encontrado");
             }
-
             return makeResult(success, data, error);
         } catch (error) {
             return makeResult(false, {} as User, "Falha na comunicação");
@@ -197,7 +195,6 @@ export const ApiService = {
         try {
             const response = await api.get("/product/list");
             const { success, data, error } = response.data;
-            console.log("Resposta da API de produtos:", response.data);
             if (!data) {
                 return makeResult(false, [] as Product[], "Produtos não encontrados");
             }
@@ -207,11 +204,41 @@ export const ApiService = {
             return makeResult(false, [] as Product[], "Falha na comunicação");
         }
     },
+    PostAddres: async (Address: Address): Promise<Result<Address>> => {
+        try {
+            console.log('request addres', Address);
+
+            const response = await api.post("/users/postSaveAddressUser", Address);
+            const { success, data, error } = response.data;
+            console.log('request addres', response.data);
+            if (!data) {
+                return makeResult(false, {} as Address, error);
+            }
+            return makeResult(success, data, error);
+        } catch {
+            return makeResult(false, {} as Address, "Falha na comunicação");
+        }
+
+
+    },
+    GetAddresByIdUser: async (Id_User: number): Promise<Result<Address[]>> => {
+        try {
+
+            const response = await api.get("/users/GetAddresByIdUser/" + Id_User);
+            const { success, data, error } = response.data;
+            if (!data) {
+                return makeResult(false, {} as Address[], error);
+            }
+            return makeResult(success, data, error);
+        } catch {
+            return makeResult(false, {} as Address[], "Falha na comunicação");
+        }
+
+
+    },
     PostCartProduct: async (Cart_Itens: CartItensProduct): Promise<Result<CartItensProduct>> => {
         try {
-            console.log("Role recebida:", Cart_Itens);
             const response = await api.post("/product/postCartSave", Cart_Itens);
-            console.log("Resposta da API:", response.data);
             const { success, data, error } = response.data;
 
             if (!data) {
@@ -225,9 +252,7 @@ export const ApiService = {
     },
     PostCartProductExistent: async (Cart_Itens: CartItensProduct, Operador: string): Promise<Result<CartItensProduct>> => {
         try {
-            console.log("Role recebida:", Cart_Itens);
             const response = await api.post("/product/postCartUpdate", { ...Cart_Itens, operador: Operador });
-            console.log("Resposta da API:", response.data);
             const { success, data, error } = response.data;
 
             if (!data) {
@@ -242,7 +267,6 @@ export const ApiService = {
     PostUpdateQuantity: async (Cart_Itens_Id: number, Quantity: number, Operador: string): Promise<Result<{ success?: boolean; error?: string }>> => {
         try {
             const response = await api.post("/product/PostUpdateQuantity", { Cart_Itens_Id, Quantity, Operador });
-            console.log("Resposta da API:", response.data);
             const { success, data, error } = response.data;
 
             if (!data) {
@@ -257,7 +281,6 @@ export const ApiService = {
     DeleteCartProduct: async (Cart_Itens_Id: number): Promise<Result<{ success?: boolean; error?: string }>> => {
         try {
             const response = await api.delete("/product/DeleteProductCart/" + Cart_Itens_Id);
-            console.log("Resposta da API:", response.data);
             const { success, data, error } = response.data;
 
             if (!data) {
@@ -274,9 +297,7 @@ export const ApiService = {
             if (userId === 0) {
                 return makeResult(false, [] as CartItensProduct[], "ID de usuário inválido");
             }
-            console.log("ID de usuário para carrinho:", userId);
             const response = await api.get("/product/GetProductCart/" + userId);
-            console.log("Resposta teste:", response.data);
             const { success, data, error } = response.data;
             if (!data) {
                 return makeResult(false, [] as CartItensProduct[], "Itens do carrinho não encontrados");
