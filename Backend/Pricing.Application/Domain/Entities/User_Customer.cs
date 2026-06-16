@@ -16,7 +16,7 @@ namespace Baldan.Pricing.Application.Domain.Entities
         public ProfileEnum Role { get; set; }
         public bool Ativo { get; set; }
         public double? Phone { get; set; }
-        public Address? Address { get; set; }
+        public ICollection<Address> Address { get; set; } = [];
         public Customize_Cliente Customize_Cliente { get; set; }
         public ICollection<Orders> Orders { get; set; } = [];
         public ICollection<Cart> Carts { get; set; } = [];

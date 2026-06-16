@@ -4,6 +4,7 @@ import { formatPrice } from '../utils';
 import { useNavigate } from 'react-router-dom';
 import { useNotification } from '../utils/NotificationCard';
 import { useState } from 'react';
+import ConfirmPopup from './ConfirmPopup';
 
 export default function CartSidebar() {
   const { cart, cartOpen, setCartOpen, removeFromCart, updateQuantity, cartTotal, navigateTo, user } = useStore();
@@ -11,11 +12,8 @@ export default function CartSidebar() {
   const navigate = useNavigate();
   const notify = useNotification();
   const [loadingUpdate, setLoadingUpdate] = useState<number | null>(null);
-
-
-  console.log('Cart Data:', cart);
+  const [openDelete, setOpenDelete] = useState(false);
   if (!cartOpen) return null;
-  console.log('Cart Total:', cart);
   return (
     <>
       {/* Overlay */}
@@ -86,6 +84,11 @@ export default function CartSidebar() {
                           <button
                             onClick={async () => {
                               setLoadingUpdate(item.id || 0);
+                              if (item.quantity === 1) {
+                                setOpenDelete(true);
+                                setLoadingUpdate(null);
+                                return;
+                              }
                               const Subtrair = await updateQuantity(item.id || 0, item.product?.id || 0, item.quantity, "Subtrair");
                               if (Subtrair.success) {
                                 if (item.quantity === 1) {
@@ -126,12 +129,25 @@ export default function CartSidebar() {
                     </div>
                   </div>
                 </div>
-                <button
-                  onClick={() => removeFromCart(item.product?.id || 0)}
-                  className="p-1.5 rounded-lg text-surface-300 hover:text-red-500 hover:bg-red-50 transition-all self-start opacity-0 group-hover:opacity-100"
-                >
+                <button onClick={() => setOpenDelete(true)} className=" p-1.5 rounded-lg text-surface-300 hover:text-red-500 hover:bg-red-50transition-all">
                   <Trash2 className="w-3.5 h-3.5" />
                 </button>
+                <ConfirmPopup
+                  open={openDelete}
+                  title="Remover produto"
+                  description="Deseja realmente remover este produto do carrinho?"
+                  confirmText="Remover"
+                  onCancel={() => { setOpenDelete(false); }}
+                  onConfirm={async () => {
+                    const result = await removeFromCart(item.id || 0);
+                    if (result.success) {
+                      notify.success("Produto removido", "O produto foi removido do carrinho");
+                    } else {
+                      notify.error("Erro", result.error || "Não foi possível remover o produto");
+                    }
+                    setOpenDelete(false);
+                  }}
+                />
               </div>
             ))
           )}

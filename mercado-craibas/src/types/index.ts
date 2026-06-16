@@ -1,5 +1,6 @@
 // export type ProductCategory = 'eletronicos' | 'garrafas' | 'acessorios' | 'virais';
 
+import { Address } from "../models/Address";
 import { CartItem } from "../models/CartUser";
 import { Product } from "../models/Product";
 
@@ -58,10 +59,10 @@ import { Product } from "../models/Product";
 //     language: string;
 // }
 
-export interface Address {
-  street: string; number: string; complement?: string;
-  neighborhood: string; city: string; state: string; zipCode: string;
-}
+// export interface Address {
+//   street: string; number: string; complement?: string;
+//   neighborhood: string; city: string; state: string; zipCode: string;
+// }
 
 export type OrderStatus = 'pendente' | 'confirmado' | 'preparando' | 'saiu_entrega' | 'entregue' | 'cancelado';
 

@@ -1,3 +1,4 @@
+import { Address } from "./Address";
 import { CartUser } from "./CartUser";
 
 export interface User {
@@ -8,23 +9,23 @@ export interface User {
     avatar?: string;
     role: string;
     CartUser?: CartUser;
-    //address?: Address;
+    address?: Address[];
     phone?: string;
     //bio?: string;
     // vehicle?: string;
     //region?: string;
-    Insert_date?: string;
+    insert_Date?: string;
     // preferences?: UserPreferences;
 }
-export interface Address {
-    street: string;
-    number: string;
-    complement?: string;
-    neighborhood: string;
-    city: string;
-    state: string;
-    zipCode: string;
-}
+// export interface Address {
+//     street: string;
+//     number: string;
+//     complement?: string;
+//     neighborhood: string;
+//     city: string;
+//     state: string;
+//     zipCode: string;
+// }
 export interface UserPreferences {
     notifications: boolean;
     newsletter: boolean;

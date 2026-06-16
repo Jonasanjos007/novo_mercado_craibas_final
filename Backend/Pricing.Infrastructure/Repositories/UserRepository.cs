@@ -32,6 +32,13 @@ public class UserRepository : IUserRepository
             .AsNoTracking()
             .FirstOrDefaultAsync(x => EF.Property<int>(x, CollunName) == id);
     }
+
+    public async Task<int> InsertAddressUserAsync<T>(T entity) where T : class
+    {
+        await _context.Set<T>().AddAsync(entity);
+
+        return await _context.SaveChangesAsync();
+    }
     //public async Task<User_Admin?> GetByIdAsyncAdmin(int id)
     //{
     //    return await _context.User_Admin

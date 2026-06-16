@@ -28,9 +28,14 @@ namespace Mercado.Craibas.Infrastructure.Configurations
                 .IsRequired()
                 .HasMaxLength(100);
 
+            builder.Property(x => x.Neighborhood)
+            .IsRequired()
+            .HasMaxLength(200);
+
+
             builder.HasOne(x => x.User_Customer)
-                .WithOne(x => x.Address)
-                .HasForeignKey<Address>(x => x.Id_User_Customer)
+                .WithMany(x => x.Address)
+                .HasForeignKey(x => x.Id_User_Customer)
                 .OnDelete(DeleteBehavior.NoAction);
 
             builder.HasOne(x => x.User_Delivery)

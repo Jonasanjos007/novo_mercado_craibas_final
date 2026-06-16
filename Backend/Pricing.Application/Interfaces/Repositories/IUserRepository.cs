@@ -9,5 +9,6 @@ namespace Baldan.Pricing.Application.Interfaces.Repositories
         //Task AddAsync(User user);
         //Task<bool> ExistsByEmailAsync(string email);
         Task<T?> GetByIdAsync<T>(int id, string CollunName) where T : class;
+        Task<int> InsertAddressUserAsync<T>(T entity) where T : class;
     }
 }
