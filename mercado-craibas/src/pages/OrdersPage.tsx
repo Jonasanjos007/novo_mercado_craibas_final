@@ -31,13 +31,12 @@ export default function OrdersPage() {
             <button onClick={() => navigate('/')} className="px-6 py-3 bg-brand-500 text-white font-display font-bold rounded-xl shadow-brand hover:shadow-brand-lg transition-all">
               Explorar Produtos
             </button>
-          </div>
-        ) : (
+          </div>) : (
           userOrders.map(order => {
             const statusIdx = orderStatusSteps.indexOf(order.status);
             return (
               <div key={order.id} className="bg-white rounded-3xl shadow-soft overflow-hidden">
-                {/* Header */}
+                {/* Header */}n
                 <div className="flex items-center justify-between p-4 border-b border-surface-50">
                   <div>
                     <div className="flex items-center gap-2">

@@ -5,11 +5,14 @@ import { PRODUCTS, PROMOTIONS as INITIAL_PROMOS } from '../data/products';
 import { Product } from '../models/Product';
 import { User } from '../models/User';
 import { persist } from 'zustand/middleware';
-import { api, ApiService } from '../config/api';
+import { api } from '../config/api';
 import { CartItensProduct } from '../models/CartItensProduct';
 import { CartUser } from '../models/CartUser';
 import { makeResult, Result } from '../utils/Result';
 import { Address } from '../models/Address';
+import { ProductsService } from '../service/ProductsService';
+import { AddressService } from '../service/AddressService';
+import { CartService } from '../service/CartService';
 interface AppState {
   ShowProduct: (selectedProductId: number | null) => void;
   // Theme
@@ -37,6 +40,17 @@ interface AppState {
   logout: () => void;
   saveUser: (user: User) => boolean;
   saveAddress: (anddres: Address, Id_User: number) => Promise<{ success?: boolean; error?: string }>;
+  updateAddress: (anddres: Address) => Promise<{ success?: boolean; error?: string }>;
+  removerAddress: (
+    Address: Address
+  ) => Promise<{
+    success?: boolean;
+    error?: {
+      data: any;
+      success: boolean;
+    };
+  }>;
+
   updateUser: (updates: Partial<User>) => void;
 
   // Cart
@@ -152,16 +166,52 @@ export const useStore = create<AppState>()(
         return true;
       },
       saveAddress: async (anddres: Address, Id_User: number) => {
-        anddres.Id_User_Customer = Id_User;
-        const result = await ApiService.PostAddres(anddres);
+        anddres.id_User_Customer = Id_User;
+        const result = await AddressService.PostSaveAddres(anddres);
         if (!result.success) {
           return makeResult(false, false, result.error);
         }
-        const ListAddresNew = await ApiService.GetAddresByIdUser(Id_User);
+        const ListAddresNew = await AddressService.GetAddresByIdUser(Id_User);
         if (ListAddresNew.data) {
           set({ address: ListAddresNew.data });
         }
         return makeResult(true, true);
+      },
+      updateAddress: async (anddres: Address) => {
+
+        const result = await AddressService.PostUpdateAddress(anddres);
+
+        if (!result.success) {
+          return makeResult(false, false, result.error);
+        }
+        const ListAddresNew = await AddressService.GetAddresByIdUser(anddres.id_User_Customer ?? 0);
+        console.log("ListAddresNew", ListAddresNew)
+        if (ListAddresNew.data && ListAddresNew.data.length > 0) {
+          set({ address: ListAddresNew.data });
+        }
+        return makeResult(true, true);
+      },
+      removerAddress: async (Address: Address) => {
+        const result = await AddressService.DeleteAddress(Address);
+        console.log("teste", result)
+        if (result.data && !result.success) {
+          const ListAddresNew = await AddressService.GetAddresByIdUser(Address.id_User_Customer ?? 0);
+
+
+          set({ address: ListAddresNew.data });
+          return { success: false, error: { data: result.data, success: result.success } };
+        }
+        if (!result.success) {
+          const ListAddresNew = await AddressService.GetAddresByIdUser(Address.id_User_Customer ?? 0);
+
+          set({ address: ListAddresNew.data });
+          return { success: false, error: { data: result.data, success: result.success } };
+        }
+        const ListAddresNew = await AddressService.GetAddresByIdUser(Address.id_User_Customer ?? 0);
+        if (ListAddresNew.data && ListAddresNew.data.length > 0) {
+          set({ address: ListAddresNew.data });
+        }
+        return { success: true };
       },
       updateUser: (updates) => set(s => ({ user: s.user ? { ...s.user, ...updates } : null })),
 
@@ -170,25 +220,25 @@ export const useStore = create<AppState>()(
         const cart = get().cart ?? [];
         const existing = cart.find(c => c.product?.id === item.product?.id && c.selectedVariation?.id === item.selectedVariation?.id);
         if (existing) {
-          const result = await ApiService.PostCartProductExistent(existing, "Soma");
+          const result = await ProductsService.PostCartProductExistent(existing, "Soma");
           if (!result.success) {
             return false;
           }
           set({ cart: cart.map(c => c.product?.id === item.product?.id && c.selectedVariation?.id === item.selectedVariation?.id ? { ...c, quantity: c.quantity + item.quantity } : c) });
           return true;
         } else {
-          const result = await ApiService.PostCartProduct(item);
+          const result = await ProductsService.PostCartProduct(item);
           if (!result.success) {
             return false;
           }
-          const NewCart = await ApiService.getCartProducts(item.user?.id || 0); // Certifique-se de que o ID retornado pela API seja usado
+          const NewCart = await CartService.getCartProducts(item.user?.id || 0); // Certifique-se de que o ID retornado pela API seja usado
           set({ cart: NewCart?.data || [] });
           return true;
         }
 
       },
       removeFromCart: async (CartId) => {
-        const deleteItem = await ApiService.DeleteCartProduct(CartId);
+        const deleteItem = await CartService.DeleteCartProduct(CartId);
         if (!deleteItem.success) {
           return deleteItem;
         }
@@ -203,7 +253,7 @@ export const useStore = create<AppState>()(
           }
           return { success: true, error: "" };
         }
-        const result = await ApiService.PostUpdateQuantity(CartId, quantity, operador);
+        const result = await ProductsService.PostUpdateQuantity(CartId, quantity, operador);
         if (operador === "Subtrair") {
           quantity = quantity - 1;
         }
@@ -277,9 +327,9 @@ export const useStore = create<AppState>()(
         set({ products }),
 
       loadProducts: async (User: User | null): Promise<Result<boolean>> => {
-        const result = await ApiService.getListProducts();
+        const result = await ProductsService.getListProducts();
         if (User) {
-          const Cart = await ApiService.getCartProducts(User?.id || 0);
+          const Cart = await CartService.getCartProducts(User?.id || 0);
           set({ cart: Cart?.data || [] });
         }
         if (result.success) {

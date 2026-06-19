@@ -10,6 +10,8 @@ public interface IUserService
     Task<Result<UserResponse>> GetbyIdUser(int userid , string role);
     Task<Result<bool>> PostSaveAddressUserService(AddressRequest NewAnddress);
     Task<Result<List<AddressResponse>>> GetAddressbyIdUserService(int Id_User);
+    Task<Result<bool>> PostUpdateAddressUserService(AddressRequest NewAnddress);
+    Task<Result<bool>> DeleteAddressService(AddressRequest DeleteAddress);
 
 }
 

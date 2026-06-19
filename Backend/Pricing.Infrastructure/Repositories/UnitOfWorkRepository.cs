@@ -79,5 +79,14 @@ namespace Mercado.Craibas.Infrastructure.Repositories
 
             return true;
         }
+        public async Task<bool> DeleteByColumnAsyncGlolbal<T>(string columnName, object value) where T : class
+        {
+            var entity = await _context.Set<T>().FirstOrDefaultAsync(x => EF.Property<object>(x, columnName).Equals(value));
+            if (entity == null)
+                return false;
+            _context.Set<T>().Remove(entity);
+            await _context.SaveChangesAsync();
+            return true;
+        }
     }
 }

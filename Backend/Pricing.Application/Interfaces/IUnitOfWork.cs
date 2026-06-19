@@ -12,5 +12,6 @@ namespace Baldan.Pricing.Application.Interfaces
         Task<List<T>> GetClassListById<T>(int id, string columnName) where T : class;
         Task<T?> GetClassById<T>(int id, string columnName) where T : class;
         Task<bool> UpdateFieldsAsync<T>(Dictionary<string, object> filters, Dictionary<string, object> fieldsToUpdate) where T : class;
+        Task<bool> DeleteByColumnAsyncGlolbal<T>(string columnName, object value) where T : class;
     }
 }

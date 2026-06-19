@@ -99,218 +99,83 @@ api.interceptors.response.use(
     },
 );
 
-export const ApiService = {
-    //   getDashboardData: async (
-    //     pageNumber: number,
-    //     pageSize: number,
-    //     filters: DashboardFilters
-    //   ): Promise<Result<PagedResult<SurveyEntry>>> => {
-    //     try {
-    //       const payload = {
-    //         periodStatus: filters.PeriodStatus ?? null,
-    //         entryStatus: filters.EntryStatus ?? null,
-    //         vertical: filters.vertical ?? null,
-    //         period: filters.Period ?? null,
-    //         search: filters.Search ?? null,
-    //         pageSize,
-    //         pageNumber
-    //       };
+// export const ApiService = {
+//     //   getDashboardData: async (
+//     //     pageNumber: number,
+//     //     pageSize: number,
+//     //     filters: DashboardFilters
+//     //   ): Promise<Result<PagedResult<SurveyEntry>>> => {
+//     //     try {
+//     //       const payload = {
+//     //         periodStatus: filters.PeriodStatus ?? null,
+//     //         entryStatus: filters.EntryStatus ?? null,
+//     //         vertical: filters.vertical ?? null,
+//     //         period: filters.Period ?? null,
+//     //         search: filters.Search ?? null,
+//     //         pageSize,
+//     //         pageNumber
+//     //       };
 
-    //       const { data } = await api.post("/dashboard", payload);
+//     //       const { data } = await api.post("/dashboard", payload);
 
-    //       if (data.success && data.data) {
-    //         const mappedItems = data.data.items.map(
-    //           (item: any) => new SurveyEntry(item)
-    //         );
+//     //       if (data.success && data.data) {
+//     //         const mappedItems = data.data.items.map(
+//     //           (item: any) => new SurveyEntry(item)
+//     //         );
 
-    //         const pagedResult: PagedResult<SurveyEntry> = {
-    //           items: mappedItems,
-    //           totalCount: data.data.totalCount,
-    //           pageNumber: data.data.pageNumber,
-    //           pageSize: data.data.pageSize
-    //         };
+//     //         const pagedResult: PagedResult<SurveyEntry> = {
+//     //           items: mappedItems,
+//     //           totalCount: data.data.totalCount,
+//     //           pageNumber: data.data.pageNumber,
+//     //           pageSize: data.data.pageSize
+//     //         };
 
-    //         return makeResult(true, pagedResult);
-    //       }
+//     //         return makeResult(true, pagedResult);
+//     //       }
 
-    //       return makeResult(false, undefined, data.error || "Erro ao carregar dashboard");
+//     //       return makeResult(false, undefined, data.error || "Erro ao carregar dashboard");
 
-    //     } catch {
-    //       return makeResult(false, undefined, "Erro de conexão");
-    //     }
-    //   },
-
-
-    //   saveCollection: async (data: Partial<SurveyEntry>) => {
-    //     if (data.id) {
-    //       const res = await api.put(`/collections/${data.id}`, data);
-    //       return res.data;
-    //     }
-
-    //     const res = await api.post("/collections", data);
-    //     return res.data;
-    //   },
-
-    //   getCollectionByAssignmentId: async (assignmentId: string) => {
-    //     const { data } = await api.get("/collections", {
-    //       params: { assignmentId },
-    //     });
-
-    //     return data[0] || null;
-    //   },
-
-    //   getAssignmentById: async (id: string) => {
-    //     const { data } = await api.get(`/collections/${id}`);
-    //     return data;
-    //   },
-
-    loginUser: async (email: string, password: string): Promise<Result<TokenResponse>> => {
-        try {
-            const { data } = await api.post<Result<TokenResponse>>("/auth/login", { email, password });
-
-            if (!data.data) {
-                return makeResult(false, {} as TokenResponse, "Resposta inválida do servidor");
-            }
-
-            return makeResult(data.success, data.data, data.error);
-        } catch (err) {
-            return makeResult(false, {} as TokenResponse, "Falha na comunicação");
-        }
-    },
-
-    getUser: async (Role: string): Promise<Result<User>> => {
-        try {
-            const response = await api.get("/users/me/" + Role);
-            const { success, data, error } = response.data;
-
-            if (!data) {
-                return makeResult(false, {} as User, "Usuário não encontrado");
-            }
-            return makeResult(success, data, error);
-        } catch (error) {
-            return makeResult(false, {} as User, "Falha na comunicação");
-        }
-    },
-    getListProducts: async (): Promise<Result<Product[]>> => {
-        try {
-            const response = await api.get("/product/list");
-            const { success, data, error } = response.data;
-            if (!data) {
-                return makeResult(false, [] as Product[], "Produtos não encontrados");
-            }
-
-            return makeResult(success, data, error);
-        } catch (error) {
-            return makeResult(false, [] as Product[], "Falha na comunicação");
-        }
-    },
-    PostAddres: async (Address: Address): Promise<Result<Address>> => {
-        try {
-            console.log('request addres', Address);
-
-            const response = await api.post("/users/postSaveAddressUser", Address);
-            const { success, data, error } = response.data;
-            console.log('request addres', response.data);
-            if (!data) {
-                return makeResult(false, {} as Address, error);
-            }
-            return makeResult(success, data, error);
-        } catch {
-            return makeResult(false, {} as Address, "Falha na comunicação");
-        }
+//     //     } catch {
+//     //       return makeResult(false, undefined, "Erro de conexão");
+//     //     }
+//     //   },
 
 
-    },
-    GetAddresByIdUser: async (Id_User: number): Promise<Result<Address[]>> => {
-        try {
+//     //   saveCollection: async (data: Partial<SurveyEntry>) => {
+//     //     if (data.id) {
+//     //       const res = await api.put(`/collections/${data.id}`, data);
+//     //       return res.data;
+//     //     }
 
-            const response = await api.get("/users/GetAddresByIdUser/" + Id_User);
-            const { success, data, error } = response.data;
-            if (!data) {
-                return makeResult(false, {} as Address[], error);
-            }
-            return makeResult(success, data, error);
-        } catch {
-            return makeResult(false, {} as Address[], "Falha na comunicação");
-        }
+//     //     const res = await api.post("/collections", data);
+//     //     return res.data;
+//     //   },
+
+//     //   getCollectionByAssignmentId: async (assignmentId: string) => {
+//     //     const { data } = await api.get("/collections", {
+//     //       params: { assignmentId },
+//     //     });
+
+//     //     return data[0] || null;
+//     //   },
+
+//     //   getAssignmentById: async (id: string) => {
+//     //     const { data } = await api.get(`/collections/${id}`);
+//     //     return data;
+//     //   },
 
 
-    },
-    PostCartProduct: async (Cart_Itens: CartItensProduct): Promise<Result<CartItensProduct>> => {
-        try {
-            const response = await api.post("/product/postCartSave", Cart_Itens);
-            const { success, data, error } = response.data;
 
-            if (!data) {
-                return makeResult(false, {} as CartItensProduct, "Itens do carrinho não Adicionados");
-            }
 
-            return makeResult(success, data, error);
-        } catch (error) {
-            return makeResult(false, {} as CartItensProduct, "Falha na comunicação");
-        }
-    },
-    PostCartProductExistent: async (Cart_Itens: CartItensProduct, Operador: string): Promise<Result<CartItensProduct>> => {
-        try {
-            const response = await api.post("/product/postCartUpdate", { ...Cart_Itens, operador: Operador });
-            const { success, data, error } = response.data;
 
-            if (!data) {
-                return makeResult(false, {} as CartItensProduct, "Itens do carrinho não Adicionados");
-            }
 
-            return makeResult(success, data, error);
-        } catch (error) {
-            return makeResult(false, {} as CartItensProduct, "Falha na comunicação");
-        }
-    },
-    PostUpdateQuantity: async (Cart_Itens_Id: number, Quantity: number, Operador: string): Promise<Result<{ success?: boolean; error?: string }>> => {
-        try {
-            const response = await api.post("/product/PostUpdateQuantity", { Cart_Itens_Id, Quantity, Operador });
-            const { success, data, error } = response.data;
 
-            if (!data) {
-                return makeResult(false, { success: false, error: "Itens do carrinho não Adicionados" }, "Erro ao atualizar quantidade");
-            }
 
-            return makeResult(success, { success: true, error: "" }, error);
-        } catch (error) {
-            return makeResult(false, { success: false, error: "Falha na comunicação" }, "Erro ao atualizar quantidade");
-        }
-    },
-    DeleteCartProduct: async (Cart_Itens_Id: number): Promise<Result<{ success?: boolean; error?: string }>> => {
-        try {
-            const response = await api.delete("/product/DeleteProductCart/" + Cart_Itens_Id);
-            const { success, data, error } = response.data;
 
-            if (!data) {
-                return makeResult(false, { success: false, error: "Itens do carrinho não removidos" }, "Erro ao remover item do carrinho");
-            }
 
-            return makeResult(success, { success: true, error: "" }, error);
-        } catch (error) {
-            return makeResult(false, { success: false, error: "Falha na comunicação" }, "Erro ao remover item do carrinho");
-        }
-    },
-    getCartProducts: async (userId: number): Promise<Result<CartItensProduct[]>> => {
-        try {
-            if (userId === 0) {
-                return makeResult(false, [] as CartItensProduct[], "ID de usuário inválido");
-            }
-            const response = await api.get("/product/GetProductCart/" + userId);
-            const { success, data, error } = response.data;
-            if (!data) {
-                return makeResult(false, [] as CartItensProduct[], "Itens do carrinho não encontrados");
-            }
 
-            return makeResult(success, data, error);
-        } catch (error) {
-            return makeResult(false, [] as CartItensProduct[], "Falha na comunicação");
-        }
-    },
-
-    //   refreshToken: async (refreshToken: string) => {
-    //     const { data } = await api.post("/auth/refresh", { refreshToken });
-    //     return data;
-    //   },
-};
+//     //   refreshToken: async (refreshToken: string) => {
+//     //     const { data } = await api.post("/auth/refresh", { refreshToken });
+//     //     return data;
+//     //   },
+// };

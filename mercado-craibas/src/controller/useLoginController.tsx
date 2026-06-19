@@ -2,9 +2,10 @@ import { useState } from 'react';
 import { useStore } from '../context/store';
 import { useNavigate } from 'react-router-dom';
 import { useNotification } from '../utils/NotificationCard';
-import { ApiService } from '../config/api';
 import { useAuthStore } from '../context/AuthContext';
 import { useUser } from '../context/UserContext';
+import { AuthService } from '../service/authService';
+import { UserService } from '../service/UserService';
 
 export const useLoginController = () => {
     const { login, saveUser, logout, navigateTo } = useStore();
@@ -14,7 +15,10 @@ export const useLoginController = () => {
     const [error, setError] = useState('');
     const [loading, setLoading] = useState(false);
     const navigate = useNavigate();
-    const { loginUser, getUser } = ApiService;
+    const { loginUser } = AuthService;
+    const { getUser } = UserService;
+
+
     const notify = useNotification();
 
     const handleSubmit = async (e: React.FormEvent, form: { email: string, password: string }, mode: 'login' | 'register') => {

@@ -1,6 +1,7 @@
 
 namespace backend.controllers.v1;
 using backend.services.interfaces;
+using Baldan.Pricing.Application.Commons;
 using Mercado.Craibas.Application.DTOs.Requests;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -53,4 +54,19 @@ public class userscontroller : ControllerBase
 
         return result.ToActionResult();
     }
+    [HttpPost("PostUpdateAddres")]
+    public async Task<IActionResult> PostUpdateAddres([FromBody] AddressRequest NewAnddress)
+    {
+        var result = await _service.PostUpdateAddressUserService(NewAnddress);
+
+        return result.ToActionResult();
+    }
+    [HttpPost("DeleteAddress")]
+    public async Task<IActionResult> DeleteAddress([FromBody] AddressRequest DeleteAnddress)
+    {
+        var result = await _service.DeleteAddressService(DeleteAnddress);
+
+        return result.ToActionResult();
+    }
+
 }

@@ -15,8 +15,8 @@ namespace Mercado.Craibas.Application.DTOs.Requests
         public string State { get; set; }
         public int Id_User_Customer { get; set; }
         public string Neighborhood { get; set; }
-        public string? referencePoint { get; set; }
-        public string? supplement { get; set; }
-        public bool? standard { get; set; }
+        public string? ReferencePoint { get; set; }
+        public string? Supplement { get; set; }
+        public bool? Standard { get; set; }
     }
 }

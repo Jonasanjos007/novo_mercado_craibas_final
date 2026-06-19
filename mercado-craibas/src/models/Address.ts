@@ -8,7 +8,7 @@ export interface Address {
     city: string;
     number?: number;
     state?: string;
-    Id_User_Customer?: number;
+    id_User_Customer?: number;
     neighborhood?: string;
     referencePoint?: string;
     supplement?: string;

@@ -3,7 +3,6 @@ import { Eye, EyeOff, ArrowRight, ShoppingBag, Mail, Lock, User, AlertCircle } f
 import { useStore } from '../context/store';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useLoginController } from '../controller/useLoginController';
-import { ApiService } from '../config/api';
 import Loading from '../components/Loading';
 
 export default function AuthPage() {

@@ -11,6 +11,7 @@ using Mercado.Craibas.Application.DTOs.Responses;
 using Microsoft.EntityFrameworkCore;
 using Pricing.Api.DTOs.Responses;
 using System;
+using System.Collections.Generic;
 using System.Security.Claims;
 
 public class UserService : IUserService
@@ -65,7 +66,7 @@ public class UserService : IUserService
         switch (role)
         {
             case "CLIENTE":
-                user = await _userRepository.GetByIdAsync<User_Customer>(userid,"Id");
+                user = await _userRepository.GetByIdAsync<User_Customer>(userid, "Id");
                 cart_User = await _userRepository.GetByIdAsync<Cart>(userid, "Id_User_Customer");
                 andrees_User = await _unitOfWork.GetClassListById<Address>(userid, "Id_User_Customer");
                 break;
@@ -75,7 +76,7 @@ public class UserService : IUserService
                 break;
 
             case "DELIVERY":
-                user = await _userRepository.GetByIdAsync<User_Delivery>(userid,"Id");
+                user = await _userRepository.GetByIdAsync<User_Delivery>(userid, "Id");
                 break;
 
             default:
@@ -123,24 +124,43 @@ public class UserService : IUserService
         });
     }
     public async Task<Result<bool>> PostSaveAddressUserService(AddressRequest NewAnddress)
-     {
+    {
+        if (NewAnddress.Standard == true)
+        {
+            var PatternChangeList = await _unitOfWork.GetClassListById<Address>(NewAnddress.Id_User_Customer, "Id_User_Customer");
+
+            var EnderecoPadrao = PatternChangeList.FirstOrDefault(x => x.Standard == true);
+
+            if (EnderecoPadrao is not null)
+            {
+                var Update_Address = await _unitOfWork.UpdateFieldsAsync<Address>(filters: new Dictionary<string, object>
+        {
+                { "Id", EnderecoPadrao.Id }
+                      },
+                      fieldsToUpdate: new Dictionary<string, object>
+                      {
+                          {"Standard",false }
+                      });
+            }
+        }
+
         var Andrees = new Address
         {
             Road = NewAnddress.Road,
             Neighborhood = NewAnddress.Neighborhood,
-            Supplement = NewAnddress.supplement,
-            ReferencePoint = NewAnddress.referencePoint,
+            Supplement = NewAnddress.Supplement,
+            ReferencePoint = NewAnddress.ReferencePoint,
             City = NewAnddress.City,
             Number = NewAnddress.Number,
             State = NewAnddress.State,
-            Standard = NewAnddress.standard,
+            Standard = NewAnddress.Standard,
             Id_User_Customer = NewAnddress.Id_User_Customer,
             InsertDate = DateTime.Now
         };
 
         var Insert_Address = await _userRepository.InsertAddressUserAsync<Address>(Andrees);
 
-        if(Insert_Address == 0)
+        if (Insert_Address == 0)
         {
             return Result<bool>.Failure(Error.Failure("Endereço", "Error ao Salvar Endereço"));
         }
@@ -148,14 +168,14 @@ public class UserService : IUserService
     }
     public async Task<Result<List<AddressResponse>>> GetAddressbyIdUserService(int Id_User)
     {
-         List<Address> ListAddress = [] ;
+        List<Address> ListAddress = [];
 
         var NewListAnddres = await _unitOfWork.GetClassListById<Address>(Id_User, "Id_User_Customer");
 
 
         if (NewListAnddres == null)
         {
-            return Result<List<AddressResponse>>.Failure(Error.Failure("Endereço","Nenhum Endereço Encontrado com seu ID"));
+            return Result<List<AddressResponse>>.Failure(Error.Failure("Endereço", "Nenhum Endereço Encontrado com seu ID"));
         }
         var response = new List<AddressResponse>();
 
@@ -179,5 +199,80 @@ public class UserService : IUserService
         return Result<List<AddressResponse>>.Success(response);
     }
 
+    public async Task<Result<bool>> PostUpdateAddressUserService(AddressRequest NewAnddress)
+    {
+        if (NewAnddress.Standard == true)
+        {
+            var PatternChangeList = await _unitOfWork.GetClassListById<Address>(NewAnddress.Id_User_Customer, "Id_User_Customer");
+
+            var EnderecoPadrao = PatternChangeList.FirstOrDefault(x => x.Standard == true);
+
+            if (EnderecoPadrao is not null)
+            {
+                var Update_Standard = await _unitOfWork.UpdateFieldsAsync<Address>(filters: new Dictionary<string, object>
+        {
+                { "Id", EnderecoPadrao.Id }
+                      },
+                      fieldsToUpdate: new Dictionary<string, object>
+                      {
+                          {"Standard",false }
+                      });
+            }
+        }
+
+        var Update_Address = await _unitOfWork.UpdateFieldsAsync<Address>(filters: new Dictionary<string, object>
+        {
+                { "Id", NewAnddress.Id }
+        },
+
+       fieldsToUpdate: new Dictionary<string, object>
+       {
+           {"Road",NewAnddress.Road },
+           {"Neighborhood",NewAnddress.Neighborhood},
+           {"Supplement",NewAnddress.Supplement},
+           {"ReferencePoint",NewAnddress.ReferencePoint},
+           {"City",NewAnddress.City},
+           {"Number",NewAnddress.Number},
+           {"State",NewAnddress.State},
+           {"Standard",NewAnddress.Standard},
+           { "Id_User_Customer", NewAnddress.Id_User_Customer},
+           {"UpdateDate", DateTime.Now }
+       });
+
+        if (!Update_Address)
+        {
+            return Result<bool>.Failure(Error.Failure("Endereço", "Error ao Salvar Endereço"));
+        }
+        return Result<bool>.Success(true);
+    }
+    public async Task<Result<bool>> DeleteAddressService(AddressRequest DeleteAddress)
+    {
+
+        var DeleteAddres = await _unitOfWork.DeleteByColumnAsyncGlolbal<Address>("Id", DeleteAddress.Id);
+
+        if (!DeleteAddres)
+        {
+            return Result<bool>.Failure(Error.Failure("Endereço", "Error ao Remover Endereço"));
+        }
+        if (DeleteAddress.Standard == true)
+        {
+            var GetAddressStandard = await _unitOfWork.GetClassById<Address>(DeleteAddress.Id_User_Customer, "Id_User_Customer");
+
+            if (GetAddressStandard == null)
+            {
+                return Result<bool>.Failure(Error.Validation("Padrão", "Você ainda não possui um endereço cadastrado. Cadastre pelo menos um para ter um endereço padrão!"));
+            }
+            var Update_Standard = await _unitOfWork.UpdateFieldsAsync<Address>(filters: new Dictionary<string, object>
+{
+        { "Id", GetAddressStandard.Id }
+              },
+      fieldsToUpdate: new Dictionary<string, object>
+      {
+                  {"Standard",true }
+      });
+
+        }
+        return Result<bool>.Success(true);
+    }
 }
 
