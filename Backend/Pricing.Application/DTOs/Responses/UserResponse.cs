@@ -19,4 +19,5 @@ public class UserResponse
     public string RefreshTokenExpiresAt { get; set; } = default!;
     public DateTime Insert_Date { get; set; } = default!;
     public List<AddressResponse>? Address { get; set; }
+    public Customize_Cliente Customize { get; set; }
 }

@@ -22,7 +22,10 @@ import Loading from '../components/Loading';
 import ConfirmPopup from '../components/ConfirmPopup';
 import { useNotification } from '../utils/NotificationCard';
 import AlertPopup from '../components/AlertPopup';
-
+import { UseUserStore } from '../store/UseUserStore';
+import { UseAddressStore } from '../store/UseAddressStore';
+import { UseRouteStore } from '../store/UseRouteStore';
+import { colors } from '../types/Colors';
 type ProfileTab = 'overview' | 'orders' | 'wishlist' | 'addresses' | 'security' | 'preferences' | 'settings';
 
 
@@ -30,7 +33,11 @@ type ProfileTab = 'overview' | 'orders' | 'wishlist' | 'addresses' | 'security' 
 export default function ProfilePage() {
   const Controller = userProfileController();
   const navigate = useNavigate();
-  const { user, orders, wishlist, address, navigateTo, logout, updateUser } = useStore();
+  const { orders, wishlist } = useStore();
+  const { navigateTo } = UseRouteStore();
+  // const address = UseAddressStore((state) => state.address);
+  const { address } = UseAddressStore();
+  const { updateUser, user, logout } = UseUserStore();
   const [tab, setTab] = useState<ProfileTab>('overview');
   const [editing, setEditing] = useState(false);
   const [showPhoto, setShowPhoto] = useState(false);
@@ -89,31 +96,31 @@ export default function ProfilePage() {
     { label: "Cidade", key: "city", placeholder: "Campinas" },
     { label: "Estado", key: "state", placeholder: "SP" },
   ];
-  const colors = [
-    { value: "brand", class: "bg-brand-500" },
-    { value: "red", class: "bg-red-500" },
-    { value: "orange", class: "bg-orange-500" },
-    { value: "amber", class: "bg-amber-500" },
-    { value: "yellow", class: "bg-yellow-500" },
-    { value: "lime", class: "bg-lime-500" },
-    { value: "green", class: "bg-green-500" },
-    { value: "emerald", class: "bg-emerald-500" },
-    { value: "teal", class: "bg-teal-500" },
-    { value: "cyan", class: "bg-cyan-500" },
-    { value: "sky", class: "bg-sky-500" },
-    { value: "blue", class: "bg-blue-500" },
-    { value: "indigo", class: "bg-indigo-500" },
-    { value: "violet", class: "bg-violet-500" },
-    { value: "purple", class: "bg-purple-500" },
-    { value: "fuchsia", class: "bg-fuchsia-500" },
-    { value: "pink", class: "bg-pink-500" },
-    { value: "rose", class: "bg-rose-500" },
-    { value: "brown", class: "bg-stone-500" },
-    { value: "gray", class: "bg-gray-500" },
-    { value: "slate", class: "bg-slate-500" },
-    { value: "zinc", class: "bg-zinc-500" },
-    { value: "black", class: "bg-black" },
-  ];
+  // const colors = [
+  //   { value: "brand", class: "bg-brand-500", class_text: "text-brand-400", class_hover: "hover:bg-brand-600" },
+  //   { value: "red", class: "bg-red-500", class_text: "text-red-500", class_hover: "hover:bg-red-600" },
+  //   { value: "orange", class: "bg-orange-500", class_text: "text-orange-500", class_hover: "hover:bg-orange-600" },
+  //   { value: "amber", class: "bg-amber-500", class_text: "text-amber-500", class_hover: "hover:bg-amber-600" },
+  //   { value: "yellow", class: "bg-yellow-500", class_text: "text-yellow-500", class_hover: "hover:bg-yellow-600" },
+  //   { value: "lime", class: "bg-lime-500", class_text: "text-lime-500", class_hover: "hover:bg-lime-600" },
+  //   { value: "green", class: "bg-green-500", class_text: "text-green-500", class_hover: "hover:bg-green-600" },
+  //   { value: "emerald", class: "bg-emerald-500", class_text: "text-emerald-500", class_hover: "hover:bg-emerald-600" },
+  //   { value: "teal", class: "bg-teal-500", class_text: "text-teal-500", class_hover: "hover:bg-teal-600" },
+  //   { value: "cyan", class: "bg-cyan-500", class_text: "text-cyan-500", class_hover: "hover:bg-cyan-600" },
+  //   { value: "sky", class: "bg-sky-500", class_text: "text-sky-500", class_hover: "hover:bg-sky-600" },
+  //   { value: "blue", class: "bg-blue-500", class_text: "text-blue-500", class_hover: "hover:bg-blue-600" },
+  //   { value: "indigo", class: "bg-indigo-500", class_text: "text-indigo-500", class_hover: "hover:bg-indigo-600" },
+  //   { value: "violet", class: "bg-violet-500", class_text: "text-violet-500", class_hover: "hover:bg-violet-600" },
+  //   { value: "purple", class: "bg-purple-500", class_text: "text-purple-500", class_hover: "hover:bg-purple-600" },
+  //   { value: "fuchsia", class: "bg-fuchsia-500", class_text: "text-fuchsia-500", class_hover: "hover:bg-fuchsia-600" },
+  //   { value: "pink", class: "bg-pink-500", class_text: "text-pink-500", class_hover: "hover:bg-pink-600" },
+  //   { value: "rose", class: "bg-rose-500", class_text: "text-rose-500", class_hover: "hover:bg-rose-600" },
+  //   { value: "brown", class: "bg-stone-500", class_text: "text-stone-500", class_hover: "hover:bg-stone-600" },
+  //   { value: "gray", class: "bg-gray-500", class_text: "text-gray-500", class_hover: "hover:bg-gray-600" },
+  //   { value: "slate", class: "bg-slate-500", class_text: "text-slate-500", class_hover: "hover:bg-slate-600" },
+  //   { value: "zinc", class: "bg-zinc-500", class_text: "text-zinc-500", class_hover: "hover:bg-zinc-600" },
+  //   { value: "black", class: "bg-black", class_text: "text-black", class_hover: "hover:bg-zinc-900" },
+  // ];
 
   const colorMap = {
     brand: "#ea580c",
@@ -721,25 +728,7 @@ export default function ProfilePage() {
                     </button>
                   </div>
                 </div>
-                <div className="bg-white rounded-2xl border border-surface-100 p-6 shadow-soft">
-                  <h2 className="font-display font-bold text-surface-900 text-lg mb-4 flex items-center gap-2">
-                    <Shield className="w-5 h-5 text-green-500" /> Verificação em 2 Etapas
-                  </h2>
-                  <div className="flex items-center justify-between p-4 bg-surface-50 rounded-xl">
-                    <div>
-                      <p className="font-medium text-surface-800 text-sm">Autenticação 2FA</p>
-                      <p className="text-surface-400 text-xs mt-0.5">Adicione uma camada extra de segurança</p>
-                    </div>
-                    <button className="px-4 py-2 bg-green-500 hover:bg-green-600 text-white text-xs font-bold rounded-xl transition-all">Ativar</button>
-                  </div>
-                  <div className="flex items-center justify-between p-4 bg-surface-50 rounded-xl mt-3">
-                    <div>
-                      <p className="font-medium text-surface-800 text-sm">Sessões Ativas</p>
-                      <p className="text-surface-400 text-xs mt-0.5">1 dispositivo conectado agora</p>
-                    </div>
-                    <button className="px-4 py-2 bg-red-50 hover:bg-red-100 text-red-500 text-xs font-bold rounded-xl transition-all">Revogar</button>
-                  </div>
-                </div>
+
               </div>
             )}
             {tab === 'settings' && (
@@ -752,87 +741,11 @@ export default function ProfilePage() {
                       Configurações
                     </h2>
 
-                    <button
-                      // onClick={saveSettings}
-                      className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold transition-all bg-brand-500 hover:bg-brand-600 text-white"
-                    >
-                      <Check className="w-4 h-4" />
-                      Salvar
-                    </button>
+
                   </div>
 
                   <div className="p-5 space-y-6">
 
-                    {/* Preferências */}
-                    <div>
-                      <h3 className="text-sm font-bold text-surface-800 mb-3">
-                        Preferências
-                      </h3>
-
-                      <div className="space-y-3">
-
-                        <label className="flex items-center justify-between p-3 rounded-xl border border-surface-100">
-                          <div>
-                            <p className="font-semibold text-sm">Receber notificações</p>
-                            <p className="text-xs text-surface-400">
-                              Receber avisos e atualizações
-                            </p>
-                          </div>
-
-                          <input
-                            type="checkbox"
-                            checked={settings.notifications}
-                            onChange={(e) =>
-                              setSettings((s) => ({
-                                ...s,
-                                notifications: e.target.checked
-                              }))
-                            }
-                          />
-                        </label>
-
-                        <label className="flex items-center justify-between p-3 rounded-xl border border-surface-100">
-                          <div>
-                            <p className="font-semibold text-sm">Modo escuro</p>
-                            <p className="text-xs text-surface-400">
-                              Utilizar tema escuro
-                            </p>
-                          </div>
-
-                          <input
-                            type="checkbox"
-                            checked={settings.darkMode}
-                            onChange={(e) =>
-                              setSettings((s) => ({
-                                ...s,
-                                darkMode: e.target.checked
-                              }))
-                            }
-                          />
-                        </label>
-
-                        <label className="flex items-center justify-between p-3 rounded-xl border border-surface-100">
-                          <div>
-                            <p className="font-semibold text-sm">Newsletter</p>
-                            <p className="text-xs text-surface-400">
-                              Receber novidades por email
-                            </p>
-                          </div>
-
-                          <input
-                            type="checkbox"
-                            checked={settings.newsletter}
-                            onChange={(e) =>
-                              setSettings((s) => ({
-                                ...s,
-                                newsletter: e.target.checked
-                              }))
-                            }
-                          />
-                        </label>
-
-                      </div>
-                    </div>
 
                     {/* Cor do sistema */}
                     <div className="relative overflow-hidden rounded-3xl border border-surface-100 bg-gradient-to-br from-white via-surface-50 to-surface-100 p-6">
@@ -913,20 +826,15 @@ export default function ProfilePage() {
                             return (
                               <button
                                 key={color.value}
-                                onClick={() =>
+                                onClick={() => {
                                   setSettings((s) => ({
                                     ...s,
                                     primaryColor: color.value,
                                   }))
+                                  Controller?.action.setNameColorGlobal(color.value);
                                 }
-                                className={`
-          relative h-14 w-14 rounded-2xl
-          transition-all duration-300
-          hover:scale-110 hover:-translate-y-1
-          shadow-md ${color.class}
-          ${selected ? "scale-110 -translate-y-1 shadow-xl ring-2 ring-white" : ""}
-        `}
-                              >
+                                }
+                                className={`relative h-14 w-14 rounded-2xl transition-all duration-300 hover:scale-110 hover:-translate-y-1 shadow-md ${color.class}${selected ? "scale-110 -translate-y-1 shadow-xl ring-2 ring-white" : ""}`}>
                                 {selected && (
                                   <div className="absolute inset-0 flex items-center justify-center">
                                     <Check className="w-5 h-5 text-white" />
@@ -958,25 +866,32 @@ export default function ProfilePage() {
                         </div>
                       </div>
                     </div>
+                    {Controller?.result.NameColorGlobal && (<button
+                      onClick={() => Controller?.action.SaveCustomizeGlobal(Controller?.result.NameColorGlobal)}
+                      className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold transition-all bg-brand-500 hover:bg-brand-600 text-white"
+                    >
+                      <Check className="w-4 h-4" />
+                      Salvar Tema
+                    </button>)}
 
                     {/* Segurança */}
-                    <div>
-                      <h3 className="text-sm font-bold text-surface-800 mb-3">
-                        Segurança
-                      </h3>
-
-                      <div className="space-y-2">
-                        <button className="w-full text-left p-3 rounded-xl border border-surface-100 hover:bg-surface-50 transition-colors">
-                          Alterar senha
-                        </button>
-
-                        <button className="w-full text-left p-3 rounded-xl border border-surface-100 hover:bg-surface-50 transition-colors">
-                          Encerrar sessões ativas
-                        </button>
-
-                        <button className="w-full text-left p-3 rounded-xl border border-red-100 text-red-600 hover:bg-red-50 transition-colors">
-                          Excluir conta
-                        </button>
+                    <div className="bg-white rounded-2xl border border-surface-100 p-6 shadow-soft">
+                      <h2 className="font-display font-bold text-surface-900 text-lg mb-4 flex items-center gap-2">
+                        <Shield className="w-5 h-5 text-green-500" /> Verificação em 2 Etapas
+                      </h2>
+                      <div className="flex items-center justify-between p-4 bg-surface-50 rounded-xl">
+                        <div>
+                          <p className="font-medium text-surface-800 text-sm">Autenticação 2FA</p>
+                          <p className="text-surface-400 text-xs mt-0.5">Adicione uma camada extra de segurança</p>
+                        </div>
+                        <button className="px-4 py-2 bg-green-500 hover:bg-green-600 text-white text-xs font-bold rounded-xl transition-all">Ativar</button>
+                      </div>
+                      <div className="flex items-center justify-between p-4 bg-surface-50 rounded-xl mt-3">
+                        <div>
+                          <p className="font-medium text-surface-800 text-sm">Sessões Ativas</p>
+                          <p className="text-surface-400 text-xs mt-0.5">1 dispositivo conectado agora</p>
+                        </div>
+                        <button className="px-4 py-2 bg-red-50 hover:bg-red-100 text-red-500 text-xs font-bold rounded-xl transition-all">Revogar</button>
                       </div>
                     </div>
 

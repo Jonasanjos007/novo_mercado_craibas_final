@@ -12,6 +12,10 @@ import { formatPrice, categoryLabels, categoryIcons } from '../utils';
 import { useNavigate } from 'react-router-dom';
 import { useHomeController } from '../controller/useHomeController';
 import Loading from '../components/Loading';
+import { UseProductStore } from '../store/UseProductStore';
+import { UseRouteStore } from '../store/UseRouteStore';
+import { UseUserStore } from '../store/UseUserStore';
+import { getColorConfig } from '../types/Colors';
 
 const COUNTDOWN_TARGET = new Date(Date.now() + 4 * 60 * 60 * 1000 + 23 * 60 * 1000 + 45 * 1000);
 
@@ -36,13 +40,18 @@ function useCountdown() {
 export default function HomePage() {
   const Controller = useHomeController();
 
-  const { products, navigateTo, toggleWishlist, user, navigatePages, isWishlisted, setListProducts } = useStore();
+  const { toggleWishlist, isWishlisted, setListProducts } = useStore();
+  const { navigatePages, navigateTo } = UseRouteStore();
+  const { products } = UseProductStore();
   const navigate = useNavigate();
   const [bannerIndex, setBannerIndex] = useState(0);
   const [valorIDProduct, setValorIDProduct] = useState('');
   const [autoPlay, setAutoPlay] = useState(true);
   const [activeTab, setActiveTab] = useState<'featured' | 'new' | 'bestsellers'>('featured');
   const countdown = useCountdown();
+  const { NameColorGlobal, ColorGlobalTema, ColorGlobalHover, ColorGlobalText, ColorGlobalHoverText } = UseUserStore();
+  const colorConfig = getColorConfig(NameColorGlobal);
+  console.log(`fill-${ColorGlobalTema.slice(3, -3)}400`)
   const scrollRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
     if (!autoPlay) return;
@@ -67,13 +76,13 @@ export default function HomePage() {
     acessorios: { from: '#6d28d9', to: '#7c3aed', accent: '#c084fc' },
     virais: { from: '#9a3412', to: '#c2410c', accent: '#fb923c' },
   };
-
+  console.log(`from-${ColorGlobalTema.slice(3, -3)}400 `)
   return (
 
     <div className="min-h-screen bg-[#f5f5f7]">
 
       {/* ── PROMO TOP STRIP ── */}
-      <div className="bg-gradient-to-r from-brand-600 via-brand-500 to-amber-500 py-2 overflow-hidden relative">
+      <div className={`bg-gradient-to-r ${ColorGlobalTema} py-2 overflow-hidden relative`}>
         <div className="flex items-center justify-center gap-8 text-xs text-white font-body font-semibold tracking-wide animate-pulse-soft">
           <span>🔥 OFERTA RELÂMPAGO — USE: <strong>TECH15</strong></span>
           <span className="hidden md:block">·</span>
@@ -107,7 +116,7 @@ export default function HomePage() {
                   <div className="flex items-center gap-2 mb-4">
                     <span
                       className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-display font-bold border border-white/20 backdrop-blur-sm"
-                      style={{ background: 'rgba(249,115,22,0.85)', color: '#fff' }}
+                      style={{ background: `${colorConfig.hex}`, color: '#fff' }}
                     >
                       {slide.badge}
                     </span>
@@ -180,8 +189,8 @@ export default function HomePage() {
       <section className="bg-gradient-to-r from-[#09090b] to-[#18181b] border-b border-white/5">
         <div className="max-w-7xl mx-auto px-4 py-4 flex items-center gap-4 flex-wrap justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-brand-500/20 flex items-center justify-center">
-              <Zap className="w-5 h-5 text-brand-400 fill-brand-400" />
+            <div style={{ background: `${colorConfig.hex}22` }} className={`w-10 h-10 rounded-xl ${ColorGlobalTema}/20 flex items-center justify-center`}>
+              <Zap style={{ fill: `${colorConfig.hex}` }} className={`w-5 h-5 ${ColorGlobalText}`} />
             </div>
             <div>
               <p className="font-display font-bold text-white text-sm">Oferta Relâmpago</p>
@@ -192,14 +201,14 @@ export default function HomePage() {
             <span className="text-white/40 text-xs font-body">Termina em:</span>
             {[countdown.h, countdown.m, countdown.s].map((v, i) => (
               <span key={i} className="flex items-center gap-1">
-                <span className="bg-brand-500 text-white font-display font-bold text-sm px-2.5 py-1.5 rounded-xl min-w-[36px] text-center">
+                <span className={`${ColorGlobalTema} text-white font-display font-bold text-sm px-2.5 py-1.5 rounded-xl min-w-[36px] text-center`}>
                   {v}
                 </span>
-                {i < 2 && <span className="text-brand-400 font-bold">:</span>}
+                {i < 2 && <span className={`${ColorGlobalText} font-bold`}>:</span>}
               </span>
             ))}
           </div>
-          <button onClick={() => navigate('/flash-sale')} className="flex items-center gap-2 px-5 py-2 bg-brand-500 hover:bg-brand-600 text-white font-display font-bold text-sm rounded-xl transition-all shadow-brand">
+          <button onClick={() => navigate('/flash-sale')} className={`flex items-center gap-2 px-5 py-2 ${ColorGlobalTema} ${ColorGlobalHover} text-white font-display font-bold text-sm rounded-xl transition-all `} style={{ boxShadow: `0 4px 12px  ${colorConfig.hex}` }}>
             Ver Todas <ArrowRight className="w-3.5 h-3.5" />
           </button>
         </div>
@@ -255,7 +264,7 @@ export default function HomePage() {
                   <h3 className="font-display font-bold text-white text-base leading-tight">{label}</h3>
                   <p className="text-white/60 text-xs font-body mt-1">{count} produtos</p>
                   <div className="mt-3 flex items-center gap-1 text-white/70 text-xs font-medium group-hover:text-white transition-colors">
-                    Ver tudo <ArrowRight className="w-3 h-3 group-hover:translate-x-0.5 transition-transform" />
+                    <ArrowRight className="w-3 h-3 group-hover:translate-x-0.5 transition-transform" />
                   </div>
                 </button>
               );
@@ -299,15 +308,15 @@ export default function HomePage() {
         <section className="mb-10">
           <div className="flex items-center justify-between mb-5">
             <div className="flex items-center gap-3">
-              <div className="w-9 h-9 rounded-xl bg-brand-500/10 flex items-center justify-center">
-                <Flame className="w-5 h-5 text-brand-500" />
+              <div className="w-9 h-9 rounded-xl bg-brand-500/10 flex items-center justify-center" style={{ background: colorConfig.hex + "22" }}>
+                <Flame className={`w-5 h-5 ${ColorGlobalText}`} />
               </div>
               <div>
                 <h2 className="font-display font-bold text-surface-900 text-xl tracking-tight">Virais da Semana</h2>
                 <p className="text-surface-400 text-xs font-body">Os mais buscados agora</p>
               </div>
             </div>
-            <button onClick={() => { navigatePages('category', null, 'virais'); navigate('/category/virais') }} className="flex items-center gap-1 text-brand-500 hover:text-brand-600 text-sm font-display font-semibold transition-colors">
+            <button onClick={() => { navigatePages('category', null, 'virais'); navigate('/category/virais') }} className={`flex items-center gap-1 ${ColorGlobalText} ${ColorGlobalHoverText} text-sm font-display font-semibold transition-colors`}>
               Ver todos <ChevronLeft className="w-4 h-4 rotate-180" />
             </button>
           </div>
@@ -356,7 +365,7 @@ export default function HomePage() {
         <section className="mb-10">
           <div className="flex items-center justify-between mb-5 flex-wrap gap-3">
             <h2 className="font-display font-bold text-surface-900 text-xl tracking-tight">
-              <Sparkles className="w-5 h-5 text-brand-500 inline mr-2 -mt-0.5" />
+              <Sparkles className={`w-5 h-5 ${ColorGlobalText} inline mr-2 -mt-0.5`} />
               Selecionados para Você
             </h2>
             <div className="flex gap-1 bg-surface-100 rounded-xl p-1">
@@ -387,8 +396,8 @@ export default function HomePage() {
         <section className="mb-10">
           <div className="flex items-center justify-between mb-5">
             <div className="flex items-center gap-3">
-              <div className="w-9 h-9 rounded-xl bg-red-500/10 flex items-center justify-center">
-                <Percent className="w-5 h-5 text-red-500" />
+              <div className="w-9 h-9 rounded-xl bg-red-500/10 flex items-center justify-center" style={{ background: colorConfig.hex + "22" }}>
+                <Percent className={`w-5 h-5 ${ColorGlobalText}`} />
               </div>
               <div>
                 <h2 className="font-display font-bold text-surface-900 text-xl tracking-tight">Ofertas Imperdíveis</h2>
@@ -437,7 +446,7 @@ export default function HomePage() {
               style={{ background: 'radial-gradient(circle, #f97316, transparent)', transform: 'translate(30%, -30%)' }} />
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
               <div>
-                <span className="text-brand-400 text-xs font-bold uppercase tracking-widest mb-3 block">Por que escolher</span>
+                <span className={`${ColorGlobalText} text-xs font-bold uppercase tracking-widest mb-3 block`}>Por que escolher</span>
                 <h2 className="font-display font-bold text-white text-3xl mb-4 tracking-tight leading-tight">
                   O Melhor Marketplace<br />de Craibas-AL
                 </h2>
@@ -445,7 +454,7 @@ export default function HomePage() {
                   Somos o marketplace local com os melhores preços, entrega rápida e atendimento humanizado. Produtos originais, garantia total e compra 100% segura.
                 </p>
                 <div className="flex flex-wrap gap-3">
-                  <button onClick={() => navigate('/about')} className="px-5 py-2.5 bg-brand-500 hover:bg-brand-600 text-white font-display font-bold text-sm rounded-xl transition-all shadow-brand">
+                  <button onClick={() => navigate('/about')} className={`px-5 py-2.5 ${ColorGlobalTema} ${ColorGlobalHover} text-white font-display font-bold text-sm rounded-xl transition-all `} style={{ boxShadow: `0 4px 12px  ${colorConfig.hex}` }}>
                     Conheça Nossa História
                   </button>
                   <button onClick={() => navigate('/products')} className="px-5 py-2.5 bg-white/10 hover:bg-white/15 text-white font-display font-semibold text-sm rounded-xl transition-all border border-white/10">
@@ -481,12 +490,12 @@ export default function HomePage() {
           <div className="grid grid-cols-2 md:grid-cols-5 gap-8 mb-10">
             <div className="col-span-2">
               <div className="flex items-center gap-2.5 mb-4">
-                <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-brand-400 to-brand-600 flex items-center justify-center shadow-brand">
+                <div className={`w-9 h-9 rounded-xl ${ColorGlobalTema} flex items-center justify-center shadow-brand`} style={{ boxShadow: `0 4px 12px  ${colorConfig.hex}` }}>
                   <span className="text-white font-display font-bold text-xs">MC</span>
                 </div>
                 <div>
                   <span className="font-display font-bold text-white text-base block leading-none">Mercado Craibas</span>
-                  <span className="text-brand-400 text-[10px] font-medium">Sua loja de confiança</span>
+                  <span className={`${ColorGlobalText} text-[10px] font-medium`}>Sua loja de confiança</span>
                 </div>
               </div>
               <p className="text-surface-500 font-body text-xs leading-relaxed mb-4 max-w-[220px]">
@@ -494,7 +503,7 @@ export default function HomePage() {
               </p>
               <div className="flex gap-2">
                 {['📱', '💬', '📸'].map((emoji, i) => (
-                  <button key={i} className="w-8 h-8 rounded-xl bg-surface-800 hover:bg-brand-500 flex items-center justify-center text-sm transition-all">
+                  <button key={i} className={`w-8 h-8 rounded-xl bg-surface-800 ${ColorGlobalHover} flex items-center justify-center text-sm transition-all`}>
                     {emoji}
                   </button>
                 ))}
@@ -532,7 +541,13 @@ export default function HomePage() {
                 <ul className="space-y-2">
                   {col.links.map((link, j) => (
                     <li key={j}>
-                      <button onClick={link.action} className="text-surface-500 hover:text-brand-400 font-body text-xs transition-colors text-left">
+                      <button
+                        onClick={link.action}
+                        className="text-surface-500 font-body text-xs transition-colors text-left hover:text-[var(--hover-color)]"
+                        style={{
+                          "--hover-color": colorConfig.hex,
+                        } as React.CSSProperties}
+                      >
                         {link.label}
                       </button>
                     </li>

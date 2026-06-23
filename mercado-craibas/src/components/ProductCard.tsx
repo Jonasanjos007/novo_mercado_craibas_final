@@ -3,6 +3,8 @@ import { formatPrice, formatDiscount, badgeLabels, badgeColors } from '../utils'
 import { useStore } from '../context/store';
 import { useNavigate } from 'react-router-dom';
 import { Product } from '../models/Product';
+import { UseCartStore } from '../store/UseCartStore';
+import { UseRouteStore } from '../store/UseRouteStore';
 
 interface ProductCardProps {
   product: Product;
@@ -11,7 +13,9 @@ interface ProductCardProps {
 
 export default function ProductCard({ product, compact = false }: ProductCardProps) {
   const navigate = useNavigate();
-  const { navigateTo, addToCart, toggleWishlist, isWishlisted } = useStore();
+  const { toggleWishlist, isWishlisted } = useStore();
+  const { navigateTo } = UseRouteStore();
+  const { addToCart } = UseCartStore();
   const discount = product.origin_Price ? formatDiscount(product.origin_Price, product.price_Unic) : 0;
   const wishlisted = isWishlisted(product.id);
 

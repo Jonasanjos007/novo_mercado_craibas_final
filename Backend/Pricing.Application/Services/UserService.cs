@@ -61,6 +61,7 @@ public class UserService : IUserService
         dynamic? user = null;
         dynamic? cart_User = null;
         List<Address> andrees_User = [];
+        dynamic? Customize = null;
 
 
         switch (role)
@@ -69,6 +70,7 @@ public class UserService : IUserService
                 user = await _userRepository.GetByIdAsync<User_Customer>(userid, "Id");
                 cart_User = await _userRepository.GetByIdAsync<Cart>(userid, "Id_User_Customer");
                 andrees_User = await _unitOfWork.GetClassListById<Address>(userid, "Id_User_Customer");
+                Customize = await _unitOfWork.GetClassById<Customize_Cliente>(userid, "Id_User_Customer");
                 break;
 
             case "ADMIN":
@@ -120,7 +122,8 @@ public class UserService : IUserService
                 ReferencePoint = x.ReferencePoint,
                 Supplement = x.Supplement,
                 Standard = x.Standard,
-            }).ToList()
+            }).ToList(),
+            Customize = Customize
         });
     }
     public async Task<Result<bool>> PostSaveAddressUserService(AddressRequest NewAnddress)
@@ -263,7 +266,7 @@ public class UserService : IUserService
                 return Result<bool>.Failure(Error.Validation("Padrão", "Você ainda não possui um endereço cadastrado. Cadastre pelo menos um para ter um endereço padrão!"));
             }
             var Update_Standard = await _unitOfWork.UpdateFieldsAsync<Address>(filters: new Dictionary<string, object>
-{
+              {
         { "Id", GetAddressStandard.Id }
               },
       fieldsToUpdate: new Dictionary<string, object>
@@ -274,5 +277,29 @@ public class UserService : IUserService
         }
         return Result<bool>.Success(true);
     }
+
+    public async Task<Result<bool>> SaveColorGlobalInsertService(string Color, int Id_User)
+    {
+        if (Color == null)
+        {
+            return Result<bool>.Failure(Error.Validation("Error", "Erro ao Salvar cor escolhida entre em contato com suporte!"));
+
+        }
+        var Insert_Color = await _unitOfWork.UpdateFieldsAsync<Customize_Cliente>(filters: new Dictionary<string, object>
+         {
+        { "Id_User_Customer", Id_User }
+         },
+      fieldsToUpdate: new Dictionary<string, object>
+      {
+          {"Global_Site_Color",Color },
+          {"UpdateDate",DateTime.Now }
+      });
+        if (Insert_Color == false)
+        {
+            return Result<bool>.Failure(Error.Validation("Error", "Não foi possivel salvar a cor!, Entre em contato com suporte!"));
+        }
+        return Result<bool>.Success(true);
+    }
+
 }
 

@@ -4,6 +4,10 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { useNotification } from '../utils/NotificationCard';
 import { useStore } from '../context/store';
 import { formatDiscount } from '../utils';
+import { UseUserStore } from '../store/UseUserStore';
+import { UseCartStore } from '../store/UseCartStore';
+import { UseProductStore } from '../store/UseProductStore';
+import { UseRouteStore } from '../store/UseRouteStore';
 
 type ProductControllerReturn = {
     result: {
@@ -20,11 +24,15 @@ type ProductControllerReturn = {
     }
 } | null;
 export const useProductController = (): ProductControllerReturn => {
-    const { selectedProductId, ShowProduct, addToCart, setCartOpen, loadProducts, user } = useStore();
+    const { setCartOpen } = UseCartStore();
+    const { selectedProductId, ShowProduct } = UseRouteStore();
+    const { loadProducts } = UseProductStore();
+    const { addToCart } = UseCartStore();
+    const { user } = UseUserStore();
     const { id } = useParams();
     const navigate = useNavigate();
     const notify = useNotification();
-    const { products } = useStore();
+    const { products } = UseProductStore();
     const [variationError, setVariationError] = useState(false);
 
     useEffect(() => {

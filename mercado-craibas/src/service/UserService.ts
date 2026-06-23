@@ -16,4 +16,20 @@ export const UserService = {
             return makeResult(false, {} as User, "Falha na comunicação");
         }
     },
+    saveColorGlobalService: async (NameColor: string, userId: number): Promise<Result<boolean>> => {
+        try {
+            if (userId === 0) {
+                return makeResult(false, false, "ID de usuário inválido");
+            }
+            const response = await api.post("/users/SaveColorGlobalInsert", { global_Site_Color: NameColor, id: userId });
+            const { success, data, error } = response.data;
+
+            if (!success) {
+                return makeResult(false, false, "Erro ao Salvar Cor Em api!");
+            }
+            return makeResult(success, data, error);
+        } catch (error) {
+            return makeResult(false, false, "Falha na comunicação");
+        }
+    }
 }

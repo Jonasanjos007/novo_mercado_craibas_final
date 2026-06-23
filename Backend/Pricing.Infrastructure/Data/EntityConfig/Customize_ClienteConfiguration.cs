@@ -17,9 +17,6 @@ namespace Mercado.Craibas.Infrastructure.Configurations
                 .HasMaxLength(20)
                 .IsRequired();
 
-            builder.Property(x => x.Dark)
-                .IsRequired();
-
             builder.HasIndex(x => x.Id_User_Customer)
                 .IsUnique();
 

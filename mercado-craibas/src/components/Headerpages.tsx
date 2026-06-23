@@ -3,6 +3,7 @@ import { ChevronLeft, Lock, ChevronDown, User, Package, Heart, LayoutDashboard, 
 import { useNavigate } from 'react-router-dom';
 import { useStore } from '../context/store';
 import { useState } from 'react';
+import { UseUserStore } from '../store/UseUserStore';
 
 interface CheckoutHeaderProps {
     title?: string;
@@ -17,7 +18,8 @@ export default function Headerpages({
     onBack,
     showSecure = true,
 }: CheckoutHeaderProps) {
-    const { user, logout } = useStore();
+    const { user, logout, ColorGlobalTema } = UseUserStore();
+    console.log("ColorGlobalTema", ColorGlobalTema)
     const navigate = useNavigate();
     const [userMenuOpen, setUserMenuOpen] = useState(false);
 
@@ -48,8 +50,9 @@ export default function Headerpages({
 
                 {/* Centro: logo + título */}
                 <button onClick={() => navigate('/')} className="flex items-center gap-2 group shrink-0">
-                    <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-brand-400 to-brand-600 flex items-center justify-center shadow-brand">
-                        <span className="text-white font-display font-bold text-xs">MC</span>
+                    <div
+                        className={`w-7 h-7 rounded-lg bg-gradient-to-br from-brand-400 ${ColorGlobalTema} flex items-center justify-center shadow-brand`}
+                    >
                     </div>
                     <div className="flex items-center gap-1.5">
                         <span className="font-display font-bold text-white text-sm group-hover:text-brand-400 transition-colors leading-none">

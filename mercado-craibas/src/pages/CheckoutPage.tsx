@@ -6,6 +6,10 @@ import { useNavigate } from 'react-router-dom';
 import { useEffect } from 'react';
 import Headerpages from '../components/Headerpages';
 import { Address } from '../models/Address';
+import { UseUserStore } from '../store/useUserStore';
+import { UseAddressStore } from '../store/UseAddressStore';
+import { UseCartStore } from '../store/UseCartStore';
+import { UseRouteStore } from '../store/UseRouteStore';
 
 
 type PaymentMethod = 'pix' | 'credit' | 'boleto';
@@ -13,14 +17,20 @@ type Step = 'Endereço' | 'Forma de pagamento' | 'Checkout' | 'success';
 
 export default function CheckoutPage() {
   const navigate = useNavigate();
-  const { cart, address, cartTotal, placeOrder, navigateTo, setCartOpen, user } = useStore();
+  const { placeOrder } = useStore();
+  const { setCartOpen } = UseCartStore();
+  const { cartTotal } = UseCartStore();
+  const { navigateTo } = UseRouteStore();
+  const { cart } = UseCartStore();
+  const address = UseAddressStore((state) => state.address);
+  const { user } = UseUserStore();
+
   const [step, setStep] = useState<Step>('Endereço');
   const [payment, setPayment] = useState<PaymentMethod>('pix');
   const [loading, setLoading] = useState(false);
   const [order, setOrder] = useState<any>(null);
   const [selectedAddress, setSelectedAddress] = useState(0);
   const [address_select, setaddress_select] = useState<Address | null>(address?.[0] ?? null);
-  console.log("address_select", address_select)
   const [cardData, setCardData] = useState({ number: '', name: '', expiry: '', cvv: '' });
   const [coupon, setCoupon] = useState('');
   const [discount, setDiscount] = useState(0);
@@ -208,7 +218,7 @@ export default function CheckoutPage() {
                 </div>
               ))}
               <button
-                onClick={() => setEditingAddress(true)}
+                // onClick={() => setEditingAddress(true)}
                 className="text-sm font-display font-semibold text-brand-500 hover:text-brand-700 transition-colors px-1 mb-5"
               >
                 Alterar ou escolher outro endereço

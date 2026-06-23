@@ -2,10 +2,13 @@ import { Package, MapPin, ChevronRight, ArrowLeft } from 'lucide-react';
 import { useStore } from '../context/store';
 import { formatPrice, orderStatusLabels, orderStatusColors, orderStatusSteps } from '../utils';
 import { useNavigate } from 'react-router-dom';
+import { UseUserStore } from '../store/UseUserStore';
 
 export default function OrdersPage() {
   const navigate = useNavigate();
-  const { orders, user } = useStore();
+  const { orders } = useStore();
+  const { user } = UseUserStore();
+
   const userOrders = orders.filter(o => o.userId === user?.id);
 
   return (
@@ -101,7 +104,7 @@ export default function OrdersPage() {
                     {order.address && (
                       <div className="flex items-center gap-1.5">
                         <MapPin className="w-3.5 h-3.5" />
-                        <span>{order.address.street}, {order.address.number} · {order.address.city}</span>
+                        <span>{order.address.road}, {order.address.number} · {order.address.city}</span>
                       </div>
                     )}
                     {order.trackingCode && (

@@ -12,8 +12,8 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace Mercado.Craibas.Infrastructure.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20260616023718_composNullsAddress")]
-    partial class composNullsAddress
+    [Migration("20260621170405_campoHoverColor")]
+    partial class campoHoverColor
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -233,11 +233,15 @@ namespace Mercado.Craibas.Infrastructure.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
-                    b.Property<bool>("Dark")
-                        .HasColumnType("bit");
-
                     b.Property<string>("Global_Site_Color")
                         .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.Property<string>("Global_Site_Color_Hover")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Global_Site_Color_Text")
                         .HasMaxLength(20)
                         .HasColumnType("nvarchar(20)");
 

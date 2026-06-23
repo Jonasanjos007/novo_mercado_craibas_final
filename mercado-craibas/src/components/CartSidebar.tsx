@@ -5,9 +5,15 @@ import { useNavigate } from 'react-router-dom';
 import { useNotification } from '../utils/NotificationCard';
 import { useState } from 'react';
 import ConfirmPopup from './ConfirmPopup';
+import { UseUserStore } from '../store/UseUserStore';
+import { UseCartStore } from '../store/UseCartStore';
+import { UseRouteStore } from '../store/UseRouteStore';
 
 export default function CartSidebar() {
-  const { cart, cartOpen, setCartOpen, removeFromCart, updateQuantity, cartTotal, navigateTo, user } = useStore();
+  const { cartOpen, setCartOpen } = UseCartStore();
+  const { navigateTo } = UseRouteStore();
+  const { removeFromCart, updateQuantity, cart, cartTotal } = UseCartStore();
+  const { user } = UseUserStore();
   const total = cartTotal();
   const navigate = useNavigate();
   const notify = useNotification();

@@ -4,11 +4,12 @@ import { useNavigate } from 'react-router-dom';
 import { useNotification } from '../utils/NotificationCard';
 import { useAuthStore } from '../context/AuthContext';
 import { useUser } from '../context/UserContext';
-import { AuthService } from '../service/authService';
 import { UserService } from '../service/UserService';
+import { AuthService } from '../service/AuthService';
+import { UseUserStore } from '../store/UseUserStore';
 
 export const useLoginController = () => {
-    const { login, saveUser, logout, navigateTo } = useStore();
+    const { saveUser, logout } = UseUserStore();
     const userContext = useUser();
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");

@@ -67,9 +67,8 @@ import { Product } from "../models/Product";
 export type OrderStatus = 'pendente' | 'confirmado' | 'preparando' | 'saiu_entrega' | 'entregue' | 'cancelado';
 
 export interface Order {
-  id: string;
-  userId:
-  string;
+  id: number;
+  userId: number;
   items: CartItem[];
   total: number;
   status: OrderStatus;

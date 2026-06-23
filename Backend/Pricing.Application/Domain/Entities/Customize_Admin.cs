@@ -9,7 +9,7 @@ namespace Baldan.Pricing.Application.Domain.Entities
     public class Customize_Admin : EntityBase
     {
         public string Global_Site_Color { get; set; }
-        public bool Dark { get; set; } = false;
+        public bool Dark { get; set; } 
         public int Id_User_Admin { get; set; }
         public User_Admin User_Admin { get; set; }
     }

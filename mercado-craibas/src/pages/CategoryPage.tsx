@@ -4,13 +4,19 @@ import { useStore } from '../context/store';
 import ProductCard from '../components/ProductCard';
 import { categoryLabels, categoryIcons } from '../utils';
 import { useNavigate, useParams } from 'react-router-dom';
+import { UseRouteStore } from '../store/UseRouteStore';
+import { UseProductStore } from '../store/UseProductStore';
+import { UseUserStore } from '../store/UseUserStore';
 
 type SortOption = 'relevancia' | 'menor-preco' | 'maior-preco' | 'avaliacao' | 'mais-vendidos';
 
 export default function CategoryPage() {
-  const { products, selectedCategory, searchQuery, currentPage, navigateTo } = useStore();
-  const { search } = useParams();
+  const { products } = UseProductStore();
+  const { searchQuery, selectedCategory } = UseRouteStore();
+  const { ColorGlobalTema, ColorGlobalHover, ColorGlobalText, ColorGlobalHoverText } = UseUserStore();
 
+  const { search } = useParams();
+  console.log("teste", selectedCategory);
   const [sort, setSort] = useState<SortOption>('relevancia');
   const [filterOpen, setFilterOpen] = useState(false);
   const [priceRange, setPriceRange] = useState<[number, number]>([0, 15000]);
@@ -75,7 +81,7 @@ export default function CategoryPage() {
           <div className="flex items-center gap-2 overflow-x-auto pb-1">
             <button
               onClick={() => setFilterOpen(!filterOpen)}
-              className={`flex items-center gap-2 px-3 py-2 rounded-xl border-2 text-sm font-body font-medium transition-all whitespace-nowrap ${filterOpen ? 'border-brand-400 bg-brand-50 text-brand-700' : 'border-surface-200 text-surface-600 hover:border-surface-300'}`}
+              className={`flex items-center gap-2 px-3 py-2 rounded-xl border-2 text-sm font-body font-medium transition-all whitespace-nowrap ${filterOpen ? `border-${ColorGlobalTema.slice(3, -3)}400 ${ColorGlobalTema} text-white` : 'border-surface-200 text-surface-600 hover:border-surface-300'}`}
             >
               <SlidersHorizontal className="w-4 h-4" />
               Filtros
@@ -86,7 +92,7 @@ export default function CategoryPage() {
                 <button
                   key={s}
                   onClick={() => setSort(s)}
-                  className={`px-3 py-2 rounded-xl border-2 text-xs font-body font-medium transition-all whitespace-nowrap ${sort === s ? 'border-brand-400 bg-brand-50 text-brand-700' : 'border-surface-200 text-surface-500 hover:border-surface-300'}`}
+                  className={`px-3 py-2 rounded-xl border-2 text-xs font-body font-medium transition-all whitespace-nowrap ${sort === s ? ` ${ColorGlobalTema} bg-brand-50 text-white` : 'border-surface-200 text-surface-500 hover:border-surface-300'}`}
                 >
                   {s === 'relevancia' ? 'Relevância' : s === 'menor-preco' ? 'Menor Preço' : s === 'maior-preco' ? 'Maior Preço' : s === 'avaliacao' ? 'Avaliação' : 'Mais Vendidos'}
                 </button>
@@ -124,7 +130,7 @@ export default function CategoryPage() {
 
               <button
                 onClick={clearFilters}
-                className="text-xs font-medium text-brand-500 hover:text-brand-700 transition-colors"
+                className={`text-xs font-medium text-brand-500 hover:text-brand-700 transition-colors`}
               >
                 Limpar
               </button>
@@ -209,7 +215,7 @@ export default function CategoryPage() {
 
 function FilterChip({ label, onRemove }: { label: string; onRemove: () => void }) {
   return (
-    <span className="flex items-center gap-1 px-2.5 py-1 bg-brand-100 text-brand-700 rounded-full text-xs font-body font-medium">
+    <span className={`flex items-center gap-1 px-2.5 py-1 bg-brand-100 text-brand-700 rounded-full text-xs font-body font-medium`}>
       {label}
       <button onClick={onRemove} className="hover:text-brand-900 transition-colors">
         <X className="w-3 h-3" />

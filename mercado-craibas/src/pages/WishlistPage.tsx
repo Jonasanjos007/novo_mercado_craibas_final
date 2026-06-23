@@ -2,10 +2,14 @@ import { Heart, ArrowLeft, ShoppingCart, Trash2, Share2 } from 'lucide-react';
 import { useStore } from '../context/store';
 import { formatPrice, badgeColors, badgeLabels } from '../utils';
 import { useNavigate } from 'react-router-dom';
+import { UseCartStore } from '../store/UseCartStore';
+import { UseRouteStore } from '../store/UseRouteStore';
 
 export default function WishlistPage() {
-  const { wishlist, toggleWishlist, addToCart, navigateTo } = useStore();
+  const { wishlist, toggleWishlist } = useStore();
+  const { addToCart } = UseCartStore();
   const navigate = useNavigate();
+  const { navigateTo } = UseRouteStore();
 
 
   return (

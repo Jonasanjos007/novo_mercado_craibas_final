@@ -68,5 +68,11 @@ public class userscontroller : ControllerBase
 
         return result.ToActionResult();
     }
+    [HttpPost("SaveColorGlobalInsert")]
+    public async Task<IActionResult> SaveColorGlobalInsert([FromBody] CustomizeRequest customize)
+    {
+        var result = await _service.SaveColorGlobalInsertService(customize.Global_Site_Color, customize.Id);
 
+        return result.ToActionResult();
+    }
 }

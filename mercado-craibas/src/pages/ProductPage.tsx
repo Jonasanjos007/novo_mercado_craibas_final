@@ -7,15 +7,17 @@ import { useProductController } from '../controller/useProductController';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useNotification } from '../utils/NotificationCard';
 import Loading from '../components/Loading';
+import { UseProductStore } from '../store/UseProductStore';
+import { UseRouteStore } from '../store/UseRouteStore';
 
 export const ProductPage = () => {
   const Controller = useProductController();
   const action = Controller?.action;
   const result = Controller?.result;
   const navigate = useNavigate();
+  const { selectedProductId, navigatePages } = UseRouteStore();
+  const { products } = UseProductStore();
 
-  const { selectedProductId, products, navigateTo, cart, user, navigatePages, loadProducts } = useStore();
-  const notify = useNotification();
   const product = products.find(p => p.id === Number(selectedProductId));
   const [imgIndex, setImgIndex] = useState(0);
   const [selectedVariations, setSelectedVariations] = useState<Record<string, string>>({});

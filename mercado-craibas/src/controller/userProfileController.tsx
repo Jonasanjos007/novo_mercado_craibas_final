@@ -3,6 +3,8 @@ import { useStore } from "../context/store";
 import { Address } from "../models/Address";
 import { useNotification } from "../utils/NotificationCard";
 import { AddressService } from "../service/AddressService";
+import { UseAddressStore } from "../store/UseAddressStore";
+import { UseUserStore } from "../store/UseUserStore";
 
 type ProfileControllerReturn = {
     result: {
@@ -14,6 +16,7 @@ type ProfileControllerReturn = {
         IsEditeAddres: boolean;
         openDelete: boolean;
         openAlert: boolean;
+        NameColorGlobal: string;
     };
     action: {
         SubmitAddres: (FormAddres: Address) => Promise<boolean>;
@@ -24,12 +27,14 @@ type ProfileControllerReturn = {
         UpdateAddress: (FormAddres: Address) => Promise<boolean>;
         DeleteAddres: (Address: Address) => Promise<boolean>;
         setOpenAlert: React.Dispatch<React.SetStateAction<boolean>>;
-
+        setNameColorGlobal: React.Dispatch<React.SetStateAction<string>>;
+        SaveCustomizeGlobal: (NameColorGlobal: string) => Promise<void>;
     }
 } | null;
 
 export const userProfileController = (): ProfileControllerReturn => {
-    const { saveAddress, user, updateAddress, removerAddress } = useStore();
+    const { user, SaveColorGlobal } = UseUserStore();
+    const { saveAddress, updateAddress, removerAddress } = UseAddressStore();
     const notify = useNotification();
     const [LoadingProfile, setLoadingProfile] = useState(false);
     const [LoadingMessage, setLoadingMessage] = useState("");
@@ -38,6 +43,7 @@ export const userProfileController = (): ProfileControllerReturn => {
     const [IsEditeAddres, setIsEditeAddres] = useState(false);
     const [openDelete, setOpenDelete] = useState(false);
     const [openAlert, setOpenAlert] = useState(false);
+    const [NameColorGlobal, setNameColorGlobal] = useState("");
 
 
     const [addrForm, setAddrForm] = useState<Address>(
@@ -185,7 +191,28 @@ export const userProfileController = (): ProfileControllerReturn => {
             });
         }
     }
+    const SaveCustomizeGlobal = async (NameColorGlobal: string): Promise<void> => {
+        try {
+            setLoadingProfile(true);
+            setLoadingMessage("Salvando Cor Global");
+            setLoadingTitleMessage("Salvando...");
+            if (!NameColorGlobal.trim() || !NameColorGlobal.trim()) {
+                notify.error("Escolha uma cor!", "error");
+            }
+            const result = await SaveColorGlobal(NameColorGlobal, user?.id || 0)
+            if (!result.success) {
+                notify.error("Error", result.error || "Cor não salva Entre em coontato com Suporte!");
+            } else {
+                notify.success("Sucesso", "Cor salva com sucesso!");
+            }
+        } catch (err: any) {
+            console.log("err", err)
+            notify.error(err.data.error || "Erro ao Cor salva", "error");
+        } finally {
+            setLoadingProfile(false);
+        }
 
+    }
     return {
         result: {
             LoadingProfile,
@@ -195,7 +222,8 @@ export const userProfileController = (): ProfileControllerReturn => {
             cardAddendereco,
             IsEditeAddres,
             openDelete,
-            openAlert
+            openAlert,
+            NameColorGlobal
         },
         action: {
             SubmitAddres,
@@ -205,7 +233,9 @@ export const userProfileController = (): ProfileControllerReturn => {
             UpdateAddress,
             setOpenDelete,
             DeleteAddres,
-            setOpenAlert
+            setOpenAlert,
+            SaveCustomizeGlobal,
+            setNameColorGlobal
         }
     }
 }

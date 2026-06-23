@@ -1,5 +1,6 @@
 import { Address } from "./Address";
 import { CartUser } from "./CartUser";
+import { Customize } from "./Customize";
 
 export interface User {
     id: number;
@@ -11,6 +12,7 @@ export interface User {
     CartUser?: CartUser;
     address?: Address[];
     phone?: string;
+    customize?: Customize;
     //bio?: string;
     // vehicle?: string;
     //region?: string;

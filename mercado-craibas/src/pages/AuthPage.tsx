@@ -4,11 +4,12 @@ import { useStore } from '../context/store';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useLoginController } from '../controller/useLoginController';
 import Loading from '../components/Loading';
+import { UseRouteStore } from '../store/UseRouteStore';
 
 export default function AuthPage() {
   const Controller = useLoginController();
   const navigate = useNavigate();
-  const { saveUser, navigateTo } = useStore();
+  const { navigateTo } = UseRouteStore();
   const { modeRegister } = useParams();
   const [mode, setMode] = useState<'login' | 'register'>('login');
   const [showPass, setShowPass] = useState(false);

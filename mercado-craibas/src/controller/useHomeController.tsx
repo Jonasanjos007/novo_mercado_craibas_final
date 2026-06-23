@@ -1,9 +1,12 @@
 import { useEffect, useState } from "react";
 import { useStore } from "../context/store";
 import { useNotification } from "../utils/NotificationCard";
+import { UseUserStore } from "../store/UseUserStore";
+import { UseProductStore } from "../store/UseProductStore";
 
 export const useHomeController = () => {
-    const { loadProducts, user } = useStore();
+    const { loadProducts } = UseProductStore();
+    const { user } = UseUserStore();
     const notify = useNotification();
     const [Loading, SetLoading] = useState(false);
 
