@@ -45,11 +45,10 @@ public class userscontroller : ControllerBase
 
         return result.ToActionResult();
     }
-    [HttpGet("GetAddresByIdUser/{Id_User}")]
-
-    public async Task<IActionResult> GetAddresByIdUser( int Id_User)
+    [HttpGet("GetAddresByIdUser")]
+    public async Task<IActionResult> GetAddresByIdUser()
     {
-
+        var Id_User = User.GetUserId();
         var result = await _service.GetAddressbyIdUserService(Id_User);
 
         return result.ToActionResult();
@@ -71,6 +70,7 @@ public class userscontroller : ControllerBase
     [HttpPost("SaveColorGlobalInsert")]
     public async Task<IActionResult> SaveColorGlobalInsert([FromBody] CustomizeRequest customize)
     {
+
         var result = await _service.SaveColorGlobalInsertService(customize.Global_Site_Color, customize.Id);
 
         return result.ToActionResult();

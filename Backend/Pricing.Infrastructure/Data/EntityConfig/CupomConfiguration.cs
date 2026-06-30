@@ -26,8 +26,6 @@ namespace Mercado.Craibas.Infrastructure.Configurations
             builder.Property(x => x.Discont)
                 .IsRequired();
 
-            builder.Property(x => x.Minimum_Value)
-                .IsRequired();
 
             builder.Property(x => x.Active)
                 .IsRequired();

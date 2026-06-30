@@ -1,5 +1,5 @@
 export const colors = [
-    { value: "brand", class: "bg-brand-500", class_text: "text-brand-400", class_hover: "hover:bg-brand-600", class_group_hover_text: "group-hover:text-brand-600", hex: "#3b82f6" },
+    { value: "brand", class: "bg-brand-500", class_text: "text-brand-400", class_hover: "hover:bg-brand-600", class_group_hover_text: "group-hover:text-brand-600", hex: "#ed6e15" },
     { value: "red", class: "bg-red-500", class_text: "text-red-500", class_hover: "hover:bg-red-600", class_group_hover_text: "group-hover:text-red-600", hex: "#ef4444" },
     { value: "orange", class: "bg-orange-500", class_text: "text-orange-500", class_hover: "hover:bg-orange-600", class_group_hover_text: "group-hover:text-orange-600", hex: "#f97316" },
     { value: "amber", class: "bg-amber-500", class_text: "text-amber-500", class_hover: "hover:bg-amber-600", class_group_hover_text: "group-hover:text-amber-600", hex: "#f59e0b" },

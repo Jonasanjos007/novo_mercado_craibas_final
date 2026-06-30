@@ -6,6 +6,7 @@ import {
 } from 'lucide-react';
 import { User } from "../models/User";
 import { useState } from 'react';
+import { UseUserStore } from '../store/UseUserStore';
 
 const BANNER_URL =
     "https://images.unsplash.com/photo-1557682250-33bd709cbe85?w=800&q=80&fit=crop";
@@ -19,6 +20,7 @@ interface ProfileCardProps {
 
 export default function ProfileCard({ user, userOrders = [], wishlist = [], totalSpent = 0 }: ProfileCardProps) {
     const [showPhoto, setShowPhoto] = useState(false);
+    const { NameColorGlobal, ColorGlobalTema, ColorGlobalText } = UseUserStore();
     const name = user?.name;
     const avatarUrl = user?.avatar;
     const formattedTotal =
@@ -32,10 +34,7 @@ export default function ProfileCard({ user, userOrders = [], wishlist = [], tota
             <div className="h-24 relative overflow-hidden">
                 <img src={BANNER_URL} alt="banner" className="w-full h-full object-cover" />
                 <div className="absolute inset-0 bg-black/20" />
-                <div className="absolute top-3 right-3 flex items-center gap-1.5 bg-black/30 border border-white/25 text-white text-[11px] font-semibold px-2.5 py-1 rounded-full backdrop-blur-sm">
-                    <Crown className="w-3.5 h-3.5 text-amber-300" />
-                    Premium
-                </div>
+
             </div>
 
             {/* Body */}
@@ -71,7 +70,7 @@ export default function ProfileCard({ user, userOrders = [], wishlist = [], tota
                             </div>
                         )}
                         <button
-                            className="absolute -bottom-0.5 -right-0.5 w-[22px] h-[22px] bg-brand-500 rounded-[8px] border-2 border-white flex items-center justify-center"
+                            className={`absolute -bottom-0.5 -right-0.5 w-[22px] h-[22px] ${ColorGlobalTema} rounded-[8px] border-2 border-white flex items-center justify-center`}
                             aria-label="Alterar foto"
                         >
                             <Camera className="w-[11px] h-[11px] text-white" />
@@ -90,26 +89,13 @@ export default function ProfileCard({ user, userOrders = [], wishlist = [], tota
                 {/* Name + verified */}
                 <div className="flex items-center gap-2 mb-1">
                     <span className="text-[18px] font-display font-bold text-surface-900 leading-none">{name}</span>
-                    <div className="w-[18px] h-[18px] rounded-full bg-brand-500 flex items-center justify-center flex-shrink-0">
+                    <div className="w-[18px] h-[18px] rounded-full bg-green-500 flex items-center justify-center flex-shrink-0">
                         <Check className="w-2.5 h-2.5 text-white" strokeWidth={3} />
                     </div>
                 </div>
 
                 {/* Role + since */}
-                <div className="flex items-center gap-2 mb-4">
-                    <span className="bg-amber-50 text-amber-800 text-[11px] font-semibold px-2.5 py-[3px] rounded-full border border-amber-200">
-                        Cliente Premium
-                    </span>
-                    <span className="text-[11px] text-surface-400">
-                        membro desde {user?.insert_Date
-                            ? new Date(user.insert_Date).toLocaleDateString('pt-BR', {
-                                day: '2-digit',
-                                month: 'short',
-                                year: 'numeric',
-                            })
-                            : '-'}
-                    </span>
-                </div>
+
 
                 <div className="h-px bg-surface-100 mb-3.5" />
 
@@ -138,16 +124,28 @@ export default function ProfileCard({ user, userOrders = [], wishlist = [], tota
                     <div className="flex-1">
                         <div className="flex justify-between mb-1.5">
                             <span className="text-[11px] text-surface-400">Nível Gold</span>
-                            <span className="text-[11px] text-brand-500 font-semibold">62% → Diamond</span>
+                            <span className={`text-[11px] ${ColorGlobalText} font-semibold`}>62% → Diamond</span>
                         </div>
                         <div className="h-1.5 bg-surface-100 rounded-full overflow-hidden">
-                            <div className="h-full w-[62%] bg-brand-500 rounded-full" />
+                            <div className={`h-full w-[62%] ${ColorGlobalTema} rounded-full`} />
                         </div>
                     </div>
-                    <div className="bg-brand-500 text-white text-[11px] font-semibold px-3 py-1.5 rounded-[10px] flex items-center gap-1.5 flex-shrink-0">
+                    <div className={`${ColorGlobalTema} text-white text-[11px] font-semibold px-3 py-1.5 rounded-[10px] flex items-center gap-1.5 flex-shrink-0`}>
                         <Star className="w-3 h-3" />
                         Gold
                     </div>
+
+                </div>
+                <div className="flex items-center gap-2 mt-4 ">
+                    <span className="text-[11px] text-surface-400">
+                        membro desde {user?.insert_Date
+                            ? new Date(user.insert_Date).toLocaleDateString('pt-BR', {
+                                day: '2-digit',
+                                month: 'short',
+                                year: 'numeric',
+                            })
+                            : '-'}
+                    </span>
                 </div>
             </div>
         </div>

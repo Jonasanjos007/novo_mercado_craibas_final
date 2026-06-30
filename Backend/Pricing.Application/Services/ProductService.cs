@@ -109,11 +109,13 @@ namespace Mercado.Craibas.Application.Services
             }
             return Result<List<ProductResponse>>.Success(productList);
         }
-        public async Task<Result<bool>> PostCartItensSave(CartItensRequest CartProduto)
+        public async Task<Result<bool>> PostCartItensSave(CartItensRequest CartProduto, int userid)
         {
+
+            var Cart = await  _unitOfWork.GetClassById<Cart>(CartProduto.User.Id, "Id_User_Customer");
             var Cart_Itens = new Cart_Item
             {
-                Id_Cart = CartProduto.User.Cart_User.Id,
+                Id_Cart = Cart.Id,
                 Quantity = CartProduto.Quantity,
                 Id_Product = CartProduto.Product.Id,
                 Id_Variante = CartProduto.SelectedVariation.Id,

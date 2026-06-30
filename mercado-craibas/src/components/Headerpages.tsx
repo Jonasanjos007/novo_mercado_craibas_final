@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { useStore } from '../context/store';
 import { useState } from 'react';
 import { UseUserStore } from '../store/UseUserStore';
+import { getColorConfig } from '../types/Colors';
 
 interface CheckoutHeaderProps {
     title?: string;
@@ -18,10 +19,10 @@ export default function Headerpages({
     onBack,
     showSecure = true,
 }: CheckoutHeaderProps) {
-    const { user, logout, ColorGlobalTema } = UseUserStore();
-    console.log("ColorGlobalTema", ColorGlobalTema)
+    const { user, logout, ColorGlobalTema, NameColorGlobal, ColorGlobalHoverText } = UseUserStore();
     const navigate = useNavigate();
     const [userMenuOpen, setUserMenuOpen] = useState(false);
+    const colorConfig = getColorConfig(NameColorGlobal);
 
     const handleBack = () => {
         if (onBack) onBack();
@@ -50,12 +51,11 @@ export default function Headerpages({
 
                 {/* Centro: logo + título */}
                 <button onClick={() => navigate('/')} className="flex items-center gap-2 group shrink-0">
-                    <div
-                        className={`w-7 h-7 rounded-lg bg-gradient-to-br from-brand-400 ${ColorGlobalTema} flex items-center justify-center shadow-brand`}
-                    >
+                    <div className={`w-9 h-9 rounded-xl ${ColorGlobalTema} flex items-center justify-center `} style={{ boxShadow: `0 4px 12px  ${colorConfig.hex}` }}>
+                        <span className="text-white font-display font-bold text-sm">MC</span>
                     </div>
                     <div className="flex items-center gap-1.5">
-                        <span className="font-display font-bold text-white text-sm group-hover:text-brand-400 transition-colors leading-none">
+                        <span className={`font-display font-bold text-white text-sm ${ColorGlobalHoverText} transition-colors leading-none`}>
                             Mercado Craibas
                         </span>
                         {title && (
@@ -72,7 +72,7 @@ export default function Headerpages({
                     {user ? (
                         <div className="relative">
                             <button onClick={() => setUserMenuOpen(!userMenuOpen)} className="flex items-center gap-2 px-3 py-2 rounded-xl text-surface-300 hover:text-white hover:bg-surface-800 transition-all">
-                                <div className="w-7 h-7 rounded-full bg-gradient-to-br from-brand-400 to-brand-600 flex items-center justify-center"><span className="text-white text-xs font-bold">{user.name[0]}</span></div>
+                                <div className={`w-7 h-7 rounded-full bg-gradient-to-br ${ColorGlobalTema} flex items-center justify-center`}><span className="text-white text-xs font-bold">{user.name[0]}</span></div>
                                 <span className="hidden md:block text-sm font-body max-w-[80px] truncate">{user.name.split(' ')[0]}</span>
                                 <ChevronDown className="w-3 h-3 hidden md:block" />
                             </button>

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import {
   User, Mail, Phone, MapPin, Edit3, Check, ArrowLeft, ShoppingBag,
   Heart, Star, Bell, Shield, CreditCard, Truck, Package, Globe,
@@ -10,6 +10,8 @@ import {
   CheckCircle,
   CheckCircle2,
   Trash2,
+  X,
+  CheckIcon,
 
 } from 'lucide-react';
 import { useStore } from '../context/store';
@@ -25,7 +27,8 @@ import AlertPopup from '../components/AlertPopup';
 import { UseUserStore } from '../store/UseUserStore';
 import { UseAddressStore } from '../store/UseAddressStore';
 import { UseRouteStore } from '../store/UseRouteStore';
-import { colors } from '../types/Colors';
+import { colors, getColorConfig } from '../types/Colors';
+import Headerpages from '../components/Headerpages';
 type ProfileTab = 'overview' | 'orders' | 'wishlist' | 'addresses' | 'security' | 'preferences' | 'settings';
 
 
@@ -37,18 +40,18 @@ export default function ProfilePage() {
   const { navigateTo } = UseRouteStore();
   // const address = UseAddressStore((state) => state.address);
   const { address } = UseAddressStore();
-  const { updateUser, user, logout } = UseUserStore();
+  const { updateUser, user, logout, NameColorGlobal, ColorGlobalTema, ColorGlobalHover, ColorGlobalText, ColorGlobalHoverText } = UseUserStore();
   const [tab, setTab] = useState<ProfileTab>('overview');
   const [editing, setEditing] = useState(false);
   const [showPhoto, setShowPhoto] = useState(false);
   const notify = useNotification();
+  const formRef = useRef<HTMLDivElement>(null);
   const [settings, setSettings] = useState({
     notifications: true,
     darkMode: false,
     newsletter: true,
     primaryColor: "#3b82f6",
   });
-  console.log(user);
   const [form, setForm] = useState({
     name: user?.name || '',
     email: user?.email || '',
@@ -79,7 +82,7 @@ export default function ProfilePage() {
   const savePrefs = () => updateUser({ preferences: { ...prefs, language: 'pt-BR' } });
 
   const navTabs: { id: ProfileTab; label: string; icon: React.ReactNode }[] = [
-    { id: 'overview', label: 'Visão Geral', icon: <User className="w-4 h-4" /> },
+    { id: 'overview', label: 'Meus Dados', icon: <User className="w-4 h-4" /> },
     { id: 'orders', label: 'Minhas compras', icon: <ShoppingBag className="w-4 h-4" /> },
     { id: 'wishlist', label: 'Favoritos', icon: <Heart className="w-4 h-4" /> },
     { id: 'addresses', label: 'Endereços', icon: <MapPin className="w-4 h-4" /> },
@@ -90,12 +93,33 @@ export default function ProfilePage() {
   const fields = [
     { label: "Rua / Avenida", key: "road", span: true, placeholder: "Rua das Flores" },
     { label: "Número", key: "number", placeholder: "123" },
+    { label: "Nome Completo", key: "name", placeholder: "João da Silva Souza" },
     { label: "Complemento", key: "supplement", placeholder: "Apto 101" },
     { label: "Bairro", key: "neighborhood", placeholder: "Centro" },
     { label: "Ponto de referência", key: "referencePoint", placeholder: "Próximo à padaria" },
     { label: "Cidade", key: "city", placeholder: "Campinas" },
     { label: "Estado", key: "state", placeholder: "SP" },
+
   ];
+
+  const formatPhone = (value: string) => {
+    const numbers = value.replace(/\D/g, "");
+
+    if (numbers.length <= 2) {
+      return numbers ? `(${numbers}` : "";
+    }
+
+    if (numbers.length <= 7) {
+      return `(${numbers.slice(0, 2)}) ${numbers.slice(2)}`;
+    }
+
+    if (numbers.length <= 11) {
+      return `(${numbers.slice(0, 2)}) ${numbers.slice(2, 7)}-${numbers.slice(7)}`;
+    }
+
+    // Depois de 11 números continua mostrando o restante
+    return `(${numbers.slice(0, 2)}) ${numbers.slice(2, 7)}-${numbers.slice(7)}`;
+  };
   // const colors = [
   //   { value: "brand", class: "bg-brand-500", class_text: "text-brand-400", class_hover: "hover:bg-brand-600" },
   //   { value: "red", class: "bg-red-500", class_text: "text-red-500", class_hover: "hover:bg-red-600" },
@@ -149,6 +173,7 @@ export default function ProfilePage() {
   };
   const currentColor =
     colorMap[settings.primaryColor as keyof typeof colorMap] || "#6366f1";
+  const colorConfig = getColorConfig(NameColorGlobal);
 
   useEffect(() => {
     if (!user) navigate('/login');
@@ -157,18 +182,7 @@ export default function ProfilePage() {
   return (
     <div className="min-h-screen bg-[#f5f5f7]">
       {/* Header */}
-      <div className="bg-white border-b border-surface-100">
-        <div className="max-w-6xl mx-auto px-4 py-4 flex items-center gap-3">
-          <button onClick={() => navigateTo('home')} className="p-2 rounded-xl text-surface-400 hover:text-surface-700 hover:bg-surface-100 transition-all">
-            <ArrowLeft className="w-5 h-5" />
-          </button>
-          <h1 className="font-display font-bold text-surface-900 text-lg">Minha Conta</h1>
-          <button onClick={() => { logout(); navigateTo('home'); }} className="ml-auto flex items-center gap-2 px-3 py-2 rounded-xl text-red-400 hover:text-red-500 hover:bg-red-50 text-sm font-medium transition-all">
-            <LogOut className="w-4 h-4" /> Sair
-          </button>
-        </div>
-      </div>
-
+      <Headerpages title="Meu Perfil" showSecure={false} />
       <div className="max-w-6xl mx-auto px-4 py-6">
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
 
@@ -189,7 +203,7 @@ export default function ProfilePage() {
                   key={t.id}
                   onClick={() => setTab(t.id)}
                   className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all ${tab === t.id
-                    ? 'bg-brand-500 text-white'
+                    ? `${ColorGlobalTema} text-white`
                     : 'text-surface-500 hover:text-surface-800 hover:bg-surface-50'
                     }`}
                 >
@@ -261,7 +275,7 @@ export default function ProfilePage() {
                     <h2 className="font-display font-bold text-surface-900 text-lg">Informações Pessoais</h2>
                     <button
                       onClick={() => editing ? saveProfile() : setEditing(true)}
-                      className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold transition-all bg-brand-500 hover:bg-brand-600 text-white"
+                      className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold transition-all ${ColorGlobalTema} hover:bg-brand-600 text-white`}
                     >
                       {editing ? <><Check className="w-4 h-4" /> Salvar</> : <><Edit3 className="w-4 h-4" /> Editar</>}
                     </button>
@@ -450,31 +464,67 @@ export default function ProfilePage() {
                 <div className="bg-white rounded-2xl border border-surface-100 shadow-[0_1px_4px_rgba(0,0,0,0.05)]">
 
                   {/* Cabeçalho */}
-                  <div className="flex items-center justify-between gap-4 px-6 py-5 flex-wrap">
-                    <div className="flex items-center gap-3">
-                      <div className="w-9 h-9 rounded-xl bg-brand-50 flex items-center justify-center shrink-0">
-                        <MapPin className="w-4 h-4 text-brand-500" />
+                  <div className="px-6 py-5">
+
+                    {/* Linha superior */}
+                    <div className="flex items-center justify-between gap-4">
+
+                      <div className="flex items-center gap-3">
+                        <div className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0">
+                          <MapPin className={`w-4 h-4 ${ColorGlobalText}`} />
+                        </div>
+
+                        <span className="font-semibold text-surface-900 text-base sm:text-lg">
+                          Meus endereços
+                        </span>
                       </div>
-                      <span className="font-semibold text-surface-900 text-base">Meus endereços</span>
-                      <span className="text-xs font-medium text-surface-400 bg-surface-50 border border-surface-100 px-2 py-0.5 rounded-full">
-                        {address?.length || 0} {address?.length === 1 ? "endereço" : "endereços"}
+
+                      <button
+                        onClick={() => {
+                          Controller?.action.setAddrForm({
+                            road: "",
+                            number: 0,
+                            supplement: "",
+                            neighborhood: "",
+                            city: "",
+                            state: "",
+                            referencePoint: "",
+                            standard: false,
+                            phone: "",
+                            name: "",
+                          });
+
+                          Controller?.action.setIsEditeAddres(false);
+                          Controller?.action.setcardAddendereco(true);
+
+                          setTimeout(() => {
+                            formRef.current?.scrollIntoView({
+                              behavior: "smooth",
+                              block: "start",
+                            });
+                          }, 100);
+                        }}
+                        className={`inline-flex items-center gap-2 px-3 sm:px-4 py-2.5 rounded-xl ${ColorGlobalTema} ${ColorGlobalHover} text-white text-sm font-semibold transition-colors`}
+                      >
+                        <Plus className="w-4 h-4" />
+
+                        {/* Mobile */}
+                        <span className="sm:hidden">Novo</span>
+
+                        {/* Desktop */}
+                        <span className="hidden sm:inline">Novo endereço</span>
+                      </button>
+
+                    </div>
+
+                    {/* Quantidade */}
+                    <div className="ml-12">
+                      <span className="text-sm text-surface-500">
+                        {address?.length || 0}{" "}
+                        {address?.length === 1 ? "endereço cadastrado" : "endereços cadastrados"}
                       </span>
                     </div>
 
-                    <button
-                      onClick={() => {
-                        Controller?.action.setAddrForm({
-                          road: "", number: 0, supplement: "", neighborhood: "",
-                          city: "", state: "", referencePoint: "", standard: false,
-                        });
-                        Controller?.action.setIsEditeAddres(false);
-                        Controller?.action.setcardAddendereco(true);
-                      }}
-                      className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-brand-500 hover:bg-brand-600 text-white text-sm font-semibold transition-colors"
-                    >
-                      <Plus className="w-4 h-4" />
-                      Novo endereço
-                    </button>
                   </div>
 
                   {/* Lista de endereços */}
@@ -492,92 +542,126 @@ export default function ProfilePage() {
                     ) : (
                       address.map((item, index) => (
                         <div
-                          key={index}
-                          className={`
-                  relative rounded-xl border overflow-hidden bg-white
-                  transition-shadow duration-200
-                  hover:shadow-[0_4px_16px_rgba(0,0,0,0.06)]
-                  ${item.standard
-                              ? "border-brand-200"
-                              : "border-surface-100"
-                            }
-                `}
+                          key={item.id ?? index}
+                          className="bg-white border-b border-surface-200 px-5 py-5 hover:bg-surface-50 transition-colors"
                         >
-                          {/* Barra topo — só no padrão */}
-                          {item.standard && (
-                            <div className="h-[2px] w-full bg-brand-400 opacity-60" />
-                          )}
-
-                          <div className="flex items-start gap-4 p-4">
+                          {/* Cabeçalho */}
+                          <div className="flex flex-col sm:flex-row gap-4">
 
                             {/* Ícone */}
-                            <div className="w-9 h-9 rounded-lg bg-brand-50 flex items-center justify-center shrink-0 mt-0.5">
-                              <MapPin className="w-4 h-4 text-brand-400" />
+                            <div
+                              className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0"
+                              style={{ background: `${colorConfig.hex}12` }}
+                            >
+                              <MapPin
+                                className="w-5 h-5"
+                                style={{ color: colorConfig.hex }}
+                              />
                             </div>
 
-                            {/* Dados */}
-                            <div className="flex-1 min-w-0">
-                              <div className="flex flex-wrap items-center gap-2 mb-1.5">
-                                <span className="text-[11px] font-semibold text-surface-400 tracking-widest uppercase">
-                                  Endereço #{index + 1}
+                            {/* Conteúdo */}
+                            <div className="flex-1">
+
+                              {/* Nome + Telefone */}
+                              {/* Nome + Telefone */}
+                              <div className="flex items-center gap-1 sm:gap-2 overflow-hidden">
+
+                                <h3 className="text-sm sm:text-lg font-semibold text-surface-900 truncate">
+                                  {item.name ?? "Jonas José Dos Anjos"}
+                                </h3>
+
+                                <span className="text-surface-300 flex-shrink-0">|</span>
+
+                                <span className="text-xs sm:text-base text-surface-600 flex-shrink-0">
+                                  {item.phone ?? "(82) 99999-9999"}
                                 </span>
-                                {item.standard && (
-                                  <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-brand-700 bg-brand-50 border border-brand-100 px-2 py-0.5 rounded-full">
-                                    <CheckCircle2 className="w-3 h-3" />
+
+                              </div>
+
+                              {/* Rua */}
+                              <p className="text-surface-700 mt-2">
+                                {item.road}, {item.number}
+                                {item.supplement && `, ${item.supplement}`}
+                                {item.neighborhood && `, ${item.neighborhood}`}
+                              </p>
+
+                              {/* Cidade */}
+                              <p className="text-surface-500 mt-1">
+                                {item.city}, {item.state}
+                              </p>
+
+                              {/* Referência */}
+                              {item.referencePoint && (
+                                <p className="text-surface-400 text-sm mt-1">
+                                  {item.referencePoint}
+                                </p>
+                              )}
+
+                              {/* Badge */}
+                              <div className="mt-4">
+                                {item.standard ? (
+                                  <span
+                                    className="inline-flex items-center gap-1 px-3 py-1 rounded border text-xs font-semibold"
+                                    style={{
+                                      color: colorConfig.hex,
+                                      borderColor: `${colorConfig.hex}55`,
+                                      background: `${colorConfig.hex}08`,
+                                    }}
+                                  >
+                                    <CheckCircle2
+                                      className="w-3 h-3"
+                                      fill={colorConfig.hex}
+                                    />
                                     Padrão
+                                  </span>
+                                ) : (
+                                  <span className="inline-flex items-center px-3 py-1 rounded border border-surface-300 text-surface-500 text-xs">
+                                    Endereço de entrega
                                   </span>
                                 )}
                               </div>
 
-                              <p className="text-[14px] font-semibold text-surface-900 truncate leading-snug">
-                                {item.road}, {item.number}
-                              </p>
-
-                              <p className="text-[12px] text-surface-500 mt-0.5 truncate">
-                                {item.neighborhood}
-                                {item.referencePoint && (
-                                  <span className="text-surface-400"> · {item.referencePoint}</span>
-                                )}
-                              </p>
-
-                              {item.supplement && (
-                                <p className="text-[11px] text-surface-400 mt-0.5">
-                                  Complemento: {item.supplement}
-                                </p>
-                              )}
-
-                              <p className="text-[11px] text-surface-400 mt-1.5 font-medium">
-                                {item.city} · {item.state}
-                              </p>
-                            </div>
-
-                            {/* Ações */}
-                            <div className="flex flex-col gap-1.5 shrink-0">
-                              <button
-                                onClick={() => {
-                                  Controller?.action.setAddrForm(item);
-                                  Controller?.action.setcardAddendereco(true);
-                                  Controller?.action.setIsEditeAddres(true);
-                                }}
-                                className="inline-flex items-center gap-1.5 text-[12px] font-medium text-surface-600 bg-surface-50 hover:bg-surface-100 border border-surface-200 px-3 py-1.5 rounded-lg transition-colors"
-                              >
-                                <Pencil className="w-3.5 h-3.5 text-surface-400" />
-                                Editar
-                              </button>
-
-                              <button
-                                onClick={() => {
-                                  Controller?.action.setAddrForm(item);
-                                  Controller?.action.setOpenDelete(true);
-                                }}
-                                className="inline-flex items-center gap-1.5 text-[12px] font-medium text-red-500 bg-red-50 hover:bg-red-100 border border-red-100 px-3 py-1.5 rounded-lg transition-colors"
-                              >
-                                <Trash2 className="w-3.5 h-3.5 text-red-400" />
-                                Remover
-                              </button>
                             </div>
 
                           </div>
+
+                          {/* Botões */}
+                          <div className="mt-5 flex flex-wrap gap-2">
+
+
+                            <button
+                              onClick={() => {
+                                Controller?.action.setAddrForm(item);
+                                Controller?.action.setcardAddendereco(true);
+                                Controller?.action.setIsEditeAddres(true);
+
+                                setTimeout(() => {
+                                  formRef.current?.scrollIntoView({
+                                    behavior: "smooth",
+                                    block: "start",
+                                  });
+                                }, 100);
+                              }}
+
+                              className="flex-1 min-w-[110px] flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl border border-surface-200 bg-surface-50 hover:bg-surface-100 text-surface-700 transition-colors"
+                            >
+                              <Pencil className="w-4 h-4" />
+                              Editar
+                            </button>
+
+                            <button
+                              onClick={() => {
+                                Controller?.action.setAddrForm(item);
+                                Controller?.action.setOpenDelete(true);
+                              }}
+                              className="flex-1 min-w-[110px] flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl border border-red-200 bg-red-50 hover:bg-red-100 text-red-600 transition-colors"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                              Excluir
+                            </button>
+
+                          </div>
+
                         </div>
                       ))
                     )}
@@ -586,117 +670,154 @@ export default function ProfilePage() {
                   {/* ── Formulário inline ── */}
                   {Controller?.result.cardAddendereco && (
                     <>
-                      <div className="border-t border-surface-100 mx-6" />
+                      <div ref={formRef}>
+                        <div className="border-t border-surface-100 mx-6" />
 
-                      <div className="px-6 py-5">
-                        <p className="flex items-center gap-2 text-sm font-semibold text-surface-800 mb-5">
-                          <div className="relative w-4 h-4 shrink-0">
-                            <MapPin className="w-4 h-4 text-brand-500" />
+                        <div className="px-6 py-5">
+                          <div className="flex items-center justify-between mb-5">
+
+                            <div className="flex items-center gap-2">
+                              <div className="relative w-4 h-4 shrink-0">
+                                <MapPin className={`w-4 h-4 ${ColorGlobalText}`} />
+                              </div>
+
+                              <p className="text-sm font-semibold text-surface-800">
+                                {Controller.result.IsEditeAddres
+                                  ? "Editar endereço"
+                                  : "Novo endereço"}
+                              </p>
+                            </div>
+
+                            <button
+                              onClick={() => Controller.action.setcardAddendereco(false)}
+                              className="p-1.5 rounded-lg text-surface-400 hover:bg-surface-100 hover:text-surface-600 transition-all"
+                            >
+                              <X className="w-4 h-4" />
+                            </button>
+
                           </div>
-                          {Controller.result.IsEditeAddres ? "Editar endereço" : "Novo endereço"}
-                        </p>
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
 
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-
-                          {/* Rua — span full */}
-                          <div className="sm:col-span-2">
-                            <label className="block text-[11px] font-semibold text-surface-400 uppercase tracking-wider mb-1.5">
-                              Rua / Avenida
-                            </label>
-                            <input
-                              value={Controller?.result.addrForm.road || ""}
-                              onChange={e => Controller?.action.setAddrForm(p => ({ ...p, road: e.target.value }))}
-                              placeholder="Rua das Flores"
-                              className="w-full px-3.5 py-2.5 text-sm border border-surface-200 rounded-xl bg-surface-50 focus:bg-white focus:border-brand-400 focus:outline-none transition-colors"
-                            />
-                          </div>
-
-                          {fields.filter(f => f.key !== "road").map(f => (
-                            <div key={f.key}>
+                            {/* Rua — span full */}
+                            <div className="sm:col-span-2">
                               <label className="block text-[11px] font-semibold text-surface-400 uppercase tracking-wider mb-1.5">
-                                {f.label}
+                                Rua / Avenida
                               </label>
                               <input
-                                value={(Controller?.result.addrForm as any)[f.key]}
-                                onChange={e => Controller?.action.setAddrForm(p => ({ ...p, [f.key]: e.target.value }))}
-                                placeholder={f.placeholder}
+                                value={Controller?.result.addrForm.road || ""}
+                                onChange={e => Controller?.action.setAddrForm(p => ({ ...p, road: e.target.value }))}
+                                placeholder="Rua das Flores"
                                 className="w-full px-3.5 py-2.5 text-sm border border-surface-200 rounded-xl bg-surface-50 focus:bg-white focus:border-brand-400 focus:outline-none transition-colors"
                               />
                             </div>
-                          ))}
-
-                          {/* Toggle endereço padrão */}
-                          <div className="sm:col-span-2 flex items-center justify-between gap-4 py-1">
                             <div>
-                              <p className="text-sm font-medium text-surface-700">Endereço padrão</p>
-                              <p className="text-xs text-surface-400 mt-0.5">Usar automaticamente nos pedidos</p>
+                              <label className="block text-[11px] font-semibold text-surface-400 uppercase tracking-wider mb-1.5">
+                                Telefone
+                              </label>
+
+                              <input
+                                value={formatPhone(Controller?.result.addrForm.phone ?? "")}
+                                required
+                                onChange={(e) =>
+                                  Controller?.action.setAddrForm(p => ({
+                                    ...p,
+                                    phone: e.target.value.replace(/\D/g, "")
+                                  }))
+                                }
+                                placeholder="(99) 99999-9999 "
+                                maxLength={17}
+                                className="w-full px-3.5 py-2.5 text-sm border border-surface-200 rounded-xl bg-surface-50 focus:bg-white focus:border-brand-400 focus:outline-none transition-colors"
+                              />
                             </div>
+
+                            {fields.filter(f => f.key !== "road").map(f => (
+                              <div key={f.key}>
+                                <label className="block text-[11px] font-semibold text-surface-400 uppercase tracking-wider mb-1.5">
+                                  {f.label}
+                                </label>
+                                <input
+                                  value={(Controller?.result.addrForm as any)[f.key]}
+                                  onChange={e => Controller?.action.setAddrForm(p => ({ ...p, [f.key]: e.target.value }))}
+                                  placeholder={f.placeholder}
+                                  className="w-full px-3.5 py-2.5 text-sm border border-surface-200 rounded-xl bg-surface-50 focus:bg-white focus:border-brand-400 focus:outline-none transition-colors"
+                                />
+                              </div>
+                            ))}
+
+                            {/* Toggle endereço padrão */}
+                            <div className="sm:col-span-2 flex items-center justify-between gap-4 py-1">
+                              <div>
+                                <p className="text-sm font-medium text-surface-700">Endereço padrão</p>
+                                <p className="text-xs text-surface-400 mt-0.5">Usar automaticamente nos pedidos</p>
+                              </div>
+                              <button
+                                type="button"
+                                onClick={() => Controller?.action.setAddrForm(p => ({ ...p, standard: !p.standard }))}
+                                className={`relative w-10 h-[22px] rounded-full transition-colors duration-200 ${Controller?.result.addrForm.standard ? `${ColorGlobalTema} ${ColorGlobalHover}` : "bg-surface-200"
+                                  }`}
+                                aria-label="Definir como padrão"
+                              >
+                                <span
+                                  className={`absolute top-[3px] left-[3px] w-4 h-4 rounded-full bg-white shadow-sm transition-transform duration-200 ${Controller?.result.addrForm.standard ? "translate-x-[18px]" : ""
+                                    }`}
+                                />
+                              </button>
+                            </div>
+                          </div>
+
+                          {/* Ações do formulário */}
+                          <div className="flex gap-2 mt-5">
+                            {!Controller?.result.IsEditeAddres ? (
+                              <button
+                                onClick={async () => {
+                                  const result = await Controller?.action.SubmitAddres(Controller?.result.addrForm);
+                                  if (result) {
+                                    Controller?.action.setAddrForm({
+                                      road: "", number: 0, supplement: "", neighborhood: "",
+                                      city: "", state: "", referencePoint: "", standard: false, phone: '', name: ''
+                                    });
+                                    Controller?.action.setcardAddendereco(false);
+                                  }
+                                }}
+                                className={`inline-flex items-center gap-2 px-5 py-2.5 ${ColorGlobalTema} ${ColorGlobalHover} text-white text-sm font-semibold rounded-xl transition-colors`}
+                              >
+                                <Check className="w-4 h-4" />
+                                Salvar endereço
+                              </button>
+                            ) : (
+                              <button
+                                onClick={async () => {
+                                  const result = await Controller.action.UpdateAddress(Controller?.result.addrForm);
+                                  if (result) {
+                                    Controller.action.setcardAddendereco(false);
+                                    Controller.action.setIsEditeAddres(false);
+                                  }
+                                }}
+                                className={`inline-flex items-center gap-2 px-5 py-2.5 ${ColorGlobalTema} ${ColorGlobalHover} text-white text-sm font-semibold rounded-xl transition-colors`}
+                              >
+                                <Check className="w-4 h-4" />
+                                Editar alterações
+                              </button>
+                            )}
+
                             <button
                               type="button"
-                              onClick={() => Controller?.action.setAddrForm(p => ({ ...p, standard: !p.standard }))}
-                              className={`relative w-10 h-[22px] rounded-full transition-colors duration-200 ${Controller?.result.addrForm.standard ? "bg-brand-500" : "bg-surface-200"
-                                }`}
-                              aria-label="Definir como padrão"
+                              onClick={() => {
+                                Controller?.action.setAddrForm({
+                                  road: "", number: 0, supplement: "", neighborhood: "",
+                                  city: "", state: "", referencePoint: "", standard: false, phone: '', name: ''
+                                });
+                                Controller.action.setcardAddendereco(false);
+                                Controller.action.setIsEditeAddres(false);
+                              }}
+                              className="px-5 py-2.5 bg-surface-100 hover:bg-surface-200 text-surface-600 text-sm font-semibold rounded-xl transition-colors"
                             >
-                              <span
-                                className={`absolute top-[3px] left-[3px] w-4 h-4 rounded-full bg-white shadow-sm transition-transform duration-200 ${Controller?.result.addrForm.standard ? "translate-x-[18px]" : ""
-                                  }`}
-                              />
+                              Cancelar
                             </button>
                           </div>
                         </div>
-
-                        {/* Ações do formulário */}
-                        <div className="flex gap-2 mt-5">
-                          {!Controller?.result.IsEditeAddres ? (
-                            <button
-                              onClick={async () => {
-                                const result = await Controller?.action.SubmitAddres(Controller?.result.addrForm);
-                                if (result) {
-                                  Controller?.action.setAddrForm({
-                                    road: "", number: 0, supplement: "", neighborhood: "",
-                                    city: "", state: "", referencePoint: "", standard: false,
-                                  });
-                                  Controller?.action.setcardAddendereco(false);
-                                }
-                              }}
-                              className="inline-flex items-center gap-2 px-5 py-2.5 bg-brand-500 hover:bg-brand-600 text-white text-sm font-semibold rounded-xl transition-colors"
-                            >
-                              <Check className="w-4 h-4" />
-                              Salvar endereço
-                            </button>
-                          ) : (
-                            <button
-                              onClick={async () => {
-                                const result = await Controller.action.UpdateAddress(Controller?.result.addrForm);
-                                if (result) {
-                                  Controller.action.setcardAddendereco(false);
-                                  Controller.action.setIsEditeAddres(false);
-                                }
-                              }}
-                              className="inline-flex items-center gap-2 px-5 py-2.5 bg-brand-500 hover:bg-brand-600 text-white text-sm font-semibold rounded-xl transition-colors"
-                            >
-                              <Check className="w-4 h-4" />
-                              Salvar alterações
-                            </button>
-                          )}
-
-                          <button
-                            type="button"
-                            onClick={() => {
-                              Controller?.action.setAddrForm({
-                                road: "", number: 0, supplement: "", neighborhood: "",
-                                city: "", state: "", referencePoint: "", standard: false,
-                              });
-                              Controller.action.setcardAddendereco(false);
-                              Controller.action.setIsEditeAddres(false);
-                            }}
-                            className="px-5 py-2.5 bg-surface-100 hover:bg-surface-200 text-surface-600 text-sm font-semibold rounded-xl transition-colors"
-                          >
-                            Cancelar
-                          </button>
-                        </div>
                       </div>
+
                     </>
                   )}
 

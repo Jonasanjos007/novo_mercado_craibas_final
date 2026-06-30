@@ -8,6 +8,7 @@ export const ProductsService = {
         try {
             const response = await api.get("/product/list");
             const { success, data, error } = response.data;
+            console.log(data)
             if (!data) {
                 return makeResult(false, [] as Product[], "Produtos não encontrados");
             }
@@ -18,6 +19,7 @@ export const ProductsService = {
         }
     }, PostCartProduct: async (Cart_Itens: CartItensProduct): Promise<Result<CartItensProduct>> => {
         try {
+            console.log("Cart_Itens", Cart_Itens)
             const response = await api.post("/product/postCartSave", Cart_Itens);
             const { success, data, error } = response.data;
 

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Eye, EyeOff, ArrowRight, ShoppingBag, Mail, Lock, User, AlertCircle } from 'lucide-react';
 import { useStore } from '../context/store';
 import { useNavigate, useParams } from 'react-router-dom';
@@ -15,12 +15,11 @@ export default function AuthPage() {
   const [showPass, setShowPass] = useState(false);
   const [error, setError] = useState('');
   const [form, setForm] = useState({ email: '', password: '' });
-
-
-  if (modeRegister === 'register' && mode !== 'register') {
-    setMode('register');
-  }
-
+  useEffect(() => {
+    if (modeRegister === 'register') {
+      setMode('register');
+    }
+  }, [modeRegister]);
 
   const hints = [
     { label: 'Cliente', email: 'joao@email.com', badge: '👤' },
@@ -78,7 +77,7 @@ export default function AuthPage() {
             </div>
           ) : null}
           <form onSubmit={(e) => Controller.action.handleSubmit(e, form, mode)} className="space-y-4">
-            {mode === 'register' || modeRegister === 'register' && (
+            {mode === 'register' && (
               <div>
                 <label className="block text-xs font-display font-semibold text-surface-600 mb-1.5">Nome completo</label>
                 <div className="relative">

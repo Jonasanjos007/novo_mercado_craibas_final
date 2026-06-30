@@ -7,16 +7,20 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { UseRouteStore } from '../store/UseRouteStore';
 import { UseProductStore } from '../store/UseProductStore';
 import { UseUserStore } from '../store/UseUserStore';
+import AlertPopup from '../components/AlertPopup';
+import Loading from '../components/Loading';
+import { useCategoryController } from '../controller/useCategoryController';
 
 type SortOption = 'relevancia' | 'menor-preco' | 'maior-preco' | 'avaliacao' | 'mais-vendidos';
 
 export default function CategoryPage() {
+  const Controller = useCategoryController();
+
   const { products } = UseProductStore();
   const { searchQuery, selectedCategory } = UseRouteStore();
-  const { ColorGlobalTema, ColorGlobalHover, ColorGlobalText, ColorGlobalHoverText } = UseUserStore();
+  const { ColorGlobalTema } = UseUserStore();
 
   const { search } = useParams();
-  console.log("teste", selectedCategory);
   const [sort, setSort] = useState<SortOption>('relevancia');
   const [filterOpen, setFilterOpen] = useState(false);
   const [priceRange, setPriceRange] = useState<[number, number]>([0, 15000]);
@@ -209,6 +213,11 @@ export default function CategoryPage() {
           )}
         </div>
       </div>
+      <Loading
+        loading={Controller?.result?.Loading || false}
+        message={"Carregando..."}
+        subMessage={"Melhores Produtos"}
+      />
     </div>
   );
 }

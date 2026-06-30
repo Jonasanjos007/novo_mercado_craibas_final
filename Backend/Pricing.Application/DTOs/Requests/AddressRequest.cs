@@ -10,6 +10,8 @@ namespace Mercado.Craibas.Application.DTOs.Requests
     {
         public int? Id { get; set; }
         public string Road { get; set; }
+        public string Name { get; set; }
+        public string Phone { get; set; }
         public string City { get; set; }
         public int Number { get; set; }
         public string State { get; set; }

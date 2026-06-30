@@ -44,6 +44,9 @@ namespace Mercado.Craibas.Infrastructure.Migrations
                     b.Property<DateTime>("InsertDate")
                         .HasColumnType("datetime2");
 
+                    b.Property<string>("Name")
+                        .HasColumnType("nvarchar(max)");
+
                     b.Property<string>("Neighborhood")
                         .IsRequired()
                         .HasMaxLength(200)
@@ -51,6 +54,9 @@ namespace Mercado.Craibas.Infrastructure.Migrations
 
                     b.Property<int>("Number")
                         .HasColumnType("int");
+
+                    b.Property<string>("Phone")
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("ReferencePoint")
                         .HasColumnType("nvarchar(max)");
@@ -160,8 +166,15 @@ namespace Mercado.Craibas.Infrastructure.Migrations
                     b.Property<bool>("Active")
                         .HasColumnType("bit");
 
-                    b.Property<int>("Cod_Cupom")
-                        .HasColumnType("int");
+                    b.Property<string>("Cod_Cupom")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Date_Start")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Date_end")
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("Descriotion")
                         .HasMaxLength(500)
@@ -173,7 +186,7 @@ namespace Mercado.Craibas.Infrastructure.Migrations
                     b.Property<DateTime>("InsertDate")
                         .HasColumnType("datetime2");
 
-                    b.Property<double>("Minimum_Value")
+                    b.Property<double?>("Minimum_Value")
                         .HasColumnType("float");
 
                     b.Property<string>("Name_Cupom")
@@ -388,8 +401,14 @@ namespace Mercado.Craibas.Infrastructure.Migrations
                     b.Property<string>("Payment_terms")
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<string>("Status_Pay")
+                        .HasColumnType("nvarchar(max)");
+
                     b.Property<double>("Total_Value_Order")
                         .HasColumnType("float");
+
+                    b.Property<string>("Tracking_Code")
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<DateTime?>("UpdateDate")
                         .HasColumnType("datetime2");

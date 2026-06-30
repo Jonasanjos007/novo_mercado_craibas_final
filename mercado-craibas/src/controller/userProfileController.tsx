@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useStore } from "../context/store";
 import { Address } from "../models/Address";
 import { useNotification } from "../utils/NotificationCard";
@@ -34,6 +34,8 @@ type ProfileControllerReturn = {
 
 export const userProfileController = (): ProfileControllerReturn => {
     const { user, SaveColorGlobal } = UseUserStore();
+    const { LoadAddressUser } = UseAddressStore();
+
     const { saveAddress, updateAddress, removerAddress } = UseAddressStore();
     const notify = useNotification();
     const [LoadingProfile, setLoadingProfile] = useState(false);
@@ -45,7 +47,24 @@ export const userProfileController = (): ProfileControllerReturn => {
     const [openAlert, setOpenAlert] = useState(false);
     const [NameColorGlobal, setNameColorGlobal] = useState("");
 
+    useEffect(() => {
+        const load = async () => {
+            setLoadingProfile(true);
+            setLoadingMessage("");
+            setLoadingTitleMessage("Carreganco...")
+            await GetAddressUser();
+            setLoadingProfile(false);
+        };
 
+        load();
+    }, []);
+
+    const GetAddressUser = async () => {
+        const result = await LoadAddressUser();
+        if (!result?.success) {
+            notify.error(result?.error || "Erro ao carregar Endereços", "error");
+        }
+    };
     const [addrForm, setAddrForm] = useState<Address>(
         {
             road: '',
@@ -56,10 +75,20 @@ export const userProfileController = (): ProfileControllerReturn => {
             state: '',
             referencePoint: '',
             standard: false,
+            phone: "",
+            name: ''
         });
 
 
     const SubmitAddres = async (FormAddres: Address): Promise<boolean> => {
+        if (!FormAddres.phone?.trim()) {
+            notify.error("Telefone é obrigatório!", "error");
+            return false;
+        }
+        if (!FormAddres.name?.trim()) {
+            notify.error("Nome Completo é obrigatório!", "error");
+            return false;
+        }
         if (!FormAddres.road?.trim()) {
             notify.error("Rua / Avenida é obrigatório!", "error");
             return false;
@@ -188,6 +217,8 @@ export const userProfileController = (): ProfileControllerReturn => {
                 state: '',
                 referencePoint: '',
                 standard: false,
+                phone: '',
+                name: ''
             });
         }
     }

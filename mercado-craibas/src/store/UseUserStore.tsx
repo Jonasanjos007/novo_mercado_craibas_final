@@ -47,7 +47,6 @@ export const UseUserStore = create<UserState>()(persist((set, get) => ({
         // };
         const colorConfig = getColorConfig(User.customize?.global_Site_Color);
 
-        console.log("teste funcionou", User);
         set({ user: User });
         set({ NameColorGlobal: User.customize?.global_Site_Color })
         set({ ColorGlobalTema: colorConfig.class });
@@ -55,7 +54,7 @@ export const UseUserStore = create<UserState>()(persist((set, get) => ({
         set({ ColorGlobalHover: colorConfig.class_hover });
         set({ ColorGlobalHoverText: colorConfig.class_group_hover_text });
 
-        UseAddressStore.getState().setAddress(User.address ?? []);
+        // UseAddressStore.getState().setAddress(User.address ?? []);
         return true;
     },
 
@@ -65,6 +64,7 @@ export const UseUserStore = create<UserState>()(persist((set, get) => ({
 
     logout: () => {
         set({ user: null, currentPage: 'home', ColorGlobalTema: " bg-brand-500", ColorGlobalText: "text-brand-400", ColorGlobalHover: "bg-brand-600", ColorGlobalHoverText: "group-hover:text-brand-600" });
+        set({ NameColorGlobal: "brand" })
         UseCartStore.getState().clearCart();
         UseRouteStore.getState().setPages("home");
     },

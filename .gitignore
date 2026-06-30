@@ -1,15 +1,12 @@
+# Node
+node_modules/
+**/node_modules/
+
+# npm
 package-lock.json
-mercado-craibas/package-lock.json
-mercado-craibas/package-lock.json
-mercado-craibas/package-lock.json
-mercado-craibas/node_modules
-mercado-craibas/package-lock.json
-mercado-craibas/node_modules/.vite/deps/_metadata.json
-mercado-craibas/node_modules/.vite/deps/_metadata.json
+
 # Visual Studio
 .vs/
-
-# Build
 bin/
 obj/
 
@@ -22,8 +19,3 @@ obj/
 
 # Cache
 *.cache
-.vs/
-bin/
-obj/
-*.user
-*.suo

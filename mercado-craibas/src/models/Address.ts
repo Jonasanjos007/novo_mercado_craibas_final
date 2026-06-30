@@ -5,6 +5,7 @@ import { User } from "./User";
 export interface Address {
     id?: number;
     road?: string;
+    name: string;
     city: string;
     number?: number;
     state?: string;
@@ -13,4 +14,5 @@ export interface Address {
     referencePoint?: string;
     supplement?: string;
     standard?: boolean;
+    phone: string;
 }

@@ -20,10 +20,10 @@ export const AddressService = {
 
 
     },
-    GetAddresByIdUser: async (Id_User: number): Promise<Result<Address[]>> => {
+    GetAddresByIdUser: async (): Promise<Result<Address[]>> => {
         try {
 
-            const response = await api.get("/users/GetAddresByIdUser/" + Id_User);
+            const response = await api.get("/users/GetAddresByIdUser");
             const { success, data, error } = response.data;
             if (!data) {
                 return makeResult(false, {} as Address[], error);

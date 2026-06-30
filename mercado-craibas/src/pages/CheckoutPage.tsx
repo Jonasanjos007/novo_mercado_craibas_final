@@ -1,53 +1,72 @@
 import { useState } from 'react';
-import { CreditCard, Smartphone, FileText, ChevronRight, Check, MapPin, ShoppingBag, Zap, ArrowLeft, Lock, Pencil } from 'lucide-react';
+import { CreditCard, Smartphone, FileText, ChevronRight, Check, MapPin, ShoppingBag, Zap, ArrowLeft, Lock, Pencil, Ticket, X } from 'lucide-react';
 import { useStore } from '../context/store';
 import { formatPrice } from '../utils';
 import { useNavigate } from 'react-router-dom';
 import { useEffect } from 'react';
 import Headerpages from '../components/Headerpages';
-import { Address } from '../models/Address';
-import { UseUserStore } from '../store/useUserStore';
+import { UseUserStore } from '../store/UseUserStore';
 import { UseAddressStore } from '../store/UseAddressStore';
 import { UseCartStore } from '../store/UseCartStore';
 import { UseRouteStore } from '../store/UseRouteStore';
-
+import { getColorConfig } from '../types/Colors';
+import { toast } from 'react-hot-toast';
+import Loading from '../components/Loading';
+import { useCheckoutController } from '../controller/useCheckoutController';
+import { UseOrderStore } from '../store/UseOrderStore';
+import { Cupom } from '../models/Cupom';
 
 type PaymentMethod = 'pix' | 'credit' | 'boleto';
-type Step = 'Endereço' | 'Forma de pagamento' | 'Checkout' | 'success';
+type Step = 'Endereço' | 'Pagamento' | 'Checkout' | 'success';
 
 export default function CheckoutPage() {
+  const Controller = useCheckoutController();
   const navigate = useNavigate();
   const { placeOrder } = useStore();
   const { setCartOpen } = UseCartStore();
   const { cartTotal } = UseCartStore();
   const { navigateTo } = UseRouteStore();
   const { cart } = UseCartStore();
-  const address = UseAddressStore((state) => state.address);
-  const { user } = UseUserStore();
-
+  const { address } = UseAddressStore();
+  const { Cupons } = UseOrderStore();
+  const { user, ColorGlobalTema, ColorGlobalText, ColorGlobalHoverText, NameColorGlobal } = UseUserStore();
   const [step, setStep] = useState<Step>('Endereço');
   const [payment, setPayment] = useState<PaymentMethod>('pix');
   const [loading, setLoading] = useState(false);
   const [order, setOrder] = useState<any>(null);
-  const [selectedAddress, setSelectedAddress] = useState(0);
-  const [address_select, setaddress_select] = useState<Address | null>(address?.[0] ?? null);
+  const [selectedAddress, setSelectedAddress] = useState(true);
   const [cardData, setCardData] = useState({ number: '', name: '', expiry: '', cvv: '' });
   const [coupon, setCoupon] = useState('');
   const [discount, setDiscount] = useState(0);
-
   const total = cartTotal();
   const shipping = total >= 299 ? 0 : 19.99;
   const paymentDiscount = payment === 'pix' ? total * 0.05 : 0;
   const finalTotal = total + shipping - paymentDiscount - discount;
+  const colorConfig = getColorConfig(NameColorGlobal);
+  const [openCouponModal, setOpenCouponModal] = useState(false);
+  const [selectedCoupon, setSelectedCoupon] = useState<Cupom | null>(null);
+  const [selectedCouponTed, setSelectedCouponTed] = useState<Cupom | null>(null);
 
-  const STEPS = ['Endereço', 'Checkout', 'Forma de pagamento'];
+  const STEPS = ['Endereço', 'Checkout', 'Pagamento'];
   const stepLabels: Record<string, string> = {
     'Endereço': 'Endereço',
     'Checkout': 'Revisão',
-    'Forma de pagamento': 'Pagamento',
+    'Pagamento': 'Pagamento',
+  };
+  const formatPhone = (phone?: string) => {
+    if (!phone) return "";
+
+    const numbers = phone.replace(/\D/g, "");
+
+    if (numbers.length === 11) {
+      return numbers.replace(/(\d{2}c)(\d{5})(\d{4})/, "($1) $2-$3");
+    }
+    if (numbers.length === 10) {
+      return numbers.replace(/(\d{2})(\d{4})(\d{4})/, "($1) $2-$3");
+    }
+    return phone;
   };
   const currentStepIdx = STEPS.indexOf(step);
-  console.log(currentStepIdx)
   const handlePlaceOrder = async () => {
     setLoading(true);
     await new Promise(r => setTimeout(r, 1500));
@@ -58,20 +77,22 @@ export default function CheckoutPage() {
     setLoading(false);
   };
 
-  const applyCoupon = () => {
-    if (coupon.toUpperCase() === 'TECH15') setDiscount(total * 0.15);
-    else if (coupon.toUpperCase() === 'STANLEY10') setDiscount(total * 0.10);
-    else if (coupon.toUpperCase() === 'BEMVINDO20') setDiscount(total * 0.20);
-  };
+  // const applyCoupon = () => {
+
+  //   const Cupom =
+  //       if(coupon.toUpperCase() === 'TECH15') setDiscount(total * 0.15);
+  //   else if (coupon.toUpperCase() === 'STANLEY10') setDiscount(total * 0.10);
+  //   else if (coupon.toUpperCase() === 'BEMVINDO20') setDiscount(total * 0.20);
+  // };
 
   useEffect(() => {
     if (!user) {
       navigate('/login');
     }
-    if (cart.length === 0) {
-      navigate('/');
-      setCartOpen(false);
-    }
+    // if (cart.length === 0) {
+    //   navigate('/');
+    //   setCartOpen(false);
+    // }
   }, [user, navigate, cart]);
 
   if (step === 'success' && order) {
@@ -138,16 +159,28 @@ export default function CheckoutPage() {
           <div className="flex items-center gap-2">
             {STEPS.map((s, i) => (
               <div key={s} className="flex items-center gap-2 flex-1 last:flex-none">
-                <div className={`flex items-center gap-2 ${i <= currentStepIdx ? 'text-brand-600' : 'text-surface-300'}`}>
-                  <div className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-display font-bold transition-all ${i < currentStepIdx ? 'bg-brand-500 text-white' : i === currentStepIdx ? 'bg-brand-500 text-white ring-4 ring-brand-100' : 'bg-surface-200 text-surface-400'}`}>
+                <div className={`flex items-center gap-2 ${i <= currentStepIdx ? `${ColorGlobalText}` : 'text-surface-300'}`}>
+                  <div
+                    className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-display font-bold transition-all duration-300 ${i < currentStepIdx
+                      ? 'bg-green-700 text-white'
+                      : i === currentStepIdx
+                        ? `${ColorGlobalTema} text-white animate-pulse scale-110`
+                        : 'bg-surface-200 text-surface-400'
+                      }`}
+                    style={
+                      i === currentStepIdx
+                        ? { boxShadow: `0 0 0 4px ${colorConfig.hex}66` }
+                        : {}
+                    }
+                  >
                     {i < currentStepIdx ? <Check className="w-3.5 h-3.5" /> : i + 1}
                   </div>
-                  <span className={`text-xs font-body font-medium hidden sm:block ${i === currentStepIdx ? 'text-brand-600' : i < currentStepIdx ? 'text-surface-500' : 'text-surface-300'}`}>
+                  <span className={`text-xs font-body font-medium hidden sm:block ${i === currentStepIdx ? `${ColorGlobalText}` : i < currentStepIdx ? 'text-surface-500' : 'text-surface-300'}`}>
                     {stepLabels[s as keyof typeof stepLabels]}
                   </span>
                 </div>
                 {i < STEPS.length - 1 && (
-                  <div className={`flex-1 h-0.5 rounded-full mx-2 ${i < currentStepIdx ? 'bg-brand-400' : 'bg-surface-200'}`} />
+                  <div className={`flex-1 h-0.5 rounded-full mx-2 ${i < currentStepIdx ? `bg-green-700` : 'bg-surface-200'}`} />
                 )}
               </div>
             ))}
@@ -161,100 +194,174 @@ export default function CheckoutPage() {
           {step === 'Endereço' && (
             <div className="bg-white rounded-3xl p-6 shadow-soft animate-fade-in">
               <div className="flex items-center gap-2 mb-5">
-                <div className="w-8 h-8 rounded-xl bg-brand-50 flex items-center justify-center">
-                  <MapPin className="w-4 h-4 text-brand-500" />
+                <div className={`w-8 h-8 rounded-xl ${ColorGlobalTema.slice(0, -3)}50 flex items-center justify-center`}>
+                  <MapPin className={`w-4 h-4 ${ColorGlobalText}`} />
                 </div>
                 <h2 className="font-display font-bold text-surface-900 text-lg">
                   Escolha a forma de entrega
                 </h2>
               </div>
-              {address?.map((item, index) => (
+              {Controller?.result.AddressStandard ? (
                 <div
-                  key={index}
                   onClick={() => {
-                    setaddress_select(item);
-                    setSelectedAddress(index);
+                    setSelectedAddress(true);
                   }}
-                  className={`cursor-pointer rounded-2xl p-4 mb-3 transition-all border-2 ${selectedAddress === index ? 'border-brand-400 bg-brand-50/30' : 'border-surface-200 hover:border-brand-200'}`}>
+                  className={`cursor-pointer rounded-2xl p-4 mb-3 transition-all border-2 ${selectedAddress
+                    ? `border-${ColorGlobalTema.slice(3)} bg-brand-50/30`
+                    : 'border-surface-200 hover:border-brand-200'
+                    }`}
+                >
                   <div className="flex items-start justify-between gap-3">
                     <div className="flex items-start gap-3">
                       {/* Radio */}
-                      <div className={` mt-0.5 w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0
-                         ${selectedAddress === index ? 'border-brand-500' : 'border-surface-300'} `} >
-                        {selectedAddress === index && (
-                          <div className="w-2.5 h-2.5 rounded-full bg-brand-500" />
+                      <div
+                        className={`mt-0.5 w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0 ${selectedAddress
+                          ? ColorGlobalTema
+                          : 'border-surface-300'
+                          }`}
+                      >
+                        {selectedAddress && (
+                          <div
+                            className={`w-2.5 h-2.5 rounded-full ${ColorGlobalTema}`}
+                          />
                         )}
                       </div>
+
                       <div>
-                        <p className="font-display font-semibold text-surface-900 text-sm">
+                        <p className="font-display font-semibold text-surface-900 text-sm flex items-center gap-2">
                           Enviar para o endereço
+
                         </p>
-                        <p className="font-body text-surface-700 text-sm mt-0.5">
-                          {item.road}, {item.number}
-                          -
-                          {item.neighborhood} - {item.referencePoint}- {item.supplement}
-                        </p>
+
+                        <div className="space-y-1">
+
+                          {/* Nome e telefone */}
+                          <div className="flex flex-wrap items-center gap-2">
+                            <span className="font-semibold text-surface-900">
+                              {Controller?.result.AddressStandard?.name}
+                            </span>
+
+                            {Controller?.result.AddressStandard?.phone && (
+                              <>
+                                <span className="text-surface-300">|</span>
+                                <span className="text-sm text-surface-600">
+                                  {Controller?.result.AddressStandard.phone}
+                                </span>
+                              </>
+                            )}
+                          </div>
+
+                          {/* Endereço */}
+                          <p className="text-sm text-surface-700">
+                            {Controller?.result.AddressStandard?.road}, {Controller?.result.AddressStandard?.number}
+                            {Controller?.result.AddressStandard?.supplement && `, ${Controller?.result.AddressStandard.supplement}`}
+                          </p>
+
+                          {/* Bairro, Cidade e Estado */}
+                          <p className="text-sm text-surface-600">
+                            {Controller?.result.AddressStandard?.neighborhood}
+                            {Controller?.result.AddressStandard?.city && ` • ${Controller?.result.AddressStandard.city}`}
+                            {Controller?.result.AddressStandard?.state && ` - ${Controller?.result.AddressStandard.state}`}
+                          </p>
+
+                          {/* Referência */}
+                          {Controller?.result.AddressStandard?.referencePoint && (
+                            <p className="text-xs text-surface-500">
+                              Referência: {Controller?.result.AddressStandard.referencePoint}
+                            </p>
+                          )}
+
+                        </div>
+
                         <p className="font-body text-surface-500 text-xs mt-0.5">
-                          {item.city}/{item.state}
+                          {Controller?.result.AddressStandard?.city}/{Controller?.result.AddressStandard?.state}
                         </p>
                       </div>
                     </div>
-                    <div className="flex flex-col items-end gap-2 shrink-0">
+
+                    <div className="flex flex-col items-center gap-1 shrink-0">
                       <span className="text-sm font-display font-bold text-green-500">
                         Grátis
                       </span>
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation(); // evita selecionar card ao clicar editar
-                          setSelectedAddress(index);
-                          // setEditingAddress(true);
-                        }}
-                        className="flex items-center gap-1 text-xs font-display font-semibold text-brand-500 hover:text-brand-700 transition-colors">
-                        <Pencil className="w-3 h-3" />
-                        Editar
-                      </button>
+
+                      <span className="px-2 py-0.5 text-[10px] font-bold bg-green-100 text-green-700 rounded-full">
+                        PADRÃO
+                      </span>
                     </div>
                   </div>
                 </div>
-              ))}
-              <button
-                // onClick={() => setEditingAddress(true)}
-                className="text-sm font-display font-semibold text-brand-500 hover:text-brand-700 transition-colors px-1 mb-5"
-              >
-                Alterar ou escolher outro endereço
-              </button>
+              ) : (
+                <div className={`border-2 border-dashed border-surface-300 rounded-2xl p-8 text-center bg-surface-50 ${!Controller?.result.AddressStandard ? `mb-6` : ``} `}>
+                  <div className="w-14 h-14 mx-auto mb-4 rounded-full bg-surface-100 flex items-center justify-center">
+                    <MapPin className={`w-7 h-7 ${ColorGlobalText}`} />
+                  </div>
+
+                  <h3 className="font-display font-bold text-surface-900 text-lg mb-2">
+                    Nenhum endereço cadastrado
+                  </h3>
+
+                  <p className="text-surface-500 text-sm font-body mb-5">
+                    Adicione um endereço para continuar com sua compra.
+                  </p>
+
+                  <button
+                    onClick={() => navigate(`/addressPage/${true}`)}
+                    className={`${ColorGlobalTema} text-white px-5 py-3 rounded-xl font-display font-bold transition-all hover:scale-105`}
+                  >
+                    + Adicionar Endereço
+                  </button>
+                </div>
+              )}
+
+              {Controller?.result.AddressStandard && (
+                <button onClick={() => navigate(`/addressPage/${true}`)}
+                  className={`text-sm font-display font-semibold ${ColorGlobalText} hover:text-green-600 transition-colors px-1 mb-5`}
+                >
+                  Alterar ou escolher outro endereço
+                </button>
+              )}
 
               <button
-                onClick={() => setStep('Checkout')}
-                className="w-full py-3.5 bg-brand-500 hover:bg-brand-600 text-white font-display font-bold rounded-xl transition-all shadow-brand flex items-center justify-center gap-2"
+                disabled={!address}
+                onClick={() => {
+                  if (!Controller?.result.AddressStandard) {
+                    toast.error('Crie ou defina um endereço padrão para prosseguir.');
+                    return;
+                  }
+
+                  setStep('Checkout');
+                }}
+                className={`w-full py-3.5 ${Controller?.result.AddressStandard
+                  ? `${ColorGlobalTema} text-white`
+                  : 'bg-surface-300 text-surface-500 '
+                  } rounded-xl font-display font-bold hover:bg-green-700`}
               >
-                Continuar <ChevronRight className="w-4 h-4" />
+                Continuar
               </button>
             </div>
           )}
           {/* Payment Step */}
-          {step === 'Forma de pagamento' && (
+          {step === 'Pagamento' && (
             <div className="bg-white rounded-3xl p-6 shadow-soft animate-fade-in">
               <div className="flex items-center gap-2 mb-5">
-                <div className="w-8 h-8 rounded-xl bg-brand-50 flex items-center justify-center">
-                  <CreditCard className="w-4 h-4 text-brand-500" />
+                <div className={`w-8 h-8 rounded-xl bg-${ColorGlobalTema.slice(3, -4)}-50 flex items-center justify-center`}>
+                  <CreditCard className={`w-4 h-4 ${ColorGlobalText}`} />
                 </div>
                 <h2 className="font-display font-bold text-surface-900 text-lg">Forma de Pagamento</h2>
               </div>
 
-              <div className="grid grid-cols-3 gap-3 mb-5">
+              <div className="grid grid-cols-2 gap-3 mb-5">
                 {([
                   { id: 'pix', icon: <Zap className="w-5 h-5" />, label: 'PIX', sub: '5% OFF', accent: 'green' },
                   { id: 'credit', icon: <CreditCard className="w-5 h-5" />, label: 'Cartão', sub: 'Parcelado', accent: 'blue' },
-                  { id: 'boleto', icon: <FileText className="w-5 h-5" />, label: 'Boleto', sub: 'À vista', accent: 'gray' },
                 ] as const).map(opt => (
                   <button
                     key={opt.id}
                     onClick={() => setPayment(opt.id)}
-                    className={`flex flex-col items-center gap-2 p-4 rounded-2xl border-2 transition-all ${payment === opt.id ? 'border-brand-500 bg-brand-50' : 'border-surface-200 hover:border-surface-300'}`}
+                    className={`flex flex-col items-center gap-2 p-4 rounded-2xl border-2 transition-all ${payment === opt.id ? `border-${ColorGlobalTema.slice(3)} ${ColorGlobalTema.slice(0, -4)}-50` : 'border-surface-200 hover:border-surface-300'}`}
                   >
-                    <div className={`${payment === opt.id ? 'text-brand-600' : 'text-surface-400'}`}>{opt.icon}</div>
-                    <span className={`font-display font-bold text-sm ${payment === opt.id ? 'text-brand-700' : 'text-surface-600'}`}>{opt.label}</span>
+                    <div className={`${payment === opt.id ? `${ColorGlobalText}` : 'text-surface-400'}`}>{opt.icon}</div>
+                    <span className={`font-display font-bold text-sm ${payment === opt.id ? `${ColorGlobalText}` : 'text-surface-600'}`}>{opt.label}</span>
                     <span className={`text-[10px] font-body ${opt.id === 'pix' ? 'text-green-600 font-semibold' : 'text-surface-400'}`}>{opt.sub}</span>
                   </button>
                 ))}
@@ -308,21 +415,330 @@ export default function CheckoutPage() {
                   </div>
                 </div>
               )}
+              {/* Coupon */}
+              <div
+                onClick={() => setOpenCouponModal(true)}
+                className="group cursor-pointer overflow-hidden mt-5 rounded-3xl bg-white border border-surface-200 hover:border-orange-300 hover:shadow-2xl transition-all duration-300"
+              >
+                {/* Cabeçalho */}
+                <div className={`${ColorGlobalTema} p-5`}
+                >
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-4">
+                      <div className="w-14 h-14 rounded-2xl bg-white/20 backdrop-blur flex items-center justify-center border border-white/20">
+                        <Ticket className="w-7 h-7 text-white" />
+                      </div>
+                      <div>
+                        <p className="text-white font-bold text-lg">
+                          Cupom de desconto
+                        </p>
+                        <p className="text-orange-100 text-sm">
+                          Economize ainda mais na sua compra
+                        </p>
+                      </div>
+                    </div>
+                    <ChevronRight className="w-6 h-6 text-white group-hover:translate-x-1 transition-all" />
+                  </div>
+                </div>
+                {/* Conteúdo */}
+                <div className="p-5">
+                  {selectedCoupon ? (
+                    <>
+                      <div className="flex justify-between items-start">
+                        <div>
+                          <div className="flex items-center gap-2 mb-2">
+                            <span className="px-2 py-1 rounded-full bg-green-100 text-green-700 text-xs font-bold">
+                              APLICADO
+                            </span>
+                            <span className="px-2 py-1 rounded-full bg-surface-100 text-surface-500 text-xs font-semibold">
+                              {selectedCoupon.cod_Cupom}
+                            </span>
+                          </div>
+                          <h3 className="font-bold text-surface-900 text-lg">
+                            {selectedCoupon.name_Cupom}
+                          </h3>
+                          <p className="text-sm text-surface-500 mt-1">
+                            {selectedCoupon.descriotion}
+                          </p>
+                        </div>
+                        <div className="text-right">
+                          <p className={`text-3xl font-black ${ColorGlobalText}`}>
+                            {selectedCoupon.discont}%
+                          </p>
+                          <p className="text-xs text-surface-500">
+                            de desconto
+                          </p>
+                        </div>
+                      </div>
+                      <div className="mt-5 flex items-center justify-between border-t pt-4">
+                        <div>
+                          <p className="text-xs text-surface-400">
+                            Código
+                          </p>
+                          <p className="font-semibold text-surface-700">
+                            {selectedCoupon.cod_Cupom}
+                          </p>
+                        </div>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setSelectedCoupon(null);
+                            setCoupon("");
+                            setDiscount(0);
+                          }}
+                          className="text-red-500 text-sm font-semibold hover:text-red-600"
+                        >
+                          Remover
+                        </button>
 
-              {payment === 'boleto' && (
-                <div className="p-4 bg-surface-50 rounded-2xl border border-surface-200 animate-fade-in">
-                  <p className="text-sm font-body text-surface-600">O boleto será gerado após confirmar o pedido. Vencimento em 3 dias úteis.</p>
+                      </div>
+
+                    </>
+
+                  ) : (
+
+                    <div className="relative">
+                      <div className="absolute top-0 right-0">
+                        <div className="rounded-full bg-orange-50 px-4 py-2 text-sm font-bold text-orange-600 whitespace-nowrap">
+                          Ver Cupons
+                        </div>
+                      </div>
+
+                      <div className="pt-12">
+                        <p className="font-semibold text-surface-900">
+                          Nenhum cupom selecionado
+                        </p>
+
+                        <p className="mt-1 text-sm text-surface-500">
+                          Toque aqui para escolher um cupom disponível.
+                        </p>
+                      </div>
+                    </div>
+
+                  )}
+
+                </div>
+              </div>
+              {openCouponModal && (
+                <div className="fixed inset-0 z-[999] bg-black/60 backdrop-blur-sm flex items-center justify-center p-3 sm:p-5">
+                  <div className="bg-white w-full sm:max-w-xl md:max-w-2xl lg:max-w-3xl xl:max-w-4xl max-h-[85vh] rounded-[24px] sm:rounded-[32px] overflow-hidden shadow-2xl flex flex-col animate-slide-up">
+
+                    {/* HEADER */}
+                    <div className={`relative overflow-hidden ${ColorGlobalTema} shrink-0`}>
+                      <div className="absolute -top-10 -right-10 h-24 w-24 sm:h-32 sm:w-32 rounded-full bg-white/10" />
+                      <div className="absolute -bottom-12 -left-12 h-24 w-24 sm:h-32 sm:w-32 rounded-full bg-white/10" />
+
+                      <div className="relative px-3 sm:px-6 lg:px-8 py-3 sm:py-5">
+                        <div className="flex items-start justify-between gap-2 sm:gap-4">
+                          <div className="flex items-center gap-3 sm:gap-4 min-w-0">
+                            <div className="h-10 w-10 sm:h-14 sm:w-14 shrink-0 rounded-2xl bg-white/15 backdrop-blur-md border border-white/20 flex items-center justify-center shadow-lg">
+                              <Ticket className="h-5 w-5 sm:h-7 sm:w-7 text-white" />
+                            </div>
+
+                            <div className="min-w-0">
+                              <h2 className="text-base sm:text-2xl font-bold text-white truncate">
+                                Cupons Disponíveis
+                              </h2>
+                              <p className="mt-0.5 sm:mt-1 text-[11px] sm:text-sm text-orange-100 line-clamp-1">
+                                Escolha o melhor desconto para este pedido.
+                              </p>
+                              <div className="mt-1.5 sm:mt-3 inline-flex items-center gap-2 rounded-full bg-white/15 px-2.5 sm:px-3 py-0.5 sm:py-1 backdrop-blur">
+                                <span className="h-1.5 w-1.5 sm:h-2 sm:w-2 shrink-0 rounded-full bg-green-300 animate-pulse" />
+                                <span className="text-[10px] sm:text-xs font-medium text-white whitespace-nowrap">
+                                  {(Cupons ?? []).filter(c => c.active).length} cupons disponíveis
+                                </span>
+                              </div>
+                            </div>
+                          </div>
+
+                          <button
+                            onClick={() => setOpenCouponModal(false)}
+                            className="flex h-8 w-8 sm:h-10 sm:w-10 shrink-0 items-center justify-center rounded-full bg-white/15 text-white transition-all hover:bg-white/25 hover:rotate-90"
+                          >
+                            <X className="h-4 w-4 sm:h-5 sm:w-5" />
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* LISTA */}
+                    <div className="flex-1 overflow-y-auto bg-surface-50 p-2.5 sm:p-5 min-h-0">
+                      <div className="space-y-2.5 sm:space-y-3">
+                        {(Cupons ?? [])
+                          .filter(c => c.active)
+                          .map(coupon => {
+                            const minimumValue = coupon.minimum_Value ?? 0;
+                            const valido = total >= minimumValue;
+                            const selected = selectedCouponTed?.id === coupon.id;
+
+                            return (
+                              <button
+                                key={coupon.id}
+                                type="button"
+                                disabled={!valido}
+                                onClick={() => setSelectedCouponTed(coupon)}
+                                style={
+                                  selected
+                                    ? {
+                                      borderColor: colorConfig.hex,
+                                      boxShadow: `0 0 0 4px ${colorConfig.hex}33, 0 10px 15px -3px rgb(0 0 0 / 0.1)`,
+                                    }
+                                    : {}
+                                }
+                                className={`relative w-full overflow-hidden rounded-2xl border bg-white text-left transition-all duration-200
+                               focus:outline-none focus:ring-0 focus-visible:outline-none focus-visible:ring-0
+                               ${selected
+                                    ? "shadow-lg"
+                                    : "border-surface-200 hover:shadow-md"
+                                  }
+                           ${!valido && "opacity-60 cursor-not-allowed"}
+                              `}
+                              >
+                                <div className={`absolute left-0 top-0 h-full w-1.5 bg-gradient-to-b ${ColorGlobalTema}`} />
+
+                                <div className="p-3 pl-4 sm:p-4 sm:pl-5">
+                                  {/* Topo */}
+                                  <div className="flex justify-between items-start gap-2 sm:gap-3">
+                                    <div className="flex-1 min-w-0">
+                                      <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
+                                        <span className="rounded-full bg-orange-100 px-2 sm:px-2.5 py-0.5 sm:py-1 text-[9px] sm:text-[10px] font-bold uppercase text-orange-600">
+                                          Cupom
+                                        </span>
+                                        <span className="rounded-full bg-surface-100 px-2 sm:px-2.5 py-0.5 sm:py-1 text-[9px] sm:text-[10px] font-semibold text-surface-600 truncate max-w-[120px] sm:max-w-none">
+                                          {coupon.cod_Cupom}
+                                        </span>
+                                        {(coupon.discont ?? 0) >= 20 && (
+                                          <span className="rounded-full bg-green-100 px-2 sm:px-2.5 py-0.5 sm:py-1 text-[9px] sm:text-[10px] font-bold text-green-700 whitespace-nowrap">
+                                            Melhor Oferta
+                                          </span>
+                                        )}
+                                      </div>
+
+                                      <h3 className="mt-2 sm:mt-3 text-sm sm:text-base font-bold text-surface-900 truncate">
+                                        {coupon.name_Cupom}
+                                      </h3>
+
+                                      <p className="mt-1 line-clamp-2 text-xs sm:text-sm text-surface-500">
+                                        {coupon.descriotion}
+                                      </p>
+                                    </div>
+
+                                    <div style={
+                                      selected ? { borderColor: colorConfig.hex, boxShadow: `0 0 0 4px ${colorConfig.hex}33, 0 10px 15px -3px rgb(0 0 0 / 0.1)`, } : {}
+                                    }
+                                      className={`flex h-6 w-6 sm:h-7 sm:w-7 shrink-0 items-center justify-center rounded-full border-2${selected ? ` ${ColorGlobalTema}` : "border-surface-300"}`}>
+                                      {selected && <Check className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-white" />}
+                                    </div>
+                                  </div>
+                                  {/* Rodapé do card */}
+                                  <div className="mt-3 sm:mt-4 flex flex-wrap items-center justify-between gap-2 sm:gap-3 border-t pt-2.5 sm:pt-3">
+                                    <div>
+                                      <div className="flex items-end gap-1">
+                                        <span className={`text-xl sm:text-2xl font-black ${ColorGlobalText}`}>
+                                          {coupon.discont}%
+                                        </span>
+                                        <span className="pb-0.5 text-[11px] sm:text-xs font-semibold text-surface-500">
+                                          OFF
+                                        </span>
+                                      </div>
+                                      <p className="mt-1 text-[11px] sm:text-xs text-surface-500">
+                                        Pedido mínimo <strong>{formatPrice(minimumValue)}</strong>
+                                      </p>
+                                    </div>
+                                    {valido ? (
+                                      <span className="rounded-full bg-green-100 px-2.5 sm:px-3 py-1 sm:py-1.5 text-[11px] sm:text-xs font-semibold text-green-700 whitespace-nowrap">
+                                        ✓ Disponível
+                                      </span>
+                                    ) : (
+                                      <span className="rounded-full bg-red-100 px-2.5 sm:px-3 py-1 sm:py-1.5 text-[11px] sm:text-xs font-semibold text-red-600 whitespace-nowrap">
+                                        Faltam {formatPrice(minimumValue - total)}
+                                      </span>
+                                    )}
+                                  </div>
+                                </div>
+                              </button>
+                            );
+                          })}
+                      </div>
+                    </div>
+
+                    {/* FOOTER */}
+                    <div className="bg-white border-t border-surface-200 shrink-0">
+                      {selectedCouponTed && (
+                        <div className="px-3 sm:px-6 py-2.5 sm:py-3 bg-gradient-to-r from-green-50 to-emerald-50 border-b border-green-100">
+                          <div className="flex items-center justify-between gap-2">
+                            <div className="min-w-0">
+                              <p className="text-[11px] sm:text-xs uppercase tracking-wide text-green-600 font-semibold">
+                                Cupom selecionado
+                              </p>
+                              <p className="font-bold text-surface-900 truncate text-sm sm:text-base">
+                                {selectedCouponTed.name_Cupom ?? ""}
+                              </p>
+                              <p className="text-xs sm:text-sm text-surface-500 truncate">
+                                Código: {selectedCouponTed.cod_Cupom}
+                              </p>
+                            </div>
+
+                            <div className="text-right shrink-0">
+                              <p className="text-2xl sm:text-3xl font-black text-green-600">
+                                {selectedCouponTed.discont}%
+                              </p>
+                              <p className="text-[11px] sm:text-xs text-green-700 font-semibold">
+                                de desconto
+                              </p>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+
+                      <div className="p-3 sm:p-5">
+                        <div className="grid grid-cols-2 gap-2.5 sm:gap-3">
+                          <button
+                            onClick={() => {
+                              setOpenCouponModal(false);
+                              setSelectedCouponTed(null);
+                              setSelectedCoupon(null);
+                              setDiscount(0);
+                              setCoupon('');
+                            }
+                            }
+                            className="h-11 sm:h-12 rounded-xl border border-surface-300 bg-white text-sm sm:text-base font-semibold text-surface-700 transition-all hover:bg-surface-100 hover:border-surface-400"
+                          >
+                            Cancelar
+                          </button>
+
+                          <button
+                            disabled={!selectedCouponTed}
+                            onClick={() => {
+                              if (!selectedCouponTed) return;
+                              setSelectedCoupon(selectedCouponTed);
+                              setCoupon(selectedCouponTed.cod_Cupom);
+                              setDiscount(total * ((selectedCouponTed.discont ?? 0) / 100));
+                              setOpenCouponModal(false);
+                            }}
+                            className={`
+                h-11 sm:h-12 rounded-xl text-sm sm:text-base font-bold text-white shadow-lg transition-all hover:bg-green-600
+                ${selectedCouponTed
+                                ? ` ${ColorGlobalTema} hover:shadow-xl hover:scale-[1.02]`
+                                : "bg-surface-300 cursor-not-allowed"
+                              }
+              `}
+                          >
+                            {selectedCouponTed ? "Aplicar Cupom" : "Selecione um cupom"}
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
                 </div>
               )}
-
-              {/* Coupon */}
               <div className="mt-4">
                 <label className="block text-xs font-display font-semibold text-surface-600 mb-1.5">Cupom de desconto</label>
                 <div className="flex gap-2">
                   <input value={coupon} onChange={e => setCoupon(e.target.value)}
                     placeholder="BEMVINDO20"
                     className="flex-1 px-3 py-2.5 border-2 border-surface-200 rounded-xl font-body text-sm focus:outline-none focus:border-brand-400 transition-colors uppercase" />
-                  <button onClick={applyCoupon} className="px-4 py-2.5 bg-surface-900 text-white font-display font-bold rounded-xl text-sm hover:bg-surface-800 transition-colors">
+                  <button className="px-4 py-2.5 bg-surface-900 text-white font-display font-bold rounded-xl text-sm hover:bg-surface-800 transition-colors">
                     Aplicar
                   </button>
                 </div>
@@ -336,7 +752,7 @@ export default function CheckoutPage() {
                 <button
                   onClick={handlePlaceOrder}
                   disabled={loading}
-                  className="flex-1 py-3.5 bg-brand-500 hover:bg-brand-600 disabled:bg-brand-300 text-white font-display font-bold rounded-xl transition-all shadow-brand flex items-center justify-center gap-2"
+                  className={`flex-1 py-3.5 ${ColorGlobalTema} hover:bg-green-700 disabled:bg-green-300 text-white font-display font-bold rounded-xl transition-all  flex items-center justify-center gap-2`}
                 >
                   {loading ? <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <><Check className="w-4 h-4" /> Confirmar Pedido</>}
                 </button>
@@ -351,8 +767,8 @@ export default function CheckoutPage() {
           {step === 'Checkout' && (
             <div className="bg-white rounded-3xl p-6 shadow-soft animate-fade-in">
               <div className="flex items-center gap-2 mb-5">
-                <div className="w-8 h-8 rounded-xl bg-brand-50 flex items-center justify-center">
-                  <ShoppingBag className="w-4 h-4 text-brand-500" />
+                <div className={`w-8 h-8 rounded-xl bg-${ColorGlobalTema.slice(3, -4)}-50 flex items-center justify-center`}>
+                  <ShoppingBag className={`w-4 h-4 ${ColorGlobalText}`} />
                 </div>
                 <h2 className="font-display font-bold text-surface-900 text-lg">Revisão do Pedido</h2>
               </div>
@@ -373,14 +789,16 @@ export default function CheckoutPage() {
 
               <div className="p-4 bg-surface-50 rounded-xl mb-5">
                 <p className="text-xs font-display font-semibold text-surface-500 mb-1">ENTREGA EM</p>
-                <p className="text-sm font-body text-surface-800">{address_select?.road}, {address_select?.number} - {address_select?.referencePoint} - {address_select?.supplement}</p>
-                <p className="text-sm font-body text-surface-500">{address_select?.city}/{address_select?.state} · {address_select?.neighborhood}</p>
+                <p className="text-sm font-body text-surface-800">{Controller?.result.AddressStandard?.road}, {Controller?.result.AddressStandard?.number} - {Controller?.result.AddressStandard?.referencePoint} - {Controller?.result.AddressStandard?.supplement}</p>
+                <p className="text-sm font-body text-surface-500">{Controller?.result.AddressStandard?.city}/{Controller?.result.AddressStandard?.state} · {Controller?.result.AddressStandard?.neighborhood}</p>
+                <p className="text-xs font-display font-semibold text-surface-500 mb-1">Para: {Controller?.result.AddressStandard?.name}</p>
+                <p className="text-sm font-body text-surface-800">Tel: {formatPhone(Controller?.result.AddressStandard?.phone)}</p>
               </div>
               <div className="flex gap-3 mt-5">
                 <button onClick={() => setStep('Endereço')} className="px-4 py-3 bg-surface-100 text-surface-600 font-display font-bold rounded-xl hover:bg-surface-200 transition-all text-sm">
                   ← Voltar
                 </button>
-                <button onClick={() => setStep('Forma de pagamento')} className="flex-1 py-3 bg-brand-500 hover:bg-brand-600 text-white font-display font-bold rounded-xl transition-all shadow-brand flex items-center justify-center gap-2">
+                <button onClick={() => setStep('Pagamento')} className={`flex-1 py-3 ${ColorGlobalTema} hover:bg-green-600 text-white font-display font-bold rounded-xl transition-all  flex items-center justify-center gap-2`}>
                   Forma de pagamento <ChevronRight className="w-4 h-4" />
                 </button>
               </div>
@@ -422,7 +840,6 @@ export default function CheckoutPage() {
               </div>
             </div>
           </div>
-
           <div className="bg-green-50 rounded-2xl p-4 border border-green-100">
             <div className="flex items-center gap-2 text-green-700">
               <Lock className="w-4 h-4 shrink-0" />
@@ -431,6 +848,12 @@ export default function CheckoutPage() {
           </div>
         </div>
       </div>
+      <Loading
+        loading={Controller?.result.Loading || false}
+        message="Carregando..."
+        subMessage=""
+      />
+
     </div>
   );
 }

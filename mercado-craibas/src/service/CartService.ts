@@ -4,12 +4,10 @@ import { makeResult, Result } from "../utils/Result";
 
 export const CartService = {
 
-    getCartProducts: async (userId: number): Promise<Result<CartItensProduct[]>> => {
+    getCartProducts: async (): Promise<Result<CartItensProduct[]>> => {
         try {
-            if (userId === 0) {
-                return makeResult(false, [] as CartItensProduct[], "ID de usuário inválido");
-            }
-            const response = await api.get("/product/GetProductCart/" + userId);
+
+            const response = await api.get("/product/GetProductCart");
             const { success, data, error } = response.data;
             if (!data) {
                 return makeResult(false, [] as CartItensProduct[], "Itens do carrinho não encontrados");

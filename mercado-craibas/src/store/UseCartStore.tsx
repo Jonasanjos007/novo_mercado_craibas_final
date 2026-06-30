@@ -3,6 +3,9 @@ import { persist } from "zustand/middleware";
 import { CartItensProduct } from "../models/CartItensProduct";
 import { ProductsService } from "../service/ProductsService";
 import { CartService } from "../service/CartService";
+import { Address } from "../models/Address";
+import { User } from "../models/User";
+import { makeResult } from "../utils/Result";
 
 interface CartState {
     cart: CartItensProduct[];
@@ -15,10 +18,27 @@ interface CartState {
     clearCart: () => void;
     cartCount: () => number;
     cartTotal: () => number;
+    LoadCartUser: (User: User | null) => Promise<{ success?: boolean; error?: string }>;
 
 }
-export const UseCartStore = create<CartState>()(persist((set, get) => ({
+export const UseCartStore = create<CartState>((set, get) => ({
     cart: [],
+    LoadCartUser: async (user) => {
+        if (!user) {
+            set({ cart: [] });
+            return makeResult(false, "Usuário não informado");
+        }
+
+        const cart = await CartService.getCartProducts();
+
+        if (!cart.success) {
+            set({ cart: [] });
+            return makeResult(false, cart.error || "Erro ao carregar carrinho");
+        }
+
+        set({ cart: cart.data || [] });
+        return makeResult(true);
+    },
     addToCart: async (item) => {
         const cart = get().cart ?? [];
         const existing = cart.find(c => c.product?.id === item.product?.id && c.selectedVariation?.id === item.selectedVariation?.id);
@@ -34,7 +54,7 @@ export const UseCartStore = create<CartState>()(persist((set, get) => ({
             if (!result.success) {
                 return false;
             }
-            const NewCart = await CartService.getCartProducts(item.user?.id || 0); // Certifique-se de que o ID retornado pela API seja usado
+            const NewCart = await CartService.getCartProducts(); // Certifique-se de que o ID retornado pela API seja usado
             set({ cart: NewCart?.data || [] });
             return true;
         }
@@ -46,6 +66,7 @@ export const UseCartStore = create<CartState>()(persist((set, get) => ({
             return deleteItem;
         }
         set({ cart: get().cart.filter(c => c.id !== CartId) })
+        get().setCartOpen(true);
         return deleteItem;
     },
     updateQuantity: async (CartId, productId, quantity, operador) => {
@@ -89,13 +110,4 @@ export const UseCartStore = create<CartState>()(persist((set, get) => ({
     cartOpen: false,
     setCartOpen: (open) => set({ cartOpen: open }),
 
-
-
-}), {
-    name: '@Cart-storage',
-    partialize: (state) => ({
-        cart: state.cart,
-
-    }),
-}
-));
+}));

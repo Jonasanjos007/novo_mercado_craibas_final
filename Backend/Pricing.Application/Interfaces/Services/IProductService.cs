@@ -13,7 +13,7 @@ namespace Mercado.Craibas.Application.Interfaces.Services
     public interface IProductService
     {
         Task<Result<List<ProductResponse>>> GetProductList();
-        Task<Result<bool>> PostCartItensSave(CartItensRequest CartProduto);
+        Task<Result<bool>> PostCartItensSave(CartItensRequest CartProduto,int userid);
         Task<Result<List<CartItemResponse>>> GetProductCartList(int Id_Customer);
         Task<Result<bool>> PostCartItensUpdate(int Id, int Quantity, string Soma_Sub);
         Task<Result<bool>> DeleteProductCartList(int Id_Customer);

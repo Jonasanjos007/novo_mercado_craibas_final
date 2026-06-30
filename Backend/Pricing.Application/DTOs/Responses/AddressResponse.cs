@@ -11,6 +11,8 @@ namespace Mercado.Craibas.Application.DTOs.Responses
     {
         public int Id { get; set; }
         public string Road { get; set; }
+        public string Name { get; set; }
+        public string Phone { get; set; }
         public string Neighborhood { get; set; }
         public string Supplement { get; set; }
         public string ReferencePoint { get; set; }

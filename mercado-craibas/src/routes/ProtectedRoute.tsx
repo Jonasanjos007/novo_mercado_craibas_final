@@ -13,7 +13,7 @@ export function ProtectedRoute({ allowedRoles }: { allowedRoles: Role[] }) {
     // ⏳ evita redirect antes de carregar
 
     if (!user) {
-        return <Navigate to="/login" replace />;
+        return <Navigate to="/CheckoutAutUser" replace />;
     }
 
     if (!allowedRoles.includes(user.role as Role)) {

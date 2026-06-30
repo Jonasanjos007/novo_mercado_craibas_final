@@ -59,8 +59,8 @@ public class UserService : IUserService
     public async Task<Result<UserResponse>> GetbyIdUser(int userid, string role)
     {
         dynamic? user = null;
-        dynamic? cart_User = null;
-        List<Address> andrees_User = [];
+        //dynamic? cart_User = null;
+        //List<Address> andrees_User = [];
         dynamic? Customize = null;
 
 
@@ -68,8 +68,8 @@ public class UserService : IUserService
         {
             case "CLIENTE":
                 user = await _userRepository.GetByIdAsync<User_Customer>(userid, "Id");
-                cart_User = await _userRepository.GetByIdAsync<Cart>(userid, "Id_User_Customer");
-                andrees_User = await _unitOfWork.GetClassListById<Address>(userid, "Id_User_Customer");
+                //cart_User = await _userRepository.GetByIdAsync<Cart>(userid, "Id_User_Customer");
+                //andrees_User = await _unitOfWork.GetClassListById<Address>(userid, "Id_User_Customer");
                 Customize = await _unitOfWork.GetClassById<Customize_Cliente>(userid, "Id_User_Customer");
                 break;
 
@@ -102,27 +102,29 @@ public class UserService : IUserService
             Phone = user.Phone,
             Insert_Date = user.InsertDate,
 
-            Cart_User = cart_User == null
-             ? null
-             : new CartResponse
-             {
-                 Id = cart_User.Id,
-                 Id_User_Customer = cart_User.Id_User_Customer
-             },
+            //Cart_User = cart_User == null
+            // ? null
+            // : new CartResponse
+            // {
+            //     Id = cart_User.Id,
+            //     Id_User_Customer = cart_User.Id_User_Customer
+            // },
 
-            Address = andrees_User?.Select(x => new AddressResponse
-            {
-                Id = x.Id,
-                Road = x.Road,
-                Neighborhood = x.Neighborhood,
-                City = x.City,
-                Number = x.Number,
-                State = x.State,
-                Id_User_Customer = x.Id_User_Customer,
-                ReferencePoint = x.ReferencePoint,
-                Supplement = x.Supplement,
-                Standard = x.Standard,
-            }).ToList(),
+            //Address = andrees_User?.Select(x => new AddressResponse
+            //{
+            //    Id = x.Id,
+            //    Road = x.Road,
+            //    Name = x.Name,
+            //    Phone = x.Phone,
+            //    Neighborhood = x.Neighborhood,
+            //    City = x.City,
+            //    Number = x.Number,
+            //    State = x.State,
+            //    Id_User_Customer = x.Id_User_Customer,
+            //    ReferencePoint = x.ReferencePoint,
+            //    Supplement = x.Supplement,
+            //    Standard = x.Standard,
+            //}).ToList(),
             Customize = Customize
         });
     }
@@ -150,6 +152,8 @@ public class UserService : IUserService
         var Andrees = new Address
         {
             Road = NewAnddress.Road,
+            Name = NewAnddress.Name,
+            Phone= NewAnddress.Phone,
             Neighborhood = NewAnddress.Neighborhood,
             Supplement = NewAnddress.Supplement,
             ReferencePoint = NewAnddress.ReferencePoint,
@@ -188,6 +192,8 @@ public class UserService : IUserService
             {
                 Id = x.Id,
                 Road = x.Road,
+                Name = x.Name,
+                Phone = x.Phone,
                 Neighborhood = x.Neighborhood,
                 City = x.City,
                 Number = x.Number,
@@ -231,6 +237,8 @@ public class UserService : IUserService
        fieldsToUpdate: new Dictionary<string, object>
        {
            {"Road",NewAnddress.Road },
+           {"Name",NewAnddress.Name },
+           {"Phone",NewAnddress.Phone },
            {"Neighborhood",NewAnddress.Neighborhood},
            {"Supplement",NewAnddress.Supplement},
            {"ReferencePoint",NewAnddress.ReferencePoint},

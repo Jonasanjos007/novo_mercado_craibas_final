@@ -3,12 +3,17 @@ using Mercado.Craibas.Application.DTOs.Requests;
 using Mercado.Craibas.Application.Interfaces.Services;
 using Microsoft.AspNetCore.Mvc;
 using Pricing.Api.Extensions;
+using System.Security.Claims;
+using System.Threading.Tasks;
+
+using Baldan.Pricing.Application.Commons;
+using Microsoft.AspNetCore.Authorization;
 
 namespace Mercado.Api.Controllers.V1
 {
     [ApiController]
     [Route("api/v1/product")]
-    public class ProductController
+    public class ProductController :ControllerBase
     {
         private readonly IProductService _service;
 
@@ -27,7 +32,9 @@ namespace Mercado.Api.Controllers.V1
         [HttpPost("postCartSave")]
         public async Task<IActionResult> PostCartSave([FromBody] CartItensRequest Cart_Itens)
         {
-            var result = await _service.PostCartItensSave(Cart_Itens);
+            var userid = User.GetUserId(); 
+
+            var result = await _service.PostCartItensSave(Cart_Itens,userid);
 
             return result.ToActionResult();
         }
@@ -46,10 +53,12 @@ namespace Mercado.Api.Controllers.V1
             return result.ToActionResult();
         }
 
-        [HttpGet("GetProductCart/{Id}")]
-        public async Task<IActionResult> GetProductCart(int Id)
+        [HttpGet("GetProductCart")]
+        public async Task<IActionResult> GetProductCart()
         {
-            var result = await _service.GetProductCartList(Id);
+            var Id_User = User.GetUserId();
+
+            var result = await _service.GetProductCartList(Id_User);
 
             return result.ToActionResult();
         }
@@ -57,6 +66,8 @@ namespace Mercado.Api.Controllers.V1
         [HttpDelete("DeleteProductCart/{Cart_Itens_Id}")]
         public async Task<IActionResult> DeleteProductCart(int Cart_Itens_Id)
         {
+
+
             var result = await _service.DeleteProductCartList(Cart_Itens_Id);
 
             return result.ToActionResult();

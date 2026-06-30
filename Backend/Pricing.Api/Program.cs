@@ -43,7 +43,7 @@ namespace Pricing.Api
             {
                 options.AddDefaultPolicy(policy =>
                 {
-                    policy.AllowAnyOrigin()
+                    policy.WithOrigins("http://192.168.15.11:5173")
                           .AllowAnyHeader()
                           .AllowAnyMethod();
                 });
@@ -77,10 +77,12 @@ namespace Pricing.Api
             builder.Services.AddScoped<IProductRepository, ProductRepository>();
             //builder.Services.AddScoped<ISurveyService, SurveyService>();
             builder.Services.AddScoped<IAuthService, AuthService>();
+            //builder.Services.AddScoped<ICheckoutService, CheckoutService>();
             builder.Services.AddScoped<IAuthRepository, AuthRepository>();
             builder.Services.AddScoped<IUserRepository, UserRepository>();
             builder.Services.AddScoped<IUserService, UserService>();
             builder.Services.AddScoped<ITokenService, TokenService>();
+            builder.Services.AddScoped<ICupomService, CupomService>();
             //builder.Services.AddScoped<IProfileRepository, ProfileRepository>();
             //builder.Services.AddScoped<IDashboardRepository, DashboardRepository>();
             //builder.Services.AddScoped<IDashboardService, DashboardService>();

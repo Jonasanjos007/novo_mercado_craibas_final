@@ -51,7 +51,6 @@ export default function HomePage() {
   const countdown = useCountdown();
   const { NameColorGlobal, ColorGlobalTema, ColorGlobalHover, ColorGlobalText, ColorGlobalHoverText } = UseUserStore();
   const colorConfig = getColorConfig(NameColorGlobal);
-  console.log(`fill-${ColorGlobalTema.slice(3, -3)}400`)
   const scrollRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
     if (!autoPlay) return;
@@ -76,7 +75,6 @@ export default function HomePage() {
     acessorios: { from: '#6d28d9', to: '#7c3aed', accent: '#c084fc' },
     virais: { from: '#9a3412', to: '#c2410c', accent: '#fb923c' },
   };
-  console.log(`from-${ColorGlobalTema.slice(3, -3)}400 `)
   return (
 
     <div className="min-h-screen bg-[#f5f5f7]">

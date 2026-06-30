@@ -8,12 +8,16 @@ import ConfirmPopup from './ConfirmPopup';
 import { UseUserStore } from '../store/UseUserStore';
 import { UseCartStore } from '../store/UseCartStore';
 import { UseRouteStore } from '../store/UseRouteStore';
+import { getColorConfig } from '../types/Colors';
 
 export default function CartSidebar() {
   const { cartOpen, setCartOpen } = UseCartStore();
   const { navigateTo } = UseRouteStore();
   const { removeFromCart, updateQuantity, cart, cartTotal } = UseCartStore();
   const { user } = UseUserStore();
+  const { ColorGlobalTema, ColorGlobalHover, NameColorGlobal } = UseUserStore();
+  const colorConfig = getColorConfig(NameColorGlobal);
+
   const total = cartTotal();
   const navigate = useNavigate();
   const notify = useNotification();
@@ -33,7 +37,7 @@ export default function CartSidebar() {
         {/* Header */}
         <div className="flex items-center justify-between p-5 border-b border-surface-100 bg-surface-950">
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-xl bg-brand-500 flex items-center justify-center">
+            <div className={`w-9 h-9 rounded-xl ${ColorGlobalTema} flex items-center justify-center`}>
               <ShoppingCart className="w-4 h-4 text-white" />
             </div>
             <div>
@@ -60,7 +64,7 @@ export default function CartSidebar() {
               <p className="text-surface-400 font-body text-sm mb-6">Adicione produtos incríveis ao seu carrinho</p>
               <button
                 onClick={() => { setCartOpen(false); navigateTo('home'); }}
-                className="px-6 py-2.5 bg-brand-500 hover:bg-brand-600 text-white font-display font-semibold rounded-xl transition-all shadow-brand text-sm"
+                className={`px-6 py-2.5 ${ColorGlobalTema} ${ColorGlobalHover} text-white font-display font-semibold rounded-xl transition-all shadow-brand text-sm`}
               >
                 Explorar Produtos
               </button>
@@ -83,7 +87,7 @@ export default function CartSidebar() {
                     <div className="flex items-center gap-1">
                       {loadingUpdate === item.id ? (
                         <div className="flex items-center justify-center w-[84px]">
-                          <div className="w-5 h-5 border-2 border-surface-300 border-t-orange-500 rounded-full animate-spin" />
+                          <div className="w-5 h-5 border-2 border-surface-300  rounded-full animate-spin" style={{ borderTopColor: `${colorConfig.hex}` }} />
                         </div>
                       ) : (
                         <>
@@ -185,12 +189,12 @@ export default function CartSidebar() {
               onClick={() => {
                 setCartOpen(false);
                 if (!user) {
-                  navigate('login');
+                  navigate("login");
                 } else {
-                  navigate('checkout');
+                  navigate("checkout");
                 }
               }}
-              className="w-full py-3.5 bg-brand-500 hover:bg-brand-600 text-white font-display font-bold rounded-xl transition-all shadow-brand hover:shadow-brand-lg flex items-center justify-center gap-2 text-base"
+              className={`w-full py-3.5 ${ColorGlobalTema} hover:bg-green-600 text-white font-display font-bold rounded-xl transition-all duration-300 hover:shadow-[0_8px_24px_rgba(34,197,94,0.55)] hover:scale-105 active:scale-95 animate-pulse flex items-center justify-center gap-2 text-base`}
             >
               Finalizar Compra
               <ArrowRight className="w-4 h-4" />

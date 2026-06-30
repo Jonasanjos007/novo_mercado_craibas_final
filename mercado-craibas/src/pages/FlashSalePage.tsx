@@ -5,12 +5,15 @@ import { useNavigate } from 'react-router-dom';
 import { UseProductStore } from '../store/UseProductStore';
 import { UseUserStore } from '../store/UseUserStore';
 import { getColorConfig } from '../types/Colors';
+import { useFlashSaleController } from '../controller/useFlashSaleController';
+import Loading from '../components/Loading';
 
 const TARGET = new Date(Date.now() + 4 * 60 * 60 * 1000 + 23 * 60 * 1000 + 45 * 1000);
 
 export default function FlashSalePage() {
+  const Controller = useFlashSaleController();
   const { products } = UseProductStore();
-  const { ColorGlobalTema, ColorGlobalHover, ColorGlobalText, ColorGlobalHoverText, NameColorGlobal } = UseUserStore();
+  const { ColorGlobalTema, ColorGlobalText, NameColorGlobal } = UseUserStore();
   const [filter, setFilter] = useState('all');
   const [timeLeft, setTimeLeft] = useState({ h: '04', m: '23', s: '45' });
   const navigate = useNavigate();
@@ -29,13 +32,11 @@ export default function FlashSalePage() {
     const id = setInterval(tick, 1000);
     return () => clearInterval(id);
   }, []);
-  console.log(`${ColorGlobalTema}/30`)
   const saleProducts = products.filter(p => p.origin_Price && p.origin_Price > p.price_Unic);
 
   const filtered = filter === 'all' ? saleProducts : saleProducts.filter(p => p.category === filter);
   const cats = ['all', ...Array.from(new Set(saleProducts.map(p => p.category)))];
   const catLabels: Record<string, string> = { all: 'Todos', eletronicos: 'Eletrônicos', garrafas: 'Stanley', acessorios: 'Acessórios', virais: 'Virais' };
-  console.log(`"hover:"${ColorGlobalText}`)
   return (
     <div className="min-h-screen bg-[#f5f5f7]">
       {/* Hero */}
@@ -111,6 +112,11 @@ export default function FlashSalePage() {
           {filtered.map(p => <ProductCard key={p.id} product={p} compact />)}
         </div>
       </div>
+      <Loading
+        loading={Controller?.result?.Loading || false}
+        message={"Carregando..."}
+        subMessage={"Melhores Produtos"}
+      />
     </div>
   );
 }

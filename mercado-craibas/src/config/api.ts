@@ -9,7 +9,7 @@ import { Product } from "../models/Product";
 import { CartItensProduct } from "../models/CartItensProduct";
 import { Address } from "../models/Address";
 
-const baseURL = "http://localhost:5022/api/v1";
+const baseURL = "http://192.168.15.11:5022/api/v1";
 
 export const api = axios.create({
     baseURL,

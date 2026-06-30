@@ -2,17 +2,21 @@ import { useState } from 'react';
 import { ArrowLeft, Star, Package, TrendingUp } from 'lucide-react';
 import { useStore } from '../context/store';
 import ProductCard from '../components/ProductCard';
+import { useBrandsController } from '../controller/useBrandsController';
+import Loading from '../components/Loading';
 
 const BRANDS = [
-  { name: 'Apple', emoji: '🍎', desc: 'Inovação e design premium', tags: ['iphone','macbook','airpods','apple watch'], color: 'from-gray-700 to-gray-900', count: 0 },
-  { name: 'Samsung', emoji: '📱', desc: 'Galaxy e muito mais', tags: ['samsung','galaxy'], color: 'from-blue-700 to-blue-900', count: 0 },
-  { name: 'Stanley', emoji: '🧊', desc: 'Garrafas que viraram mania', tags: ['stanley','quencher'], color: 'from-green-700 to-emerald-900', count: 0 },
+  { name: 'Apple', emoji: '🍎', desc: 'Inovação e design premium', tags: ['iphone', 'macbook', 'airpods', 'apple watch'], color: 'from-gray-700 to-gray-900', count: 0 },
+  { name: 'Samsung', emoji: '📱', desc: 'Galaxy e muito mais', tags: ['samsung', 'galaxy'], color: 'from-blue-700 to-blue-900', count: 0 },
+  { name: 'Stanley', emoji: '🧊', desc: 'Garrafas que viraram mania', tags: ['stanley', 'quencher'], color: 'from-green-700 to-emerald-900', count: 0 },
   { name: 'JBL', emoji: '🎧', desc: 'Pure Bass, pura qualidade', tags: ['jbl'], color: 'from-orange-700 to-orange-900', count: 0 },
   { name: 'Todos', emoji: '✨', desc: 'Ver tudo disponível', tags: [], color: 'from-brand-600 to-brand-800', count: 0 },
 ];
-
+/*Criar um campo novo commarca e em admin quando for casatrar um produto selecione as marcas que ja estão salvas  */
 export default function BrandsPage() {
-  const { products, navigateTo } = useStore();
+  const Controller = useBrandsController();
+
+  const { products } = useStore();
   const [selected, setSelected] = useState<string | null>(null);
 
   const getBrandProducts = (brand: typeof BRANDS[0]) => {
@@ -24,7 +28,9 @@ export default function BrandsPage() {
     <div className="min-h-screen bg-[#f5f5f7]">
       <div className="bg-white border-b border-surface-100">
         <div className="max-w-7xl mx-auto px-4 py-5 flex items-center gap-3">
-          <button onClick={() => navigateTo('home')} className="p-2 rounded-xl text-surface-400 hover:text-surface-700 hover:bg-surface-100 transition-all">
+          <button
+            // onClick={() => navigateTo('home')} 
+            className="p-2 rounded-xl text-surface-400 hover:text-surface-700 hover:bg-surface-100 transition-all">
             <ArrowLeft className="w-5 h-5" />
           </button>
           <div>
@@ -42,7 +48,7 @@ export default function BrandsPage() {
             return (
               <button
                 key={brand.name}
-                onClick={() => navigateTo('search')}
+                // onClick={() => navigateTo('search')}
                 className={`relative overflow-hidden rounded-2xl bg-gradient-to-br ${brand.color} p-5 text-left group hover:scale-105 hover:-translate-y-0.5 transition-all`}
               >
                 <div className="absolute -bottom-4 -right-4 w-16 h-16 bg-white/10 rounded-full" />
@@ -68,7 +74,9 @@ export default function BrandsPage() {
                     <p className="text-surface-400 text-xs">{brand.desc}</p>
                   </div>
                 </div>
-                <button onClick={() => navigateTo('search')} className="text-brand-500 text-sm font-semibold hover:text-brand-600 transition-colors">Ver todos →</button>
+                <button
+                  //  onClick={() => navigateTo('search')}
+                  className="text-brand-500 text-sm font-semibold hover:text-brand-600 transition-colors">Ver todos →</button>
               </div>
               <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
                 {bp.map(p => <ProductCard key={p.id} product={p} compact />)}
@@ -77,6 +85,11 @@ export default function BrandsPage() {
           );
         })}
       </div>
+      <Loading
+        loading={Controller?.result?.Loading || false}
+        message={"Carregando..."}
+        subMessage={"Melhores Produtos"}
+      />
     </div>
   );
 }

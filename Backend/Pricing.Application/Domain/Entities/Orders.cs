@@ -15,6 +15,8 @@ namespace Baldan.Pricing.Application.Domain.Entities
         public double Discont_Percentage { get; set; }
         public int? Id_Cupom { get; set; }
         public Cupom? Cupom { get; set; }
+        public string Status_Pay { get; set; }
+        public string Tracking_Code { get; set; }
         public string Payment_terms { get; set; }
         public int? Id_User_Customer { get; set; }
         public User_Customer User_Customer { get; set; }

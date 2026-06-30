@@ -17,7 +17,6 @@ export const ProductPage = () => {
   const navigate = useNavigate();
   const { selectedProductId, navigatePages } = UseRouteStore();
   const { products } = UseProductStore();
-
   const product = products.find(p => p.id === Number(selectedProductId));
   const [imgIndex, setImgIndex] = useState(0);
   const [selectedVariations, setSelectedVariations] = useState<Record<string, string>>({});
@@ -27,13 +26,9 @@ export const ProductPage = () => {
   const [added, setAdded] = useState(false);
 
   useEffect(() => {
-
     setSelectedVariations({});
-
     setQuantity(1);
-
     setImgIndex(0);
-
   }, [product?.id]);
 
   if (!product) return null;

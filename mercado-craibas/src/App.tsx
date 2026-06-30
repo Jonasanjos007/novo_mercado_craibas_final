@@ -18,11 +18,14 @@ import { MainLayout } from './routes/MainLayout';
 import { AdminLayout } from './routes/AdminLayout';
 import { ProtectedRoute } from './routes/ProtectedRoute';
 import CheckoutAutUser from './pages/CheckoutAutUser';
+import { Toaster } from 'react-hot-toast';
+import AddressPage from './pages/AddressPage';
 
 
 export default function App() {
   return (
     <>
+      <Toaster position="top-center" />
       <Routes>
         <Route element={<AdminLayout />}>
           <Route path="/login" element={<AuthPage />} />
@@ -42,12 +45,14 @@ export default function App() {
         {/* ROTAS COM HEADER */}
         <Route element={<ProtectedRoute allowedRoles={["CLIENTE"]} />}>
           <Route path="/checkout" element={<CheckoutPage />} />
+          <Route path="/addressPage/:Boleano" element={<AddressPage />} />
+          <Route path="/profile" element={<ProfilePage />} />
+
           <Route element={<MainLayout />}>
             <Route path="/orders" element={<OrdersPage />} />
             <Route path="/wishlist" element={<WishlistPage />} />
             <Route path="/flash-sale" element={<FlashSalePage />} />
             <Route path="/brands" element={<BrandsPage />} />
-            <Route path="/profile" element={<ProfilePage />} />
           </Route>
         </Route>
 

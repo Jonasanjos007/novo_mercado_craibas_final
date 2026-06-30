@@ -37,7 +37,7 @@ export const useProductController = (): ProductControllerReturn => {
 
     useEffect(() => {
         const Response = async () => {
-            const result = await loadProducts(user);
+            const result = await loadProducts();
             if (!result?.success) {
                 notify.error(result?.error || "Erro ao carregar produtos Entre em contato com Suporte!", "error");
             }
@@ -90,7 +90,6 @@ export const useProductController = (): ProductControllerReturn => {
         return true;
     };
     const handleAddToCart = async (quantity: number, selectedVariations: Record<string, string>) => {
-        console.log("teste2", quantity, selectedVariations)
         if (!user) {
             navigate("/CheckoutAutUser");
             notify.warning("Atenção", "Faça login ou crie sua conta para adicionar produtos ao carrinho");
@@ -108,11 +107,7 @@ export const useProductController = (): ProductControllerReturn => {
         )
             : undefined;
 
-        console.log("product", product, firstVariation);
-        console.log("quantity", quantity);
-        console.log("firstVariation", firstVariation);
-        console.log("user", user)
-        const result = await addToCart({ product, quantity, selectedVariation: firstVariation, user: user });
+        const result = await addToCart({ product: product, quantity: quantity, selectedVariation: firstVariation, user: user });
 
         if (!result) {
             notify.error("Erro", "Não foi possível adicionar o produto ao carrinho.");
