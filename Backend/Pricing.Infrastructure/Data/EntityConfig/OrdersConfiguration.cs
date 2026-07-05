@@ -22,9 +22,15 @@ namespace Mercado.Craibas.Infrastructure.Configurations
 
             builder.Property(x => x.Discont)
                 .IsRequired();
+          
 
             builder.Property(x => x.Discont_Percentage)
                 .IsRequired();
+
+            builder.HasOne(x => x.Cupom)
+                .WithMany(x => x.Orders)
+                .HasForeignKey(x => x.Id_Cupom)
+                .OnDelete(DeleteBehavior.Restrict);
 
             builder.HasOne(x => x.Cupom)
                 .WithMany(x => x.Orders)
@@ -37,6 +43,8 @@ namespace Mercado.Craibas.Infrastructure.Configurations
                 .HasForeignKey(x => x.Id_User_Customer)
                 .OnDelete(DeleteBehavior.Restrict);
 
+            builder.Property(x => x.Order_Status)
+                .IsRequired(false);
 
             builder.HasOne(x => x.Address)
                 .WithMany(x => x.Orders)

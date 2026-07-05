@@ -16,7 +16,6 @@ import { useCheckoutController } from '../controller/useCheckoutController';
 import { UseOrderStore } from '../store/UseOrderStore';
 import { Cupom } from '../models/Cupom';
 
-type PaymentMethod = 'pix' | 'credit' | 'boleto';
 type Step = 'Endereço' | 'Pagamento' | 'Checkout' | 'success';
 
 export default function CheckoutPage() {
@@ -24,27 +23,18 @@ export default function CheckoutPage() {
   const navigate = useNavigate();
   const { placeOrder } = useStore();
   const { setCartOpen } = UseCartStore();
-  const { cartTotal } = UseCartStore();
   const { navigateTo } = UseRouteStore();
   const { cart } = UseCartStore();
   const { address } = UseAddressStore();
   const { Cupons } = UseOrderStore();
   const { user, ColorGlobalTema, ColorGlobalText, ColorGlobalHoverText, NameColorGlobal } = UseUserStore();
   const [step, setStep] = useState<Step>('Endereço');
-  const [payment, setPayment] = useState<PaymentMethod>('pix');
-  const [loading, setLoading] = useState(false);
   const [order, setOrder] = useState<any>(null);
   const [selectedAddress, setSelectedAddress] = useState(true);
   const [cardData, setCardData] = useState({ number: '', name: '', expiry: '', cvv: '' });
   const [coupon, setCoupon] = useState('');
-  const [discount, setDiscount] = useState(0);
-  const total = cartTotal();
-  const shipping = total >= 299 ? 0 : 19.99;
-  const paymentDiscount = payment === 'pix' ? total * 0.05 : 0;
-  const finalTotal = total + shipping - paymentDiscount - discount;
   const colorConfig = getColorConfig(NameColorGlobal);
   const [openCouponModal, setOpenCouponModal] = useState(false);
-  const [selectedCoupon, setSelectedCoupon] = useState<Cupom | null>(null);
   const [selectedCouponTed, setSelectedCouponTed] = useState<Cupom | null>(null);
 
   const STEPS = ['Endereço', 'Checkout', 'Pagamento'];
@@ -68,13 +58,15 @@ export default function CheckoutPage() {
   };
   const currentStepIdx = STEPS.indexOf(step);
   const handlePlaceOrder = async () => {
-    setLoading(true);
+    // setLoading(true);
     await new Promise(r => setTimeout(r, 1500));
-    const payLabel = payment === 'pix' ? 'PIX' : payment === 'credit' ? `Cartão •••• ${cardData.number.slice(-4) || '4242'}` : 'Boleto Bancário';
-    const placed = placeOrder(payLabel);
-    setOrder(placed);
+
+
+    // const payLabel = Controller?.result.payment === 'pix' ? 'PIX' : Controller?.result.payment === 'credit' ? `Cartão •••• ${cardData.number.slice(-4) || '4242'}` : 'Boleto Bancário';
+    // const placed = placeOrder(payLabel);
+    // setOrder(placed);
     setStep('success');
-    setLoading(false);
+    // setLoading(false);
   };
 
   // const applyCoupon = () => {
@@ -357,17 +349,17 @@ export default function CheckoutPage() {
                 ] as const).map(opt => (
                   <button
                     key={opt.id}
-                    onClick={() => setPayment(opt.id)}
-                    className={`flex flex-col items-center gap-2 p-4 rounded-2xl border-2 transition-all ${payment === opt.id ? `border-${ColorGlobalTema.slice(3)} ${ColorGlobalTema.slice(0, -4)}-50` : 'border-surface-200 hover:border-surface-300'}`}
+                    onClick={() => Controller?.action.setPayment(opt.id)}
+                    className={`flex flex-col items-center gap-2 p-4 rounded-2xl border-2 transition-all ${Controller?.result.payment === opt.id ? `border-${ColorGlobalTema.slice(3)} ${ColorGlobalTema.slice(0, -4)}-50` : 'border-surface-200 hover:border-surface-300'}`}
                   >
-                    <div className={`${payment === opt.id ? `${ColorGlobalText}` : 'text-surface-400'}`}>{opt.icon}</div>
-                    <span className={`font-display font-bold text-sm ${payment === opt.id ? `${ColorGlobalText}` : 'text-surface-600'}`}>{opt.label}</span>
+                    <div className={`${Controller?.result.payment === opt.id ? `${ColorGlobalText}` : 'text-surface-400'}`}>{opt.icon}</div>
+                    <span className={`font-display font-bold text-sm ${Controller?.result.payment === opt.id ? `${ColorGlobalText}` : 'text-surface-600'}`}>{opt.label}</span>
                     <span className={`text-[10px] font-body ${opt.id === 'pix' ? 'text-green-600 font-semibold' : 'text-surface-400'}`}>{opt.sub}</span>
                   </button>
                 ))}
               </div>
 
-              {payment === 'pix' && (
+              {Controller?.result.payment === 'pix' && (
                 <div className="p-5 bg-green-50 rounded-2xl border border-green-200 text-center animate-fade-in">
                   <div className="w-32 h-32 bg-white rounded-2xl mx-auto flex items-center justify-center mb-3 shadow-soft">
                     <div className="grid grid-cols-5 gap-0.5">
@@ -376,7 +368,7 @@ export default function CheckoutPage() {
                       ))}
                     </div>
                   </div>
-                  <p className="font-display font-bold text-green-700 text-lg">{formatPrice(finalTotal)}</p>
+                  <p className="font-display font-bold text-green-700 text-lg">{formatPrice(Controller?.result.finalTotal)}</p>
                   <p className="text-green-600 font-body text-sm mt-1">Escaneie o QR Code ou copie a chave PIX</p>
                   <div className="mt-3 flex items-center gap-2 bg-white rounded-xl p-2 border border-green-200">
                     <span className="flex-1 text-xs text-surface-500 font-body truncate">00020126580014br.gov.bcb.pix0136...</span>
@@ -385,7 +377,7 @@ export default function CheckoutPage() {
                 </div>
               )}
 
-              {payment === 'credit' && (
+              {Controller?.result.payment === 'credit' && (
                 <div className="space-y-3 animate-fade-in">
                   <div>
                     <label className="block text-xs font-display font-semibold text-surface-600 mb-1.5">Número do cartão</label>
@@ -442,7 +434,7 @@ export default function CheckoutPage() {
                 </div>
                 {/* Conteúdo */}
                 <div className="p-5">
-                  {selectedCoupon ? (
+                  {Controller?.result.selectedCoupon ? (
                     <>
                       <div className="flex justify-between items-start">
                         <div>
@@ -451,19 +443,19 @@ export default function CheckoutPage() {
                               APLICADO
                             </span>
                             <span className="px-2 py-1 rounded-full bg-surface-100 text-surface-500 text-xs font-semibold">
-                              {selectedCoupon.cod_Cupom}
+                              {Controller.result.selectedCoupon.cod_Cupom}
                             </span>
                           </div>
                           <h3 className="font-bold text-surface-900 text-lg">
-                            {selectedCoupon.name_Cupom}
+                            {Controller.result.selectedCoupon.name_Cupom}
                           </h3>
                           <p className="text-sm text-surface-500 mt-1">
-                            {selectedCoupon.descriotion}
+                            {Controller.result.selectedCoupon.descriotion}
                           </p>
                         </div>
                         <div className="text-right">
                           <p className={`text-3xl font-black ${ColorGlobalText}`}>
-                            {selectedCoupon.discont}%
+                            {Controller.result.selectedCoupon.discont}%
                           </p>
                           <p className="text-xs text-surface-500">
                             de desconto
@@ -476,15 +468,15 @@ export default function CheckoutPage() {
                             Código
                           </p>
                           <p className="font-semibold text-surface-700">
-                            {selectedCoupon.cod_Cupom}
+                            {Controller.result.selectedCoupon.cod_Cupom}
                           </p>
                         </div>
                         <button
                           onClick={(e) => {
                             e.stopPropagation();
-                            setSelectedCoupon(null);
+                            Controller?.action.setSelectedCoupon(null);
                             setCoupon("");
-                            setDiscount(0);
+                            Controller?.action.setDiscount(0);
                           }}
                           className="text-red-500 text-sm font-semibold hover:text-red-600"
                         >
@@ -568,7 +560,7 @@ export default function CheckoutPage() {
                           .filter(c => c.active)
                           .map(coupon => {
                             const minimumValue = coupon.minimum_Value ?? 0;
-                            const valido = total >= minimumValue;
+                            const valido = Controller?.result.total || 0 >= minimumValue;
                             const selected = selectedCouponTed?.id === coupon.id;
 
                             return (
@@ -651,7 +643,7 @@ export default function CheckoutPage() {
                                       </span>
                                     ) : (
                                       <span className="rounded-full bg-red-100 px-2.5 sm:px-3 py-1 sm:py-1.5 text-[11px] sm:text-xs font-semibold text-red-600 whitespace-nowrap">
-                                        Faltam {formatPrice(minimumValue - total)}
+                                        Faltam {formatPrice(minimumValue - (Controller?.result.total || 0))}
                                       </span>
                                     )}
                                   </div>
@@ -697,8 +689,8 @@ export default function CheckoutPage() {
                             onClick={() => {
                               setOpenCouponModal(false);
                               setSelectedCouponTed(null);
-                              setSelectedCoupon(null);
-                              setDiscount(0);
+                              Controller?.action.setSelectedCoupon(null);
+                              Controller?.action.setDiscount(0);
                               setCoupon('');
                             }
                             }
@@ -711,13 +703,12 @@ export default function CheckoutPage() {
                             disabled={!selectedCouponTed}
                             onClick={() => {
                               if (!selectedCouponTed) return;
-                              setSelectedCoupon(selectedCouponTed);
+                              Controller?.action.setSelectedCoupon(selectedCouponTed);
                               setCoupon(selectedCouponTed.cod_Cupom);
-                              setDiscount(total * ((selectedCouponTed.discont ?? 0) / 100));
+                              Controller?.action.setDiscount((Controller?.result.total || 0) * ((selectedCouponTed.discont ?? 0) / 100));
                               setOpenCouponModal(false);
                             }}
-                            className={`
-                h-11 sm:h-12 rounded-xl text-sm sm:text-base font-bold text-white shadow-lg transition-all hover:bg-green-600
+                            className={` h-11 sm:h-12 rounded-xl text-sm sm:text-base font-bold text-white shadow-lg transition-all hover:bg-green-600
                 ${selectedCouponTed
                                 ? ` ${ColorGlobalTema} hover:shadow-xl hover:scale-[1.02]`
                                 : "bg-surface-300 cursor-not-allowed"
@@ -742,7 +733,7 @@ export default function CheckoutPage() {
                     Aplicar
                   </button>
                 </div>
-                {discount > 0 && <p className="text-xs text-green-600 font-body mt-1.5 font-semibold">✓ Cupom aplicado! Desconto de {formatPrice(discount)}</p>}
+                {Controller?.result.discount > 0 && <p className="text-xs text-green-600 font-body mt-1.5 font-semibold">✓ Cupom aplicado! Desconto de {formatPrice(Controller?.result.discount)}</p>}
               </div>
 
               <div className="flex gap-3 mt-4">
@@ -750,11 +741,11 @@ export default function CheckoutPage() {
                   ← Voltar
                 </button>
                 <button
-                  onClick={handlePlaceOrder}
-                  disabled={loading}
+                  onClick={Controller?.action.handlePlaceOrder}
+                  disabled={Controller?.result.loading}
                   className={`flex-1 py-3.5 ${ColorGlobalTema} hover:bg-green-700 disabled:bg-green-300 text-white font-display font-bold rounded-xl transition-all  flex items-center justify-center gap-2`}
                 >
-                  {loading ? <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <><Check className="w-4 h-4" /> Confirmar Pedido</>}
+                  {Controller?.result.loading ? <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <><Check className="w-4 h-4" /> Confirmar Pedido</>}
                 </button>
               </div>
 
@@ -814,29 +805,29 @@ export default function CheckoutPage() {
             <div className="space-y-2 text-sm font-body">
               <div className="flex justify-between text-surface-500">
                 <span>Subtotal ({cart.reduce((s, i) => s + i.quantity, 0)} itens)</span>
-                <span className="font-semibold text-surface-800">{formatPrice(total)}</span>
+                <span className="font-semibold text-surface-800">{formatPrice(Controller?.result.total)}</span>
               </div>
               <div className="flex justify-between text-surface-500">
                 <span>Frete</span>
-                <span className={shipping === 0 ? 'text-green-600 font-semibold' : 'font-semibold text-surface-800'}>
-                  {shipping === 0 ? 'Grátis' : formatPrice(shipping)}
+                <span className={Controller?.result.shipping === 0 ? 'text-green-600 font-semibold' : 'font-semibold text-surface-800'}>
+                  {Controller?.result.shipping === 0 ? 'Grátis' : formatPrice(Controller?.result.shipping)}
                 </span>
               </div>
-              {paymentDiscount > 0 && (
+              {Controller?.result.paymentDiscount > 0 && (
                 <div className="flex justify-between text-green-600">
                   <span>Desconto PIX (5%)</span>
-                  <span className="font-semibold">-{formatPrice(paymentDiscount)}</span>
+                  <span className="font-semibold">-{formatPrice(Controller?.result.paymentDiscount)}</span>
                 </div>
               )}
-              {discount > 0 && (
+              {Controller?.result.discount > 0 && (
                 <div className="flex justify-between text-green-600">
                   <span>Cupom</span>
-                  <span className="font-semibold">-{formatPrice(discount)}</span>
+                  <span className="font-semibold">-{formatPrice(Controller?.result.discount)}</span>
                 </div>
               )}
               <div className="border-t border-surface-100 pt-2 mt-2 flex justify-between items-center">
                 <span className="font-display font-bold text-surface-900">Total</span>
-                <span className="font-display font-bold text-surface-900 text-xl">{formatPrice(finalTotal)}</span>
+                <span className="font-display font-bold text-surface-900 text-xl">{formatPrice(Controller?.result.finalTotal)}</span>
               </div>
             </div>
           </div>

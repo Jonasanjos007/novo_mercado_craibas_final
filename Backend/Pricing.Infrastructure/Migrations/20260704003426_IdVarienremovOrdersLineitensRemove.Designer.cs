@@ -4,6 +4,7 @@ using Mercado.Craibas.Infrastructure.Data.Context;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace Mercado.Craibas.Infrastructure.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260704003426_IdVarienremovOrdersLineitensRemove")]
+    partial class IdVarienremovOrdersLineitensRemove
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -341,6 +344,9 @@ namespace Mercado.Craibas.Infrastructure.Migrations
                         .HasMaxLength(100)
                         .HasColumnType("nvarchar(100)");
 
+                    b.Property<int?>("Variante_ProductsId")
+                        .HasColumnType("int");
+
                     b.Property<string>("Variante_Type")
                         .HasMaxLength(100)
                         .HasColumnType("nvarchar(100)");
@@ -354,6 +360,8 @@ namespace Mercado.Craibas.Infrastructure.Migrations
                     b.HasIndex("Id_Order");
 
                     b.HasIndex("Id_Product");
+
+                    b.HasIndex("Variante_ProductsId");
 
                     b.ToTable("OrderLineItens", (string)null);
                 });
@@ -883,6 +891,10 @@ namespace Mercado.Craibas.Infrastructure.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
+                    b.HasOne("Baldan.Pricing.Application.Domain.Entities.Variante_Products", null)
+                        .WithMany("OrderLineItens")
+                        .HasForeignKey("Variante_ProductsId");
+
                     b.Navigation("Orders");
 
                     b.Navigation("Product");
@@ -1027,6 +1039,8 @@ namespace Mercado.Craibas.Infrastructure.Migrations
             modelBuilder.Entity("Baldan.Pricing.Application.Domain.Entities.Variante_Products", b =>
                 {
                     b.Navigation("Cart_Items");
+
+                    b.Navigation("OrderLineItens");
                 });
 #pragma warning restore 612, 618
         }

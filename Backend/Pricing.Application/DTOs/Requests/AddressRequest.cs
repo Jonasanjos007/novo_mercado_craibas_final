@@ -8,7 +8,7 @@ namespace Mercado.Craibas.Application.DTOs.Requests
 {
     public class AddressRequest
     {
-        public int? Id { get; set; }
+        public int Id { get; set; }
         public string Road { get; set; }
         public string Name { get; set; }
         public string Phone { get; set; }

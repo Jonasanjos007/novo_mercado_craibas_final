@@ -5,23 +5,66 @@ import { User } from "../models/User";
 import { Product } from "../models/Product";
 import { OrderService } from "../service/OrderService";
 import { Cupom } from "../models/Cupom";
+import { Order, OrderSave } from "../models/OrderSave";
+import { UseUserStore } from "./UseUserStore";
+import { CartItensProduct } from "../models/CartItensProduct";
+import { UseCartStore } from "./UseCartStore";
 
 interface OrderState {
     LoadCupons: () => Promise<Result<boolean>>;
-    Cupons: Cupom[] | undefined;
+    Cupons: Cupom[];
+    orders: Order[];
+    SaveOrderUser: (Order: OrderSave) => Promise<Result<CartItensProduct | null>>;
+    LoadOrders: () => Promise<Result<boolean>>;
 }
 
-export const UseOrderStore = create<OrderState>((set) => ({
+export const UseOrderStore = create<OrderState>((set, get) => ({
     Cupons: [],
+    orders: [],
 
     LoadCupons: async (): Promise<Result<boolean>> => {
         const result = await OrderService.GetCupomSearch();
-        if (result.success) {
-            set({ Cupons: result.data });
-            return makeResult(true, true);
+        if (!result.success) {
+            set({ Cupons: [] });
+            return makeResult(false, false, "Erro ao carregar Cupom");
         }
+        set({ Cupons: result.data });
+        return makeResult(true, true);
 
-        set({ Cupons: [] });
-        return makeResult(false, false, "Erro ao carregar Cupom");
     },
+    LoadOrders: async (): Promise<Result<boolean>> => {
+        const result = await OrderService.GetOrderAllList();
+        if (!result.success) {
+            set({ orders: [] });
+            return makeResult(false, false, "Erro ao carregar pedidos");
+        }
+        set({ orders: result.data || [] });
+        return makeResult(true, true);
+
+    },
+    SaveOrderUser: async (orderData: OrderSave) => {
+        const { user } = UseUserStore.getState();
+        if (!user) {
+            return makeResult(false, null, "Usuário não encontrado");
+        }
+        const result = await OrderService.PostOrder(orderData);
+
+        if (!result.success) {
+            return makeResult(false, null, "Erro ao salvar pedido");
+        } console.log("result.data teste", result.data)
+        // const total = get().cartTotal();
+        // const order: Order = {
+        //     id: `ORD-${String(Date.now()).slice(-6)}`,
+        //     userId: user.id, items: [...cart], total,
+        //     status: 'confirmado', createdAt: new Date(), updatedAt: new Date(),
+        //     address: user.address || { street: 'Rua das Flores', number: '123', neighborhood: 'Centro', city: 'Craibas', state: 'AL', zipCode: '57465-000' },
+        //     paymentMethod, trackingCode: `MC${String(Date.now()).slice(-9)}BR`,
+        //     deliveryCommission: +(total * 0.05).toFixed(2),
+        // };
+        // set({ orders: [order, ...get().orders] });
+        // get().clearCart();
+        // return order;
+        return makeResult(true, result.data);
+    },
+
 }));

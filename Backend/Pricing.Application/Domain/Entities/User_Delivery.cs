@@ -21,7 +21,7 @@ namespace Baldan.Pricing.Application.Domain.Entities
         public double? Phone { get; set; }
         public ICollection<Orders> Orders { get; set; } = [];
         public string? RefreshToken { get; set; }
-        public string? RefreshTokenExpiresAt { get; set; }
+        public DateTime? RefreshTokenExpiresAt { get; set; }
 
     }
 }

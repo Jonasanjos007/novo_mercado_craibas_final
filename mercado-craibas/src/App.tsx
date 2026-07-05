@@ -47,9 +47,9 @@ export default function App() {
           <Route path="/checkout" element={<CheckoutPage />} />
           <Route path="/addressPage/:Boleano" element={<AddressPage />} />
           <Route path="/profile" element={<ProfilePage />} />
+          <Route path="/orders" element={<OrdersPage />} />
 
           <Route element={<MainLayout />}>
-            <Route path="/orders" element={<OrdersPage />} />
             <Route path="/wishlist" element={<WishlistPage />} />
             <Route path="/flash-sale" element={<FlashSalePage />} />
             <Route path="/brands" element={<BrandsPage />} />

@@ -17,6 +17,7 @@ public class ProductResponse
     public int? Count_Sold { get; set; } = default!;
     public List<Variante_Products?> variations { get; set; }
     public int? Total_Stock { get; set; }
+    public int? Quantity { get; set; }
     public string? Badge { get; set; }
     public bool? FreeShipping { get; set; }
     public double? Installments { get; set; }

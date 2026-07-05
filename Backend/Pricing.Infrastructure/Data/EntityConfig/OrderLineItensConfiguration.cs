@@ -38,6 +38,9 @@ namespace Mercado.Craibas.Infrastructure.Configurations
             builder.Property(x => x.Price_Unit)
                 .IsRequired();
 
+            builder.Property(x => x.Id_Variante_Product)
+                           .IsRequired();
+
             builder.Property(x => x.Discont);
 
             builder.HasOne(x => x.Orders)

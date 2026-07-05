@@ -56,7 +56,7 @@ namespace Mercado.Craibas.Infrastructure.Repositories
         public async Task UpdateRefreshTokenAsync(
                  int userId,
                 string refreshToken,
-                string expiresAt)
+                 DateTime expiresAt)
         {
             await _context.User_Admin
                 .Where(u => u.Id == userId)

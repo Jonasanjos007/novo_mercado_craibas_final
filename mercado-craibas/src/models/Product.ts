@@ -17,8 +17,19 @@ export interface Product {
     tags: string;
     featured: boolean;
 }
+
+export interface ProductSaveOrder {
+    id: number;
+    name: string;
+    price_Unic: number;
+    quantity: number;
+    imagens?: Imagens_Products[];
+    origin_Price?: number;
+    variations: ProductVariation | null;
+}
 export interface ProductVariation {
     id: string;
+    id_Product?: number;
     name: string;
     value: string;
     type: string;

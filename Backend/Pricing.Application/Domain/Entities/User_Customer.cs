@@ -22,7 +22,7 @@ namespace Baldan.Pricing.Application.Domain.Entities
         public ICollection<Cart> Carts { get; set; } = [];
         public ICollection<Rating> Ratings { get; set; } = [];
         public string? RefreshToken { get; set; }
-        public string? RefreshTokenExpiresAt { get; set; }
+        public DateTime? RefreshTokenExpiresAt { get; set; }
 
 
     }

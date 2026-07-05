@@ -15,6 +15,7 @@ using backend.services.interfaces;
 using Mercado.Craibas.Application.Interfaces.Services;
 using Mercado.Craibas.Application.Services;
 using Mercado.Craibas.Application.Interfaces.Repositories;
+using Pricing.Infrastructure.Repositories;
 
 namespace Pricing.Api
 
@@ -75,7 +76,7 @@ namespace Pricing.Api
             builder.Services.AddScoped<IUnitOfWork, UnitOfWorkRepository>();
             builder.Services.AddScoped<IProductService, ProductService>();
             builder.Services.AddScoped<IProductRepository, ProductRepository>();
-            //builder.Services.AddScoped<ISurveyService, SurveyService>();
+            builder.Services.AddScoped<IOrderService, OrderService>();
             builder.Services.AddScoped<IAuthService, AuthService>();
             //builder.Services.AddScoped<ICheckoutService, CheckoutService>();
             builder.Services.AddScoped<IAuthRepository, AuthRepository>();

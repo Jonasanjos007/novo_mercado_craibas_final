@@ -5,6 +5,7 @@ import { useNotification } from "../utils/NotificationCard";
 import { AddressService } from "../service/AddressService";
 import { UseAddressStore } from "../store/UseAddressStore";
 import { UseUserStore } from "../store/UseUserStore";
+import { UseOrderStore } from "../store/UseOrderStore";
 
 type ProfileControllerReturn = {
     result: {
@@ -35,6 +36,7 @@ type ProfileControllerReturn = {
 export const userProfileController = (): ProfileControllerReturn => {
     const { user, SaveColorGlobal } = UseUserStore();
     const { LoadAddressUser } = UseAddressStore();
+    const { LoadOrders } = UseOrderStore();
 
     const { saveAddress, updateAddress, removerAddress } = UseAddressStore();
     const notify = useNotification();
@@ -53,6 +55,7 @@ export const userProfileController = (): ProfileControllerReturn => {
             setLoadingMessage("");
             setLoadingTitleMessage("Carreganco...")
             await GetAddressUser();
+            await GetListOrders();
             setLoadingProfile(false);
         };
 
@@ -63,6 +66,13 @@ export const userProfileController = (): ProfileControllerReturn => {
         const result = await LoadAddressUser();
         if (!result?.success) {
             notify.error(result?.error || "Erro ao carregar Endereços", "error");
+        }
+    };
+    const GetListOrders = async () => {
+        const result = await LoadOrders();
+        // SetLoading(false);
+        if (!result?.success) {
+            notify.error(result?.error || "Erro ao carregar pedidos", "error");
         }
     };
     const [addrForm, setAddrForm] = useState<Address>(

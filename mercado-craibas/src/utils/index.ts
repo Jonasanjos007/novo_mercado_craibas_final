@@ -49,21 +49,21 @@ export const badgeColors: Record<string, string> = {
 };
 
 export const orderStatusLabels: Record<string, string> = {
-  pendente: 'Pendente',
-  confirmado: 'Confirmado',
-  preparando: 'Preparando',
-  saiu_entrega: 'Saiu para Entrega',
-  entregue: 'Entregue',
-  cancelado: 'Cancelado',
+  PENDENTE: 'Pendente',
+  CONFIRMADO: 'Confirmado',
+  PREPARANDO: 'Preparando',
+  SAIU_PARA_ENTREGA: 'Saiu para Entrega',
+  ENTREGUE: 'Entregue',
+  CANCELADO: 'Cancelado',
 };
 
 export const orderStatusColors: Record<string, string> = {
-  pendente: 'text-yellow-600 bg-yellow-50',
-  confirmado: 'text-blue-600 bg-blue-50',
-  preparando: 'text-purple-600 bg-purple-50',
-  saiu_entrega: 'text-orange-600 bg-orange-50',
-  entregue: 'text-green-600 bg-green-50',
-  cancelado: 'text-red-600 bg-red-50',
+  PENDENTE: 'text-yellow-600 bg-yellow-50',
+  CONFIRMADO: 'text-blue-600 bg-blue-50',
+  PREPARANDO: 'text-purple-600 bg-purple-50',
+  SAIU_PARA_ENTREGA: 'text-orange-600 bg-orange-50',
+  ENTREGUE: 'text-green-600 bg-green-50',
+  CANCELADO: 'text-red-600 bg-red-50',
 };
 
-export const orderStatusSteps = ['confirmado', 'preparando', 'saiu_entrega', 'entregue'];
+export const orderStatusSteps = ['CONFIRMADO', 'PREPARANDO', 'SAIU_PARA_ENTREGA', 'ENTREGUE'];

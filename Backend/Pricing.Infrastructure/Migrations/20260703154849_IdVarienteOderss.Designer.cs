@@ -4,6 +4,7 @@ using Mercado.Craibas.Infrastructure.Data.Context;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace Mercado.Craibas.Infrastructure.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260703154849_IdVarienteOderss")]
+    partial class IdVarienteOderss
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -311,9 +314,6 @@ namespace Mercado.Craibas.Infrastructure.Migrations
                     b.Property<int>("Id_Product")
                         .HasColumnType("int");
 
-                    b.Property<int>("Id_Variante_Product")
-                        .HasColumnType("int");
-
                     b.Property<DateTime>("InsertDate")
                         .HasColumnType("datetime2");
 
@@ -390,6 +390,9 @@ namespace Mercado.Craibas.Infrastructure.Migrations
                     b.Property<int?>("Id_User_Delivery")
                         .HasColumnType("int");
 
+                    b.Property<int?>("Id_Variante_Product")
+                        .HasColumnType("int");
+
                     b.Property<DateTime>("InsertDate")
                         .HasColumnType("datetime2");
 
@@ -416,6 +419,9 @@ namespace Mercado.Craibas.Infrastructure.Migrations
                     b.Property<DateTime?>("UpdateDate")
                         .HasColumnType("datetime2");
 
+                    b.Property<int?>("Variante_ProductId")
+                        .HasColumnType("int");
+
                     b.HasKey("Id");
 
                     b.HasIndex("Id_Address");
@@ -425,6 +431,8 @@ namespace Mercado.Craibas.Infrastructure.Migrations
                     b.HasIndex("Id_User_Customer");
 
                     b.HasIndex("Id_User_Delivery");
+
+                    b.HasIndex("Variante_ProductId");
 
                     b.ToTable("Orders", (string)null);
                 });
@@ -911,6 +919,10 @@ namespace Mercado.Craibas.Infrastructure.Migrations
                         .HasForeignKey("Id_User_Delivery")
                         .OnDelete(DeleteBehavior.Restrict);
 
+                    b.HasOne("Baldan.Pricing.Application.Domain.Entities.Variante_Products", "Variante_Product")
+                        .WithMany()
+                        .HasForeignKey("Variante_ProductId");
+
                     b.Navigation("Address");
 
                     b.Navigation("Cupom");
@@ -918,6 +930,8 @@ namespace Mercado.Craibas.Infrastructure.Migrations
                     b.Navigation("User_Customer");
 
                     b.Navigation("User_Delivery");
+
+                    b.Navigation("Variante_Product");
                 });
 
             modelBuilder.Entity("Baldan.Pricing.Application.Domain.Entities.Product", b =>

@@ -1,4 +1,5 @@
-﻿using Baldan.Pricing.Application.Interfaces;
+﻿using Baldan.Pricing.Application.Domain.Entities;
+using Baldan.Pricing.Application.Interfaces;
 using Mercado.Craibas.Infrastructure.Data.Context;
 using Microsoft.EntityFrameworkCore;
 using System;
@@ -7,7 +8,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace Mercado.Craibas.Infrastructure.Repositories
+namespace Pricing.Infrastructure.Repositories
 {
     public class UnitOfWorkRepository : IUnitOfWork
     {
@@ -35,7 +36,7 @@ namespace Mercado.Craibas.Infrastructure.Repositories
                 .AsNoTracking()
                 .FirstOrDefaultAsync(x => EF.Property<int>(x, columnName) == id);
         }
-        public async Task<bool> UpdateFieldsAsync<T>(Dictionary<string, object> filters,Dictionary<string, object> fieldsToUpdate) where T : class
+        public async Task<bool> UpdateFieldsAsync<T>(Dictionary<string, object> filters, Dictionary<string, object> fieldsToUpdate) where T : class
         {
             IQueryable<T> query = _context.Set<T>();
 
@@ -87,6 +88,31 @@ namespace Mercado.Craibas.Infrastructure.Repositories
             _context.Set<T>().Remove(entity);
             await _context.SaveChangesAsync();
             return true;
+        }
+        public async Task<bool> DeleteAllByColumnAsync<T>(string columnName, object value) where T : class
+        {
+            var entities = await _context.Set<T>()
+                .Where(x => EF.Property<object>(x, columnName).Equals(value))
+                .ToListAsync();
+
+            if (!entities.Any())
+                return false;
+
+            _context.Set<T>().RemoveRange(entities);
+            await _context.SaveChangesAsync();
+
+            return true;
+        }
+        public async Task<T> InsertAsyncReturnId<T>(T entity) where T : EntityBase
+        {
+            await _context.Set<T>().AddAsync(entity);
+            await _context.SaveChangesAsync();
+
+            return entity;
+        }
+        public IQueryable<T> Query<T>() where T : class
+        {
+            return _context.Set<T>().AsQueryable();
         }
     }
 }

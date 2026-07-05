@@ -4,6 +4,7 @@ using Mercado.Craibas.Infrastructure.Data.Context;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace Mercado.Craibas.Infrastructure.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260701023058_Tracking_Codenull")]
+    partial class Tracking_Codenull
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -311,9 +314,6 @@ namespace Mercado.Craibas.Infrastructure.Migrations
                     b.Property<int>("Id_Product")
                         .HasColumnType("int");
 
-                    b.Property<int>("Id_Variante_Product")
-                        .HasColumnType("int");
-
                     b.Property<DateTime>("InsertDate")
                         .HasColumnType("datetime2");
 
@@ -398,8 +398,8 @@ namespace Mercado.Craibas.Infrastructure.Migrations
                         .HasMaxLength(100)
                         .HasColumnType("nvarchar(100)");
 
-                    b.Property<string>("Order_Status")
-                        .HasColumnType("nvarchar(max)");
+                    b.Property<int>("Order_Status")
+                        .HasColumnType("int");
 
                     b.Property<string>("Payment_terms")
                         .HasColumnType("nvarchar(max)");
