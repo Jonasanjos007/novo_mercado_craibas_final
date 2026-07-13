@@ -13,5 +13,6 @@ public interface IUserService
     Task<Result<bool>> PostUpdateAddressUserService(AddressRequest NewAnddress);
     Task<Result<bool>> DeleteAddressService(AddressRequest DeleteAddress);
     Task<Result<bool>> SaveColorGlobalInsertService(string Color, int Id_User);
+    Task<Result<bool>> SaveLogUser(LogRequest Log, int? UserId);
 }
 

@@ -47,24 +47,22 @@ namespace Mercado.Craibas.Infrastructure.Repositories
                 .FirstOrDefaultAsync(u => u.Email.ToLower() == email.ToLower());
         }
 
-        //public async Task<User?> GetByRefreshTokenAsync(string refreshToken)
-        //{
-        //    return await _context.Users
-        //        .FirstOrDefaultAsync(u => u.RefreshToken == refreshToken);
-        //}
+        public async Task<User_Customer?> GetByRefreshTokenAsync(string refreshToken)
+        {
+            return await _context.User_Customer
+                .FirstOrDefaultAsync(x => x.RefreshToken == refreshToken);
+        }
 
         public async Task UpdateRefreshTokenAsync(
-                 int userId,
-                string refreshToken,
-                 DateTime expiresAt)
+            int userId,
+            string refreshToken,
+            DateTime expiresAt)
         {
-            await _context.User_Admin
-                .Where(u => u.Id == userId)
-                .ExecuteUpdateAsync(setters =>
-                    setters
-                        .SetProperty(u => u.RefreshToken, refreshToken)
-                        .SetProperty(u => u.RefreshTokenExpiresAt, expiresAt)
-                );
+            await _context.User_Customer
+                .Where(x => x.Id == userId)
+                .ExecuteUpdateAsync(x => x
+                    .SetProperty(y => y.RefreshToken, refreshToken)
+                    .SetProperty(y => y.RefreshTokenExpiresAt, expiresAt));
         }
     }
 

@@ -1,21 +1,27 @@
-﻿using Backend.Middlewares;
+﻿using backend.services.interfaces;
+using Backend.Middlewares;
+using Backend.Services.Interfaces;
 using Baldan.Pricing.Application;
 using Baldan.Pricing.Application.Interfaces;
-using System.Text;
+using Baldan.Pricing.Application.Interfaces.Repositories;
+using Baldan.Pricing.Application.Services;
+using Mercado.Craibas.Application.Interfaces.Repositories;
+using Mercado.Craibas.Application.Interfaces.Services;
+using Mercado.Craibas.Application.InterfacesAdmin;
+using Mercado.Craibas.Application.InterfacesAdmin.Services;
+using Mercado.Craibas.Application.Services;
+using Mercado.Craibas.Application.ServicesAdmin;
 using Mercado.Craibas.Infrastructure;
 using Mercado.Craibas.Infrastructure.Data;
 using Mercado.Craibas.Infrastructure.Data.Context;
-using Backend.Services.Interfaces;
-using Baldan.Pricing.Application.Interfaces.Repositories;
 using Mercado.Craibas.Infrastructure.Repositories;
+using Mercado.Craibas.Infrastructure.RepositoriesAdmin;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
-using Baldan.Pricing.Application.Services;
-using backend.services.interfaces;
-using Mercado.Craibas.Application.Interfaces.Services;
-using Mercado.Craibas.Application.Services;
-using Mercado.Craibas.Application.Interfaces.Repositories;
 using Pricing.Infrastructure.Repositories;
+using System.Text;
+
 
 namespace Pricing.Api
 
@@ -51,8 +57,14 @@ namespace Pricing.Api
             });
 
             // Auth
-            builder.Services.AddAuthentication("Bearer")
-                .AddJwtBearer("Bearer", options =>
+
+            builder.Services
+                .AddAuthentication(options =>
+                {
+                    options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
+                    options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+                })
+                .AddJwtBearer(options =>
                 {
                     var jwt = builder.Configuration.GetSection("Jwt");
 
@@ -66,7 +78,9 @@ namespace Pricing.Api
                         ValidAudience = jwt["Audience"],
                         IssuerSigningKey = new SymmetricSecurityKey(
                             Encoding.UTF8.GetBytes(jwt["Key"]!)
-                        )
+                        ),
+                    ClockSkew = TimeSpan.Zero
+
                     };
                 });
 
@@ -74,6 +88,9 @@ namespace Pricing.Api
 
             // DI
             builder.Services.AddScoped<IUnitOfWork, UnitOfWorkRepository>();
+            builder.Services.AddScoped<IUnitOfWorkAdmin, IUnitOfWorkAdminRepository>();
+            builder.Services.AddScoped<IProductServiceAdmin, ProductServiceAdmin>();
+            builder.Services.AddScoped<IOrderAdminService, OrderServiceAdmin>();
             builder.Services.AddScoped<IProductService, ProductService>();
             builder.Services.AddScoped<IProductRepository, ProductRepository>();
             builder.Services.AddScoped<IOrderService, OrderService>();
@@ -106,12 +123,12 @@ namespace Pricing.Api
 
             app.UseCors();
 
+            app.UseMiddleware<ExceptionMiddleware>();
             app.UseAuthentication();
             app.UseAuthorization();
-
-            app.UseMiddleware<ExceptionMiddleware>();
-
             app.MapControllers();
+
+
 
             using (var scope = app.Services.CreateScope())
             {

@@ -7,7 +7,7 @@ namespace Pricing.Api.DTOs.Responses;
 public class UserResponse
 {
     public int Id { get; set; } = default!;
-    public string Name { get; set; } = default!;
+    public string? Name { get; set; } = default!;
     public string Email { get; set; } = default!;
     public string Avatar { get; set; } = default!;
     public ProfileEnum Role { get; set; } = default!;
@@ -16,7 +16,7 @@ public class UserResponse
     public CartResponse? Cart_User { get; set; }
     public string PasswordHash { get; set; } = default!;
     public string RefreshToken { get; set; } = default!;
-    public string RefreshTokenExpiresAt { get; set; } = default!;
+    public DateTime? RefreshTokenExpiresAt { get; set; } = default!;
     public DateTime Insert_Date { get; set; } = default!;
     public List<AddressResponse>? Address { get; set; }
     public Customize_Cliente Customize { get; set; }

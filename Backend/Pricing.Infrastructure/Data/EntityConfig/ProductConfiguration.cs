@@ -26,8 +26,7 @@ namespace Mercado.Craibas.Infrastructure.Configurations
             builder.Property(x => x.Origin_Price)
                 .IsRequired();
 
-            builder.Property(x => x.Rating)
-                .HasDefaultValue(0);
+         
 
             builder.Property(x => x.ReviewCount)
                 .HasDefaultValue(0);

@@ -43,7 +43,7 @@ export const ProductPage = () => {
           </button>
           <span>/</span>
           <button onClick={() => { navigatePages('category', null, product.category), navigate(`/category/${product.category}`) }} className="hover:text-brand-500 transition-colors capitalize">
-            {product.category}
+            {product.id_category}
           </button>
           <span>/</span>
           <span className="text-surface-600 truncate max-w-[200px]">{product.name}</span>
@@ -56,7 +56,7 @@ export const ProductPage = () => {
           <div className="space-y-3">
             <div className="relative bg-white rounded-3xl overflow-hidden aspect-square shadow-soft">
               <img
-                src={`/Imagens/${product.imagens[imgIndex]?.url_Imagem}`}
+                src={`/Imagens/Produtos/${product.imagens[imgIndex]?.url_Imagem}`}
                 alt={product.name}
                 className="w-full h-full object-cover"
               />
@@ -97,7 +97,7 @@ export const ProductPage = () => {
                   onClick={() => setImgIndex(i)}
                   className={`shrink-0 w-16 h-16 rounded-xl overflow-hidden border-2 transition-all ${i === imgIndex ? 'border-brand-500 shadow-brand' : 'border-surface-200'}`}
                 >
-                  <img src={`/Imagens/${img.url_Imagem}`} alt="" className="w-full h-full object-cover" />
+                  <img src={`/Imagens/Produtos/${img.url_Imagem}`} alt="" className="w-full h-full object-cover" />
                 </button>
               ))}
             </div>

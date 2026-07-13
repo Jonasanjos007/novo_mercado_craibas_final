@@ -23,7 +23,7 @@ export default function ProductCard({ product, compact = false }: ProductCardPro
     e.stopPropagation();
     addToCart({ product, quantity: 1 });
   };
-
+  console.log(`/Imagens/Produtos/${product.imagens[0]?.url_Imagem}`);
   const handleWishlist = (e: React.MouseEvent) => {
     e.stopPropagation();
     toggleWishlist(product);
@@ -35,7 +35,7 @@ export default function ProductCard({ product, compact = false }: ProductCardPro
     >
       <div className="relative overflow-hidden bg-surface-50">
         <div className={`${compact ? 'aspect-square' : 'aspect-[4/3]'} relative`}>
-          <img src={`/Imagens/${product.imagens[0]?.url_Imagem}`} alt={product.name} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" loading="lazy" />
+          <img src={`/Imagens/Produtos/${product.imagens[0]?.url_Imagem}`} alt={product.name} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" loading="lazy" />
           <div className="absolute inset-0 bg-gradient-to-t from-black/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
         </div>
         <div className="absolute top-2 left-2 flex flex-col gap-1">

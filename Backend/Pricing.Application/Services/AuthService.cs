@@ -1,3 +1,4 @@
+using backend.services.interfaces;
 using Backend.Services.Interfaces;
 using Baldan.Pricing.Application.Commons;
 using Baldan.Pricing.Application.Domain.Auth;
@@ -5,6 +6,7 @@ using Baldan.Pricing.Application.Domain.Entities;
 using Baldan.Pricing.Application.Interfaces;
 using Baldan.Pricing.Application.Interfaces.Repositories;
 using BCrypt.Net;
+using Mercado.Craibas.Application.DTOs.Requests;
 using Pricing.Api.DTOs.Requests;
 using Pricing.Api.DTOs.Responses;
 
@@ -13,16 +15,19 @@ public class AuthService : IAuthService
     private readonly ITokenService _tokenService;
     private readonly IAuthRepository _authRepository;
     private readonly IUnitOfWork _unitOfWork;
+    private readonly IUserService _useService;
 
     public AuthService(
         ITokenService tokenService,
         IAuthRepository authRepository,
-        IUnitOfWork unitOfWork
+        IUnitOfWork unitOfWork,
+        IUserService userService
         )
     {
         _tokenService = tokenService;
         _authRepository = authRepository;
         _unitOfWork = unitOfWork;
+        _useService = userService;
     }
 
     public async Task<Result<LoginResponse>> LoginAsync(LoginRequest request)
@@ -47,10 +52,23 @@ public class AuthService : IAuthService
                 RefreshToken = User_Costumer.RefreshToken,
                 RefreshTokenExpiresAt = User_Costumer.RefreshTokenExpiresAt
             };
+            
+                await _useService.SaveLogUser(new LogRequest
+                {
+                    Id_User = User.Id,
+                    Log = "Acesou a Home Cliete",
+                    Tipo = "Acesso",
+                    Nivel = User.Role.ToString(),
+                    Acao = $"{string.Join(" ", User.Name.Split(' ', StringSplitOptions.RemoveEmptyEntries).Take(2))} acessou o sistema",
+                    Info = $"Acessou o sistema em {DateTime.Now:dd/MM/yyyy HH:mm:ss}",
+                    InsertDate = DateTime.Now
+                }, null);
+          
         }
         var User_Admin = await _authRepository.GetByEmailAsyncAdmin(request.Email);
 
-        if (User_Admin is not null) {
+        if (User_Admin is not null)
+        {
             User = new UserResponse
             {
                 Id = User_Admin.Id,
@@ -63,6 +81,16 @@ public class AuthService : IAuthService
                 RefreshToken = User_Admin.RefreshToken,
                 RefreshTokenExpiresAt = User_Admin.RefreshTokenExpiresAt
             };
+            await _useService.SaveLogUser(new LogRequest
+            {
+                Id_User = User.Id,
+                Log = "Acesou a Home Admin",
+                Tipo = "Acesso",
+                Nivel = User.Role.ToString(),
+                Acao = $"{string.Join(" ", User.Name.Split(' ', StringSplitOptions.RemoveEmptyEntries).Take(2))} acessou o sistema",
+                Info = $"Acessou o sistema em {DateTime.Now:dd/MM/yyyy HH:mm:ss}",
+                InsertDate = DateTime.Now
+            }, null);
         }
         var User_Delvery = await _authRepository.GetByEmailAsyncDelivery(request.Email);
 
@@ -79,6 +107,16 @@ public class AuthService : IAuthService
                 RefreshToken = User_Delvery.RefreshToken,
                 RefreshTokenExpiresAt = User_Delvery.RefreshTokenExpiresAt
             };
+            await _useService.SaveLogUser(new LogRequest
+            {
+                Id_User = User.Id,
+                Log = "Acesou a Home Deliveri",
+                Tipo = "Acesso",
+                Nivel = User.Role.ToString(),
+                Acao = $"{string.Join(" ", User.Name.Split(' ', StringSplitOptions.RemoveEmptyEntries).Take(2))} acessou o sistema",
+                Info = $"Acessou o sistema em {DateTime.Now:dd/MM/yyyy HH:mm:ss}",
+                InsertDate = DateTime.Now
+            }, null);
         }
 
         if(User  is null)
@@ -98,10 +136,10 @@ public class AuthService : IAuthService
 
         var refreshToken = _tokenService.GenerateRefreshToken();
 
-        var refreshTokenExpiresAt = DateTime.UtcNow.AddDays(30);
+        var refreshTokenExpiresAt = DateTime.UtcNow.AddDays(20);
 
         var userId = User.Id;
-        await _authRepository.UpdateRefreshTokenAsync(userId, refreshToken, refreshTokenExpiresAt.ToString());
+        await _authRepository.UpdateRefreshTokenAsync(userId, refreshToken, refreshTokenExpiresAt);
 
         await _unitOfWork.CommitAsync();
 
@@ -113,29 +151,43 @@ public class AuthService : IAuthService
         });
     }
 
-    //public async Task<Result<LoginResponse>> RefreshAsync(string refreshToken)
-    //{
-    //    var user = await _authRepository.GetByRefreshTokenAsync(refreshToken);
+    public async Task<Result<LoginResponse>> RefreshAsync(string refreshToken)
+    {
+        var user = await _authRepository.GetByRefreshTokenAsync(refreshToken);
 
-    //    if (user is null)
-    //        return Result<LoginResponse>.Failure(AuthErrors.InvalidRefreshToken);
+        if (user == null)
+        {
+            return Result<LoginResponse>.Failure(AuthErrors.InvalidRefreshToken);
+        }
 
-    //    var newAccessToken = _tokenService.GenerateAccessToken(
-    //        user.Id, user.Email, user.Role);
+        // Verifica se o Refresh Token expirou
+        if (user.RefreshTokenExpiresAt <= DateTime.UtcNow)
+        {
+            return Result<LoginResponse>.Failure(AuthErrors.InvalidRefreshToken);
+        }
 
-    //    var newRefreshToken = _tokenService.GenerateRefreshToken();
-    //    var expiresAt = DateTime.UtcNow.AddDays(7);
+        var accessToken = _tokenService.GenerateAccessToken(
+            user.Id,
+            user.Email,
+            user.Role);
 
-    //    await _authRepository.UpdateRefreshTokenAsync(
-    //        user.Id, newRefreshToken, expiresAt);
+        var newRefreshToken = _tokenService.GenerateRefreshToken();
 
-    //    await _unitOfWork.CommitAsync();
+        var newExpiresAt = DateTime.UtcNow.AddMinutes(60);
 
-    //    return Result<LoginResponse>.Success(new LoginResponse
-    //    {
-    //        AccessToken = newAccessToken,
-    //        RefreshToken = newRefreshToken
-    //    });
-    //}
+        await _authRepository.UpdateRefreshTokenAsync(
+            user.Id,
+            newRefreshToken,
+            newExpiresAt);
+
+        await _unitOfWork.CommitAsync();
+
+        return Result<LoginResponse>.Success(new LoginResponse
+        {
+            AccessToken = accessToken,
+            RefreshToken = newRefreshToken,
+            Role = user.Role
+        });
+    }
 }
 

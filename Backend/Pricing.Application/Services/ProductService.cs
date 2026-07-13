@@ -33,7 +33,7 @@ namespace Mercado.Craibas.Application.Services
             {
                 Id = product.Id,
                 Name = product.Name,
-                Descripition = product.Description,
+                Description = product.Description,
                 Price_Unic = product.Price_Unit,
                 Origin_Price = product.Origin_Price,
                 Imagens = imagens_,
@@ -89,11 +89,11 @@ namespace Mercado.Craibas.Application.Services
                 {
                     Id = Product.Id,
                     Name = Product.Name,
-                    Descripition = Product.Description,
+                    Description = Product.Description,
                     Price_Unic = Product.Price_Unit,
                     Origin_Price = Product.Origin_Price,
                     Imagens = Imagens_Product,
-                    Category = CategoryName.Category,
+                    Id_category = CategoryName.Id,
                     Count_Rating = Product.Rating,
                     Review_Count = Product.ReviewCount,
                     Count_Sold = Product.CountSold,
@@ -103,7 +103,9 @@ namespace Mercado.Craibas.Application.Services
                     FreeShipping = Product.FreeShipping,
                     Installments = Product.installments,
                     Tags = Product.Tags,
-                    Featured = Product.Featured
+                    Featured = Product.Featured,
+                    InsertDate = Product.InsertDate
+                    
 
                 });
             }
@@ -183,7 +185,7 @@ namespace Mercado.Craibas.Application.Services
                 var ImageProductSelected = await _productRepository.GetAllVariantAsyncListById<Imagens_Products>(ProductSelected.Id, "Id_Product");
 
 
-                var Variants = await _unitOfWork.GetClassById<Variante_Products>(Product.Id_Variante, "Id");
+                var Variants = await _unitOfWork.GetClassById<Variante_Products>(Product.Id, "Id_Product");
 
                 if (Variants == null)
                 {

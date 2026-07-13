@@ -24,6 +24,8 @@ type CheckoutControllerReturn = {
         paymentDiscount: number;
         selectedCoupon: Cupom | null;
         loading: boolean;
+        step: 'Endereço' | 'Pagamento' | 'Checkout' | 'success';
+        order: OrderSave | undefined;
     };
     action: {
         setDiscount: React.Dispatch<React.SetStateAction<0 | number>>;
@@ -31,11 +33,11 @@ type CheckoutControllerReturn = {
         setSelectedCoupon: React.Dispatch<React.SetStateAction<Cupom | null>>;
         setLoading: React.Dispatch<React.SetStateAction<boolean>>;
         handlePlaceOrder: () => Promise<void>;
-
-
+        setStep: React.Dispatch<React.SetStateAction<Step>>;
     }
 };
 type PaymentMethod = 'pix' | 'credit' | 'boleto';
+type Step = 'Endereço' | 'Pagamento' | 'Checkout' | 'success';
 
 export const useCheckoutController = (): CheckoutControllerReturn => {
     const { LoadCartUser, clearCart } = UseCartStore();
@@ -44,6 +46,7 @@ export const useCheckoutController = (): CheckoutControllerReturn => {
     const { cart } = UseCartStore();
     console.log(cart, 'cart');
     const [loading, setLoading] = useState(false);
+    const [step, setStep] = useState<Step>('Endereço');
 
     const { cartTotal } = UseCartStore();
     const [payment, setPayment] = useState<PaymentMethod>('pix');
@@ -51,6 +54,7 @@ export const useCheckoutController = (): CheckoutControllerReturn => {
 
     const [discount, setDiscount] = useState(0);
     console.log(discount, 'discount');
+    const [order, setOrder] = useState<OrderSave>();
 
     const total = cartTotal();
     const shipping = total >= 299 ? 0 : 19.99;
@@ -131,6 +135,7 @@ export const useCheckoutController = (): CheckoutControllerReturn => {
             cupom: selectedCoupon || undefined
 
         };
+        setOrder(OrderSave);
         console.log(OrderSave, 'OrderSave');
         const result = await SaveOrderUser(OrderSave);
         console.log(result, 'result');
@@ -144,7 +149,7 @@ export const useCheckoutController = (): CheckoutControllerReturn => {
         // const payLabel = payment === 'pix' ? 'PIX' : payment === 'credit' ? `Cartão •••• ${cardData.number.slice(-4) || '4242'}` : 'Boleto Bancário';
         // const placed = placeOrder(payLabel);
         // setOrder(placed);
-        // setStep('success');
+        setStep('success');
         setLoading(false);
     };
 
@@ -159,14 +164,17 @@ export const useCheckoutController = (): CheckoutControllerReturn => {
             shipping,
             paymentDiscount,
             selectedCoupon,
-            loading
+            loading,
+            step,
+            order: order
         },
         action: {
             setDiscount,
             setPayment,
             setSelectedCoupon,
             setLoading,
-            handlePlaceOrder
+            handlePlaceOrder,
+            setStep
         }
     }
 }

@@ -1,11 +1,11 @@
 export interface Product {
-    id: number;
+    id?: number;
     name: string;
     description: string;
     price_Unic: number;
     origin_Price?: number;
     imagens: Imagens_Products[];
-    category: string;
+    id_category: number;
     count_Rating: number;
     review_Count: number;
     count_Sold: number;
@@ -16,6 +16,32 @@ export interface Product {
     installments?: number;
     tags: string;
     featured: boolean;
+    insertDate: Date;
+
+}
+
+export interface ProductAdmin {
+    id?: number;
+    name: string;
+    description: string;
+    price_Unic: number;
+    origin_Price?: number;
+    imagens: Imagens_Products[];
+    id_category: number;
+    count_Rating: number;
+    review_Count: number;
+    count_Sold: number;
+    variations: ProductVariation[];
+    total_Stock: number;
+    badge?: string;
+    freeShipping: boolean;
+    installments?: number;
+    tags: string;
+    featured: boolean;
+    insertDate: Date;
+    removedImages: number[];
+    removedVariants: number[];
+
 }
 
 export interface ProductSaveOrder {
@@ -24,22 +50,32 @@ export interface ProductSaveOrder {
     price_Unic: number;
     quantity: number;
     imagens?: Imagens_Products[];
+    freeShipping?: boolean;
+    category?: string;
     origin_Price?: number;
+    badge?: string;
+    Count_Rating?: number;
     variations: ProductVariation | null;
 }
 export interface ProductVariation {
-    id: string;
+    id: number;
     id_Product?: number;
     name: string;
     value: string;
     type: string;
-    stock: number;
+    stoke: number;
     price_Modifier?: number;
+    new?: boolean;
 }
 export type ProductCategory = 'eletronicos' | 'garrafas' | 'acessorios' | 'virais';
 
 export interface Imagens_Products {
-    id: string;
-    id_Product: string;
+    id: number;
+    id_Product: number;
     url_Imagem: string;
-} 
+    file?: File;
+}
+export interface Category {
+    id: number;
+    category: string;
+}

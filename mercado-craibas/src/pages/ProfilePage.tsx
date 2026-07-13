@@ -390,7 +390,7 @@ export default function ProfilePage() {
                         {orders[0]?.products?.slice(0, 4).map((item, i) => (
                           <img
                             key={i}
-                            src={`/Imagens/${item.imagens?.[0]?.url_Imagem} ` || ""}
+                            src={`/Imagens/Produtos/${item.imagens?.[0]?.url_Imagem} ` || ""}
                             alt={item.name}
                             className="w-10 h-10 rounded-lg object-cover border border-surface-100"
                           />
@@ -501,7 +501,7 @@ export default function ProfilePage() {
                             {order.products.slice(0, 3).map((item, i) => (
                               <img
                                 key={i}
-                                src={`/Imagens/${item.imagens?.[0]?.url_Imagem}`}
+                                src={`/Imagens/Produtos/${item.imagens?.[0]?.url_Imagem}`}
                                 className="w-14 h-14 rounded-xl border-2 border-white object-cover shadow"
                               />
                             ))}
@@ -692,7 +692,7 @@ export default function ProfilePage() {
                               </div>
                             </div>
                             <img
-                              src={`/Imagens/${item.imagens?.[0]?.url_Imagem}`}
+                              src={`/Imagens/Produtos/${item.imagens?.[0]?.url_Imagem}`}
                               className="w-12 h-12 rounded-lg object-cover shrink-0"
                             />
 

@@ -26,6 +26,12 @@ export const categoryLabels: Record<string, string> = {
   acessorios: 'Acessórios',
   virais: 'Produtos Virais',
 };
+export const badgeLabel: Record<string, string> = {
+  mais_vendido: 'Mais Vendido ',
+  viral: 'Viral',
+  oferta: 'Oferta',
+  virais: 'Virais',
+};
 
 export const categoryIcons: Record<string, string> = {
   eletronicos: '📱',
@@ -49,12 +55,12 @@ export const badgeColors: Record<string, string> = {
 };
 
 export const orderStatusLabels: Record<string, string> = {
-  PENDENTE: 'Pendente',
-  CONFIRMADO: 'Confirmado',
-  PREPARANDO: 'Preparando',
-  SAIU_PARA_ENTREGA: 'Saiu para Entrega',
-  ENTREGUE: 'Entregue',
-  CANCELADO: 'Cancelado',
+  PENDENTE: 'PENDENTE',
+  CONFIRMADO: 'CONFIRMADO',
+  PREPARANDO: 'PREPARANDO',
+  SAIU_PARA_ENTREGA: 'SAIU_PARA_ENTREGA',
+  ENTREGUE: 'ENTREGUE',
+  CANCELADO: 'CANCELADO',
 };
 
 export const orderStatusColors: Record<string, string> = {

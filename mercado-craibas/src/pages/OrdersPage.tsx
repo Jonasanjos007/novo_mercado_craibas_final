@@ -144,7 +144,7 @@ export default function OrdersPage() {
                         {order.products.slice(0, 3).map((item, i) => (
                           <img
                             key={i}
-                            src={`/Imagens/${item.imagens?.[0]?.url_Imagem}`}
+                            src={`/Imagens/Produtos/${item.imagens?.[0]?.url_Imagem}`}
                             className="w-14 h-14 rounded-xl border-2 border-white shadow object-cover"
                           />
                         ))}
@@ -286,7 +286,7 @@ export default function OrdersPage() {
                             className="group/item flex items-center gap-3 rounded-xl p-2 cursor-pointer hover:bg-surface-50 transition-all"
                           >
                             <img
-                              src={`/Imagens/${item.imagens?.[0]?.url_Imagem}`}
+                              src={`/Imagens/Produtos/Imagens/${item.imagens?.[0]?.url_Imagem}`}
                               className="w-12 h-12 rounded-xl object-cover"
                             />
 
@@ -495,7 +495,7 @@ export default function OrdersPage() {
                           </div>
                         </div>
                         <img
-                          src={`/Imagens/${item.imagens?.[0]?.url_Imagem}`}
+                          src={`/Imagens/Produtos/${item.imagens?.[0]?.url_Imagem}`}
                           className="w-12 h-12 rounded-lg object-cover shrink-0"
                         />
 

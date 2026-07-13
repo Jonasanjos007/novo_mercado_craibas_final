@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { CreditCard, Smartphone, FileText, ChevronRight, Check, MapPin, ShoppingBag, Zap, ArrowLeft, Lock, Pencil, Ticket, X } from 'lucide-react';
+import { CreditCard, Smartphone, FileText, ChevronRight, Check, MapPin, ShoppingBag, Zap, ArrowLeft, Lock, Pencil, Ticket, X, BadgeCheck, Package, Truck, Mail } from 'lucide-react';
 import { useStore } from '../context/store';
 import { formatPrice } from '../utils';
 import { useNavigate } from 'react-router-dom';
@@ -15,8 +15,8 @@ import Loading from '../components/Loading';
 import { useCheckoutController } from '../controller/useCheckoutController';
 import { UseOrderStore } from '../store/UseOrderStore';
 import { Cupom } from '../models/Cupom';
+import AlertPopup from '../components/AlertPopup';
 
-type Step = 'Endereço' | 'Pagamento' | 'Checkout' | 'success';
 
 export default function CheckoutPage() {
   const Controller = useCheckoutController();
@@ -28,13 +28,12 @@ export default function CheckoutPage() {
   const { address } = UseAddressStore();
   const { Cupons } = UseOrderStore();
   const { user, ColorGlobalTema, ColorGlobalText, ColorGlobalHoverText, NameColorGlobal } = UseUserStore();
-  const [step, setStep] = useState<Step>('Endereço');
-  const [order, setOrder] = useState<any>(null);
   const [selectedAddress, setSelectedAddress] = useState(true);
   const [cardData, setCardData] = useState({ number: '', name: '', expiry: '', cvv: '' });
   const [coupon, setCoupon] = useState('');
   const colorConfig = getColorConfig(NameColorGlobal);
   const [openCouponModal, setOpenCouponModal] = useState(false);
+  const [OpenAlert, setOpenAlert] = useState(false);
   const [selectedCouponTed, setSelectedCouponTed] = useState<Cupom | null>(null);
 
   const STEPS = ['Endereço', 'Checkout', 'Pagamento'];
@@ -43,6 +42,7 @@ export default function CheckoutPage() {
     'Checkout': 'Revisão',
     'Pagamento': 'Pagamento',
   };
+
   const formatPhone = (phone?: string) => {
     if (!phone) return "";
 
@@ -56,7 +56,7 @@ export default function CheckoutPage() {
     }
     return phone;
   };
-  const currentStepIdx = STEPS.indexOf(step);
+  const currentStepIdx = STEPS.indexOf(Controller?.result.step);
   const handlePlaceOrder = async () => {
     // setLoading(true);
     await new Promise(r => setTimeout(r, 1500));
@@ -65,7 +65,7 @@ export default function CheckoutPage() {
     // const payLabel = Controller?.result.payment === 'pix' ? 'PIX' : Controller?.result.payment === 'credit' ? `Cartão •••• ${cardData.number.slice(-4) || '4242'}` : 'Boleto Bancário';
     // const placed = placeOrder(payLabel);
     // setOrder(placed);
-    setStep('success');
+    //setStep('success');
     // setLoading(false);
   };
 
@@ -81,61 +81,262 @@ export default function CheckoutPage() {
     if (!user) {
       navigate('/login');
     }
+    if (cart.length === 0) {
+      setOpenAlert(true);
+    }
     // if (cart.length === 0) {
     //   navigate('/');
     //   setCartOpen(false);
     // }
   }, [user, navigate, cart]);
+  console.log(Controller?.result.order, 'Controller?.result.order');
+  if (Controller?.result.step === "success") {
+    const order = Controller?.result.order;
 
-  if (step === 'success' && order) {
     return (
-      <div className="min-h-screen bg-surface-50 flex items-center justify-center p-4">
-        <div className="w-full max-w-lg text-center animate-slide-up">
-          <div className="w-24 h-24 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6 relative">
-            <Check className="w-12 h-12 text-green-500" />
-            <div className="absolute inset-0 rounded-full border-4 border-green-200 animate-ping opacity-30" />
-          </div>
-          <h1 className="font-display font-bold text-surface-900 text-3xl mb-2">Pedido Confirmado! 🎉</h1>
-          <p className="text-surface-500 font-body mb-1">Pedido <strong className="text-surface-800">#{order.id}</strong> realizado com sucesso</p>
-          <p className="text-surface-400 font-body text-sm mb-8">Você receberá atualizações por email sobre sua entrega</p>
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-emerald-50 flex items-center justify-center px-4 py-8">
 
-          <div className="bg-white rounded-3xl p-6 shadow-soft mb-6 text-left space-y-3">
-            <div className="flex justify-between">
-              <span className="text-surface-500 font-body text-sm">Total pago</span>
-              <span className="font-display font-bold text-surface-900">{formatPrice(order.total)}</span>
+        <div className="w-full max-w-3xl">
+
+          <div className="overflow-hidden rounded-[32px] bg-white shadow-2xl border border-slate-200">
+
+            {/* HEADER */}
+            <div className="relative overflow-hidden bg-gradient-to-br from-emerald-500 via-green-500 to-teal-500">
+
+              <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(255,255,255,.25),transparent_45%)]" />
+              <div className="absolute -left-20 -bottom-20 w-60 h-60 rounded-full bg-white/10 blur-3xl" />
+              <div className="absolute -right-20 top-0 w-72 h-72 rounded-full bg-black/10 blur-3xl" />
+
+              <div className="relative px-6 md:px-10 py-12 flex flex-col items-center">
+
+                <div className="relative">
+
+                  <div className="absolute inset-0 rounded-full bg-white/40 animate-ping" />
+
+                  <div className="relative w-24 h-24 rounded-full bg-white shadow-2xl flex items-center justify-center">
+
+                    <Check
+                      className="w-12 h-12 text-green-500"
+                      strokeWidth={3}
+                    />
+
+                  </div>
+
+                </div>
+
+                <h1 className="mt-6 text-white font-display text-3xl md:text-4xl font-bold text-center">
+                  Pedido Confirmado 🎉
+                </h1>
+
+                <p className="text-green-100 mt-3 text-center max-w-lg">
+                  Seu pagamento foi aprovado e seu pedido já entrou em nosso
+                  processo de separação.
+                </p>
+
+              </div>
+
             </div>
-            <div className="flex justify-between">
-              <span className="text-surface-500 font-body text-sm">Pagamento</span>
-              <span className="font-body text-surface-700 text-sm">{order.paymentMethod}</span>
+
+            {/* BODY */}
+            <div className="p-6 md:p-10">
+
+              {/* TOTAL */}
+              <div className="text-center">
+
+                <p className="uppercase tracking-[0.25em] text-slate-400 text-xs font-semibold">
+                  Total Pago
+                </p>
+
+                <h2 className="text-4xl md:text-5xl font-black text-emerald-500 mt-2">
+                  {formatPrice(order?.total_Value_Order || 0)}
+                </h2>
+
+                <p className="text-slate-500 mt-3">
+                  Pedido #
+                  <span className="font-bold text-slate-700">
+                    {5465465465}
+                  </span>
+                </p>
+
+              </div>
+
+              {/* CARDS */}
+              <div className="grid md:grid-cols-2 gap-5 mt-10">
+
+                <div className="rounded-3xl bg-slate-50 p-6 border border-slate-200">
+
+                  <CreditCard className="w-8 h-8 text-brand-500 mb-4" />
+
+                  <p className="text-slate-400 text-sm">
+                    Forma de pagamento
+                  </p>
+
+                  <h3 className="font-bold text-lg text-slate-800 mt-1">
+                    {order?.payment_terms}
+                  </h3>
+
+                </div>
+
+                <div className="rounded-3xl bg-green-50 p-6 border border-green-200">
+
+                  <BadgeCheck className="w-8 h-8 text-green-500 mb-4" />
+
+                  <p className="text-slate-400 text-sm">
+                    Status
+                  </p>
+
+                  <h3 className="font-bold text-green-700 mt-1">
+                    Pagamento Aprovado
+                  </h3>
+
+                </div>
+
+              </div>
+
+              {/* ENDEREÇO */}
+              <div className="mt-6 rounded-3xl border border-slate-200 p-6">
+
+                <div className="flex items-center gap-3 mb-5">
+
+                  <MapPin className="w-6 h-6 text-brand-500" />
+
+                  <h2 className="font-display font-bold text-xl">
+                    Endereço de Entrega
+                  </h2>
+
+                </div>
+
+                <div className="space-y-1 text-slate-600">
+
+                  <p>
+                    {order?.address?.road}, {order?.address?.number}
+                  </p>
+
+                  <p>
+                    {order?.address?.neighborhood}
+                  </p>
+
+                  <p>
+                    {order?.address?.city} - {order?.address?.state}
+                  </p>
+
+                  <p>
+                    CEP {order?.address?.neighborhood}
+                  </p>
+
+                </div>
+
+              </div>
+
+              {/* TIMELINE */}
+              <div className="mt-10">
+
+                <h2 className="font-display font-bold text-xl text-center mb-8">
+                  Acompanhamento do Pedido
+                </h2>
+
+                <div className="flex items-center justify-between">
+
+                  <div className="flex flex-col items-center w-24">
+
+                    <div className="w-14 h-14 rounded-full bg-green-500 flex items-center justify-center shadow-lg">
+                      <Check className="text-white w-7 h-7" />
+                    </div>
+
+                    <span className="mt-3 text-sm font-semibold text-center">
+                      Pagamento
+                    </span>
+
+                  </div>
+
+                  <div className="flex-1 h-1 bg-green-300 mx-2 rounded-full" />
+
+                  <div className="flex flex-col items-center w-24">
+
+                    <div className="w-14 h-14 rounded-full bg-slate-200 flex items-center justify-center">
+                      <Package className="w-6 h-6 text-slate-500" />
+                    </div>
+
+                    <span className="mt-3 text-sm text-center">
+                      Separação
+                    </span>
+
+                  </div>
+
+                  <div className="flex-1 h-1 bg-slate-200 mx-2 rounded-full" />
+
+                  <div className="flex flex-col items-center w-24">
+
+                    <div className="w-14 h-14 rounded-full bg-slate-200 flex items-center justify-center">
+                      <Truck className="w-6 h-6 text-slate-500" />
+                    </div>
+
+                    <span className="mt-3 text-sm text-center">
+                      Envio
+                    </span>
+
+                  </div>
+
+                </div>
+
+              </div>
+
+              {/* AVISO */}
+              <div className="mt-10 rounded-3xl bg-blue-50 border border-blue-200 p-6">
+
+                <div className="flex gap-4">
+
+                  <Mail className="w-8 h-8 text-blue-500 flex-shrink-0" />
+
+                  <div>
+
+                    <h3 className="font-bold text-slate-800">
+                      Confirmação enviada
+                    </h3>
+
+                    <p className="text-slate-500 mt-1">
+                      Enviamos um e-mail com todas as informações do seu pedido.
+                      Você também poderá acompanhar tudo na área de pedidos.
+                    </p>
+
+                  </div>
+
+                </div>
+
+              </div>
+
+              {/* BOTÕES */}
+              <div className="grid sm:grid-cols-2 gap-4 mt-10">
+
+                <button
+                  onClick={() => navigate("/orders")}
+                  className="h-14 rounded-2xl bg-brand-500 hover:bg-brand-600 text-white font-bold shadow-xl transition-all hover:scale-[1.02]"
+                >
+                  Ver meus pedidos
+                </button>
+
+                <button
+                  onClick={() => navigate("/")}
+                  className="h-14 rounded-2xl border border-slate-300 bg-white hover:bg-slate-50 font-semibold text-slate-700 transition-all"
+                >
+                  Continuar Comprando
+                </button>
+
+              </div>
+
             </div>
-            <div className="flex justify-between">
-              <span className="text-surface-500 font-body text-sm">Rastreio</span>
-              <span className="font-display font-semibold text-brand-600 text-sm">{order.trackingCode}</span>
-            </div>
-            <div className="pt-3 border-t border-surface-100">
-              <p className="text-surface-500 font-body text-xs flex items-center gap-1.5">
-                <MapPin className="w-3.5 h-3.5" /> {order.address.street}, {order.address.number} · {order.address.city}/{order.address.state}
-              </p>
-            </div>
+
           </div>
 
-          <div className="flex gap-3">
-            <button onClick={() => navigate('/orders')} className="flex-1 py-3.5 bg-brand-500 hover:bg-brand-600 text-white font-display font-bold rounded-xl transition-all shadow-brand">
-              Ver Pedidos
-            </button>
-            <button onClick={() => navigate('/')} className="flex-1 py-3.5 bg-surface-100 hover:bg-surface-200 text-surface-700 font-display font-bold rounded-xl transition-all">
-              Início
-            </button>
-          </div>
         </div>
+
       </div>
     );
   }
-
   return (
 
     <div className="min-h-screen bg-surface-50 pb-10">
-      <Headerpages title={`${step}`} showSecure={false} />
+      <Headerpages title={`${Controller?.result.step}`} showSecure={false} />
       <div className="bg-white border-b border-surface-100 py-4">
         <div className="max-w-4xl mx-auto px-4">
           <div className="flex items-center gap-3 mb-4">
@@ -183,7 +384,7 @@ export default function CheckoutPage() {
         {/* Main content */}
         <div className="lg:col-span-2 space-y-4">
           {/* Address Step */}
-          {step === 'Endereço' && (
+          {Controller?.result.step === 'Endereço' && (
             <div className="bg-white rounded-3xl p-6 shadow-soft animate-fade-in">
               <div className="flex items-center gap-2 mb-5">
                 <div className={`w-8 h-8 rounded-xl ${ColorGlobalTema.slice(0, -3)}50 flex items-center justify-center`}>
@@ -321,7 +522,7 @@ export default function CheckoutPage() {
                     return;
                   }
 
-                  setStep('Checkout');
+                  Controller?.action.setStep('Checkout');
                 }}
                 className={`w-full py-3.5 ${Controller?.result.AddressStandard
                   ? `${ColorGlobalTema} text-white`
@@ -333,7 +534,7 @@ export default function CheckoutPage() {
             </div>
           )}
           {/* Payment Step */}
-          {step === 'Pagamento' && (
+          {Controller?.result.step === 'Pagamento' && (
             <div className="bg-white rounded-3xl p-6 shadow-soft animate-fade-in">
               <div className="flex items-center gap-2 mb-5">
                 <div className={`w-8 h-8 rounded-xl bg-${ColorGlobalTema.slice(3, -4)}-50 flex items-center justify-center`}>
@@ -737,7 +938,7 @@ export default function CheckoutPage() {
               </div>
 
               <div className="flex gap-3 mt-4">
-                <button onClick={() => setStep('Checkout')} className="px-4 py-3 bg-surface-100 text-surface-600 font-display font-bold rounded-xl hover:bg-surface-200 transition-all text-sm">
+                <button onClick={() => Controller?.action.setStep('Checkout')} className="px-4 py-3 bg-surface-100 text-surface-600 font-display font-bold rounded-xl hover:bg-surface-200 transition-all text-sm">
                   ← Voltar
                 </button>
                 <button
@@ -755,7 +956,7 @@ export default function CheckoutPage() {
           )}
 
           {/* Review Step */}
-          {step === 'Checkout' && (
+          {Controller?.result.step === 'Checkout' && (
             <div className="bg-white rounded-3xl p-6 shadow-soft animate-fade-in">
               <div className="flex items-center gap-2 mb-5">
                 <div className={`w-8 h-8 rounded-xl bg-${ColorGlobalTema.slice(3, -4)}-50 flex items-center justify-center`}>
@@ -767,7 +968,7 @@ export default function CheckoutPage() {
               <div className="space-y-3 mb-5">
                 {cart.map(item => (
                   <div key={item.product?.id} className="flex gap-3 p-3 bg-surface-50 rounded-xl">
-                    <img src={`/Imagens/${item.product?.imagens[0]?.url_Imagem}`} alt="" className="w-14 h-14 rounded-xl object-cover" />
+                    <img src={`/Imagens/Produtos/${item.product?.imagens[0]?.url_Imagem}`} alt="" className="w-14 h-14 rounded-xl object-cover" />
                     <div className="flex-1 min-w-0">
                       <p className="font-body text-sm text-surface-800 font-medium line-clamp-1">{item.product?.name}</p>
                       {item.selectedVariation && <p className="text-xs text-surface-400 font-body">{item.selectedVariation.value}</p>}
@@ -786,10 +987,10 @@ export default function CheckoutPage() {
                 <p className="text-sm font-body text-surface-800">Tel: {formatPhone(Controller?.result.AddressStandard?.phone)}</p>
               </div>
               <div className="flex gap-3 mt-5">
-                <button onClick={() => setStep('Endereço')} className="px-4 py-3 bg-surface-100 text-surface-600 font-display font-bold rounded-xl hover:bg-surface-200 transition-all text-sm">
+                <button onClick={() => Controller?.action.setStep('Endereço')} className="px-4 py-3 bg-surface-100 text-surface-600 font-display font-bold rounded-xl hover:bg-surface-200 transition-all text-sm">
                   ← Voltar
                 </button>
-                <button onClick={() => setStep('Pagamento')} className={`flex-1 py-3 ${ColorGlobalTema} hover:bg-green-600 text-white font-display font-bold rounded-xl transition-all  flex items-center justify-center gap-2`}>
+                <button onClick={() => Controller?.action.setStep('Pagamento')} className={`flex-1 py-3 ${ColorGlobalTema} hover:bg-green-600 text-white font-display font-bold rounded-xl transition-all  flex items-center justify-center gap-2`}>
                   Forma de pagamento <ChevronRight className="w-4 h-4" />
                 </button>
               </div>
@@ -844,7 +1045,15 @@ export default function CheckoutPage() {
         message="Carregando..."
         subMessage=""
       />
-
+      <AlertPopup
+        open={OpenAlert}
+        title={"Carrinho Vazio"}
+        description={"Seu carrinho está vazio. Adicione produtos antes de prosseguir para o checkout."}
+        onClose={() => {
+          setOpenAlert(false),
+            navigate("/");
+        }}
+      />
     </div>
   );
 }

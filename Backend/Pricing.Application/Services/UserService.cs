@@ -6,6 +6,7 @@ using Baldan.Pricing.Application.Domain.Entities;
 using Baldan.Pricing.Application.Domain.Enums;
 using Baldan.Pricing.Application.Interfaces;
 using Baldan.Pricing.Application.Interfaces.Repositories;
+using Mercado.Craibas.Application.Domain.Entities;
 using Mercado.Craibas.Application.DTOs.Requests;
 using Mercado.Craibas.Application.DTOs.Responses;
 using Microsoft.EntityFrameworkCore;
@@ -306,6 +307,24 @@ public class UserService : IUserService
         {
             return Result<bool>.Failure(Error.Validation("Error", "Não foi possivel salvar a cor!, Entre em contato com suporte!"));
         }
+        return Result<bool>.Success(true);
+    }
+
+
+    public async Task<Result<bool>> SaveLogUser(LogRequest Log,int? UserId)
+    {
+            var patternChangeList = await _unitOfWork.InsertAsyncReturnId<Logs>(
+                new Logs
+                {
+                    Id_User = Log.Id_User,
+                    Log = Log.Log,
+                    Nivel = Log.Nivel,
+                    Tipo = Log.Tipo,
+                    Acao = Log.Acao,
+                    Info = Log.Info,
+                    InsertDate = DateTime.Now
+                });
+
         return Result<bool>.Success(true);
     }
 

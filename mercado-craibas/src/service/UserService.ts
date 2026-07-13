@@ -5,7 +5,7 @@ import { makeResult, Result } from "../utils/Result";
 export const UserService = {
     getUser: async (Role: string): Promise<Result<User>> => {
         try {
-            const response = await api.get("/users/me/" + Role);
+            const response = await api.get("/v1/users/me/" + Role);
             const { success, data, error } = response.data;
 
             if (!data) {
@@ -21,7 +21,7 @@ export const UserService = {
             if (userId === 0) {
                 return makeResult(false, false, "ID de usuário inválido");
             }
-            const response = await api.post("/users/SaveColorGlobalInsert", { global_Site_Color: NameColor, id: userId });
+            const response = await api.post("/v1/users/SaveColorGlobalInsert", { global_Site_Color: NameColor, id: userId });
             const { success, data, error } = response.data;
 
             if (!success) {

@@ -29,6 +29,7 @@ namespace Mercado.Api.Controllers.V1
 
             return result.ToActionResult();
         }
+        [Authorize]
         [HttpPost("postCartSave")]
         public async Task<IActionResult> PostCartSave([FromBody] CartItensRequest Cart_Itens)
         {
@@ -53,6 +54,7 @@ namespace Mercado.Api.Controllers.V1
             return result.ToActionResult();
         }
 
+        [Authorize]
         [HttpGet("GetProductCart")]
         public async Task<IActionResult> GetProductCart()
         {

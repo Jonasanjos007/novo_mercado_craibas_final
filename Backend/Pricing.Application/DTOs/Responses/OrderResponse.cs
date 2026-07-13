@@ -16,6 +16,7 @@ namespace Mercado.Craibas.Application.DTOs.Responses
         public AddressResponse Address { get; set; }
         public string Order_Status { get; set; }
         public double Discont { get; set; }
+        public string Category { get; set; }
         public string Status_Pay { get; set; }
         public int Quantity { get; set; }
         public DateTime? Estimated_Delivery_Date { get; set; }

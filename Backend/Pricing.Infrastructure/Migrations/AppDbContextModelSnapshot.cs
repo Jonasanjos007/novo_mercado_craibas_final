@@ -129,7 +129,7 @@ namespace Mercado.Craibas.Infrastructure.Migrations
                     b.Property<int>("Id_Product")
                         .HasColumnType("int");
 
-                    b.Property<int>("Id_Variante")
+                    b.Property<int?>("Id_Variante")
                         .HasColumnType("int");
 
                     b.Property<DateTime>("InsertDate")
@@ -454,7 +454,7 @@ namespace Mercado.Craibas.Infrastructure.Migrations
                         .HasMaxLength(1000)
                         .HasColumnType("nvarchar(1000)");
 
-                    b.Property<bool>("Featured")
+                    b.Property<bool?>("Featured")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("bit")
                         .HasDefaultValue(false);
@@ -481,12 +481,10 @@ namespace Mercado.Craibas.Infrastructure.Migrations
                     b.Property<double>("Price_Unit")
                         .HasColumnType("float");
 
-                    b.Property<double>("Rating")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("float")
-                        .HasDefaultValue(0.0);
+                    b.Property<double?>("Rating")
+                        .HasColumnType("float");
 
-                    b.Property<int>("ReviewCount")
+                    b.Property<int?>("ReviewCount")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int")
                         .HasDefaultValue(0);
@@ -610,8 +608,8 @@ namespace Mercado.Craibas.Infrastructure.Migrations
                     b.Property<string>("RefreshToken")
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<string>("RefreshTokenExpiresAt")
-                        .HasColumnType("nvarchar(max)");
+                    b.Property<DateTime?>("RefreshTokenExpiresAt")
+                        .HasColumnType("datetime2");
 
                     b.Property<string>("Role")
                         .IsRequired()
@@ -663,8 +661,8 @@ namespace Mercado.Craibas.Infrastructure.Migrations
                     b.Property<string>("RefreshToken")
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<string>("RefreshTokenExpiresAt")
-                        .HasColumnType("nvarchar(max)");
+                    b.Property<DateTime?>("RefreshTokenExpiresAt")
+                        .HasColumnType("datetime2");
 
                     b.Property<string>("Role")
                         .IsRequired()
@@ -719,8 +717,8 @@ namespace Mercado.Craibas.Infrastructure.Migrations
                     b.Property<string>("RefreshToken")
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<string>("RefreshTokenExpiresAt")
-                        .HasColumnType("nvarchar(max)");
+                    b.Property<DateTime?>("RefreshTokenExpiresAt")
+                        .HasColumnType("datetime2");
 
                     b.Property<string>("Role")
                         .IsRequired()
@@ -781,6 +779,43 @@ namespace Mercado.Craibas.Infrastructure.Migrations
                     b.HasIndex("Id_Product");
 
                     b.ToTable("Variante_Products", (string)null);
+                });
+
+            modelBuilder.Entity("Mercado.Craibas.Application.Domain.Entities.Logs", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Acao")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int>("Id_User")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Info")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime>("InsertDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Log")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Nivel")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Tipo")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime?>("UpdateDate")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("Logs");
                 });
 
             modelBuilder.Entity("Baldan.Pricing.Application.Domain.Entities.Address", b =>

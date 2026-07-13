@@ -6,7 +6,7 @@ import { makeResult, Result } from "../utils/Result";
 export const ProductsService = {
     getListProducts: async (): Promise<Result<Product[]>> => {
         try {
-            const response = await api.get("/product/list");
+            const response = await api.get("/v1/product/list");
             const { success, data, error } = response.data;
             console.log(data)
             if (!data) {
@@ -20,7 +20,7 @@ export const ProductsService = {
     }, PostCartProduct: async (Cart_Itens: CartItensProduct): Promise<Result<CartItensProduct>> => {
         try {
             console.log("Cart_Itens", Cart_Itens)
-            const response = await api.post("/product/postCartSave", Cart_Itens);
+            const response = await api.post("/v1/product/postCartSave", Cart_Itens);
             const { success, data, error } = response.data;
 
             if (!data) {
@@ -33,7 +33,7 @@ export const ProductsService = {
         }
     }, PostCartProductExistent: async (Cart_Itens: CartItensProduct, Operador: string): Promise<Result<CartItensProduct>> => {
         try {
-            const response = await api.post("/product/postCartUpdate", { ...Cart_Itens, operador: Operador });
+            const response = await api.post("/v1/product/postCartUpdate", { ...Cart_Itens, operador: Operador });
             const { success, data, error } = response.data;
 
             if (!data) {
@@ -46,7 +46,7 @@ export const ProductsService = {
         }
     }, PostUpdateQuantity: async (Cart_Itens_Id: number, Quantity: number, Operador: string): Promise<Result<{ success?: boolean; error?: string }>> => {
         try {
-            const response = await api.post("/product/PostUpdateQuantity", { Cart_Itens_Id, Quantity, Operador });
+            const response = await api.post("/v1/product/PostUpdateQuantity", { Cart_Itens_Id, Quantity, Operador });
             const { success, data, error } = response.data;
 
             if (!data) {

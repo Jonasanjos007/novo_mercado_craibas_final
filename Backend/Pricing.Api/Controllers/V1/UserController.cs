@@ -6,6 +6,7 @@ using Mercado.Craibas.Application.DTOs.Requests;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Pricing.Api.Extensions;
+using System.Security.Claims;
 using System.Threading.Tasks;
 
 [ApiController]
@@ -26,12 +27,18 @@ public class userscontroller : ControllerBase
 
     //    return result.toactionresult();
     //}
-
-    //[Authorize]
+    [Authorize]
+    [HttpGet("teste")]
+    public IActionResult Teste()
+    {
+        return Ok("Funcionou");
+    }
+    [Authorize]
     [HttpGet("me/{role}")]
     public async Task<IActionResult> Me(string role)
     {
         var userid = User.GetUserId(); // ou como você obtém o id
+        var role2 = User.FindFirst(ClaimTypes.Role)?.Value;
 
         var result = await _service.GetbyIdUser(userid, role);
 

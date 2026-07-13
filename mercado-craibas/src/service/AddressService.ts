@@ -7,7 +7,7 @@ export const AddressService = {
         try {
             console.log('request addres', Address);
 
-            const response = await api.post("/users/postSaveAddressUser", Address);
+            const response = await api.post("/v1/users/postSaveAddressUser", Address);
             const { success, data, error } = response.data;
             console.log('request addres', response.data);
             if (!data) {
@@ -23,7 +23,7 @@ export const AddressService = {
     GetAddresByIdUser: async (): Promise<Result<Address[]>> => {
         try {
 
-            const response = await api.get("/users/GetAddresByIdUser");
+            const response = await api.get("/v1/users/GetAddresByIdUser");
             const { success, data, error } = response.data;
             if (!data) {
                 return makeResult(false, {} as Address[], error);
@@ -38,7 +38,7 @@ export const AddressService = {
     PostUpdateAddress: async (Address: Address): Promise<Result<Address>> => {
 
         try {
-            const result = await api.post("/users/PostUpdateAddres", Address);
+            const result = await api.post("/v1/users/PostUpdateAddres", Address);
             const { success, data, error } = result.data;
             if (!data) {
                 return makeResult(false, error);
@@ -51,7 +51,7 @@ export const AddressService = {
     },
     DeleteAddress: async (address: Address): Promise<Result<boolean>> => {
         try {
-            const result = await api.post('/users/DeleteAddress', address,
+            const result = await api.post('/v1/users/DeleteAddress', address,
                 {
                     validateStatus: () => true
                 });

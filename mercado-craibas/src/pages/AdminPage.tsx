@@ -8,214 +8,55 @@ import {
   Truck,
   BadgeCheck,
   CheckCircle2,
-  Clock
+  Clock,
+  ImagePlus,
+  ArrowRight,
+  ArrowLeft
 } from 'lucide-react';
 import { useStore } from '../context/store';
-import { formatPrice, orderStatusLabels, orderStatusColors, categoryLabels, badgeLabels } from '../utils';
-import { Product, OrderStatus, Promotion } from '../types';
+import { formatPrice, orderStatusLabels, orderStatusColors, categoryLabels, badgeLabels, badgeLabel } from '../utils';
+import { useAdminController } from '../controller/useAdminController';
+import { UseOrderStore } from '../store/UseOrderStore';
+import { UseOrderAdminStore } from '../storeAdmin/UseOrderAdminStore';
+import Loading from '../components/AdminPageLoading';
+import { UseUserStore } from '../store/UseUserStore';
+import AdminPageLoading from '../components/AdminPageLoading';
+import { GraficoMes } from '../components/GraficoMes';
+import { GraficoDay } from '../components/GraficoDay';
+import { GraficoMediaCIrcule } from '../components/GraficoMediaCIrcule';
+import { UseProductStore } from '../store/UseProductStore';
+import { Imagens_Products, Product, ProductVariation } from '../models/Product';
+import { Promotion } from '../types';
+import { UseProductAdminStore } from '../storeAdmin/UseProductAdminStore';
 
 type AdminTab = 'dashboard' | 'products' | 'orders' | 'promotions' | 'profile' | 'settings';
 
-function MiniBarChart({
-  data,
-  labels,
-  color = '#f97316',
-  darkMode
-}: {
-  data: number[];
-  labels?: string[];
-  color?: string;
-  darkMode?: boolean;
-}) {
-  const max = Math.max(...data, 1);
-  const width = 280;
-  const height = 90;
-  const padding = 3;
-  const bw = (width - padding * (data.length + 1)) / data.length;
 
-  return (
-    <svg viewBox={`0 0 ${width} ${height}`} width="100%" height={height}>
-      {data.map((quantity, i) => {
-        const bh = Math.max(3, (quantity / max) * (height - 30));
-        const x = padding + i * (bw + padding);
-        const y = height - bh - 12;
-        return (
-          <g key={i}>
-            {/* NUMERO */}
-            <text x={x + bw / 2} y={y - 4} textAnchor="middle" fontSize="12" fill={darkMode ? '#ffffff' : '#111827'} >
-              {quantity}
-            </text>
 
-            {/* BARRA */}
-            <rect x={x} y={y} width={bw} height={bh} rx="3" fill={color} opacity={i === data.length - 1 ? 1 : 0.4} />
-            {/* DIA */}
-            {labels?.[i] && (
-              <text
-                x={x + bw / 2}
-                y={height - 2}
-                textAnchor="middle"
-                fontSize="10"
-                fill={darkMode ? '#9ca3af' : '#6b7280'}
-              >
-                {labels[i]}
-              </text>
-            )}
-          </g>
-        );
-      })}
-    </svg>
-  );
-}
-function MiniLineChart({
-  data,
-  labels,
-  color = '#f97316',
-  darkMode,
-  valor
-}: {
-  data: number[];
-  labels?: string[];
-  color?: string;
-  darkMode?: boolean;
-  valor?: boolean;
-}) {
-  if (data.length < 2) return null;
 
-  const width = 280;
-  const height = 60;
 
-  const max = Math.max(...data);
-  const min = Math.min(...data);
 
-  // espaço extra pra data não cortar
-  const topPadding = 14;
-  const bottomPadding = 8;
-  const chartHeight = height - topPadding - bottomPadding;
-  const horizontalPadding = 8;
-  const points = data.map((value, index) => {
-    const usableWidth = width - horizontalPadding * 2;
-
-    const x = horizontalPadding + (index / (data.length - 1)) * usableWidth;
-
-    const y = topPadding + (chartHeight - ((value - min) / (max - min || 1)) * chartHeight);
-
-    return { x, y };
-  });
-
-  const linePath = points.map((p, i) => `${i === 0 ? 'M' : 'L'} ${p.x} ${p.y}`).join(' ');
-  const fillPath = `${linePath}L ${width} ${height}L 0 ${height}Z`;
-
-  return (
-    <div className="w-full overflow-hidden">
-      <svg
-        viewBox={`0 0 ${width} ${height}`}
-        className="w-full h-[160px] sm:h-[180px] md:h-[200px] lg:h-[220px]"
-        preserveAspectRatio="xMidYMid meet"
-      >
-        {/* GRADIENTE */}
-        <defs>
-          <linearGradient id={`gradient-${color.replace('#', '')}`} x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor={color} stopOpacity="0.22" />
-            <stop offset="100%" stopColor={color} stopOpacity="0.02" />
-          </linearGradient>
-        </defs>
-
-        {/* ÁREA */}
-        <path
-          d={fillPath}
-          fill={`url(#gradient-${color.replace('#', '')})`}
-        />
-
-        {/* LINHA */}
-        <path d={linePath} fill="none" stroke={color} strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
-
-        {/* PONTOS */}
-        {points.map((p, i) => {
-          const isLast = i === points.length - 1;
-
-          return (
-            <g key={i}>
-              {/* DATA */}
-              {labels?.[i] && (
-                <text x={p.x} y={p.y - 6} textAnchor="middle" fontSize={window.innerWidth < 640 ? '4' : '3'} fill={darkMode ? '#9ca3af' : '#6b7280'}>
-                  {labels[i]}
-                </text>
-              )}
-
-              {/* glow */}
-              <circle cx={p.x} cy={p.y} r={isLast ? 3 : 2.3} fill={color} opacity={0.14} />
-
-              {/* borda */}
-              <circle cx={p.x} cy={p.y} r={isLast ? 1.8 : 1.5} fill="white" stroke={color} strokeWidth="0.8" />
-
-              {/* centro */}
-              <circle cx={p.x} cy={p.y} r={isLast ? 0.9 : 0.7} fill={color} />
-
-              {/* VALOR */}
-              <text
-                x={p.x}
-                y={p.y + 8}
-                textAnchor="middle"
-                fontSize={window.innerWidth < 640 ? '4' : '3'}
-                fontWeight="600"
-                fill={darkMode ? '#e5e7eb' : '#111827'}
-              >
-                {valor
-                  ? 'R$ ' +
-                  data[i].toLocaleString('pt-BR', {
-                    minimumFractionDigits: 2,
-                    maximumFractionDigits: 2
-                  })
-                  : data[i]}
-              </text>
-            </g>
-          );
-        })}
-      </svg>
-    </div>
-  );
-}
-
-function DonutChart({ segments }: { segments: { value: number; color: string; label: string }[] }) {
-  const total = segments.reduce((s, seg) => s + seg.value, 0) || 1;
-  const r = 46, cx = 58, cy = 58, strokeW = 14;
-  const circumference = 2 * Math.PI * r;
-  let offset = 0;
-  return (
-    <svg viewBox="0 0 116 116" width={116} height={116}>
-      <circle cx={cx} cy={cy} r={r} fill="none" stroke="rgba(255,255,255,0.06)" strokeWidth={strokeW} />
-      {segments.map((seg, i) => {
-        const dash = (seg.value / total) * circumference;
-        const gap = circumference - dash;
-        const el = (
-          <circle key={i} cx={cx} cy={cy} r={r} fill="none" stroke={seg.color} strokeWidth={strokeW}
-            strokeDasharray={`${dash} ${gap}`} strokeDashoffset={-offset} strokeLinecap="round"
-            style={{ transform: 'rotate(-90deg)', transformOrigin: `${cx}px ${cy}px` }} />
-        );
-        offset += dash; return el;
-      })}
-      <text x={cx} y={cy + 4} textAnchor="middle" fill="white" fontSize="13" fontWeight="bold">{total}</text>
-      <text x={cx} y={cy + 15} textAnchor="middle" fill="rgba(255,255,255,0.4)" fontSize="8">pedidos</text>
-    </svg>
-  );
-}
 
 export default function AdminPage() {
+
   const {
-    products, orders, promotions, user, darkMode, toggleDarkMode,
+    promotions, darkMode, toggleDarkMode,
     updateOrderStatus, deleteProduct, addProduct, updateProduct,
     addPromotion, updatePromotion, deletePromotion, togglePromotion,
     applyPromoToProduct, navigateTo, logout, updateUser, showNotification
   } = useStore();
-
+  const Controller = useAdminController();
+  const { ordersAdmin, logs, Category } = UseOrderAdminStore();
+  const { user } = UseUserStore();
+  const { products } = UseProductAdminStore();
+  const { orders } = UseOrderStore();
+  console.log("orders", orders);
   const [tab, setTab] = useState<AdminTab>('dashboard');
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [productSearch, setProductSearch] = useState('');
   const [orderSearch, setOrderSearch] = useState('');
   const [orderStatusFilter, setOrderStatusFilter] = useState('all');
-  const [showProductModal, setShowProductModal] = useState(false);
   const [showPromoModal, setShowPromoModal] = useState(false);
-  const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [editingPromo, setEditingPromo] = useState<Promotion | null>(null);
   const [editingProfile, setEditingProfile] = useState(false);
   const [profileForm, setProfileForm] = useState({ name: user?.name || '', email: user?.email || '', phone: user?.phone || '', bio: user?.bio || '' });
@@ -226,22 +67,22 @@ export default function AdminPage() {
   });
 
   const blankProduct: Partial<Product> = {
-    name: '', price: 0, originalPrice: undefined, category: 'eletronicos', stock: 0,
-    images: ['https://images.unsplash.com/photo-1523206489230-c012c64b2b48?w=600'],
-    description: '', rating: 4.5, reviewCount: 0, sold: 0, freeShipping: false, variations: [], tags: [], featured: false,
+    name: '', price: 0, originalPrice: undefined, category: 'eletronicos', stoke: 0,
+    images: [],
+    description: '', rating: 0, reviewCount: 0, sold: 0, freeShipping: false, variations: [], tags: [], featured: false,
   };
-  const [newProduct, setNewProduct] = useState<Partial<Product>>(blankProduct);
-
   const blankPromo: Partial<Promotion> = {
     title: '', description: '', discount: 10, code: '', minValue: 0,
     validUntil: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), active: true, productIds: [], type: 'percent',
   };
   const [newPromo, setNewPromo] = useState<Partial<Promotion>>(blankPromo);
-  const totalRevenue = orders.filter(o => o.status !== 'cancelado').reduce((s, o) => s + o.total, 0);
-  const pendingOrders = orders.filter(o => ['confirmado', 'preparando', 'saiu_entrega'].includes(o.status)).length;
-  const deliveredOrders = orders.filter(o => o.status === 'entregue').length;
+
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const pendingOrders = orders.filter(o => ['confirmado', 'preparando', 'saiu_entrega'].includes(o.order_Status)).length;
+  const deliveredOrders = orders.filter(o => o.order_Status === 'ENTREGUE').length;
   const cancelledOrdersPerDay = orders.reduce((acc, order) => {
-    if (order.status !== 'cancelado') return acc;
+    if (order.order_Status !== 'CANCELADO') return acc;
 
     const day = new Date(order.date || 0)
       .toISOString()
@@ -253,7 +94,7 @@ export default function AdminPage() {
   }, {} as Record<string, number>);
 
   const cancelledOrders = orders.filter(
-    order => order.status === 'cancelado'
+    order => order.order_Status === 'CANCELADO'
   );
 
   // AGRUPA E SOMA POR DATA
@@ -301,10 +142,10 @@ export default function AdminPage() {
 
   const lowStock = products.filter(p => p.stock < 0).length;
 
-  const revenueData = [3200, 4100, 3800, 5200, 4800, 6100, Math.max(1000, Math.round(totalRevenue / 10))];
+  const revenueData = [5200, 4100, 3800, 5200, 8800, 6100, Math.max(1000, Math.round(Controller?.result.totalRevenue || 0 / 10))];
 
   const revenueLabels = orders.map(item => {
-    const date = new Date(item.date ? item.date : Date.now());
+    const date = new Date(item.insertDate ? item.insertDate : Date.now());
 
     const today = new Date();
 
@@ -330,28 +171,41 @@ export default function AdminPage() {
     { value: 20, color: '#f97316', label: 'Ativos' },
     { value: 10, color: '#ef4444', label: 'Cancelados' },
   ];
-  const catCounts = Object.entries(categoryLabels).map(([k, v]) => ({ name: v, count: products.filter(p => p.category === k).length, key: k }));
+  // const catCounts = Object.entries(Category).map(([k, v]) => ({ name: v, count: products.filter(p => p.category === k).length, key: k }));
 
-  const filteredProducts = products.filter(p =>
-    p.name.toLowerCase().includes(productSearch.toLowerCase()) || p.category.toLowerCase().includes(productSearch.toLowerCase())
-  );
-  const filteredOrders = orders.filter(o => {
-    const ms = o.id.toLowerCase().includes(orderSearch.toLowerCase());
-    const mst = orderStatusFilter === 'all' || o.status === orderStatusFilter;
+  const catCounts = Category.map(category => ({
+    name: category.category,
+    count: products.filter(p => p.id_category === category.id).length,
+    key: category.id,
+    count_Sold: products
+      .filter(p => p.id_category === category.id)
+      .reduce((total, product) => total + (product.count_Sold ?? 0), 0),
+  }));
+  console.log("catCounts", catCounts)
+  const filteredProducts = products
+    .filter(p =>
+      p.name.toLowerCase().includes(productSearch.toLowerCase())
+    )
+    .sort(
+      (a, b) =>
+        new Date(b.insertDate).getTime() - new Date(a.insertDate).getTime()
+    );
+
+  console.log("filteredProducts", filteredProducts);
+
+  const filteredOrders = ordersAdmin.filter(o => {
+    const ms = o.id_Order
+      .toString()
+      .includes(orderSearch);
+
+    const mst =
+      orderStatusFilter === "all" ||
+      o.order_Status === orderStatusFilter;
 
     return ms && mst;
   });
 
-  const handleSaveProduct = () => {
-    if (editingProduct) {
-      updateProduct({ ...editingProduct, ...newProduct } as Product);
-      showNotification('Produto atualizado! Já visível na loja.', 'success');
-    } else {
-      addProduct({ ...blankProduct, ...newProduct, id: `p${Date.now()}` } as Product);
-      showNotification('Produto criado! Já aparece para clientes.', 'success');
-    }
-    setShowProductModal(false); setEditingProduct(null); setNewProduct(blankProduct);
-  };
+
 
   const handleSavePromo = () => {
     const promo: Promotion = {
@@ -364,7 +218,7 @@ export default function AdminPage() {
     setShowPromoModal(false); setEditingPromo(null); setNewPromo(blankPromo);
   };
 
-  const openEditProduct = (p: Product) => { setEditingProduct(p); setNewProduct({ ...p }); setShowProductModal(true); };
+  const openEditProduct = (p: Product) => { Controller?.action.setEditingProduct(p); Controller?.action.setNewProduct({ ...p }); Controller?.action.setShowProductModal(true); };
   const openEditPromo = (pr: Promotion) => { setEditingPromo(pr); setNewPromo({ ...pr }); setShowPromoModal(true); };
 
   const dk = darkMode;
@@ -378,7 +232,7 @@ export default function AdminPage() {
   const sub = dk ? 'text-white/35' : 'text-surface-400';
   const inp = dk ? 'bg-[#0a0a0f] border-white/[0.08] text-white placeholder:text-white/20 focus:border-brand-400' : 'bg-surface-50 border-surface-200 text-surface-800 focus:border-brand-400';
   const div_ = dk ? 'divide-white/[0.06]' : 'divide-surface-100';
-  const bord = dk ? 'border-white/[0.06]' : 'border-surface-100';
+  const bord = dk ? "border-white/10" : "border-black/20";
   const rowH = dk ? 'hover:bg-white/[0.02]' : 'hover:bg-surface-50';
 
   const navGroups = [
@@ -397,7 +251,6 @@ export default function AdminPage() {
       ]
     },
   ];
-
   const SidebarContent = () => (
     <>
       <div className={`p-5 border-b ${bord} flex items-center gap-3 flex-shrink-0`}>
@@ -450,18 +303,74 @@ export default function AdminPage() {
   );
   const orderFilters = [
     { label: 'Todos', value: 'all' },
-    { label: 'Entregue', value: 'entregue' },
-    { label: 'Saiu para Entrega', value: 'saiu_entrega' },
-    { label: 'Preparando', value: 'preparando' },
-    { label: 'Confirmado', value: 'confirmado' },
+    { label: 'Entregue', value: 'ENTREGUE' },
+    { label: 'Saiu para Entrega', value: 'SAIU_PARA_ENTREGA' },
+    { label: 'Preparando', value: 'PREPARANDO' },
+    { label: 'Confirmado', value: 'CONFIRMADO' },
   ];
+  const metrics = [
+    {
+      label: "Receita do Mês Atual",
+      value: formatPrice(Controller?.result.totalRevenue ?? 0),
+      icon: <DollarSign className="w-5 h-5" />,
+      color: "#22c55e",
+      change: Controller?.action.generateMonthlyRevenue()?.slice(-1)[0]?.percentage ? `${Controller?.action.generateMonthlyRevenue()?.slice(-1)[0]?.percentage > 0 ? '+' : ''}${Controller?.action.generateMonthlyRevenue()?.slice(-1)[0]?.percentage?.toFixed(1)}%` : '+0%',
+      up: (Controller?.action.generateMonthlyRevenue()?.slice(-1)[0]?.percentage ?? 0) >= 0,
+      data: Controller?.action.generateMonthlyRevenue()?.map(x => x.total) ?? [],
+      labels: Controller?.action.generateMonthlyRevenue()?.map(x => x.month) ?? [],
+      percentages: Controller?.action.generateMonthlyRevenue()?.map(x => x.percentage) ?? [],
+      differences: Controller?.action.generateMonthlyRevenue()?.map(x => x.difference) ?? [],
+      ValueR$_Number: true
+    },
+    {
+      label: "Pedidos do Mês Atual",
+      value: `${Controller?.result.currentMonthOrdersCount ?? 0} Pedidos`,
+      icon: <ShoppingBag className="w-5 h-5" />,
+      color: "#3b82f6",
+      change: Controller?.action.generateMonthlyOrders()?.slice(-1)[0]?.percentage ? `${Controller?.action.generateMonthlyOrders()?.slice(-1)[0]?.percentage > 0 ? '+' : ''}${Controller?.action.generateMonthlyOrders()?.slice(-1)[0]?.percentage?.toFixed(1)}%` : '+0%',
+      up: (Controller?.action.generateMonthlyOrders()?.slice(-1)[0]?.percentage ?? 0) >= 0,
+      data: Controller?.action.generateMonthlyOrders()?.map(x => x.total) ?? [],
+      labels: Controller?.action.generateMonthlyOrders()?.map(x => x.month) ?? [],
+      percentages: Controller?.action.generateMonthlyOrders()?.map(x => x.percentage) ?? [],
+      differences: Controller?.action.generateMonthlyOrders()?.map(x => x.difference) ?? [],
+      ValueR$_Number: false
+    },
+    {
+      label: "Pedidos Entregues",
+      value: pendingOrders,
+      icon: <Truck className="w-5 h-5" />,
+      color: "#f59e0b",
+      change: "-3.1%",
+      up: false,
+      data: viewsData,
+      labels: revenueLabels,
+      ValueR$_Number: false
+    },
+    {
+      label: "Movimentação do Sistema Mês Atual",
+      value: `${logs.filter(l => l.tipo == "Acesso" && l.nivel == "CLIENTE").length} Usuários`,
+      icon: <Package className="w-5 h-5" />,
+      color: "#a855f7",
+      change: Controller?.action.generateMonthlyLogs()?.slice(-1)[0]?.percentage ? `${Controller?.action.generateMonthlyLogs()?.slice(-1)[0]?.percentage > 0 ? '+' : ''}${Controller?.action.generateMonthlyLogs()?.slice(-1)[0]?.percentage?.toFixed(1)}%` : '+0%',
+      up: (Controller?.action.generateMonthlyLogs()?.slice(-1)[0]?.percentage ?? 0) >= 0,
+      data: Controller?.action.generateMonthlyLogs()?.map(x => x.total) ?? [],
+      labels: Controller?.action.generateMonthlyLogs()?.map(x => x.month) ?? [],
+      percentages: Controller?.action.generateMonthlyLogs()?.map(x => x.percentage) ?? [],
+      differences: Controller?.action.generateMonthlyLogs()?.map(x => x.difference) ?? [],
+      ValueR$_Number: false
 
+    }
+  ];
   const [selectedStatus, setSelectedStatus] = useState('all');
 
   const filteredOrdersStatus =
-    selectedStatus === 'all'
-      ? orders
-      : orders.filter(order => order.status === selectedStatus);
+    (selectedStatus === 'all'
+      ? ordersAdmin
+      : ordersAdmin.filter(order => order.order_Status === selectedStatus)
+    ).sort((a, b) =>
+      new Date(b.insertDate).getTime() - new Date(a.insertDate).getTime()
+    );
+  console.log("filteredOrdersStatus", filteredOrdersStatus, ordersAdmin)
   return (
     <div className={`min-h-screen flex font-body ${bg}`}>
 
@@ -506,33 +415,61 @@ export default function AdminPage() {
             {dk ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
           </button>
         </header>
-
         <main className="flex-1 overflow-y-auto p-4 md:p-6 space-y-6">
-
           {/* ─── DASHBOARD ─── */}
           {tab === 'dashboard' && (
             <>
-              <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
-                {[
-                  { label: 'Receita Total', value: formatPrice(totalRevenue), icon: <DollarSign className="w-5 h-5" />, change: '+12.5%', up: true, color: '#22c55e', data: revenueData },
-                  { label: 'Total Pedidos', value: orders.length, icon: <ShoppingBag className="w-5 h-5" />, change: '+8.2%', up: true, color: '#3b82f6', data: ordersData },
-                  { label: 'Pedidos Entregues por Dia', value: pendingOrders, icon: <Truck className="w-5 h-5" />, change: '-3.1%', up: false, color: '#f59e0b', data: viewsData },
-                  { label: 'Produtos', value: products.length, icon: <Package className="w-5 h-5" />, change: '+2.4%', up: true, color: '#a855f7', data: [5, 8, 10, 12, 14, 15, products.length] },
-                ].map((m, i) => (
-                  <div key={i} className={`rounded-2xl border p-4 md:p-5 transition-all ${card} ${cardH} overflow-hidden`}>
-                    <div className="flex items-start justify-between mb-3">
-                      <div className="w-9 h-9 rounded-xl flex items-center justify-center text-white flex-shrink-0" style={{ background: m.color, boxShadow: `0 4px 12px ${m.color}40` }}>{m.icon}</div>
-                      <span className={`flex items-center gap-1 text-xs font-bold ${m.up ? 'text-green-400' : 'text-red-400'}`}>
-                        {m.up ? <TrendingUp className="w-3 h-3" /> : <TrendingDown className="w-3 h-3" />} {m.change}
-                      </span>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 md:gap-5">
+                {metrics.map((m, index) => (
+                  <div
+                    key={index}
+                    className={` relative overflow-hidden rounded-2xl sm:rounded-3xl border ${card} ${cardH} p-4 sm:p-5 md:p-6 transition-all duration-300 hover:-translate-y-1 hover:shadow-2xl`}>
+                    {/* Bolha decorativa */}
+                    <div
+                      className=" absolute -right-4 -top-10 sm:-right-10 sm:-top-10 md:-right-12 md:-top-12 w-28 h-28 sm:w-32 sm:h-32 md:w-30 md:h-30 lg:w-40 lg:h-36 rounded-full opacity-10"
+                      style={{ background: m.color }}
+                    />
+
+                    {/* Header */}
+                    <div className="relative flex justify-between items-start gap-2">
+                      <div
+                        className="w-9 h-9 sm:w-10 sm:h-10 md:w-12 md:h-12 rounded-xl sm:rounded-2xl flex items-center justify-center text-white shrink-0"
+                        style={{
+                          background: m.color,
+                          boxShadow: `0 10px 25px ${m.color}55`,
+                        }}
+                      >
+                        {m.icon}
+                      </div>
+
+                      <div
+                        className={`flex items-center gap-1 text-xs sm:text-xs md:text-sm font-semibold whitespace-nowrap ${m.up ? "text-green-500" : "text-red-500"
+                          }`}
+                      >
+                        {m.up ? (
+                          <TrendingUp size={13} className="shrink-0" />
+                        ) : (
+                          <TrendingDown size={13} className="shrink-0" />
+                        )}
+                        {m.change}
+                      </div>
                     </div>
-                    <p className={`font-display font-bold text-xl md:text-2xl leading-none ${txt}`}>{m.value}</p>
-                    <p className={`text-xs mt-1.5 ${sub}`}>{m.label}</p>
-                    <div className="mt-3 opacity-60"><MiniBarChart data={m.data} color={m.color} darkMode={dk} labels={revenueLabels} /></div>
+                    {/* Valor */}
+                    <h2 className={`mt-4 sm:mt-5 md:mt-6 text-2xl sm:text-2xl md:text-3xl font-bold ${txt} truncate`}>
+                      {m.value}
+                    </h2>
+                    {/* Título */}
+                    <p className={`mt-1 mb-4 text-xs sm:text-xs md:text-sm ${sub} truncate`}>
+                      {m.label}
+                    </p>
+
+                    {/* Gráfico */}
+                    <div className="mt-4 sm:mt-4 md:mt-5">
+                      <GraficoMes data={m.data} labels={m.labels} percentages={m.percentages} differences={m.differences} color={m.color} darkMode={dk} ValueR$_Number={m.ValueR$_Number} />
+                    </div>
                   </div>
                 ))}
               </div>
-
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 md:gap-5">
                 <div className={`lg:col-span-2 rounded-2xl border p-4 md:p-5 ${card}`}>
                   <div className="flex items-center justify-between mb-4">
@@ -540,17 +477,18 @@ export default function AdminPage() {
                       <h3 className={`font-display font-bold text-sm ${txt}`}>Receita — Últimos 7 dias</h3>
                       <p className={`text-xs mt-0.5 ${sub}`}>Crescimento consistente</p>
                     </div>
-                    <span className="text-green-400 text-xs font-bold flex items-center gap-1"><TrendingUp className="w-3 h-3" /> +12.5%</span>
                   </div>
-                  <MiniLineChart data={revenueData} labels={revenueLabels} color="#f97316" darkMode={dk} valor={true} />
-
+                  <GraficoDay data={Controller?.action.generateLast7DaysOrders().map(item => ({ day: item.day, value: item.total })) ?? []} labels={revenueLabels} color="#f97316" darkMode={dk} valor={true} />
                 </div>
                 <div className={`rounded-2xl border p-4 md:p-5 ${card} flex flex-col`}>
                   <h3 className={`font-display font-bold text-sm ${txt} mb-4`}>Status dos Pedidos</h3>
                   <div className="flex items-center gap-3 flex-1">
-                    <DonutChart segments={orderDonut} />
+                    <GraficoMediaCIrcule
+                      segments={Controller?.action.generateCurrentMonthOrderDonut() ?? []}
+                      dark={dk}
+                    />
                     <div className="space-y-2 flex-1">
-                      {orderDonut.map((seg, i) => (
+                      {Controller?.action.generateCurrentMonthOrderDonut().map((seg, i) => (
                         <div key={i} className="flex items-center gap-2">
                           <div className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ background: seg.color }} />
                           <span className={`text-xs flex-1 ${txt2}`}>{seg.label}</span>
@@ -581,14 +519,13 @@ export default function AdminPage() {
                       <h3 className={`font-display font-bold text-sm ${txt}`}>Cancelados — Últimos 7 dias</h3>
                       <p className={`text-xs mt-0.5 ${sub}`}>Crescimento consistente</p>
                     </div>
-                    <span className="text-green-400 text-xs font-bold flex items-center gap-1"><TrendingUp className="w-3 h-3" /> +12.5%</span>
                   </div>
-                  <MiniLineChart
-                    data={cancelledData}
+                  <GraficoDay
+                    data={Controller?.action.generateLast7DaysOrdersCancelado().map(item => ({ day: item.day, value: item.total })) ?? []}
                     labels={cancelledlabels}
                     color="#ef4444"
                     darkMode={dk}
-                    valor={false}
+                    valor={true}
                   />
                 </div>
 
@@ -597,106 +534,106 @@ export default function AdminPage() {
                   <div className="absolute -top-16 -right-16 w-40 h-40 bg-brand-500/10 blur-3xl rounded-full" />
 
                   <div className="relative z-10">
-                    <div className="flex items-center justify-between mb-6">
+                    <div className="flex items-center justify-between mb-6 gap-3">
                       <div>
                         <h3 className={`font-display font-bold text-base ${txt}`}>
                           Distribuição por Categoria
                         </h3>
-
                         <p className={`text-xs mt-1 ${sub}`}>
-                          Produtos organizados por participação no catálogo
+                          Vendas e catálogo organizados por categoria
                         </p>
                       </div>
 
-                      <div className={`px-3 py-1 rounded-xl text-[11px] font-bold border ${dk
-                        ? 'bg-white/[0.04] border-white/[0.06] text-white/60'
-                        : 'bg-surface-50 border-surface-200 text-surface-500'
-                        }`}>
+                      <div
+                        className={`px-3 py-1 rounded-xl text-[11px] font-bold border whitespace-nowrap ${dk
+                          ? 'bg-white/[0.04] border-white/[0.06] text-white/60'
+                          : 'bg-surface-50 border-surface-200 text-surface-500'
+                          }`}
+                      >
                         {products.length} produtos
                       </div>
                     </div>
 
                     <div className="space-y-4">
                       {catCounts.map((c, i) => {
-                        const pct =
-                          products.length > 0
-                            ? Math.round((c.count / products.length) * 100)
-                            : 0;
+                        const totalSales = catCounts.reduce((s, cat) => s + (cat.count ?? 0), 0) || 1;
 
-                        const colors = [
-                          '#f97316',
-                          '#3b82f6',
-                          '#a855f7',
-                          '#ef4444'
-                        ];
+                        const salesPct = Math.round(((c.count ?? 0) / totalSales) * 100);
+                        const productPct =
+                          products.length > 0 ? Math.round((c.count / products.length) * 100) : 0;
+
+                        const colors = ['#f97316', '#3b82f6', '#a855f7', '#ef4444'];
 
                         return (
                           <div
                             key={i}
-                            className={`group rounded-2xl p-3 transition-all duration-300 ${dk
-                              ? 'hover:bg-white/[0.03]'
-                              : 'hover:bg-surface-50'
+                            className={`group rounded-2xl p-3 transition-all duration-300 ${dk ? 'hover:bg-white/[0.03]' : 'hover:bg-surface-50'
                               }`}
                           >
-                            <div className="flex items-center justify-between mb-2">
-                              <div className="flex items-center gap-2">
+                            <div className="flex items-center justify-between mb-2 gap-2">
+                              <div className="flex items-center gap-2 min-w-0">
                                 {/* bolinha */}
                                 <div
-                                  className="w-2.5 h-2.5 rounded-full shadow-lg"
+                                  className="w-2.5 h-2.5 rounded-full shrink-0 shadow-lg"
                                   style={{
                                     background: colors[i],
-                                    boxShadow: `0 0 12px ${colors[i]}70`
+                                    boxShadow: `0 0 12px ${colors[i]}70`,
                                   }}
                                 />
-
-                                <span className={`text-sm font-medium ${txt}`}>
+                                <span className={`text-sm font-medium truncate ${txt}`}>
                                   {c.name}
                                 </span>
                               </div>
 
-                              <div className="text-right">
-                                <p className={`text-sm font-bold ${txt}`}>
-                                  {pct}%
-                                </p>
-
-                                <p className={`text-[11px] ${sub}`}>
-                                  {c.count} itens
-                                </p>
+                              <div className="text-right shrink-0">
+                                <p className={`text-sm font-bold ${txt}`}>{salesPct}%</p>
+                                <p className={`text-[11px] ${sub}`}>das vendas</p>
                               </div>
                             </div>
 
-                            {/* barra */}
+                            {/* barra (participação em vendas) */}
                             <div
                               className={`relative h-2.5 rounded-full overflow-hidden ${dk ? 'bg-white/[0.05]' : 'bg-surface-100'
                                 }`}
                             >
-                              {/* glow */}
                               <div
                                 className="absolute inset-y-0 left-0 blur-md opacity-40"
-                                style={{
-                                  width: `${pct}%`,
-                                  background: colors[i]
-                                }}
+                                style={{ width: `${salesPct}%`, background: colors[i] }}
                               />
-
-                              {/* fill */}
                               <div
                                 className="relative h-full rounded-full transition-all duration-700 ease-out"
                                 style={{
-                                  width: `${pct}%`,
-                                  background: `linear-gradient(90deg, ${colors[i]}, ${colors[i]}cc)`
+                                  width: `${salesPct}%`,
+                                  background: `linear-gradient(90deg, ${colors[i]}, ${colors[i]}cc)`,
                                 }}
                               />
-
-                              {/* brilho */}
                               <div
                                 className="absolute top-0 h-full opacity-30"
                                 style={{
-                                  width: `${pct}%`,
-                                  background:
-                                    'linear-gradient(to bottom, rgba(255,255,255,0.35), transparent)'
+                                  width: `${salesPct}%`,
+                                  background: 'linear-gradient(to bottom, rgba(255,255,255,0.35), transparent)',
                                 }}
                               />
+                            </div>
+
+                            {/* métricas: produtos e vendas */}
+                            <div className="flex items-center gap-4 mt-2.5">
+                              <div className="flex items-center gap-1.5">
+                                <Package size={12} className={sub} />
+                                <span className={`text-[11px] ${sub}`}>
+                                  <span className={`font-semibold ${txt}`}>{c.count}</span> produtos ({productPct}%)
+                                </span>
+                              </div>
+
+                              <div className="flex items-center gap-1.5">
+                                <ShoppingBag size={12} className={sub} />
+                                <span className={`text-[11px] ${sub}`}>
+                                  <span className={`font-semibold ${txt}`}>
+                                    {(c.count_Sold ?? 0).toLocaleString("pt-BR")}
+                                  </span>{" "}
+                                  vendas
+                                </span>
+                              </div>
                             </div>
                           </div>
                         );
@@ -776,7 +713,7 @@ export default function AdminPage() {
                       {filteredOrdersStatus.slice(0, 5).map(o => (
 
                         <div
-                          key={o.id}
+                          key={o.id_Order}
                           className={`group flex items-center gap-4 px-5 py-4 transition-all duration-300 ${rowH}`}
                         >
                           {/* ícone */}
@@ -795,26 +732,32 @@ export default function AdminPage() {
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-2 mb-1">
                               <p className={`text-sm font-bold ${txt}`}>
-                                #{o.id}
+                                #{o.id_Order}
                               </p>
 
                               <span
-                                className={`text-[10px] font-bold px-2 py-1 rounded-full border ${orderStatusColors[o.status]}`}
+                                className={`text-[10px] font-bold px-2 py-1 rounded-full border ${orderStatusColors[o.order_Status]}`}
                               >
-                                {orderStatusLabels[o.status]}
+                                {orderStatusLabels[o.order_Status]}
                               </span>
                             </div>
 
                             <p className={`text-xs ${sub}`}>
-                              {o.items.reduce((s, i) => s + i.quantity, 0)} itens •{' '}
-                              {o.createdAt.toLocaleDateString('pt-BR')}
+                              {o.quantity} itens •{' '}
+                              {new Date(o.insertDate).toLocaleString('pt-BR', {
+                                day: '2-digit',
+                                month: '2-digit',
+                                year: 'numeric',
+                                hour: '2-digit',
+                                minute: '2-digit',
+                              })}
                             </p>
                           </div>
 
                           {/* valor */}
                           <div className="text-right flex-shrink-0">
                             <p className="text-brand-400 text-sm font-bold">
-                              {formatPrice(o.total)}
+                              {formatPrice(o.total_Value_Order)}
                             </p>
 
                             <p className={`text-[10px] mt-0.5 ${sub}`}>
@@ -872,10 +815,10 @@ export default function AdminPage() {
                     {/* lista */}
                     <div className="p-3 md:p-4 space-y-2.5">
                       {[...products]
-                        .sort((a, b) => b.sold - a.sold)
+                        .sort((a, b) => b.count_Sold - a.count_Sold)
                         .slice(0, 5)
                         .map((p, i) => {
-                          const percent = Math.min(100, (p.sold / 20000) * 100);
+                          const percent = Math.min(100, (p.count_Sold / 20000) * 100);
 
                           return (
                             <div
@@ -903,7 +846,7 @@ export default function AdminPage() {
 
                               {/* imagem */}
                               <img
-                                src={p.images[0]}
+                                src={`/Imagens/Produtos/${p.imagens[0].url_Imagem}`}
                                 alt={p.name}
                                 className={`w-11 h-11 md:w-12 md:h-12 rounded-xl object-cover border flex-shrink-0 ${dk
                                   ? 'border-white/10'
@@ -920,12 +863,12 @@ export default function AdminPage() {
                                     </p>
 
                                     <p className={`text-[10px] md:text-[11px] ${sub}`}>
-                                      {p.sold.toLocaleString('pt-BR')} vendas
+                                      {p.count_Sold.toLocaleString('pt-BR')} vendas
                                     </p>
                                   </div>
 
                                   <p className="text-brand-400 text-xs md:text-sm font-bold whitespace-nowrap">
-                                    {formatPrice(p.price)}
+                                    {formatPrice(p.price_Unic)}
                                   </p>
                                 </div>
 
@@ -990,9 +933,9 @@ export default function AdminPage() {
                 {/* botão */}
                 <button
                   onClick={() => {
-                    setEditingProduct(null);
-                    setNewProduct(blankProduct);
-                    setShowProductModal(true);
+                    Controller?.action.setEditingProduct(null);
+                    // setNewProduct(blankProduct);
+                    Controller?.action.setShowProductModal(true);
                   }}
                   className="flex items-center justify-center gap-2 px-4 py-3 bg-brand-500 hover:bg-brand-600 text-white rounded-2xl text-sm font-bold transition-all shadow-brand whitespace-nowrap"
                 >
@@ -1007,7 +950,9 @@ export default function AdminPage() {
                 <div className="hidden lg:block overflow-x-auto">
                   <table className="w-full">
                     <thead>
-                      <tr className={`border-b ${bord}`}>
+                      <tr
+                        className={`border-b last:border-0 ${bord} ${rowH} transition-colors`}
+                      >
                         {[
                           'Produto',
                           'Categoria',
@@ -1030,12 +975,12 @@ export default function AdminPage() {
                     <tbody>
                       {filteredProducts.map(p => {
                         const hasPromo =
-                          p.originalPrice && p.originalPrice > p.price;
+                          p.origin_Price && p.origin_Price > p.price_Unic;
 
                         const discPct = hasPromo
                           ? Math.round(
-                            ((p.originalPrice! - p.price) /
-                              p.originalPrice!) *
+                            ((p.origin_Price! - p.price_Unic) /
+                              p.origin_Price!) *
                             100
                           )
                           : 0;
@@ -1049,7 +994,7 @@ export default function AdminPage() {
                             <td className="px-5 py-4">
                               <div className="flex items-center gap-3 min-w-[220px]">
                                 <img
-                                  src={p.images[0]}
+                                  src={`/Imagens/Produtos/${p.imagens[0].url_Imagem}`}
                                   alt=""
                                   className={`w-12 h-12 rounded-2xl object-cover border flex-shrink-0 ${dk
                                     ? 'border-white/10'
@@ -1077,20 +1022,20 @@ export default function AdminPage() {
                             <td
                               className={`px-5 py-4 text-xs capitalize ${sub}`}
                             >
-                              {p.category}
+                              {p.id_category}
                             </td>
 
                             {/* preço */}
                             <td className="px-5 py-4">
                               <p className="text-brand-400 font-bold text-sm">
-                                {formatPrice(p.price)}
+                                {formatPrice(p.price_Unic)}
                               </p>
 
                               {hasPromo && (
                                 <p
                                   className={`text-[10px] line-through ${sub}`}
                                 >
-                                  {formatPrice(p.originalPrice!)}
+                                  {formatPrice(p.origin_Price!)}
                                 </p>
                               )}
                             </td>
@@ -1106,7 +1051,7 @@ export default function AdminPage() {
                                   <p className={`text-[10px] mt-1 ${sub}`}>
                                     -
                                     {formatPrice(
-                                      p.originalPrice! - p.price
+                                      p.origin_Price! - p.price_Unic
                                     )}
                                   </p>
                                 </div>
@@ -1118,14 +1063,14 @@ export default function AdminPage() {
                             {/* estoque */}
                             <td className="px-5 py-4">
                               <span
-                                className={`text-sm font-bold ${p.stock < 20
+                                className={`text-sm font-bold ${p.total_Stock < 20
                                   ? 'text-red-400'
-                                  : p.stock < 50
+                                  : p.total_Stock < 50
                                     ? 'text-amber-400'
                                     : 'text-green-400'
                                   }`}
                               >
-                                {p.stock}
+                                {p.total_Stock}
                               </span>
                             </td>
 
@@ -1133,7 +1078,7 @@ export default function AdminPage() {
                             <td
                               className={`px-5 py-4 text-sm font-medium ${txt}`}
                             >
-                              {p.sold.toLocaleString('pt-BR')}
+                              {p.count_Sold.toLocaleString('pt-BR')}
                             </td>
 
                             {/* ações */}
@@ -1152,7 +1097,11 @@ export default function AdminPage() {
                                 </button>
 
                                 <button
-                                  onClick={() => openEditProduct(p)}
+                                  onClick={() => {
+                                    Controller?.action.setEditingProduct(p);
+                                    Controller?.action.setNewProduct({ ...p });
+                                    Controller?.action.setShowProductModal(true);
+                                  }}
                                   className={`p-2 rounded-xl transition-all ${txt2} hover:text-brand-400 ${dk
                                     ? 'hover:bg-brand-500/10'
                                     : 'hover:bg-brand-50'
@@ -1180,15 +1129,18 @@ export default function AdminPage() {
                 </div>
 
                 {/* mobile */}
-                <div className="lg:hidden divide-y divide-white/5">
+                <div
+                  className={`lg:hidden ${dk ? "divide-y divide-white/10" : "divide-y divide-gray-300"
+                    }`}
+                >
                   {filteredProducts.map(p => {
                     const hasPromo =
-                      p.originalPrice && p.originalPrice > p.price;
+                      p.origin_Price && p.origin_Price > p.price_Unic;
 
                     const discPct = hasPromo
                       ? Math.round(
-                        ((p.originalPrice! - p.price) /
-                          p.originalPrice!) *
+                        ((p.origin_Price! - p.price_Unic) /
+                          p.origin_Price!) *
                         100
                       )
                       : 0;
@@ -1201,7 +1153,7 @@ export default function AdminPage() {
                         {/* topo */}
                         <div className="flex items-center gap-3">
                           <img
-                            src={p.images[0]}
+                            src={`/Imagens/Produtos/${p.imagens[0].url_Imagem}`}
                             alt=""
                             className={`w-14 h-14 rounded-2xl object-cover border ${dk
                               ? 'border-white/10'
@@ -1219,7 +1171,7 @@ export default function AdminPage() {
                             <p
                               className={`text-xs capitalize mt-0.5 ${sub}`}
                             >
-                              {p.category}
+                              {p.id_category}
                             </p>
 
                             {p.badge && (
@@ -1238,7 +1190,7 @@ export default function AdminPage() {
                             </p>
 
                             <p className="text-brand-400 font-bold text-sm">
-                              {formatPrice(p.price)}
+                              {formatPrice(p.price_Unic)}
                             </p>
                           </div>
 
@@ -1248,14 +1200,14 @@ export default function AdminPage() {
                             </p>
 
                             <p
-                              className={`text-sm font-bold ${p.stock < 20
+                              className={`text-sm font-bold ${p.total_Stock < 20
                                 ? 'text-red-400'
-                                : p.stock < 50
+                                : p.total_Stock < 50
                                   ? 'text-amber-400'
                                   : 'text-green-400'
                                 }`}
                             >
-                              {p.stock}
+                              {p.total_Stock}
                             </p>
                           </div>
 
@@ -1265,7 +1217,7 @@ export default function AdminPage() {
                             </p>
 
                             <p className={`text-sm font-bold ${txt}`}>
-                              {p.sold.toLocaleString('pt-BR')}
+                              {p.count_Sold.toLocaleString('pt-BR')}
                             </p>
                           </div>
                         </div>
@@ -1280,7 +1232,7 @@ export default function AdminPage() {
                             <span
                               className={`text-[11px] line-through ${sub}`}
                             >
-                              {formatPrice(p.originalPrice!)}
+                              {formatPrice(p.origin_Price!)}
                             </span>
                           </div>
                         )}
@@ -1301,7 +1253,11 @@ export default function AdminPage() {
                           </button>
 
                           <button
-                            onClick={() => openEditProduct(p)}
+                            onClick={() => {
+                              Controller?.action.setEditingProduct(p);
+                              Controller?.action.setNewProduct({ ...p });
+                              Controller?.action.setShowProductModal(true);
+                            }}
                             className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl transition-all ${dk
                               ? 'bg-white/[0.04] hover:bg-white/[0.07]'
                               : 'bg-surface-100 hover:bg-surface-200'
@@ -1309,7 +1265,7 @@ export default function AdminPage() {
                           >
                             <Edit3 className="w-4 h-4 text-brand-400" />
                             <span className={`text-xs font-medium ${txt}`}>
-                              Editar
+                              teste
                             </span>
                           </button>
 
@@ -1407,38 +1363,38 @@ export default function AdminPage() {
                       {
                         v: 'all',
                         l: 'Todos',
-                        n: orders.length,
+                        n: ordersAdmin.length,
                         icon: ShoppingBag,
                       },
                       {
-                        v: 'pendente',
+                        v: 'PENDENTE',
                         l: 'Pendentes',
-                        n: orders.filter(o => o.status === 'pendente').length,
+                        n: ordersAdmin.filter(o => o.order_Status === 'PENDENTE').length,
                         icon: Clock,
                       },
                       {
-                        v: 'confirmado',
+                        v: 'CONFIRMADO',
                         l: 'Confirmados',
-                        n: orders.filter(o => o.status === 'confirmado').length,
+                        n: ordersAdmin.filter(o => o.order_Status === 'CONFIRMADO').length,
                         icon: CheckCircle2,
                       },
 
                       {
-                        v: 'preparando',
+                        v: 'PREPARANDO',
                         l: 'Preparando',
-                        n: orders.filter(o => o.status === 'preparando').length,
+                        n: ordersAdmin.filter(o => o.order_Status === 'PREPARANDO').length,
                         icon: Package,
                       },
                       {
-                        v: 'saiu_entrega',
+                        v: 'SAIU_PARA_ENTREGA',
                         l: 'Em rota',
-                        n: orders.filter(o => o.status === 'saiu_entrega').length,
+                        n: ordersAdmin.filter(o => o.order_Status === 'SAIU_PARA_ENTREGA').length,
                         icon: Truck,
                       },
                       {
-                        v: 'entregue',
+                        v: 'ENTREGUE',
                         l: 'Entregues',
-                        n: orders.filter(o => o.status === 'entregue').length,
+                        n: ordersAdmin.filter(o => o.order_Status === 'ENTREGUE').length,
                         icon: BadgeCheck,
                       },
                     ].map(s => {
@@ -1483,7 +1439,9 @@ export default function AdminPage() {
                   <table className="w-full min-w-[900px]">
 
                     <thead>
-                      <tr className={`border-b ${bord}`}>
+                      <tr
+                        className={`border-b last:border-0 ${bord} ${rowH} transition-colors`}
+                      >
                         {['Pedido', 'Itens', 'Valor', 'Status', 'Data', 'Atualizar',].map(h => (
                           <th key={h} className={`px-6 py-5 text-left text-[11px] font-black uppercase tracking-[0.18em] whitespace-nowrap ${sub} `}>
                             {h}
@@ -1495,7 +1453,7 @@ export default function AdminPage() {
                     <tbody>
 
                       {filteredOrders.map((o, index) => (
-                        <tr key={`${o.id}-${index}`} className={`border-b last:border-none ${bord} transition-all duration-300 hover:bg-brand-500/[0.03] `}>
+                        <tr key={`${o.id_Order}-${index}`} className={`border-b last:border-none ${bord} transition-all duration-300 hover:bg-brand-500/[0.03] `}>
 
                           {/* PEDIDO */}
                           <td className="px-6 py-5">
@@ -1508,11 +1466,11 @@ export default function AdminPage() {
 
                               <div className="min-w-0">
                                 <p className={`font-black text-sm truncate ${txt}`}>
-                                  #{o.id}
+                                  #{o.number_Order}
                                 </p>
 
                                 <p className={`text-[11px] mt-1 ${sub}`}>
-                                  {o.items.reduce((s, i) => s + i.quantity, 0)} itens
+                                  {o.products.reduce((s, i) => s + i.quantity, 0)} itens
                                 </p>
                               </div>
                             </div>
@@ -1524,11 +1482,11 @@ export default function AdminPage() {
                             <div className="flex flex-col gap-3">
 
                               <div className="flex items-center -space-x-2">
-                                {o.items.slice(0, 4).map((item, i) => (
+                                {o.products.slice(0, 4).map((item, i) => (
                                   <img
                                     key={i}
-                                    src={item.product.images[0]}
-                                    alt={item.product.name}
+                                    src={`/Imagens/Produtos/${item.imagens?.[0]?.url_Imagem}`}
+                                    alt={item.name}
                                     className={`w-11 h-11 rounded-2xl object-cover border-2 shadow-lg transition-transform hover:scale-105 ${dk ? 'border-[#111]' : 'border-white'
                                       }`}
                                   />
@@ -1536,19 +1494,19 @@ export default function AdminPage() {
                               </div>
 
                               <div className="flex flex-col gap-1">
-                                {o.items.slice(0, 4).map((item, i) => (
+                                {o.products.slice(0, 4).map((item, i) => (
                                   <span
                                     key={i}
                                     className={`text-[11px] sm:text-xs font-medium truncate max-w-[180px] ${dk ? 'text-white/70' : 'text-slate-600'
                                       }`}
                                   >
-                                    {item.product.name}
+                                    {item.name}
                                   </span>
                                 ))}
 
-                                {o.items.length > 4 && (
+                                {o.products.length > 4 && (
                                   <span className="text-[11px] text-brand-400 font-semibold">
-                                    +{o.items.length - 4} itens
+                                    +{o.products.length - 4} itens
                                   </span>
                                 )}
                               </div>
@@ -1559,7 +1517,7 @@ export default function AdminPage() {
                           {/* VALOR */}
                           <td className="px-6 py-5">
                             <p className="text-brand-400 font-black text-sm whitespace-nowrap">
-                              {formatPrice(o.total)}
+                              {formatPrice(o.total_Value_Order)}
                             </p>
                           </td>
 
@@ -1568,24 +1526,30 @@ export default function AdminPage() {
 
                             <span
                               className={` inline-flex items-center text-[11px] font-black px-3 py-1.5 rounded-full border whitespace-nowrap ${orderStatusColors[o.status]}`} >
-                              {orderStatusLabels[o.status]}
+                              {orderStatusLabels[o.order_Status]}
                             </span>
 
                           </td>
 
                           {/* DATA */}
                           <td className={`px-6 py-5 text-xs font-medium whitespace-nowrap ${sub}`}>
-                            {o.createdAt.toLocaleDateString('pt-BR')}
+                            {new Date(o.insertDate).toLocaleString('pt-BR', {
+                              day: '2-digit',
+                              month: '2-digit',
+                              year: 'numeric',
+                              hour: '2-digit',
+                              minute: '2-digit',
+                            })}
                           </td>
 
                           {/* UPDATE */}
                           <td className="px-6 py-5">
 
                             <select
-                              value={o.status}
+                              value={o.order_Status}
                               onChange={e =>
                                 updateOrderStatus(
-                                  o.id,
+                                  o.id_Order,
                                   e.target.value as OrderStatus
                                 )
                               }
@@ -1611,7 +1575,7 @@ export default function AdminPage() {
               <div className="lg:hidden space-y-4">
 
                 {filteredOrders.map((o, index) => (
-                  <div key={`${o.id}-${index}`} className={` relative overflow-hidden rounded-[32px] border backdrop-blur-2xl shadow-[0_10px_40px_rgba(0,0,0,0.08)] transition-all duration-300 ${card}`} >
+                  <div key={`${o.id_Order}-${index}`} className={` relative overflow-hidden rounded-[32px] border backdrop-blur-2xl shadow-[0_10px_40px_rgba(0,0,0,0.08)] transition-all duration-300 ${card}`} >
 
                     {/* glow effects */}
                     <div className="absolute -top-10 -right-10 w-40 h-40 bg-brand-500/10 blur-3xl rounded-full" />
@@ -1633,17 +1597,23 @@ export default function AdminPage() {
                             <div className="flex items-center gap-2 flex-wrap">
 
                               <h3 className={`font-black text-sm ${txt}`}>
-                                #{o.id}
+                                #{o.number_Order}
                               </h3>
 
                               <span className={` text-[10px] font-black px-3 py-1 rounded-full border whitespace-nowrap ${orderStatusColors[o.status]}`} >
-                                {orderStatusLabels[o.status]}
+                                {orderStatusLabels[o.order_Status]}
                               </span>
 
                             </div>
 
                             <p className={`text-[11px] mt-1 ${sub}`}>
-                              {o.createdAt.toLocaleDateString('pt-BR')}
+                              {new Date(o.insertDate).toLocaleString('pt-BR', {
+                                day: '2-digit',
+                                month: '2-digit',
+                                year: 'numeric',
+                                hour: '2-digit',
+                                minute: '2-digit',
+                              })}
                             </p>
 
                           </div>
@@ -1654,11 +1624,11 @@ export default function AdminPage() {
                         <div className="text-right">
 
                           <p className="text-brand-400 font-black text-lg leading-none">
-                            {formatPrice(o.total)}
+                            {formatPrice(o.total_Value_Order)}
                           </p>
 
                           <p className={`text-[11px] mt-1 ${sub}`}>
-                            {o.items.length} itens
+                            {o.products.length} itens
                           </p>
 
                         </div>
@@ -1668,7 +1638,7 @@ export default function AdminPage() {
                       {/* PRODUCTS */}
                       <div className="mt-5 space-y-3">
 
-                        {o.items.map((item, i) => (
+                        {o.products.map((item, i) => (
 
                           <div key={i}
                             className={` flex items-center gap-3 rounded-3xl border p-3 transition-all ${dk
@@ -1681,7 +1651,7 @@ export default function AdminPage() {
                             <div className="relative flex-shrink-0">
 
                               <img
-                                src={item.product.images[0]}
+                                src={`/Imagens/Produtos/${item.imagens?.[0]?.url_Imagem}`}
                                 alt=""
                                 className="w-16 h-16 rounded-2xl object-cover"
                               />
@@ -1700,11 +1670,11 @@ export default function AdminPage() {
                                 <div className="min-w-0">
 
                                   <h4 className={`font-black text-sm leading-tight ${txt}`}>
-                                    {item.product.name}
+                                    {item.name}
                                   </h4>
 
                                   <p className={`text-[11px] mt-1 ${sub}`}>
-                                    {item.product.category}
+                                    {item.category}
                                   </p>
 
                                 </div>
@@ -1712,12 +1682,12 @@ export default function AdminPage() {
                                 <div className="text-right flex-shrink-0">
 
                                   <p className="text-brand-400 font-black text-sm">
-                                    {formatPrice(item.product.price)}
+                                    {formatPrice(item.price_Unic)}
                                   </p>
 
-                                  {item.product.originalPrice && (
+                                  {item.origin_Price && (
                                     <p className={`text-[10px] line-through mt-1 ${sub}`}>
-                                      {formatPrice(item.product.originalPrice)}
+                                      {formatPrice(item.origin_Price)}
                                     </p>
                                   )}
 
@@ -1728,15 +1698,15 @@ export default function AdminPage() {
                               {/* tags */}
                               <div className="flex items-center gap-2 mt-3 flex-wrap">
 
-                                {item.product.freeShipping && (
+                                {item.freeShipping && (
                                   <span className="text-[10px] font-bold px-2 py-1 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
                                     Frete grátis
                                   </span>
                                 )}
 
-                                {item.product.badge && (
+                                {item.badge && (
                                   <span className="text-[10px] font-bold px-2 py-1 rounded-full bg-brand-500/10 text-brand-400 border border-brand-500/20">
-                                    {item.product.badge}
+                                    {item.badge}
                                   </span>
                                 )}
 
@@ -1744,7 +1714,7 @@ export default function AdminPage() {
                                   ? 'bg-white/5 border-white/10 text-white/70'
                                   : 'bg-surface-100 border-surface-200 text-surface-700'
                                   }`}>
-                                  ⭐ {item.product.rating}
+                                  ⭐ {item.Count_Rating}
                                 </span>
 
                               </div>
@@ -1781,8 +1751,8 @@ export default function AdminPage() {
                             </h4>
 
                             <p className={`text-[11px] mt-2 leading-relaxed ${sub}`}>
-                              {o.address.street}, {o.address.number}
-                              {o.address.complement && ` • ${o.address.complement}`}
+                              {o.address.road}, {o.address.number}
+                              {o.address.supplement && ` • ${o.address.supplement}`}
                               <br />
                               {o.address.neighborhood} — {o.address.city}
                             </p>
@@ -1811,7 +1781,7 @@ export default function AdminPage() {
                           </p>
 
                           <p className={`text-xs font-black mt-2 ${txt}`}>
-                            {o.paymentMethod}
+                            {o.payment_terms}
                           </p>
 
                         </div>
@@ -1831,7 +1801,7 @@ export default function AdminPage() {
                           </p>
 
                           <p className={`text-xs font-black mt-2 truncate ${txt}`}>
-                            {o.trackingCode}
+                            {o.number_Order}
                           </p>
 
                         </div>
@@ -1842,10 +1812,10 @@ export default function AdminPage() {
                       <div className="mt-5">
 
                         <select
-                          value={o.status}
+                          value={o.order_Status}
                           onChange={e =>
                             updateOrderStatus(
-                              o.id,
+                              o.id_Order,
                               e.target.value as OrderStatus
                             )
                           }
@@ -2089,47 +2059,515 @@ export default function AdminPage() {
       </div >
 
       {/* ─── PRODUCT MODAL ─── */}
-      {
-        showProductModal && (
-          <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4" onClick={() => setShowProductModal(false)}>
-            <div className={`rounded-2xl border p-6 w-full max-w-lg max-h-[85vh] overflow-y-auto shadow-2xl ${card}`} onClick={e => e.stopPropagation()}>
-              <div className="flex items-center justify-between mb-5">
-                <h3 className={`font-display font-bold text-lg ${txt}`}>{editingProduct ? 'Editar Produto' : 'Novo Produto'}</h3>
-                <button onClick={() => setShowProductModal(false)} className={`p-2 rounded-xl ${txt2} ${dk ? 'hover:bg-white/[0.08]' : 'hover:bg-surface-100'}`}><X className="w-4 h-4" /></button>
+
+      {Controller?.result.showProductModal && Controller?.result.modalStep === 1 && (
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4" onClick={() => Controller?.action.setShowProductModal(false)}>
+          <div className={`rounded-2xl border p-6 w-full max-w-lg max-h-[85vh] overflow-y-auto shadow-2xl ${card}`} onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between mb-5">
+              <h3 className={`font-display font-bold text-lg ${txt}`}>
+                {Controller?.result.editingProduct ? 'Editar Produto' : 'Novo Produto'}
+              </h3>
+              <button onClick={() => Controller?.action.setShowProductModal(false)} className={`p-2 rounded-xl ${txt2} ${dk ? 'hover:bg-white/[0.08]' : 'hover:bg-surface-100'}`}>
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+            <div className="space-y-4">
+              <div>
+                <label className={`block text-xs font-bold uppercase tracking-wider mb-2 ${sub}`}>
+                  Nome
+                </label>
+
+                <input
+                  value={Controller?.result.newProduct.name || ""}
+                  onChange={(e) => {
+                    Controller?.action.setNewProduct(p => ({ ...p, name: e.target.value }));
+                    Controller?.action.setErrors(prev => ({ ...prev, name: "" }));
+                  }}
+                  placeholder="Nome do produto"
+                  className={`w-full px-4 py-2.5 rounded-xl text-sm outline-none transition-all ${Controller?.result.errors.name ? "border-red-500 focus:ring-2 focus:ring-red-500/20" : inp}`}
+                />
+
+                {Controller?.result.errors.name && (
+                  <p className="mt-1 flex items-center gap-1 text-xs text-red-500">
+                    ⚠ {Controller?.result.errors.name}
+                  </p>
+                )}
               </div>
-              <div className="space-y-4">
-                <div><label className={`block text-xs font-bold uppercase tracking-wider mb-2 ${sub}`}>Nome</label><input value={newProduct.name || ''} onChange={e => setNewProduct(p => ({ ...p, name: e.target.value }))} placeholder="Nome do produto" className={`w-full px-4 py-2.5 border rounded-xl text-sm outline-none transition-colors ${inp}`} /></div>
-                <div className="grid grid-cols-2 gap-3">
-                  {[{ label: 'Preço (R$)', key: 'price', type: 'number' }, { label: 'Preço Original (R$)', key: 'originalPrice', type: 'number' }, { label: 'Estoque', key: 'stock', type: 'number' }].map(f => (
-                    <div key={f.key}><label className={`block text-xs font-bold uppercase tracking-wider mb-2 ${sub}`}>{f.label}</label><input type={f.type} value={(newProduct as any)[f.key] || ''} onChange={e => setNewProduct(p => ({ ...p, [f.key]: Number(e.target.value) }))} className={`w-full px-4 py-2.5 border rounded-xl text-sm outline-none transition-colors ${inp}`} /></div>
+              <div className="grid grid-cols-2 gap-3">
+                {[
+                  { label: 'Preço (R$)', key: 'price_Unic', type: 'number' },
+                  { label: 'Preço Original (R$)', key: 'origin_Price', type: 'number' },
+                  { label: 'Estoque', key: 'total_Stock', type: 'number' }].map(f => (
+                    <div key={f.key}>
+                      <label className={`block text-xs font-bold uppercase tracking-wider mb-2 ${sub}`}>
+                        {f.label}
+                      </label>
+                      <input type={f.type} value={(Controller?.result.newProduct as any)[f.key] || ''} onChange={e => Controller?.action.setNewProduct(p => ({ ...p, [f.key]: Number(e.target.value) }))} className={`w-full px-4 py-2.5 border rounded-xl text-sm outline-none transition-colors ${inp}`} />
+                      {Controller?.result.errors.price_Unic && f.key == 'price_Unic' && (
+                        <p className="mt-1 flex items-center gap-1 text-xs text-red-500">
+                          ⚠ {Controller?.result.errors.price_Unic}
+                        </p>
+                      )}
+
+                      {Controller?.result.errors.origin_Price && f.key == 'origin_Price' && (
+                        <p className="mt-1 flex items-center gap-1 text-xs text-red-500">
+                          ⚠ {Controller?.result.errors.origin_Price}
+                        </p>
+                      )}
+                      {Controller?.result.errors.total_Stock && f.key == 'total_Stock' && (
+                        <p className="mt-1 flex items-center gap-1 text-xs text-red-500">
+                          ⚠ {Controller?.result.errors.total_Stock}
+                        </p>
+                      )}
+
+
+                    </div>
                   ))}
-                  <div><label className={`block text-xs font-bold uppercase tracking-wider mb-2 ${sub}`}>Categoria</label>
-                    <select value={newProduct.category || 'eletronicos'} onChange={e => setNewProduct(p => ({ ...p, category: e.target.value as any }))} className={`w-full px-4 py-2.5 border rounded-xl text-sm outline-none transition-colors ${inp}`}>
-                      {Object.entries(categoryLabels).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
-                    </select>
+                <div>
+                  <label className={`block text-xs font-bold uppercase tracking-wider mb-2 ${sub}`}>
+                    Categoria
+                  </label>
+
+                  <select
+                    value={Controller?.result.newProduct.id_category ?? ""}
+                    onChange={e =>
+                      Controller?.action.setNewProduct(p => ({
+                        ...p,
+                        id_category: Number(e.target.value),
+                      }))
+                    }
+                    className={`w-full px-4 py-2.5 border rounded-xl text-sm outline-none transition-colors ${inp}`}
+                  >
+                    <option value="" disabled>
+                      Selecione uma categoria
+                    </option>
+
+                    {Category.map(item => (
+                      <option key={item.id} value={item.id}>
+                        {item.category}
+                      </option>
+                    ))}
+                  </select>
+                  {Controller?.result.errors.id_category && (
+                    <p className="mt-1 flex items-center gap-1 text-xs text-red-500">
+                      ⚠ {Controller?.result.errors.id_category}
+                    </p>
+                  )}
+                </div>
+              </div>
+              <div>
+                <label className={`block text-xs font-bold uppercase tracking-wider mb-2 ${sub}`}>
+                  Tags
+                </label>
+
+                <input
+                  value={Controller?.result.newProduct.tags || ""}
+                  onChange={e =>
+                    Controller?.action.setNewProduct(p => ({
+                      ...p,
+                      tags: e.target.value
+                    }))
+                  }
+                  placeholder="Iphone, Apple, Smartphone, Celular..."
+                  className={`w-full px-4 py-2.5 border rounded-xl text-sm outline-none transition-colors ${inp}`}
+                />
+
+                <p className={`mt-2 text-xs flex items-center gap-1 ${sub}`}>
+                  <span>ℹ️</span>
+                  Separe cada tag por vírgula. Exemplo:
+                  <span className="font-medium">
+                    {" "}Iphone, Apple, Smartphone, Celular
+                  </span>
+                </p>
+                {Controller?.result.errors.tags && (
+                  <p className="mt-1 flex items-center gap-1 text-xs text-red-500">
+                    ⚠ {Controller?.result.errors.tags}
+                  </p>
+                )}
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                {/* Distintivo */}
+                <div className="md:col-span-2">
+                  <label className={`block text-xs font-bold uppercase tracking-wider mb-2 ${sub}`}>
+                    Distintivo
+                  </label>
+
+                  <select
+                    value={Controller?.result.newProduct.badge || ""}
+                    onChange={e =>
+                      Controller?.action.setNewProduct(p => ({
+                        ...p,
+                        badge: e.target.value as any,
+                      }))
+                    }
+                    className={`w-full px-4 py-2.5 border rounded-xl text-sm outline-none transition-colors ${inp}`}
+                  >
+                    <option value="" disabled>
+                      Selecione um Distintivo
+                    </option>
+                    {Object.entries(badgeLabel).map(([k, v]) => (
+                      <option key={k} value={k}>
+                        {v}
+                      </option>
+                    ))}
+                  </select>
+                  {Controller?.result.errors.badge && (
+                    <p className="mt-2 flex items-center gap-1 text-xs text-red-500">
+                      ⚠ {Controller?.result.errors.badge}
+                    </p>
+                  )}
+                </div>
+
+                {/* Parcelas */}
+                <div>
+                  <label className={`block text-xs font-bold uppercase tracking-wider mb-2 ${sub}`}>
+                    Max Parcelas
+                  </label>
+
+                  <input
+                    type="number"
+                    min={1}
+                    max={24}
+                    value={Controller?.result.newProduct.installments ?? 1}
+                    onChange={e =>
+                      Controller?.action.setNewProduct(p => ({
+                        ...p,
+                        installments: Number(e.target.value),
+                      }))
+                    }
+                    placeholder="Ex: 12"
+                    className={`w-full px-4 py-2.5 border rounded-xl text-sm outline-none transition-colors ${inp}`}
+                  />
+
+                </div>
+
+              </div>
+              <div>
+                <label className={`block text-xs font-bold uppercase tracking-wider mb-2 ${sub}`}>
+                  Imagens do produto
+                </label>
+
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/*"
+                  multiple
+                  onChange={Controller?.action.handleImageSelect}
+                  className="hidden"
+                />
+
+                <button
+                  onClick={() => fileInputRef.current?.click()}
+                  className={`w-full flex items-center justify-center gap-2 py-3 border-2 border-dashed rounded-xl text-sm font-medium transition-colors ${dk ? 'border-white/15 text-white/60 hover:border-brand-500/50 hover:bg-white/[0.04]' : 'border-surface-200 text-surface-500 hover:border-brand-400 hover:bg-surface-50'
+                    }`}
+                >
+                  <ImagePlus className="w-4 h-4" />
+                  Adicionar imagens (uma ou várias de uma vez)
+                </button>
+
+                {(Controller?.result.newProduct.imagens?.length ?? 0) > 0 && (
+                  <div className="grid grid-cols-4 gap-2 mt-3">
+                    {Controller?.result.newProduct.imagens!.map((src, i) => (
+                      <div key={i} className="relative group aspect-square rounded-xl overflow-hidden cursor-pointer" onClick={() => Controller?.action.setLightboxImage(src)}>
+                        <img
+                          src={
+                            src.file
+                              ? src.url_Imagem
+                              : `/Imagens/Produtos/${src.url_Imagem}`
+                          }
+                          alt={`Imagem ${i + 1}`}
+                          className="w-full h-full object-cover"
+                        />
+                        <button
+                          onClick={(e) => { e.stopPropagation(); Controller?.action.removeImage(i); }}
+                          className="absolute top-1 right-1 p-1 rounded-full bg-black/70 text-white opacity-0 group-hover:opacity-100 transition-opacity"
+                        >
+                          <X className="w-3 h-3" />
+                        </button>
+                      </div>
+                    ))}
                   </div>
-                </div>
-                <div><label className={`block text-xs font-bold uppercase tracking-wider mb-2 ${sub}`}>Descrição</label><textarea value={newProduct.description || ''} onChange={e => setNewProduct(p => ({ ...p, description: e.target.value }))} rows={3} className={`w-full px-4 py-2.5 border rounded-xl text-sm outline-none transition-colors resize-none ${inp}`} /></div>
-                <div className="flex items-center justify-between">
-                  <span className={`text-sm ${txt2}`}>Em Destaque?</span>
-                  <button onClick={() => setNewProduct(p => ({ ...p, featured: !p.featured }))}>{newProduct.featured ? <ToggleRight className="w-8 h-8 text-brand-500" /> : <ToggleLeft className="w-8 h-8 text-surface-300" />}</button>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className={`text-sm ${txt2}`}>Frete Grátis?</span>
-                  <button onClick={() => setNewProduct(p => ({ ...p, freeShipping: !p.freeShipping }))}>{newProduct.freeShipping ? <ToggleRight className="w-8 h-8 text-green-500" /> : <ToggleLeft className="w-8 h-8 text-surface-300" />}</button>
-                </div>
-                <div className={`pt-4 border-t flex gap-3 ${bord}`}>
-                  <button onClick={() => setShowProductModal(false)} className={`flex-1 py-2.5 rounded-xl text-sm font-bold ${dk ? 'bg-white/[0.06] text-white/60 hover:bg-white/[0.10]' : 'bg-surface-100 text-surface-500 hover:bg-surface-200'}`}>Cancelar</button>
+                )}
+                {Controller?.result.lightboxImage && (
+                  <div
+                    className="fixed inset-0 bg-black/90 z-[60] flex items-center justify-center p-6"
+                    onClick={() => Controller?.action.setLightboxImage(null)}
+                  >
+                    <button
+                      onClick={() => Controller?.action.setLightboxImage(null)}
+                      className="absolute top-5 right-5 p-2 rounded-xl bg-white/10 text-white hover:bg-white/20"
+                    >
+                      <X className="w-5 h-5" />
+                    </button>
+                    <img
+                      src={Controller?.result.lightboxImage ? `/Imagens/Produtos/${Controller?.result.lightboxImage?.url_Imagem}` : Controller?.result.lightboxImage?.url_Imagem}
+                      alt="Visualização ampliada"
+                      className="max-w-full max-h-full rounded-2xl object-contain"
+                      onClick={(e) => e.stopPropagation()}
+                    />
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+
+                        if (!Controller?.result.lightboxImage) return;
+
+                        const index =
+                          Controller.result.newProduct.imagens?.indexOf(
+                            Controller.result.lightboxImage
+                          ) ?? -1;
+
+                        if (index >= 0) {
+                          Controller.action.removeImage(index);
+                        }
+                      }}
+                      className="absolute bottom-6 flex items-center gap-2 px-4 py-2.5 bg-red-500 hover:bg-red-600 text-white rounded-xl text-sm font-bold"
+                    >
+                      <Trash2 className="w-4 h-4" /> Excluir esta imagem
+                    </button>
+                  </div>
+                )}
+                {Controller?.result.errors.imagens && (
+                  <p className="mt-2 flex items-center gap-1 text-xs text-red-500">
+                    ⚠ {Controller?.result.errors.imagens}
+                  </p>
+                )}
+                <p className={`mt-2 text-xs ${sub}`}>
+                  Clique em uma imagem para ver em tamanho grande. Passe o mouse para excluir.
+                </p>
+
+              </div>
+              <div>
+                <label className={`block text-xs font-bold uppercase tracking-wider mb-2 ${sub}`}>
+                  Descrição
+                </label>
+                <textarea value={Controller?.result.newProduct.description || ''} onChange={e => Controller?.action.setNewProduct(p => ({ ...p, description: e.target.value }))} rows={3} className={`w-full px-4 py-2.5 border rounded-xl text-sm outline-none transition-colors resize-none ${inp}`} />
+              </div>
+              <div className="flex items-center justify-between">
+                <span className={`text-sm ${txt2}`}>
+                  Em Destaque?
+                </span>
+                <button onClick={() => Controller?.action.setNewProduct(p => ({ ...p, featured: !p.featured }))}>
+                  {Controller?.result.newProduct.featured ? <ToggleRight className="w-8 h-8 text-brand-500" /> : <ToggleLeft className="w-8 h-8 text-surface-300" />}
+                </button>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className={`text-sm ${txt2}`}>
+                  Frete Grátis?
+                </span>
+                <button onClick={() => Controller?.action.setNewProduct(p => ({ ...p, freeShipping: !p.freeShipping }))}>
+                  {Controller?.result.newProduct.freeShipping ? <ToggleRight className="w-8 h-8 text-green-500" /> : <ToggleLeft className="w-8 h-8 text-surface-300" />}
+                </button>
+              </div>
+              <div className={`pt-4 border-t flex gap-3 ${bord}`}>
+                <button onClick={() => Controller?.action.setShowProductModal(false)} className={`flex-1 py-2.5 rounded-xl text-sm font-bold ${dk ? 'bg-white/[0.06] text-white/60 hover:bg-white/[0.10]' : 'bg-surface-100 text-surface-500 hover:bg-surface-200'}`}>
+                  Cancelar
+                </button>
+                <button onClick={Controller?.action.handleNext} className="flex-1 py-2.5 bg-brand-500 hover:bg-brand-600 text-white rounded-xl text-sm font-bold shadow-brand flex items-center justify-center gap-2">
+                  Próximo <ArrowRight className="w-4 h-4" />
+                </button>
+              </div>
+              {/* <div className={`pt-4 border-t flex gap-3 ${bord}`}>
+                  <button onClick={() => setShowProductModal(false)} className={`flex-1 py-2.5 rounded-xl text-sm font-bold ${dk ? 'bg-white/[0.06] text-white/60 hover:bg-white/[0.10]' : 'bg-surface-100 text-surface-500 hover:bg-surface-200'}`}>
+                    Cancelar
+                  </button>
                   <button onClick={handleSaveProduct} className="flex-1 py-2.5 bg-brand-500 hover:bg-brand-600 text-white rounded-xl text-sm font-bold shadow-brand flex items-center justify-center gap-2">
                     <Check className="w-4 h-4" /> {editingProduct ? 'Salvar' : 'Criar'}
                   </button>
-                </div>
-              </div>
+                </div> */}
             </div>
           </div>
-        )
+        </div>
+      )
       }
+      {Controller?.result.showProductModal && Controller?.result.modalStep === 2 && (
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4" onClick={() => Controller?.action.setShowProductModal(false)}>
+          <div className={`rounded-2xl border p-6 w-full max-w-lg max-h-[85vh] overflow-y-auto shadow-2xl ${card}`} onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between mb-5">
+              <h3 className={`font-display font-bold text-lg ${txt}`}>Variantes do produto</h3>
+              <button onClick={() => { Controller?.action.setShowProductModal(false); Controller?.action.setModalStep(1) }} className={`p-2 rounded-xl ${txt2} ${dk ? 'hover:bg-white/[0.08]' : 'hover:bg-surface-100'}`}>
+                <X className="w-4 h-4" />
+              </button>
+            </div>
 
+            <p className={`text-xs mb-4 ${sub}`}>
+              Adicione as variações disponíveis (cor, tamanho, tipo). Deixe em branco o que não se aplicar.
+            </p>
+
+            <div className="space-y-3">
+              {(Controller?.result.newProduct.variations || []).map((variant, index) => (
+                <div
+                  key={variant.id}
+                  className={`rounded-2xl border p-5 space-y-5 ${dk
+                    ? "border-white/10 bg-white/[0.03]"
+                    : "border-surface-200 bg-surface-50"
+                    }`}
+                >
+                  {/* Cabeçalho */}
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h4 className={`font-semibold ${txt}`}>
+                        Variante {index + 1}
+                      </h4>
+                      <p className={`text-xs ${sub}`}>
+                        Configure os atributos desta variação.
+                      </p>
+                    </div>
+
+                    <button
+                      onClick={() => Controller?.action.removeVariant(variant.id)}
+                      className="p-2 rounded-xl text-red-500 hover:bg-red-500/10 transition"
+                    >
+                      <Trash2 className="w-5 h-5" />
+                    </button>
+                  </div>
+
+                  {/* Tipo */}
+                  <div>
+                    <label className={`block text-xs font-bold uppercase mb-2 ${sub}`}>
+                      Tipo da Variante
+                    </label>
+
+                    <input
+                      value={variant.type || ""}
+                      onChange={(e) => {
+                        Controller?.action.updateVariant(variant.id, { type: e.target.value });
+
+                        Controller?.action.setVariantErrors(prev => ({
+                          ...prev,
+                          [`${index}.type`]: ""
+                        }));
+                      }}
+                      className={`w-full px-4 py-3 rounded-xl ${Controller?.result.variantErrors[`${index}.type `]
+                        ? "border-red-500"
+                        : inp
+                        } border rounded-xl text-sm outline-none ${inp}`}
+                    />
+
+                    {Controller?.result.variantErrors[`${index}.type`] && (
+                      <p className="mt-1 text-xs text-red-500">
+                        ⚠ {Controller?.result.variantErrors[`${index}.type`]}
+                      </p>
+                    )}
+                  </div>
+
+                  {/* Nome + Valor */}
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className={`block text-xs font-bold uppercase mb-2 ${sub}`}>
+                        Nome
+                      </label>
+
+                      <input
+                        value={variant.name || ""}
+                        onChange={(e) =>
+                          Controller?.action.updateVariant(variant.id, {
+                            name: e.target.value,
+                          })
+                        }
+                        placeholder="Ex.: Azul"
+                        className={`w-full px-4 py-3 border rounded-xl text-sm outline-none ${inp}`}
+                      />
+                      {Controller?.result.variantErrors[`${index}.name`] && (
+                        <p className="mt-1 text-xs text-red-500">
+                          ⚠ {Controller?.result.variantErrors[`${index}.name`]}
+                        </p>
+                      )}
+                    </div>
+
+                    <div>
+                      <label className={`block text-xs font-bold uppercase mb-2 ${sub}`}>
+                        Valor
+                      </label>
+
+                      <input
+                        value={variant.value || ""}
+                        onChange={(e) =>
+                          Controller?.action.updateVariant(variant.id, {
+                            value: e.target.value,
+                          })
+                        }
+                        placeholder="Ex.: 256GB"
+                        className={`w-full px-4 py-3 border rounded-xl text-sm outline-none ${inp}`}
+                      />
+                      {Controller?.result.variantErrors[`${index}.value`] && (
+                        <p className="mt-1 text-xs text-red-500">
+                          ⚠ {Controller?.result.variantErrors[`${index}.value`]}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Estoque + Preço */}
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className={`block text-xs font-bold uppercase mb-2 ${sub}`}>
+                        Estoque
+                      </label>
+
+                      <input
+                        type="text"
+                        aria-placeholder='123.45'
+                        value={variant.stoke}
+                        onChange={(e) =>
+                          Controller?.action.updateVariant(variant.id, {
+                            stoke: Number(e.target.value),
+                          })
+                        }
+                        className={`w-full px-4 py-3 border rounded-xl text-sm outline-none ${inp}`}
+                      />
+                      {Controller?.result.variantErrors[`${index}.stoke`] && (
+                        <p className="mt-1 text-xs text-red-500">
+                          ⚠ {Controller?.result.variantErrors[`${index}.stoke`]}
+                        </p>
+                      )}
+                    </div>
+
+                    <div>
+                      <label className={`block text-xs font-bold uppercase mb-2 ${sub}`}>
+                        Modificador de Preço
+                      </label>
+
+                      <input
+                        type="text"
+                        aria-placeholder='123.45'
+                        value={variant.price_Modifier}
+                        onChange={(e) =>
+                          Controller?.action.updateVariant(variant.id, {
+                            price_Modifier: Number(e.target.value),
+                          })
+                        }
+                        placeholder="+0,00"
+                        className={`w-full px-4 py-3 border rounded-xl text-sm outline-none ${inp}`}
+                      />
+                    </div>
+                  </div>
+                </div>
+              ))}
+
+              <button
+                onClick={Controller?.action.addVariant}
+                className={`w-full flex items-center justify-center gap-2 py-2.5 border-2 border-dashed rounded-xl text-sm font-medium ${dk ? 'border-white/15 text-white/60 hover:border-brand-500/50' : 'border-surface-200 text-surface-500 hover:border-brand-400'}`}
+              >
+                <Plus className="w-4 h-4" /> Adicionar variante
+              </button>
+            </div>
+
+            <div className={`pt-4 mt-4 border-t flex gap-3 ${bord}`}>
+              <button onClick={() => Controller?.action.setModalStep(1)} className={`flex-1 py-2.5 rounded-xl text-sm font-bold flex items-center justify-center gap-2 ${dk ? 'bg-white/[0.06] text-white/60 hover:bg-white/[0.10]' : 'bg-surface-100 text-surface-500 hover:bg-surface-200'}`}>
+                <ArrowLeft className="w-4 h-4" /> Voltar
+              </button>
+              {Controller?.result.editingProduct ? (
+                <button onClick={Controller?.action.handleEditeProduct} className="flex-1 py-2.5 bg-brand-500 hover:bg-brand-600 text-white rounded-xl text-sm font-bold shadow-brand flex items-center justify-center gap-2">
+                  <Check className="w-4 h-4" /> Editar
+                </button>) : (
+                <button onClick={Controller?.action.handleSaveProduct} className="flex-1 py-2.5 bg-brand-500 hover:bg-brand-600 text-white rounded-xl text-sm font-bold shadow-brand flex items-center justify-center gap-2">
+                  <Check className="w-4 h-4" /> Salvar
+                </button>)}
+
+            </div>
+          </div>
+        </div>
+      )}
       {/* ─── PROMO MODAL ─── */}
       {
         showPromoModal && (
@@ -2190,6 +2628,11 @@ export default function AdminPage() {
           </div>
         )
       }
+      <AdminPageLoading
+        loading={Controller?.result.Loading || false && user?.role === 'ADMIN'}
+        message="Carregando painel"
+        subMessage="Buscando pedidos, produtos e estatísticas..."
+      />
     </div >
   );
 }

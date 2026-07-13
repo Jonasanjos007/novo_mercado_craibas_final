@@ -34,6 +34,7 @@ export const UseOrderStore = create<OrderState>((set, get) => ({
     },
     LoadOrders: async (): Promise<Result<boolean>> => {
         const result = await OrderService.GetOrderAllList();
+        console.log("resultigi.data", result.data);
         if (!result.success) {
             set({ orders: [] });
             return makeResult(false, false, "Erro ao carregar pedidos");

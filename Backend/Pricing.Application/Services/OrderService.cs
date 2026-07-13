@@ -112,7 +112,6 @@ public class OrderService : IOrderService
     }
     public async Task<Result<List<OrderResponse>>> GetOrderAll(int userId)
     {
-        var OrderList = await _unitOfWork.GetClassListById<Orders>(userId, "Id_User_Customer");
         var OrderResponseList = new List<OrderResponse>();
 
         var orderResponseList = await _unitOfWork.Query<Orders>()
@@ -130,7 +129,9 @@ public class OrderService : IOrderService
          Estimated_Delivery_Date = x.Estimated_Delivery_Date,
          Discont = x.Discont,
          Quantity = x.OrderLineItens.Sum(i => i.Quantity),
-
+         Category = x.OrderLineItens
+    .Select(i => i.Product.Product_Category.Category)
+    .FirstOrDefault(),
          Address = new AddressResponse
          {
              Id = x.Address.Id,
@@ -148,7 +149,7 @@ public class OrderService : IOrderService
          {
              Id = i.Product.Id,
              Name = i.Product.Name,
-             Descripition = i.Product.Description,
+             Description = i.Product.Description,
              Price_Unic = i.Price_Unit,
              Origin_Price = i.Origin_Price,
              Quantity = i.Quantity,
@@ -163,7 +164,8 @@ public class OrderService : IOrderService
              Featured = i.Product.Featured,
              Imagens = i.Product.Imagens_Products.ToList(),
              variations = i.Product.Variante_Products.ToList()
-         }).ToList()
+         }).ToList(),
+
      })
      .ToListAsync();
 

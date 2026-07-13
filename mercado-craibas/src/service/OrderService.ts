@@ -8,7 +8,7 @@ import { makeResult, Result } from "../utils/Result";
 export const OrderService = {
     GetCupomSearch: async (): Promise<Result<Cupom[]>> => {
         try {
-            const response = await api.get("/cupom/GetAllCupom");
+            const response = await api.get("/v1/cupom/GetAllCupom");
             const { success, data, error } = response.data;
             if (!success) {
                 return makeResult(false, [], error || "Erro ao buscar cupons");
@@ -21,7 +21,8 @@ export const OrderService = {
     },
     GetOrderAllList: async (): Promise<Result<Order[]>> => {
         try {
-            const response = await api.get("/order/GetAllOrderResponse");
+            const response = await api.get("/v1/order/GetAllOrderResponse");
+            console.log("response.datalist", response)
             const { success, data, error } = response.data;
             if (!success) {
                 return makeResult(false, [], error || "Erro ao buscar pedidos");
@@ -34,7 +35,7 @@ export const OrderService = {
     },
     PostOrder: async (Order: OrderSave): Promise<Result<Order | null>> => {
         try {
-            const response = await api.post("/order/PostSaveOrder", Order);
+            const response = await api.post("/v1/order/PostSaveOrder", Order);
             console.log("response.data teste", response.data)
             const { success, data, error } = response.data;
             if (!success) {

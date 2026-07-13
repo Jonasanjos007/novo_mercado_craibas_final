@@ -13,11 +13,14 @@ namespace Baldan.Pricing.Application.Interfaces.Repositories
 {
     public interface IAuthRepository
     {
-
         Task<User_Customer?> GetByEmailAsyncCustomer(string email);
-        Task<User_Delivery?> GetByEmailAsyncDelivery(string email);
+
         Task<User_Admin?> GetByEmailAsyncAdmin(string email);
-        //Task<User?> GetByRefreshTokenAsync(string refreshToken);
-        Task UpdateRefreshTokenAsync(int userId, string refreshToken, string refreshTokenExpiresAt);
+
+        Task<User_Delivery?> GetByEmailAsyncDelivery(string email);
+
+        Task<User_Customer?> GetByRefreshTokenAsync(string refreshToken);
+
+        Task UpdateRefreshTokenAsync(int userId,string refreshToken,DateTime expiresAt);
     }
 }

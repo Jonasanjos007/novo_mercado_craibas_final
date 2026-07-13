@@ -73,7 +73,7 @@ export default function CartSidebar() {
             cart.map(item => (
               <div key={`${item.product?.id}-${item.selectedVariation?.id}`} className="flex gap-3 p-3 bg-surface-50 rounded-2xl group">
                 <img
-                  src={`/Imagens/${item.product?.imagens[0]?.url_Imagem}`}
+                  src={`/Imagens/Produtos/${item.product?.imagens[0]?.url_Imagem}`}
                   alt={item.product?.name}
                   className="w-16 h-16 object-cover rounded-xl shrink-0"
                 />

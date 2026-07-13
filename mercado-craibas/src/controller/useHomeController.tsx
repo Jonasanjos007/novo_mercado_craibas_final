@@ -15,28 +15,22 @@ export const useHomeController = () => {
     useEffect(() => {
         const load = async () => {
             SetLoading(true);
-
             await GetListProducts();
             if (user) {
                 await GetCartUser();
             }
             SetLoading(false);
         };
-
         load();
     }, []);
     const GetListProducts = async () => {
         const result = await loadProducts();
-        SetLoading(false);
         if (!result?.success) {
             notify.error(result?.error || "Erro ao carregar produtos", "error");
         }
     };
     const GetCartUser = async () => {
-        const result = await LoadCartUser(user);
-        if (!result?.success) {
-            notify.error(result?.error || "Erro ao carregar Carrinho", "error");
-        }
+        await LoadCartUser(user);
     };
     return {
         action: {

@@ -7,7 +7,7 @@ export const CartService = {
     getCartProducts: async (): Promise<Result<CartItensProduct[]>> => {
         try {
 
-            const response = await api.get("/product/GetProductCart");
+            const response = await api.get("/v1/product/GetProductCart");
             const { success, data, error } = response.data;
             if (!data) {
                 return makeResult(false, [] as CartItensProduct[], "Itens do carrinho não encontrados");
@@ -19,7 +19,7 @@ export const CartService = {
         }
     }, DeleteCartProduct: async (Cart_Itens_Id: number): Promise<Result<{ success?: boolean; error?: string }>> => {
         try {
-            const response = await api.delete("/product/DeleteProductCart/" + Cart_Itens_Id);
+            const response = await api.delete("/v1/product/DeleteProductCart/" + Cart_Itens_Id);
             const { success, data, error } = response.data;
 
             if (!data) {

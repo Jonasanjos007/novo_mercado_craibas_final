@@ -12,7 +12,7 @@ namespace Baldan.Pricing.Application.Domain.Entities
         public Orders Orders { get; set; }
         public int Id_Product { get; set; }
         public Product Product { get; set; }
-        public int Id_Variante_Product { get; set; }
+        public int? Id_Variante_Product { get; set; }
         public string Name_Product { get; set; }
         public string Variante_Name { get; set; }
         public string Variante_Value { get; set; }

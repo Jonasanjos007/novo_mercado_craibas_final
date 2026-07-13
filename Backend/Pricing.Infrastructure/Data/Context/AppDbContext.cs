@@ -4,12 +4,14 @@ using System.Collections.Generic;
 namespace Mercado.Craibas.Infrastructure.Data.Context;
 
 using Baldan.Pricing.Application.Domain.Entities;
+using Mercado.Craibas.Application.Domain.Entities;
 using Microsoft.EntityFrameworkCore;
 
 
 public class AppDbContext : DbContext
 {
     public DbSet<Address> Address => Set<Address>();
+    public DbSet<Logs> Logs => Set<Logs>();
     public DbSet<Cart> Cart => Set<Cart>();
     public DbSet<Cart_Item> Cart_Item => Set<Cart_Item>();
     public DbSet<Cupom> Cupom => Set<Cupom>();

@@ -85,7 +85,13 @@ export const useLoginController = () => {
             (user) => {
                 saveUser(user);
                 notify.success("Sucesso", "Bem-vindo!" + " " + user.name);
-                navigate("/");
+                if (user.role === 'ADMIN') {
+                    navigate("/admin");
+                } else if (user.role === 'DELIVERY') {
+                    navigate("/delivery");
+                } else {
+                    navigate("/");
+                }
             },
             (err) => {
                 notify.error("Erro", err);

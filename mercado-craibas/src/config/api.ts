@@ -8,8 +8,10 @@ import { User } from "../models/User";
 import { Product } from "../models/Product";
 import { CartItensProduct } from "../models/CartItensProduct";
 import { Address } from "../models/Address";
+import { useSessionStore } from "../store/SessionStore";
+import { UseUserStore } from "../store/UseUserStore";
 
-const baseURL = "http://192.168.15.11:5022/api/v1";
+const baseURL = "http://192.168.15.11:5022/api";
 
 export const api = axios.create({
     baseURL,
@@ -33,17 +35,29 @@ const processQueue = (error: any, token: string | null = null) => {
 
 api.interceptors.request.use((config) => {
     const stored = localStorage.getItem("@app:tokens");
+
     if (stored) {
         const tokens: Tokens = JSON.parse(stored);
+
+        config.headers = config.headers ?? {};
         config.headers.Authorization = `Bearer ${tokens.accessToken}`;
     }
+
     return config;
 });
 
 api.interceptors.response.use(
     (response) => response,
     async (error) => {
+
         const originalRequest = error.config;
+
+        if (originalRequest.url?.includes("/auth/refresh")) {
+            UseUserStore.getState().logout();
+            localStorage.removeItem("@app:tokens");
+            useSessionStore.getState().open();
+            return Promise.reject(error);
+        }
 
         if (error.response?.status === 401 && !originalRequest._retry) {
             originalRequest._retry = true;
@@ -68,27 +82,31 @@ api.interceptors.response.use(
             isRefreshing = true;
 
             try {
-                const { data } = await api.post("/auth/refresh", {
+                const response = await api.post("/auth/refresh", {
                     refreshToken: tokens.refreshToken,
                 });
 
                 const newTokens: Tokens = {
-                    accessToken: data.accessToken,
-                    refreshToken: data.refreshToken,
+                    accessToken: response.data.data.accessToken,
+                    refreshToken: response.data.data.refreshToken,
                 };
 
                 localStorage.setItem("@app:tokens", JSON.stringify(newTokens));
 
-                api.defaults.headers.common.Authorization = `Bearer ${newTokens.accessToken}`;
+                api.defaults.headers.common.Authorization =
+                    `Bearer ${newTokens.accessToken}`;
 
                 processQueue(null, newTokens.accessToken);
 
-                originalRequest.headers.Authorization = `Bearer ${newTokens.accessToken}`;
+                originalRequest.headers.Authorization =
+                    `Bearer ${newTokens.accessToken}`;
 
                 return api(originalRequest);
             } catch (err) {
+                console.log("Erro ao atualizar token:", err);
                 processQueue(err, null);
                 localStorage.removeItem("@app:tokens");
+                useSessionStore.getState().open();
                 return Promise.reject(err);
             } finally {
                 isRefreshing = false;
@@ -174,8 +192,8 @@ api.interceptors.response.use(
 
 
 
-//     //   refreshToken: async (refreshToken: string) => {
-//     //     const { data } = await api.post("/auth/refresh", { refreshToken });
-//     //     return data;
-//     //   },
+//   refreshToken: async (refreshToken: string) => {
+//     const { data } = await api.post("/auth/refresh", { refreshToken });
+//     return data;
+//   },
 // };

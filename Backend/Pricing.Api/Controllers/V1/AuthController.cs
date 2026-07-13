@@ -1,5 +1,6 @@
 
 using Backend.Services.Interfaces;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Pricing.Api.DTOs.Requests;
 using Pricing.Api.Extensions;
@@ -18,7 +19,7 @@ public class AuthController : ControllerBase
     }
 
     [HttpPost("login")]
-    public async Task<IActionResult> Login(LoginRequest request)
+    public async Task<IActionResult> Login([FromBody] LoginRequest request)
     {
 
         var result = await _service.LoginAsync(request);
@@ -26,11 +27,12 @@ public class AuthController : ControllerBase
         return result.ToActionResult();
      }
 
-    //[HttpPost("refresh")]
-    //public async Task<IActionResult> Refresh(RefreshTokenRequest request)
-    //{
-    //    var result = await _service.RefreshAsync(request.RefreshToken);
+    [AllowAnonymous]
+    [HttpPost("refresh")]
+    public async Task<IActionResult> Refresh(RefreshTokenRequest request)
+    {
+        var result = await _service.RefreshAsync(request.RefreshToken);
 
-    //    return result.ToActionResult();
-    //}
+        return result.ToActionResult();
+    }
 }
