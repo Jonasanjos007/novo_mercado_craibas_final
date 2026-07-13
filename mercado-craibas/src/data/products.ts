@@ -36,7 +36,6 @@ export const PRODUCTS: Product[] = [
     price: 7499.99,
     originalPrice: 9299.99,
     images: [
-      'https://images.unsplash.com/photo-1706439175901-40d99e55e82e?w=600&q=80',
       'https://images.unsplash.com/photo-1610945265064-0e34e5519bbf?w=600&q=80',
     ],
     category: 'eletronicos',

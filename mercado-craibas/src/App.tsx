@@ -1,5 +1,6 @@
 import { Routes, Route } from 'react-router-dom';
-import Header from './components/Header';
+import { Toaster } from 'react-hot-toast';
+
 import HomePage from './pages/HomePage';
 import ProductPage from './pages/ProductPage';
 import AuthPage from './pages/AuthPage';
@@ -13,34 +14,74 @@ import AboutPage from './pages/AboutPage';
 import ProfilePage from './pages/ProfilePage';
 import AdminPage from './pages/AdminPage';
 import DeliveryPage from './pages/DeliveryPage';
+import CheckoutAutUser from './pages/CheckoutAutUser';
+import AddressPage from './pages/AddressPage';
+
 import CartSidebar from './components/CartSidebar';
+import SessionExpiredModal from './components/SessionExpiredModal';
+
+import { MainLayout } from './routes/MainLayout';
+import { AdminLayout } from './routes/AdminLayout';
+import { ProtectedRoute } from './routes/ProtectedRoute';
+import { useSessionStore } from './store/SessionStore';
+
 
 export default function App() {
+
+  const { expired } = useSessionStore();
+
   return (
     <>
-      <Header />
+      <Toaster position="top-center" />
 
       <Routes>
-        <Route path="/" element={<HomePage />} />
-        <Route path="/product/:id" element={<ProductPage />} />
-        <Route path="/login" element={<AuthPage />} />
-        <Route path="/register" element={<AuthPage />} />
 
-        <Route path="/checkout" element={<CheckoutPage />} />
-        <Route path="/orders" element={<OrdersPage />} />
+        <Route element={<AdminLayout />}>
+          <Route path="/login" element={<AuthPage />} />
+          <Route path="/register/:modeRegister" element={<AuthPage />} />
+          <Route path="/CheckoutAutUser" element={<CheckoutAutUser />} />
+        </Route>
 
-        <Route path="/category/:id" element={<CategoryPage />} />
-        <Route path="/wishlist" element={<WishlistPage />} />
-        <Route path="/flash-sale" element={<FlashSalePage />} />
-        <Route path="/brands" element={<BrandsPage />} />
-        <Route path="/about" element={<AboutPage />} />
-        <Route path="/profile" element={<ProfilePage />} />
+        <Route element={<MainLayout />}>
+          <Route path="/" element={<HomePage />} />
+          <Route path="/product/:id" element={<ProductPage />} />
+          <Route path="/category/:id" element={<CategoryPage />} />
+          <Route path="/about" element={<AboutPage />} />
+          <Route path="/search/:search" element={<CategoryPage />} />
+        </Route>
 
-        <Route path="/admin/*" element={<AdminPage />} />
-        <Route path="/delivery" element={<DeliveryPage />} />
+        <Route element={<ProtectedRoute allowedRoles={["CLIENTE"]} />}>
+          <Route path="/checkout" element={<CheckoutPage />} />
+          <Route path="/addressPage/:Boleano" element={<AddressPage />} />
+          <Route path="/profile" element={<ProfilePage />} />
+          <Route path="/orders" element={<OrdersPage />} />
+
+          <Route element={<MainLayout />}>
+            <Route path="/wishlist" element={<WishlistPage />} />
+            <Route path="/flash-sale" element={<FlashSalePage />} />
+            <Route path="/brands" element={<BrandsPage />} />
+          </Route>
+        </Route>
+
+        <Route element={<ProtectedRoute allowedRoles={["ADMIN"]} />}>
+          <Route element={<AdminLayout />}>
+            <Route path="/admin" element={<AdminPage />} />
+          </Route>
+        </Route>
+
+        <Route element={<ProtectedRoute allowedRoles={["DELIVERY"]} />}>
+          <Route element={<AdminLayout />}>
+            <Route path="/delivery" element={<DeliveryPage />} />
+          </Route>
+        </Route>
+
       </Routes>
 
       <CartSidebar />
+
+      {/* Modal Global */}
+      <SessionExpiredModal open={expired} />
+
     </>
   );
 }

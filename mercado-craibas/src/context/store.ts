@@ -1,45 +1,61 @@
 import { create } from 'zustand';
-import { CartItem, User, Order, Product, AppPage, OrderStatus, WishlistItem, Promotion } from '../types';
+import { Order, AppPage, OrderStatus, WishlistItem, Promotion } from '../types';
 import { MOCK_USERS, MOCK_ORDERS } from '../data/users';
 import { PRODUCTS, PROMOTIONS as INITIAL_PROMOS } from '../data/products';
-
+import { Product } from '../models/Product';
+import { User } from '../models/User';
+import { persist } from 'zustand/middleware';
+import { api } from '../config/api';
+import { CartItensProduct } from '../models/CartItensProduct';
+import { CartUser } from '../models/CartUser';
+import { makeResult, Result } from '../utils/Result';
+import { Address } from '../models/Address';
+import { ProductsService } from '../service/ProductsService';
+import { AddressService } from '../service/AddressService';
+import { CartService } from '../service/CartService';
 interface AppState {
-  ShowProduct: (selectedProductId: string | null) => void;
+  // ShowProduct: (selectedProductId: number | null) => void;
   // Theme
   darkMode: boolean;
   toggleDarkMode: () => void;
 
   // Navigation
-  currentPage: AppPage;
-  Pages: string;
-
-  selectedProductId: string | null;
+  // currentPage: AppPage;
+  // Pages: string;
+  ColorGlobal: string;
+  // selectedProductId: number | null;
   selectedCategory: string | null;
   searchQuery: string;
-  navigateTo: (page: AppPage, productId?: string, category?: string) => void;
-  navigatePages: (page: string, productId: string | null, category: string | null) => void;
+  // navigateTo: (page: AppPage, productId?: number, category?: string) => void;
+  // navigatePages: (page: string, productId: number | null, category: string | null) => void;
   setSearchQuery: (q: string) => void;
 
+  saveColorGlobal: () => boolean;
   // Auth
   user: User | null;
-  login: (email: string, password: string) => boolean;
+  address: Address[] | null;
+  login: (email: string, password: string) => {
+    success: boolean;
+    role?: 'admin' | 'delivery' | 'customer';
+  };
   logout: () => void;
-  register: (name: string, email: string, password: string) => boolean;
-  updateUser: (updates: Partial<User>) => void;
+  // saveAddress: (anddres: Address, Id_User: number) => Promise<{ success?: boolean; error?: string }>;
+  // updateAddress: (anddres: Address) => Promise<{ success?: boolean; error?: string }>;
+  // removerAddress: (Address: Address) => Promise<{ success?: boolean; error?: { data: any; success: boolean; }; }>;
 
   // Cart
-  cart: CartItem[];
-  addToCart: (item: CartItem) => void;
-  removeFromCart: (productId: string) => void;
-  updateQuantity: (productId: string, quantity: number) => void;
-  clearCart: () => void;
-  cartTotal: () => number;
-  cartCount: () => number;
+  cart: CartItensProduct[];
+  // addToCart: (item: CartItensProduct) => Promise<boolean>;
+  // removeFromCart: (productId: number) => Promise<{ success?: boolean; error?: string }>;
+  // updateQuantity: (CartId: number, productId: number, quantity: number, operador: string) => Promise<{ success?: boolean; error?: string }>;
+  // clearCart: () => void;
+  // cartTotal: () => number;
+  // cartCount: () => number;
 
   // Wishlist
   wishlist: WishlistItem[];
   toggleWishlist: (product: Product) => void;
-  isWishlisted: (productId: string) => boolean;
+  isWishlisted: (productId: number) => boolean;
 
   // Orders
   orders: Order[];
@@ -48,10 +64,12 @@ interface AppState {
 
   // Products
   products: Product[];
+  setListProducts: (products: Product[]) => void;
+  // loadProducts: (User: User | null) => Promise<Result<boolean>>;
   addProduct: (product: Product) => void;
   updateProduct: (product: Product) => void;
-  deleteProduct: (productId: string) => void;
-  applyPromoToProduct: (productId: string, discount: number) => void;
+  deleteProduct: (productId: number) => void;
+  applyPromoToProduct: (productId: number, discount: number) => void;
 
   // Promotions
   promotions: Promotion[];
@@ -61,14 +79,15 @@ interface AppState {
   togglePromotion: (promoId: string) => void;
 
   // UI
-  cartOpen: boolean;
-  setCartOpen: (open: boolean) => void;
+  // cartOpen: boolean;
+  // setCartOpen: (open: boolean) => void;
   notification: { message: string; type: 'success' | 'error' | 'info' } | null;
   showNotification: (message: string, type?: 'success' | 'error' | 'info') => void;
-}
 
-export const useStore = create<AppState>((set, get) => ({
-  // Theme
+
+}
+export const useStore = create<AppState>()(persist((set, get) => ({
+  // Themecreate<AppState>()(persist((set, get) => ({
   darkMode: false,
   toggleDarkMode: () => {
     const next = !get().darkMode;
@@ -81,65 +100,160 @@ export const useStore = create<AppState>((set, get) => ({
   },
 
   // Navigation
-  currentPage: 'home',
-  Pages: 'home',
-  selectedProductId: null,
-  selectedCategory: null,
-  searchQuery: '',
-  navigateTo: (page, productId, category) => {
-    set({ currentPage: page, selectedProductId: productId || null, selectedCategory: category || null });
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-  },
-  navigatePages: (page, productId, category) => {
-    set({ Pages: page, selectedProductId: productId || null, selectedCategory: category || null });
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-  },
-  ShowProduct: (selectedProductId: string | null) => {
-    set({ selectedProductId });
-  },
+  // currentPage: 'home',
+  // Pages: 'home',
+  // selectedProductId: null,
+  // selectedCategory: null,
+  // searchQuery: '',
+  // navigateTo: (page, productId, category) => {
+  //   set({ currentPage: page, selectedProductId: productId || null, selectedCategory: category || null });
+  //   window.scrollTo({ top: 0, behavior: 'smooth' });
+  // },
+  // navigatePages: (page, productId, category) => {
+  //   set({ Pages: page, selectedProductId: productId || null, selectedCategory: category || null });
+  //   window.scrollTo({ top: 0, behavior: 'smooth' });
+  // },
+  // ShowProduct: (selectedProductId: number | null) => {
+  //   set({ selectedProductId });
+  // },
 
   setSearchQuery: (q) => set({ searchQuery: q }),
 
   // Auth
   user: null,
-  login: (email, _password) => {
-    const found = MOCK_USERS.find(u => u.email === email);
-    if (found) { set({ user: found }); return true; }
-    return false;
-  },
-  logout: () => set({ user: null, currentPage: 'home' }),
-  register: (name, email, _password) => {
-    const newUser: User = {
-      id: `u${Date.now()}`, name, email, role: 'customer',
-      phone: '', bio: '', joinDate: new Date().toLocaleDateString('pt-BR'),
-      preferences: { notifications: true, newsletter: false, darkMode: false, language: 'pt-BR' },
-      address: { street: '', number: '', neighborhood: '', city: 'Craibas', state: 'AL', zipCode: '' },
+  login: (email: string, password: string) => {
+    const found = MOCK_USERS.find(
+      u => u.email === email && u.senha === password
+    );
+
+    if (!found) {
+      return { success: false };
+    }
+    set({ user: found });
+
+    return {
+      success: true,
+      role: found.role,
     };
-    set({ user: newUser }); return true;
   },
+  // saveAddress: async (anddres: Address, Id_User: number) => {
+  //   anddres.id_User_Customer = Id_User;
+  //   const result = await AddressService.PostSaveAddres(anddres);
+  //   if (!result.success) {
+  //     return makeResult(false, false, result.error);
+  //   }
+  //   const ListAddresNew = await AddressService.GetAddresByIdUser(Id_User);
+  //   if (ListAddresNew.data) {
+  //     set({ address: ListAddresNew.data });
+  //   }
+  //   return makeResult(true, true);
+  // },
+  // updateAddress: async (anddres: Address) => {
+
+  //   const result = await AddressService.PostUpdateAddress(anddres);
+
+  //   if (!result.success) {
+  //     return makeResult(false, false, result.error);
+  //   }
+  //   const ListAddresNew = await AddressService.GetAddresByIdUser(anddres.id_User_Customer ?? 0);
+  //   console.log("ListAddresNew", ListAddresNew)
+  //   if (ListAddresNew.data && ListAddresNew.data.length > 0) {
+  //     set({ address: ListAddresNew.data });
+  //   }
+  //   return makeResult(true, true);
+  // },
+  // removerAddress: async (Address: Address) => {
+  //   const result = await AddressService.DeleteAddress(Address);
+  //   console.log("teste", result)
+  //   if (result.data && !result.success) {
+  //     const ListAddresNew = await AddressService.GetAddresByIdUser(Address.id_User_Customer ?? 0);
+
+
+  //     set({ address: ListAddresNew.data });
+  //     return { success: false, error: { data: result.data, success: result.success } };
+  //   }
+  //   if (!result.success) {
+  //     const ListAddresNew = await AddressService.GetAddresByIdUser(Address.id_User_Customer ?? 0);
+
+  //     set({ address: ListAddresNew.data });
+  //     return { success: false, error: { data: result.data, success: result.success } };
+  //   }
+  //   const ListAddresNew = await AddressService.GetAddresByIdUser(Address.id_User_Customer ?? 0);
+  //   if (ListAddresNew.data && ListAddresNew.data.length > 0) {
+  //     set({ address: ListAddresNew.data });
+  //   }
+  //   return { success: true };
+  // },
   updateUser: (updates) => set(s => ({ user: s.user ? { ...s.user, ...updates } : null })),
 
   // Cart
-  cart: [],
-  addToCart: (item) => {
-    const { cart } = get();
-    const existing = cart.find(c => c.product.id === item.product.id && c.selectedVariation?.id === item.selectedVariation?.id);
-    if (existing) {
-      set({ cart: cart.map(c => c.product.id === item.product.id && c.selectedVariation?.id === item.selectedVariation?.id ? { ...c, quantity: c.quantity + item.quantity } : c) });
-    } else {
-      set({ cart: [...cart, item] });
-    }
-    get().showNotification(`${item.product.name.substring(0, 30)}... adicionado ao carrinho!`, 'success');
-  },
-  removeFromCart: (productId) => set({ cart: get().cart.filter(c => c.product.id !== productId) }),
-  updateQuantity: (productId, quantity) => {
-    if (quantity <= 0) { get().removeFromCart(productId); return; }
-    set({ cart: get().cart.map(c => c.product.id === productId ? { ...c, quantity } : c) });
-  },
-  clearCart: () => set({ cart: [] }),
-  cartTotal: () => get().cart.reduce((sum, item) => sum + item.product.price * item.quantity, 0),
-  cartCount: () => get().cart.reduce((sum, item) => sum + item.quantity, 0),
+  // addToCart: async (item) => {
+  //   const cart = get().cart ?? [];
+  //   const existing = cart.find(c => c.product?.id === item.product?.id && c.selectedVariation?.id === item.selectedVariation?.id);
+  //   if (existing) {
+  //     const result = await ProductsService.PostCartProductExistent(existing, "Soma");
+  //     if (!result.success) {
+  //       return false;
+  //     }
+  //     set({ cart: cart.map(c => c.product?.id === item.product?.id && c.selectedVariation?.id === item.selectedVariation?.id ? { ...c, quantity: c.quantity + item.quantity } : c) });
+  //     return true;
+  //   } else {
+  //     const result = await ProductsService.PostCartProduct(item);
+  //     if (!result.success) {
+  //       return false;
+  //     }
+  //     const NewCart = await CartService.getCartProducts(item.user?.id || 0); // Certifique-se de que o ID retornado pela API seja usado
+  //     set({ cart: NewCart?.data || [] });
+  //     return true;
+  //   }
 
+  // },
+  // removeFromCart: async (CartId) => {
+  //   const deleteItem = await CartService.DeleteCartProduct(CartId);
+  //   if (!deleteItem.success) {
+  //     return deleteItem;
+  //   }
+  //   set({ cart: get().cart.filter(c => c.id !== CartId) })
+  //   return deleteItem;
+  // },
+  // updateQuantity: async (CartId, productId, quantity, operador) => {
+  //   if (quantity === 1 && operador === "Subtrair") {
+  //     const deleteItemcart = await get().removeFromCart(CartId);
+  //     if (!deleteItemcart.success) {
+  //       return { success: false, error: deleteItemcart.error || "Erro ao remover produto do carrinho" };
+  //     }
+  //     return { success: true, error: "" };
+  //   }
+  //   const result = await ProductsService.PostUpdateQuantity(CartId, quantity, operador);
+  //   if (operador === "Subtrair") {
+  //     quantity = quantity - 1;
+  //   }
+  //   else if (operador === "Soma") {
+  //     quantity = quantity + 1;
+  //   }
+  //   if (!result.success) {
+  //     return { success: false, error: result.error || "Erro ao atualizar quantidade" };
+  //   }
+
+  //   set({ cart: get().cart.map(c => c.product?.id === productId ? { ...c, quantity } : c) });
+  //   return { success: true, error: "" };
+  // },
+  // clearCart: () => set({ cart: [] }),
+  // cartTotal: () => {
+  //   const cart = get().cart || [];
+
+  //   return cart.reduce((acc, item) => {
+  //     return acc + (item.product?.price_Unic || 0) * item.quantity;
+  //   }, 0);
+  // },
+
+  // cartCount: () => {
+  //   const cart = get().cart || [];
+
+  //   return cart.reduce((acc, item) => {
+  //     return acc + item.quantity;
+  //   }, 0);
+  // },
   // Wishlist
   wishlist: [],
   toggleWishlist: (product) => {
@@ -178,7 +292,29 @@ export const useStore = create<AppState>((set, get) => ({
   }),
 
   // Products
-  products: PRODUCTS,
+  products: [],
+
+  setListProducts: (products: Product[]) =>
+    set({ products }),
+
+  // loadProducts: async (User: User | null): Promise<Result<boolean>> => {
+  //   const result = await ProductsService.getListProducts();
+  //   if (User) {
+  //     const Cart = await CartService.getCartProducts(User?.id || 0);
+  //     set({ cart: Cart?.data || [] });
+  //   }
+  //   if (result.success) {
+  //     set({ products: result.data || [] });
+  //   } else {
+  //     set({ products: [] });
+  //   }
+  //   if (!result.success) {
+  //     return makeResult(false, false, "Erro ao carregar produtos"
+  //     );
+  //   }
+  //   return makeResult(true, true);
+
+  // },
   addProduct: (product) => set({ products: [product, ...get().products] }),
   updateProduct: (product) => set({ products: get().products.map(p => p.id === product.id ? product : p) }),
   deleteProduct: (productId) => set({ products: get().products.filter(p => p.id !== productId) }),
@@ -186,7 +322,7 @@ export const useStore = create<AppState>((set, get) => ({
     const products = get().products;
     const product = products.find(p => p.id === productId);
     if (!product) return;
-    const originalPrice = product.originalPrice || product.price;
+    const originalPrice = product.origin_Price || product.price_Unic;
     const newPrice = +(originalPrice * (1 - discount / 100)).toFixed(2);
     set({
       products: products.map(p => p.id === productId
@@ -212,11 +348,20 @@ export const useStore = create<AppState>((set, get) => ({
   }),
 
   // UI
-  cartOpen: false,
-  setCartOpen: (open) => set({ cartOpen: open }),
+  // cartOpen: false,
   notification: null,
   showNotification: (message, type = 'success') => {
     set({ notification: { message, type } });
     setTimeout(() => set({ notification: null }), 3200);
   },
-}));
+}),
+  {
+    name: '@app-storage',
+    partialize: (state) => ({
+      user: state.user,
+      address: state.address,
+      cart: state.cart
+    }),
+  }
+
+));

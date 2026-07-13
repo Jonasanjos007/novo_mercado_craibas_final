@@ -1,4 +1,5 @@
 import { useUser } from '../context/UserContext';
+import { UseUserStore } from '../store/UseUserStore';
 
 export enum UserRole {
     ADMIN = 'ADMIN',
@@ -13,7 +14,8 @@ export const RoleRoutes = {
 };
 
 export const useRolePath = () => {
-    const { user } = useUser();
+    const { user } = UseUserStore();
+
 
     if (!user?.role) {
         return { basePath: '', homePath: '', role: null };

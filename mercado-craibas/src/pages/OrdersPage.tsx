@@ -1,76 +1,402 @@
-import { Package, MapPin, ChevronRight, ArrowLeft } from 'lucide-react';
+import { Package, MapPin, ChevronRight, ArrowLeft, Hash, Calendar, CreditCard, BadgePercent, ShoppingCart, X } from 'lucide-react';
 import { useStore } from '../context/store';
 import { formatPrice, orderStatusLabels, orderStatusColors, orderStatusSteps } from '../utils';
+import { useNavigate } from 'react-router-dom';
+import { UseUserStore } from '../store/UseUserStore';
+import { UseOrderStore } from '../store/UseOrderStore';
+import { useOrdersController } from '../controller/useOrdersController';
+import { getColorConfig } from '../types/Colors';
+import Headerpages from '../components/Headerpages';
+import { useState } from 'react';
+import { Order } from '../models/OrderSave';
 
 export default function OrdersPage() {
-  const { orders, user, navigateTo } = useStore();
-  const userOrders = orders.filter(o => o.userId === user?.id);
+  const Controller = useOrdersController();
 
+  const navigate = useNavigate();
+  const { orders } = UseOrderStore();
+  // const { orders } = useStore();
+  const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
+  const [expandedOrder, setExpandedOrder] = useState<number | null>(null);
+  const { NameColorGlobal, ColorGlobalHoverText, ColorGlobalTema } = UseUserStore();
+  const colorConfig = getColorConfig(NameColorGlobal);
+  console.log('colorConfig:', colorConfig);
+  const userOrders = orders;
+  const getTotalOriginalOrder = (idOrder: number) => {
+    const order = orders.find(o => o.id_Order === idOrder);
+
+    if (!order) return 0;
+
+    return order.products.reduce((total, produto) => {
+      return total + (Number(produto.origin_Price) * Number(produto.quantity));
+    }, 0);
+  };
+  const [statusFilter, setStatusFilter] = useState("TODOS");
+  const filteredOrders = statusFilter === "TODOS" ? orders : orders.filter(o => o.order_Status === statusFilter);
+
+  const filters = [
+    { label: "Todos", value: "TODOS" },
+    { label: "Pendente", value: "PENDENTE" },
+    { label: "Confirmado", value: "CONFIRMADO" },
+    { label: "Preparando", value: "PREPARANDO" },
+    { label: "Saiu p/ entrega", value: "SAIU_PARA_ENTREGA" },
+    { label: "Entregue", value: "ENTREGUE" },
+    { label: "Cancelado", value: "CANCELADO" },
+  ];
   return (
     <div className="min-h-screen bg-surface-50 pb-10">
-      <div className="bg-white border-b border-surface-100">
-        <div className="max-w-3xl mx-auto px-4 py-5 flex items-center gap-3">
-          <button onClick={() => navigateTo('home')} className="text-surface-400 hover:text-surface-600 transition-colors">
-            <ArrowLeft className="w-5 h-5" />
-          </button>
-          <div>
-            <h1 className="font-display font-bold text-surface-900 text-xl">Meus Pedidos</h1>
-            <p className="text-surface-400 font-body text-xs">{userOrders.length} pedidos realizados</p>
+
+      <Headerpages title="Meus Pedidos" showSecure={false} />
+      <div className="bg-white border-b border-surface-100 sticky top-0 z-20">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 py-5">
+
+          {/* Cabeçalho */}
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+
+            <div>
+              <h1 className="font-display font-bold text-surface-900 text-2xl">
+                Meus Pedidos
+              </h1>
+
+              <p className="text-sm text-surface-400 mt-1">
+                {orders.length} {orders.length === 1 ? "pedido realizado" : "pedidos realizados"}
+              </p>
+            </div>
+
+            {/* Estatística */}
+            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-2xl bg-surface-50 border border-surface-100 w-fit">
+              <Package className={`w-5 h-5 ${colorConfig.class_text}`} />
+              <div>
+                <p className="text-xs text-surface-400">Total</p>
+                <p className="font-bold text-surface-900">
+                  {filteredOrders.length}
+                </p>
+              </div>
+            </div>
+
           </div>
+
+          {/* Filtros */}
+          <div className="mt-5 -mx-4 sm:mx-0">
+            <div className="flex gap-2 overflow-x-auto px-4 sm:px-0 pb-2 scrollbar-hide">
+
+              {filters.map((filter) => (
+                <button
+                  key={filter.value}
+                  onClick={() => setStatusFilter(filter.value)}
+                  className={`
+              shrink-0
+              px-4
+              py-2.5
+              rounded-full
+              text-xs
+              font-semibold
+              transition-all
+              duration-200
+              ${statusFilter === filter.value
+                      ? `${ColorGlobalTema} text-white shadow-lg scale-105`
+                      : "bg-surface-100 text-surface-500 hover:bg-surface-200 hover:text-surface-700"
+                    }
+            `}
+                >
+                  {filter.label}
+                </button>
+              ))}
+
+            </div>
+          </div>
+
         </div>
       </div>
 
       <div className="max-w-3xl mx-auto px-4 py-6 space-y-4">
-        {userOrders.length === 0 ? (
+        {filteredOrders.length === 0 ? (
           <div className="text-center py-20">
             <Package className="w-16 h-16 text-surface-200 mx-auto mb-4" />
             <h2 className="font-display font-bold text-surface-700 text-xl mb-2">Nenhum pedido ainda</h2>
             <p className="text-surface-400 font-body text-sm mb-6">Explore nossos produtos incríveis</p>
-            <button onClick={() => navigateTo('home')} className="px-6 py-3 bg-brand-500 text-white font-display font-bold rounded-xl shadow-brand hover:shadow-brand-lg transition-all">
+            <button onClick={() => navigate('/')} className={`px-6 py-3 ${ColorGlobalTema} text-white font-display font-bold rounded-xl shadow-brand hover:shadow-brand-lg transition-all`}>
               Explorar Produtos
             </button>
-          </div>
-        ) : (
-          userOrders.map(order => {
-            const statusIdx = orderStatusSteps.indexOf(order.status);
+          </div>) : (
+          filteredOrders.map(order => {
+            const statusIdx = orderStatusSteps.indexOf(order.order_Status);
+            const itemsCount = order.products.reduce((s, i) => s + i.quantity, 0);
+            const isPending = order.status_Pay === "PENDENTE";
+
             return (
-              <div key={order.id} className="bg-white rounded-3xl shadow-soft overflow-hidden">
+              <div
+                key={order.id_Order}
+                className="group relative bg-white rounded-3xl shadow-soft overflow-hidden hover:shadow-lg transition-all"
+              >
+                {/* Barra lateral */}
+                <div
+                  className={`absolute left-0 top-0 bottom-0 w-1 ${colorConfig.class} scale-y-0 group-hover:scale-y-100 transition-transform rounded-r-full`}
+                />
+
                 {/* Header */}
-                <div className="flex items-center justify-between p-4 border-b border-surface-50">
-                  <div>
-                    <div className="flex items-center gap-2">
-                      <span className="font-display font-bold text-surface-900 text-sm">#{order.id}</span>
-                      <span className={`px-2.5 py-0.5 rounded-full text-xs font-display font-bold ${orderStatusColors[order.status]}`}>
-                        {orderStatusLabels[order.status]}
-                      </span>
+                <div className="p-5 border-b border-surface-100">
+                  <div className="flex flex-col sm:flex-row justify-between gap-4">
+
+                    <div className="flex gap-3">
+
+                      <div className="flex -space-x-2 shrink-0">
+                        {order.products.slice(0, 3).map((item, i) => (
+                          <img
+                            key={i}
+                            src={`/Imagens/Produtos/${item.imagens?.[0]?.url_Imagem}`}
+                            className="w-14 h-14 rounded-xl border-2 border-white shadow object-cover"
+                          />
+                        ))}
+
+                        {order.products.length > 3 && (
+                          <div className="w-14 h-14 rounded-xl bg-surface-100 border-2 border-white flex items-center justify-center text-xs font-bold">
+                            +{order.products.length - 3}
+                          </div>
+                        )}
+                      </div>
+
+                      <div>
+
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <h3 className="font-display font-bold text-surface-900">
+                            Pedido #{order.number_Order}
+                          </h3>
+
+                          {isPending && (
+                            <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-amber-50 border border-amber-200 text-amber-700 text-[10px] font-bold">
+                              <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse" />
+                              Pagamento pendente
+                            </span>
+                          )}
+                        </div>
+
+                        <p className="text-xs text-surface-400 mt-2">
+                          {new Date(order.insertDate).toLocaleDateString("pt-BR")} •{" "}
+                          {itemsCount} {itemsCount === 1 ? "item" : "itens"}
+                        </p>
+
+                        <span
+                          className={`inline-flex mt-3 px-3 py-1 rounded-full text-[11px] font-bold ${orderStatusColors[order.order_Status]}`}
+                        >
+                          {orderStatusLabels[order.order_Status]}
+                        </span>
+
+                      </div>
+
                     </div>
-                    <p className="text-xs text-surface-400 font-body mt-0.5">
-                      {order.createdAt.toLocaleDateString('pt-BR')} · {order.paymentMethod}
-                    </p>
-                  </div>
-                  <div className="text-right">
-                    <p className="font-display font-bold text-surface-900">{formatPrice(order.total)}</p>
-                    <p className="text-xs text-surface-400 font-body">{order.items.reduce((s, i) => s + i.quantity, 0)} itens</p>
+
+                    <div className="flex flex-row sm:flex-col justify-between items-end">
+                      <p className="font-display font-bold text-xl text-surface-900">
+                        {formatPrice(order.total_Value_Order)}
+                      </p>
+
+                      <button
+                        onClick={() => setSelectedOrder(order)}
+                        className={`${colorConfig.class_text} flex items-center gap-1 text-sm font-semibold group-hover:translate-x-1 transition-all`}
+                      >
+                        Ver detalhes
+                        <ChevronRight className="w-4 h-4" />
+                      </button>
+                    </div>
+
                   </div>
                 </div>
 
-                {/* Progress */}
-                {order.status !== 'cancelado' && order.status !== 'pendente' && (
-                  <div className="px-4 py-3 bg-surface-50 border-b border-surface-100">
-                    <div className="flex items-center justify-between relative">
+                {/* Timeline */}
+                {!isPending && (
+                  <div className="px-5 py-4 bg-surface-50 border-b border-surface-100">
+                    <div className="flex justify-between relative">
+
+                      <div className="absolute left-7 right-7 top-3.5 h-1 bg-surface-200 rounded-full" />
+
+                      <div
+                        className="absolute left-7 top-3.5 h-1 bg-green-600 rounded-full transition-all"
+                        style={{
+                          width: `${(statusIdx / (orderStatusSteps.length - 1)) * 84}%`
+                        }}
+                      />
+
+                      {orderStatusSteps.map((step, i) => {
+                        const done = i <= statusIdx;
+
+                        return (
+                          <div key={step} className="relative z-10 flex flex-col items-center">
+
+                            <div
+                              className={`w-7 h-7 rounded-full border-2 flex items-center justify-center text-[10px] font-bold
+                    ${done
+                                  ? "bg-green-600 border-green-600 text-white"
+                                  : "bg-white border-surface-300 text-surface-300"
+                                }`}
+                            >
+                              {done ? "✓" : i + 1}
+                            </div>
+
+                            <span
+                              className={`mt-1 text-[9px] text-center max-w-[55px]
+                    ${done
+                                  ? "text-green-600"
+                                  : "text-surface-400"
+                                }`}
+                            >
+                              {orderStatusLabels[step]}
+                            </span>
+
+                          </div>
+                        );
+                      })}
+
+                    </div>
+                  </div>
+                )}
+
+                {/* Produtos */}
+                <div className="p-5 space-y-3">
+
+                  <div className="px-5 py-4 border-t border-surface-100">
+
+                    <button
+                      onClick={() =>
+                        setExpandedOrder(expandedOrder === order.id_Order ? null : order.id_Order)
+                      }
+                      className={`w-full flex items-center justify-between px-4 py-3 rounded-xl border border-surface-200 bg-surface-50 hover:bg-surface-100 transition-all ${colorConfig.class_group_hover_text}`}
+                    >
+                      <div className="flex items-center gap-2">
+                        <Package className="w-4 h-4" />
+                        <span className="font-semibold text-sm">
+                          {expandedOrder === order.id_Order
+                            ? "Ocultar produtos"
+                            : `Ver produtos (${order.products.length})`}
+                        </span>
+                      </div>
+
+                      <ChevronRight
+                        className={`w-5 h-5 transition-transform ${expandedOrder === order.id_Order ? "rotate-90" : ""
+                          }`}
+                      />
+                    </button>
+
+                    {expandedOrder === order.id_Order && (
+                      <div className="mt-4 space-y-3 animate-in slide-in-from-top-2 duration-300">
+                        {order.products.map((item, i) => (
+                          <div
+                            key={i}
+                            onClick={() => navigate(`/product/${item.id}`)}
+                            className="group/item flex items-center gap-3 rounded-xl p-2 cursor-pointer hover:bg-surface-50 transition-all"
+                          >
+                            <img
+                              src={`/Imagens/Produtos/Imagens/${item.imagens?.[0]?.url_Imagem}`}
+                              className="w-12 h-12 rounded-xl object-cover"
+                            />
+
+                            <div className="flex-1 min-w-0">
+                              <p
+                                className={`text-sm font-semibold line-clamp-1 transition-colors ${colorConfig.class_group_hover_text}`}
+                              >
+                                {item.name}
+                              </p>
+
+                              <p className="text-xs text-surface-400">
+                                Qtd: {item.quantity} • {formatPrice(item.price_Unic)}
+                              </p>
+                            </div>
+
+                            <ChevronRight
+                              className={`w-4 h-4 text-surface-300 transition-colors ${colorConfig.class_group_hover_text}`}
+                            />
+                          </div>
+                        ))}
+                      </div>
+                    )}
+
+                  </div>
+
+                </div>
+
+                {/* Footer */}
+                <div className="px-5 py-4 border-t border-surface-100 flex flex-wrap justify-between gap-3 text-xs">
+
+                  <div className="flex items-center gap-2 text-surface-500">
+                    <MapPin className="w-4 h-4" />
+                    {order.address.road}, {order.address.number} • {order.address.city}
+                  </div>
+
+                  <span className={`font-semibold ${colorConfig.class_text}`}>
+                    #{order.number_Order}
+                  </span>
+
+                </div>
+              </div>
+            );
+          })
+        )}
+        {selectedOrder && (
+          <div
+            className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-end sm:items-center justify-center p-0 sm:p-4"
+            onClick={() => setSelectedOrder(null)}
+          >
+            <div
+              className="bg-white w-full sm:max-w-lg sm:rounded-3xl rounded-t-3xl max-h-[90vh] overflow-y-auto animate-in slide-in-from-bottom sm:zoom-in-95 duration-300"
+              onClick={(e) => e.stopPropagation()}
+            >
+              {/* Header do modal */}
+              <div className="sticky top-0 bg-white z-10 px-5 py-4 border-b border-surface-100 flex items-center justify-between">
+                <div>
+                  <h3 className="font-display font-bold text-surface-900 text-lg">
+                    Pedido #{selectedOrder.number_Order}
+                  </h3>
+                  <p className="text-xs text-surface-400 font-body">
+                    {new Date(selectedOrder.insertDate).toLocaleDateString("pt-BR")}
+                  </p>
+                </div>
+                <button
+                  onClick={() => setSelectedOrder(null)}
+                  className="w-8 h-8 rounded-full bg-surface-100 hover:bg-surface-200 flex items-center justify-center transition-colors"
+                >
+                  <X className="w-4 h-4 text-surface-500" />
+                </button>
+              </div>
+
+              <div className="p-5 space-y-5">
+
+                {/* Status */}
+                <div className="flex items-center justify-between">
+                  <span
+                    className={`inline-flex px-3 py-1.5 rounded-full text-xs font-bold ${orderStatusColors[selectedOrder.order_Status]}`}
+                  >
+                    {orderStatusLabels[selectedOrder.order_Status]}
+                  </span>
+                  {selectedOrder.status_Pay === "PENDENTE" && (
+                    <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-amber-50 text-amber-700 text-xs font-bold border border-amber-200">
+                      <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse" />
+                      Pagamento pendente
+                    </span>
+                  )}
+                </div>
+
+                {/* Steps de progresso */}
+                {selectedOrder.order_Status !== "cancelado" && selectedOrder.status_Pay !== "PENDENTE" && (
+                  <div className="px-1 py-3 bg-surface-50 rounded-2xl">
+                    <div className="flex items-center justify-between relative px-3">
                       <div className="absolute left-0 right-0 h-0.5 bg-surface-200 top-3.5 mx-7" />
                       <div
-                        className="absolute left-7 h-0.5 bg-brand-400 top-3.5 transition-all duration-500"
-                        style={{ width: `${(statusIdx / (orderStatusSteps.length - 1)) * (100 - 14)}%` }}
+                        className={`absolute left-7 h-0.5 bg-green-600 top-3.5 transition-all duration-500`}
+                        style={{
+                          width: `${(orderStatusSteps.indexOf(selectedOrder.order_Status) / (orderStatusSteps.length - 1)) * (100 - 14)}%`,
+                        }}
                       />
                       {orderStatusSteps.map((s, i) => {
-                        const done = i <= statusIdx;
+                        const done = i <= orderStatusSteps.indexOf(selectedOrder.order_Status);
                         return (
                           <div key={s} className="flex flex-col items-center gap-1 relative z-10">
-                            <div className={`w-7 h-7 rounded-full flex items-center justify-center border-2 text-[9px] font-bold transition-all ${done ? 'bg-brand-500 border-brand-500 text-white' : 'bg-white border-surface-200 text-surface-300'}`}>
-                              {done ? '✓' : i + 1}
+                            <div
+                              className={`w-7 h-7 rounded-full flex items-center justify-center border-2 text-[9px] font-bold transition-all ${done ? `bg-green-600 border-transparent text-white` : "bg-white border-surface-200 text-surface-300"
+                                }`}
+                            >
+                              {done ? "✓" : i + 1}
                             </div>
-                            <span className={`text-[8px] font-body text-center max-w-[50px] leading-tight hidden sm:block ${done ? 'text-brand-600' : 'text-surface-300'}`}>
+                            <span className={`text-[8px] font-body text-center max-w-[50px] leading-tight ${done ? "text-green-600" : "text-surface-300"}`}>
                               {orderStatusLabels[s]}
                             </span>
                           </div>
@@ -80,37 +406,199 @@ export default function OrdersPage() {
                   </div>
                 )}
 
-                {/* Items */}
-                <div className="p-4 space-y-2">
-                  {order.items.map((item, i) => (
-                    <div key={i} className="flex gap-3 cursor-pointer group" onClick={() => navigateTo('product', item.product.id)}>
-                      <img src={item.product.images[0]} alt="" className="w-12 h-12 rounded-xl object-cover" />
-                      <div className="flex-1 min-w-0">
-                        <p className="font-body text-sm text-surface-700 line-clamp-1 group-hover:text-brand-600 transition-colors">{item.product.name}</p>
-                        <p className="text-xs text-surface-400 font-body">Qtd: {item.quantity} · {formatPrice(item.product.price)}</p>
-                      </div>
-                      <ChevronRight className="w-4 h-4 text-surface-300 shrink-0 self-center group-hover:text-brand-400 transition-colors" />
+                {/* Informações gerais */}
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="flex items-start gap-2 p-3 bg-surface-50 rounded-xl">
+                    <Hash className="w-4 h-4 text-surface-400 mt-0.5 shrink-0" />
+                    <div>
+                      <p className="text-[10px] text-surface-400 font-body">Nº do pedido</p>
+                      <p className="text-sm font-bold text-surface-900">#{selectedOrder.number_Order}</p>
                     </div>
-                  ))}
+                  </div>
+
+                  <div className="flex items-start gap-2 p-3 bg-surface-50 rounded-xl">
+                    <Calendar className="w-4 h-4 text-surface-400 mt-0.5 shrink-0" />
+                    <div>
+                      <p className="text-[10px] text-surface-400 font-body">Data do pedido</p>
+                      <p className="text-sm font-bold text-surface-900">
+                        {new Date(selectedOrder.insertDate).toLocaleDateString("pt-BR")}
+                      </p>
+                    </div>
+                  </div>
+
+                  {selectedOrder.payment_terms && (
+                    <div className="flex items-start gap-2 p-3 bg-surface-50 rounded-xl">
+                      <CreditCard className="w-4 h-4 text-surface-400 mt-0.5 shrink-0" />
+                      <div>
+                        <p className="text-[10px] text-surface-400 font-body">Pagamento</p>
+                        <p className="text-sm font-bold text-surface-900">{selectedOrder.payment_terms}</p>
+                      </div>
+                    </div>
+                  )}
+
+                  {selectedOrder.discont && (
+                    <div className="flex items-start gap-2 p-3 bg-surface-50 rounded-xl">
+                      <BadgePercent className="w-4 h-4 text-surface-400 mt-0.5 shrink-0" />
+                      <div>
+                        <p className="text-[10px] text-surface-400 font-body">Disconto</p>
+                        <p className="text-sm font-bold text-surface-900">
+                          {selectedOrder.discont.toLocaleString("pt-BR", {
+                            style: "currency",
+                            currency: "BRL",
+                          })}
+                        </p>
+                      </div>
+                    </div>
+
+                  )}
                 </div>
 
-                {/* Footer */}
-                {(order.trackingCode || order.address) && (
-                  <div className="px-4 pb-4 pt-0 flex items-center justify-between text-xs text-surface-400 font-body border-t border-surface-50 pt-3">
-                    {order.address && (
-                      <div className="flex items-center gap-1.5">
-                        <MapPin className="w-3.5 h-3.5" />
-                        <span>{order.address.street}, {order.address.number} · {order.address.city}</span>
-                      </div>
-                    )}
-                    {order.trackingCode && (
-                      <span className="font-display font-semibold text-brand-500">{order.trackingCode}</span>
-                    )}
+                {/* Endereço */}
+                {selectedOrder.address && (
+                  <div className="p-3 bg-surface-50 rounded-xl flex items-start gap-2">
+                    <MapPin className="w-4 h-4 text-surface-400 mt-0.5 shrink-0" />
+                    <div>
+                      <p className="text-[10px] text-surface-400 font-body">Endereço de entrega</p>
+                      <p className="text-sm font-semibold text-surface-900">
+                        {selectedOrder.address.road}, {selectedOrder.address.number}
+                      </p>
+                      <p className="text-xs text-surface-500">
+                        {selectedOrder.address.neighborhood ? `${selectedOrder.address.neighborhood} · ` : ""}
+                        {selectedOrder.address.city} - {selectedOrder.address.state}
+                      </p>
+                      {selectedOrder.address.number && (
+                        <p className="text-xs text-surface-400">CEP: {selectedOrder.address.number}</p>
+                      )}
+                    </div>
                   </div>
                 )}
+
+                {/* Produtos */}
+                <div>
+                  <h4 className="font-display font-bold text-surface-900 text-sm mb-2 flex items-center gap-2">
+                    <Package className="w-4 h-4" />
+                    Itens do pedido
+                  </h4>
+                  <div className="space-y-2">
+                    {selectedOrder.products.map((item, i) => (
+                      <div
+                        key={i}
+                        onClick={() => navigate(`/product/${item.id}`)}
+                        className="group flex gap-3 items-center p-3 rounded-xl cursor-pointer hover:bg-surface-50 transition-all"
+                      >
+                        <div className="absolute right-3 top-3 opacity-0 group-hover:opacity-100 transition-all duration-200 pointer-events-none">
+                          <div className="flex items-center gap-1 rounded-full bg-white border border-surface-200 shadow-xl px-3 py-1">
+                            <ShoppingCart className="w-3 h-3 text-green-600" />
+                            <span className="text-xs font-semibold text-surface-800">
+                              Comprar novamente
+                            </span>
+                          </div>
+                        </div>
+                        <img
+                          src={`/Imagens/Produtos/${item.imagens?.[0]?.url_Imagem}`}
+                          className="w-12 h-12 rounded-lg object-cover shrink-0"
+                        />
+
+                        <div className="flex-1 min-w-0">
+                          <p className={`text-sm font-semibold text-surface-800 line-clamp-1 ${ColorGlobalHoverText} transition-colors`}>
+                            {item.name}
+                          </p>
+
+                          <p className="text-xs text-surface-400">
+                            Qtd: {item.quantity} · {formatPrice(item.price_Unic)}
+                          </p>
+                        </div>
+
+                        <p className="text-sm font-bold text-surface-900 shrink-0">
+                          {formatPrice(item.price_Unic * item.quantity)}
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Resumo de valores */}
+                <div className="mt-5 rounded-2xl border border-surface-200 bg-surface-50 p-5">
+
+                  <h3 className="text-sm font-bold text-surface-900 mb-4">
+                    Resumo do Pedido
+                  </h3>
+
+                  <div className="space-y-3">
+
+                    {selectedOrder.discont > 0 && (
+                      <>
+                        <div className="flex items-center justify-between">
+                          <span className="text-sm text-surface-500">
+                            Valor dos produtos
+                          </span>
+
+                          <span className="font-semibold text-surface-900">
+                            {formatPrice(getTotalOriginalOrder(selectedOrder.id_Order))}
+                          </span>
+                        </div>
+
+                        <div className="flex items-center justify-between">
+                          <span className="text-sm text-surface-500">
+                            Desconto
+                          </span>
+
+                          <span className="font-bold text-green-600">
+                            - {formatPrice(selectedOrder.discont)}
+                          </span>
+                        </div>
+                      </>
+                    )}
+
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm text-surface-500">
+                        Frete
+                      </span>
+
+                      <span
+                        className={`font-semibold ${selectedOrder.total_Value_Order === 0
+                          ? "text-green-600"
+                          : "text-surface-900"
+                          }`}
+                      >
+                        {selectedOrder.total_Value_Order === 0
+                          ? "Grátis"
+                          : formatPrice(selectedOrder.total_Value_Order)}
+                      </span>
+                    </div>
+
+                    <div className="border-t border-dashed border-surface-300 pt-4 mt-2">
+
+                      <div className="flex items-center justify-between">
+                        <span className="text-base font-bold text-surface-900">
+                          Total Pago
+                        </span>
+
+                        <span className={`text-2xl font-black ${colorConfig.class_text}`}>
+                          {formatPrice(selectedOrder.total_Value_Order)}
+                        </span>
+                      </div>
+
+                      {selectedOrder.discont > 0 && (
+                        <div className="mt-3 rounded-xl bg-green-50 border border-green-200 px-3 py-2 flex items-center justify-between">
+                          <span className="text-xs font-semibold text-green-700">
+                            Você economizou
+                          </span>
+
+                          <span className="text-sm font-bold text-green-700">
+                            {formatPrice(selectedOrder.discont)}
+                          </span>
+                        </div>
+                      )}
+
+                    </div>
+
+                  </div>
+
+                </div>
               </div>
-            );
-          })
+            </div>
+          </div>
         )}
       </div>
     </div>

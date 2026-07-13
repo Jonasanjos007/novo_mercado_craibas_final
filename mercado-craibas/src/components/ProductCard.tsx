@@ -1,8 +1,10 @@
 import { ShoppingCart, Star, Zap, Heart } from 'lucide-react';
-import { Product } from '../types';
 import { formatPrice, formatDiscount, badgeLabels, badgeColors } from '../utils';
 import { useStore } from '../context/store';
 import { useNavigate } from 'react-router-dom';
+import { Product } from '../models/Product';
+import { UseCartStore } from '../store/UseCartStore';
+import { UseRouteStore } from '../store/UseRouteStore';
 
 interface ProductCardProps {
   product: Product;
@@ -11,20 +13,21 @@ interface ProductCardProps {
 
 export default function ProductCard({ product, compact = false }: ProductCardProps) {
   const navigate = useNavigate();
-  const { navigateTo, addToCart, toggleWishlist, isWishlisted } = useStore();
-  const discount = product.originalPrice ? formatDiscount(product.originalPrice, product.price) : 0;
+  const { toggleWishlist, isWishlisted } = useStore();
+  const { navigateTo } = UseRouteStore();
+  const { addToCart } = UseCartStore();
+  const discount = product.origin_Price ? formatDiscount(product.origin_Price, product.price_Unic) : 0;
   const wishlisted = isWishlisted(product.id);
 
   const handleQuickAdd = (e: React.MouseEvent) => {
     e.stopPropagation();
     addToCart({ product, quantity: 1 });
   };
-
+  console.log(`/Imagens/Produtos/${product.imagens[0]?.url_Imagem}`);
   const handleWishlist = (e: React.MouseEvent) => {
     e.stopPropagation();
     toggleWishlist(product);
   };
-
   return (
     <div
       onClick={() => navigate(`/product/${product.id}`)}
@@ -32,7 +35,7 @@ export default function ProductCard({ product, compact = false }: ProductCardPro
     >
       <div className="relative overflow-hidden bg-surface-50">
         <div className={`${compact ? 'aspect-square' : 'aspect-[4/3]'} relative`}>
-          <img src={product.images[0]} alt={product.name} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" loading="lazy" />
+          <img src={`/Imagens/Produtos/${product.imagens[0]?.url_Imagem}`} alt={product.name} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" loading="lazy" />
           <div className="absolute inset-0 bg-gradient-to-t from-black/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
         </div>
         <div className="absolute top-2 left-2 flex flex-col gap-1">
@@ -61,19 +64,19 @@ export default function ProductCard({ product, compact = false }: ProductCardPro
         </h3>
         <div className="flex items-center gap-1 mb-2">
           <div className="flex items-center gap-0.5">
-            {[1, 2, 3, 4, 5].map(star => <Star key={star} className={`w-3 h-3 ${star <= Math.floor(product.rating) ? 'text-amber-400 fill-amber-400' : 'text-surface-200 fill-surface-200'}`} />)}
+            {[1, 2, 3, 4, 5].map(star => <Star key={star} className={`w-3 h-3 ${star <= Math.floor(product.count_Rating!) ? 'text-amber-400 fill-amber-400' : 'text-surface-200 fill-surface-200'}`} />)}
           </div>
-          <span className="text-[10px] text-surface-400 font-body">({product.reviewCount.toLocaleString('pt-BR')})</span>
-          {product.sold > 1000 && <span className="text-[10px] text-surface-400 font-body ml-auto">{(product.sold / 1000).toFixed(1)}k vendidos</span>}
+          <span className="text-[10px] text-surface-400 font-body">({product.review_Count?.toLocaleString('pt-BR')})</span>
+          {product.count_Sold! > 1000 && <span className="text-[10px] text-surface-400 font-body ml-auto">{(product.count_Sold! / 1000).toFixed(1)}k vendidos</span>}
         </div>
         <div>
-          {product.originalPrice && <p className="text-[10px] text-surface-400 font-body line-through leading-none">{formatPrice(product.originalPrice)}</p>}
-          <p className={`font-display font-bold text-surface-900 leading-none ${compact ? 'text-base' : 'text-lg'}`}>{formatPrice(product.price)}</p>
-          {product.installments && <p className="text-[10px] text-surface-500 font-body mt-0.5">em {product.installments}x de {formatPrice(product.price / product.installments)}</p>}
+          {product.origin_Price && <p className="text-[10px] text-surface-400 font-body line-through leading-none">{formatPrice(product.origin_Price)}</p>}
+          <p className={`font-display font-bold text-surface-900 leading-none ${compact ? 'text-base' : 'text-lg'}`}>{formatPrice(product.price_Unic)}</p>
+          {product.installments && <p className="text-[10px] text-surface-500 font-body mt-0.5">em {product.installments}x de {formatPrice(product.price_Unic / product.installments)}</p>}
         </div>
         <div className="mt-2 flex items-center gap-1">
           <Zap className="w-3 h-3 text-brand-500" />
-          <span className="text-[10px] font-body font-semibold text-brand-600">{formatPrice(product.price * 0.95)} no PIX</span>
+          <span className="text-[10px] font-body font-semibold text-brand-600">{formatPrice(product.price_Unic * 0.95)} no PIX</span>
         </div>
       </div>
     </div>

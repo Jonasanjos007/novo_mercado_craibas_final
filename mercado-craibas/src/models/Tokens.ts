@@ -1,4 +1,5 @@
 export class Tokens {
-    accessToken: string = '';
-    refreshToken: string = '';
+    accessToken?: string = '';
+    refreshToken?: string = ' ';
+    role?: string = '';
 }
