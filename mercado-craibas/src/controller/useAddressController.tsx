@@ -108,7 +108,7 @@ export const useAddressController = (): AddresssControllerReturn => {
             const result = await saveAddress(FormAddres, user?.id || 0);
 
             if (!result?.success) {
-                notify.error(result?.error || "Erro ao salvar o endereço!", "error");
+                notify.error(result.error?.error.code || "error", result?.error?.error.message || "Erro ao salvar o endereço!");
                 return false;
             }
             if (!AddressStandard) {
@@ -167,7 +167,7 @@ export const useAddressController = (): AddresssControllerReturn => {
 
             const result = await updateAddress(FormAddres);
             if (!result?.success) {
-                notify.error(result?.error || "Erro ao salvar o endereço!", "error");
+                notify.error(result.error?.error.code || "error", result?.error?.error.message || "Erro ao salvar o endereço!");
                 return false;
             }
             if (!AddressStandard) {
@@ -238,7 +238,7 @@ export const useAddressController = (): AddresssControllerReturn => {
             }
             const result = await SaveColorGlobal(NameColorGlobal, user?.id || 0)
             if (!result.success) {
-                notify.error("Error", result.error || "Cor não salva Entre em coontato com Suporte!");
+                notify.error((result.error?.error.code ?? "Error"), (result.error?.error.message || "Cor não salva Entre em coontato com Suporte!"));
             } else {
                 notify.success("Sucesso", "Cor salva com sucesso!");
             }

@@ -51,7 +51,7 @@ namespace Mercado.Craibas.Application.Services
         }
         public async Task<Result<List<ProductResponse>>> GetProductList()
         {
-            var Products = await _productRepository.GetAllProductAsyncList<Product>();
+            var Products = await _unitOfWork.GetClassListById<Product>(1,"Ativo");
 
             if (Products == null || !Products.Any())
             {
@@ -104,7 +104,9 @@ namespace Mercado.Craibas.Application.Services
                     Installments = Product.installments,
                     Tags = Product.Tags,
                     Featured = Product.Featured,
-                    InsertDate = Product.InsertDate
+                    InsertDate = Product.InsertDate,
+                    Ativo = Product.Ativo,
+                    ShowBanner = Product.ShowBanner
                     
 
                 });
@@ -121,6 +123,7 @@ namespace Mercado.Craibas.Application.Services
                 Quantity = CartProduto.Quantity,
                 Id_Product = CartProduto.Product.Id,
                 Id_Variante = CartProduto.SelectedVariation.Id,
+                Isdelete = false,
                 InsertDate = DateTime.Now
                 
             };
@@ -178,14 +181,14 @@ namespace Mercado.Craibas.Application.Services
 
             var CartProductList = new List<CartItemResponse>();
 
-            foreach (var Product in ListItens)
+            foreach (var ProductOne in ListItens)
             {
-                var ProductSelected = await _unitOfWork.GetClassById<Product>(Product.Id_Product,"Id");
+                var ProductSelected = await _unitOfWork.GetClassById<Product>(ProductOne.Id_Product,"Id");
 
                 var ImageProductSelected = await _productRepository.GetAllVariantAsyncListById<Imagens_Products>(ProductSelected.Id, "Id_Product");
 
 
-                var Variants = await _unitOfWork.GetClassById<Variante_Products>(Product.Id, "Id_Product");
+                var Variants = await _unitOfWork.GetClassById<Variante_Products>(ProductSelected.Id, "Id_Product");
 
                 if (Variants == null)
                 {
@@ -205,9 +208,9 @@ namespace Mercado.Craibas.Application.Services
 
                 CartProductList.Add(new CartItemResponse
                 {
-                    Id = Product.Id,
+                    Id = ProductOne.Id,
                     Id_Cart = Cart.Id,
-                    Quantity = Product.Quantity,
+                    Quantity = ProductOne.Quantity,
                     SelectedVariation = CartVariant,
                     Product = MapToResponse(ProductSelected, ImageProductSelected)
 

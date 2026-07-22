@@ -8,6 +8,7 @@ import { UseUserStore } from '../store/UseUserStore';
 import { UseCartStore } from '../store/UseCartStore';
 import { UseProductStore } from '../store/UseProductStore';
 import { UseRouteStore } from '../store/UseRouteStore';
+import { UseOrderStore } from '../store/UseOrderStore';
 
 type ProductControllerReturn = {
     result: {
@@ -28,6 +29,7 @@ export const useProductController = (): ProductControllerReturn => {
     const { selectedProductId, ShowProduct } = UseRouteStore();
     const { loadProducts } = UseProductStore();
     const { addToCart } = UseCartStore();
+    const { LoadCategory } = UseOrderStore();
     const { user } = UseUserStore();
     const { id } = useParams();
     const navigate = useNavigate();
@@ -39,30 +41,34 @@ export const useProductController = (): ProductControllerReturn => {
         const Response = async () => {
             const result = await loadProducts();
             if (!result?.success) {
-                notify.error(result?.error || "Erro ao carregar produtos Entre em contato com Suporte!", "error");
+                notify.error((result.error?.error.code ?? "error"), (result?.error?.error.message || "Erro ao carregar produtos Entre em contato com Suporte!"));
             }
+            await GetListCategory();
         };
         Response();
         if (id && Number(id) !== Number(selectedProductId)) {
             ShowProduct(Number(id));
         }
     }, [id]);
-
+    const GetListCategory = async () => {
+        const result = await LoadCategory();
+        console.log("result.data", result.data);
+        if (!result?.success) {
+            notify.error(result.error?.error.code || "error", result?.error?.error.message || "Erro ao carregar Categoria");
+        }
+    };
     const product = products.find(p => p.id === Number(selectedProductId));
     if (!product) return null;
 
     const discount = product.origin_Price ? formatDiscount(product.origin_Price, product.price_Unic) : 0;
     const variationTypes = [...new Set(product.variations.map(v => v.name))];
-    const related = products.filter(p => p.category === product.category && p.id !== product.id).slice(0, 5);
+    const related = products.filter(p => p.id_category === product.id_category && p.id !== product.id).slice(0, 5);
 
     const handleFinishbuy = async (quantity: number, selectedVariations: Record<string, string>) => {
 
         if (!user) {
             navigate("/CheckoutAutUser");
-            notify.warning(
-                "Atenção",
-                "Faça login ou crie sua conta para adicionar produtos ao carrinho"
-            );
+            notify.warning("Atenção", "Faça login ou crie sua conta para adicionar produtos ao carrinho");
             return false;
         }
 

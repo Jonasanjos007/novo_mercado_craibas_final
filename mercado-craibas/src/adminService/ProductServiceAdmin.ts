@@ -21,8 +21,11 @@ export const ProductServiceAdmin = {
             }
 
             return makeResult(true, data || [], error);
-        } catch {
-            return makeResult(false, [], "Falha na comunicação");
+        } catch (err: any) {
+            console.log(err)
+            console.log(err.response);
+            console.log(err.response?.data);
+            return makeResult(false, [], err.response?.data);
         }
     },
     PostEditeProductAdmin: async (formData: FormData): Promise<Result<ProductAdmin[]>> => {
@@ -40,30 +43,46 @@ export const ProductServiceAdmin = {
             }
 
             return makeResult(true, data || [], error);
-        } catch (error: any) {
-            console.log(error.response);
-            console.log(error.response?.data);
-            console.log(error.response?.data?.errors);
-
-            return makeResult(
-                false,
-                [],
-                error.response?.data?.title || "Falha na comunicação"
-            );
+        } catch (err: any) {
+            console.log(err)
+            console.log(err.response);
+            console.log(err.response?.data);
+            return makeResult(false, [], err.response?.data);
         }
     },
     getListProductsAdmin: async (): Promise<Result<ProductAdmin[]>> => {
         try {
-            const response = await api.get("/v1/product/list");
+            const response = await api.get("/admin/Product/listProductAdmin");
             const { success, data, error } = response.data;
             console.log(data)
             if (!data) {
-                return makeResult(false, [] as ProductAdmin[], "Produtos não encontrados");
+                return makeResult(false, [] as ProductAdmin[], error);
             }
 
             return makeResult(success, data, error);
-        } catch (error) {
-            return makeResult(false, [] as ProductAdmin[], "Falha na comunicação");
+        } catch (err: any) {
+            console.log(err)
+            console.log(err.response);
+            console.log(err.response?.data);
+            return makeResult(false, [] as ProductAdmin[], err.response?.data);
+        }
+    },
+
+    DeleteProductsAdmin: async (id_Product: number): Promise<Result<ProductAdmin[]>> => {
+        try {
+            const response = await api.delete(`/admin/Product/DeleteProductId/${id_Product}`);
+            const { success, data, error } = response.data;
+            console.log(data)
+            if (!data) {
+                return makeResult(false, [] as ProductAdmin[], error);
+            }
+
+            return makeResult(success, data, error);
+        } catch (err: any) {
+            console.log(err)
+            console.log(err.response);
+            console.log(err.response?.data);
+            return makeResult(false, [] as ProductAdmin[], err.response?.data);
         }
     },
 

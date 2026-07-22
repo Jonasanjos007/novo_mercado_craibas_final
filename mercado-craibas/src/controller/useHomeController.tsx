@@ -26,11 +26,17 @@ export const useHomeController = () => {
     const GetListProducts = async () => {
         const result = await loadProducts();
         if (!result?.success) {
-            notify.error(result?.error || "Erro ao carregar produtos", "error");
+            notify.error(result.error?.error.code || "error", result?.error?.error.message || "Erro ao carregar produtos");
         }
     };
     const GetCartUser = async () => {
-        await LoadCartUser(user);
+        const result = await LoadCartUser(user);
+        if (user?.role === "CLIENTE") {
+            if (!result?.success) {
+                notify.error(result.error?.error.code || "error", result?.error?.error.message || "Erro ao carregar Carrinho!");
+            }
+        }
+
     };
     return {
         action: {

@@ -17,11 +17,12 @@ export interface Product {
     tags: string;
     featured: boolean;
     insertDate: Date;
-
+    ativo?: boolean;
+    showBanner?: boolean;
 }
 
 export interface ProductAdmin {
-    id?: number;
+    id: number;
     name: string;
     description: string;
     price_Unic: number;
@@ -41,7 +42,8 @@ export interface ProductAdmin {
     insertDate: Date;
     removedImages: number[];
     removedVariants: number[];
-
+    ativo?: boolean;
+    showBanner?: boolean;
 }
 
 export interface ProductSaveOrder {

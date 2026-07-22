@@ -44,6 +44,9 @@ namespace Mercado.Craibas.Infrastructure.Migrations
                     b.Property<DateTime>("InsertDate")
                         .HasColumnType("datetime2");
 
+                    b.Property<bool?>("Isdelete")
+                        .HasColumnType("bit");
+
                     b.Property<string>("Name")
                         .HasColumnType("nvarchar(max)");
 
@@ -105,6 +108,9 @@ namespace Mercado.Craibas.Infrastructure.Migrations
                     b.Property<DateTime>("InsertDate")
                         .HasColumnType("datetime2");
 
+                    b.Property<bool?>("Isdelete")
+                        .HasColumnType("bit");
+
                     b.Property<DateTime?>("UpdateDate")
                         .HasColumnType("datetime2");
 
@@ -134,6 +140,9 @@ namespace Mercado.Craibas.Infrastructure.Migrations
 
                     b.Property<DateTime>("InsertDate")
                         .HasColumnType("datetime2");
+
+                    b.Property<bool?>("Isdelete")
+                        .HasColumnType("bit");
 
                     b.Property<int>("Quantity")
                         .HasColumnType("int");
@@ -168,36 +177,61 @@ namespace Mercado.Craibas.Infrastructure.Migrations
 
                     b.Property<string>("Cod_Cupom")
                         .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
 
-                    b.Property<string>("Date_Start")
-                        .HasColumnType("nvarchar(max)");
+                    b.Property<DateTime?>("Date_End")
+                        .HasColumnType("datetime2");
 
-                    b.Property<string>("Date_end")
-                        .HasColumnType("nvarchar(max)");
+                    b.Property<DateTime?>("Date_Start")
+                        .HasColumnType("datetime2");
 
-                    b.Property<string>("Descriotion")
+                    b.Property<string>("Description")
                         .HasMaxLength(500)
                         .HasColumnType("nvarchar(500)");
 
-                    b.Property<double>("Discont")
-                        .HasColumnType("float");
+                    b.Property<decimal>("Discount")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<int>("Discount_Type")
+                        .HasColumnType("int");
+
+                    b.Property<bool>("First_Order_Only")
+                        .HasColumnType("bit");
 
                     b.Property<DateTime>("InsertDate")
                         .HasColumnType("datetime2");
 
-                    b.Property<double?>("Minimum_Value")
-                        .HasColumnType("float");
+                    b.Property<bool?>("Isdelete")
+                        .HasColumnType("bit");
+
+                    b.Property<decimal?>("Maximum_Discount")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<decimal?>("Minimum_Value")
+                        .HasColumnType("decimal(18,2)");
 
                     b.Property<string>("Name_Cupom")
                         .IsRequired()
                         .HasMaxLength(150)
                         .HasColumnType("nvarchar(150)");
 
+                    b.Property<int?>("Per_User_Limit")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("Quantity_Used")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("Quantity_Uses")
+                        .HasColumnType("int");
+
                     b.Property<DateTime?>("UpdateDate")
                         .HasColumnType("datetime2");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("Cod_Cupom")
+                        .IsUnique();
 
                     b.ToTable("Cupom", (string)null);
                 });
@@ -223,6 +257,9 @@ namespace Mercado.Craibas.Infrastructure.Migrations
 
                     b.Property<DateTime>("InsertDate")
                         .HasColumnType("datetime2");
+
+                    b.Property<bool?>("Isdelete")
+                        .HasColumnType("bit");
 
                     b.Property<DateTime?>("UpdateDate")
                         .HasColumnType("datetime2");
@@ -254,6 +291,9 @@ namespace Mercado.Craibas.Infrastructure.Migrations
                     b.Property<DateTime>("InsertDate")
                         .HasColumnType("datetime2");
 
+                    b.Property<bool?>("Isdelete")
+                        .HasColumnType("bit");
+
                     b.Property<DateTime?>("UpdateDate")
                         .HasColumnType("datetime2");
 
@@ -278,6 +318,9 @@ namespace Mercado.Craibas.Infrastructure.Migrations
 
                     b.Property<DateTime>("InsertDate")
                         .HasColumnType("datetime2");
+
+                    b.Property<bool?>("Isdelete")
+                        .HasColumnType("bit");
 
                     b.Property<DateTime?>("UpdateDate")
                         .HasColumnType("datetime2");
@@ -316,6 +359,9 @@ namespace Mercado.Craibas.Infrastructure.Migrations
 
                     b.Property<DateTime>("InsertDate")
                         .HasColumnType("datetime2");
+
+                    b.Property<bool?>("Isdelete")
+                        .HasColumnType("bit");
 
                     b.Property<string>("Name_Product")
                         .IsRequired()
@@ -393,6 +439,9 @@ namespace Mercado.Craibas.Infrastructure.Migrations
                     b.Property<DateTime>("InsertDate")
                         .HasColumnType("datetime2");
 
+                    b.Property<bool?>("Isdelete")
+                        .HasColumnType("bit");
+
                     b.Property<string>("Number_Order")
                         .IsRequired()
                         .HasMaxLength(100)
@@ -437,6 +486,9 @@ namespace Mercado.Craibas.Infrastructure.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
+                    b.Property<bool?>("Ativo")
+                        .HasColumnType("bit");
+
                     b.Property<string>("Badge")
                         .HasMaxLength(100)
                         .HasColumnType("nvarchar(100)");
@@ -470,6 +522,9 @@ namespace Mercado.Craibas.Infrastructure.Migrations
                     b.Property<DateTime>("InsertDate")
                         .HasColumnType("datetime2");
 
+                    b.Property<bool?>("Isdelete")
+                        .HasColumnType("bit");
+
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(250)
@@ -488,6 +543,9 @@ namespace Mercado.Craibas.Infrastructure.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int")
                         .HasDefaultValue(0);
+
+                    b.Property<bool?>("ShowBanner")
+                        .HasColumnType("bit");
 
                     b.Property<string>("Tags")
                         .HasMaxLength(500)
@@ -527,6 +585,9 @@ namespace Mercado.Craibas.Infrastructure.Migrations
                     b.Property<DateTime>("InsertDate")
                         .HasColumnType("datetime2");
 
+                    b.Property<bool?>("Isdelete")
+                        .HasColumnType("bit");
+
                     b.Property<DateTime?>("UpdateDate")
                         .HasColumnType("datetime2");
 
@@ -555,6 +616,9 @@ namespace Mercado.Craibas.Infrastructure.Migrations
 
                     b.Property<DateTime>("InsertDate")
                         .HasColumnType("datetime2");
+
+                    b.Property<bool?>("Isdelete")
+                        .HasColumnType("bit");
 
                     b.Property<int>("Ranting")
                         .HasColumnType("int");
@@ -592,6 +656,9 @@ namespace Mercado.Craibas.Infrastructure.Migrations
 
                     b.Property<DateTime>("InsertDate")
                         .HasColumnType("datetime2");
+
+                    b.Property<bool?>("Isdelete")
+                        .HasColumnType("bit");
 
                     b.Property<string>("Name")
                         .IsRequired()
@@ -645,6 +712,9 @@ namespace Mercado.Craibas.Infrastructure.Migrations
 
                     b.Property<DateTime>("InsertDate")
                         .HasColumnType("datetime2");
+
+                    b.Property<bool?>("Isdelete")
+                        .HasColumnType("bit");
 
                     b.Property<string>("Name")
                         .IsRequired()
@@ -702,6 +772,9 @@ namespace Mercado.Craibas.Infrastructure.Migrations
                     b.Property<DateTime>("InsertDate")
                         .HasColumnType("datetime2");
 
+                    b.Property<bool?>("Isdelete")
+                        .HasColumnType("bit");
+
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(150)
@@ -750,6 +823,9 @@ namespace Mercado.Craibas.Infrastructure.Migrations
                     b.Property<DateTime>("InsertDate")
                         .HasColumnType("datetime2");
 
+                    b.Property<bool?>("Isdelete")
+                        .HasColumnType("bit");
+
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(100)
@@ -781,6 +857,110 @@ namespace Mercado.Craibas.Infrastructure.Migrations
                     b.ToTable("Variante_Products", (string)null);
                 });
 
+            modelBuilder.Entity("Mercado.Craibas.Application.Domain.Entities.Coupon_Category", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("Id_Category")
+                        .HasColumnType("int");
+
+                    b.Property<int>("Id_Cupom")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("InsertDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<bool?>("Isdelete")
+                        .HasColumnType("bit");
+
+                    b.Property<DateTime?>("UpdateDate")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Id_Category");
+
+                    b.HasIndex("Id_Cupom");
+
+                    b.ToTable("Coupon_Category", (string)null);
+                });
+
+            modelBuilder.Entity("Mercado.Craibas.Application.Domain.Entities.Coupon_Product", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("Id_Cupom")
+                        .HasColumnType("int");
+
+                    b.Property<int>("Id_Product")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("InsertDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<bool?>("Isdelete")
+                        .HasColumnType("bit");
+
+                    b.Property<DateTime?>("UpdateDate")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Id_Cupom");
+
+                    b.HasIndex("Id_Product");
+
+                    b.ToTable("Coupon_Product", (string)null);
+                });
+
+            modelBuilder.Entity("Mercado.Craibas.Application.Domain.Entities.Coupon_Use", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<decimal>("Discount_Value")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<int>("Id_Cupom")
+                        .HasColumnType("int");
+
+                    b.Property<int>("Id_Order")
+                        .HasColumnType("int");
+
+                    b.Property<int>("Id_User")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("InsertDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<bool?>("Isdelete")
+                        .HasColumnType("bit");
+
+                    b.Property<DateTime?>("UpdateDate")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Id_Cupom");
+
+                    b.HasIndex("Id_Order");
+
+                    b.HasIndex("Id_User");
+
+                    b.ToTable("Coupon_Use", (string)null);
+                });
+
             modelBuilder.Entity("Mercado.Craibas.Application.Domain.Entities.Logs", b =>
                 {
                     b.Property<int>("Id")
@@ -800,6 +980,9 @@ namespace Mercado.Craibas.Infrastructure.Migrations
 
                     b.Property<DateTime>("InsertDate")
                         .HasColumnType("datetime2");
+
+                    b.Property<bool?>("Isdelete")
+                        .HasColumnType("bit");
 
                     b.Property<string>("Log")
                         .HasColumnType("nvarchar(max)");
@@ -996,6 +1179,71 @@ namespace Mercado.Craibas.Infrastructure.Migrations
                     b.Navigation("Product");
                 });
 
+            modelBuilder.Entity("Mercado.Craibas.Application.Domain.Entities.Coupon_Category", b =>
+                {
+                    b.HasOne("Baldan.Pricing.Application.Domain.Entities.Product_Category", "Product_Category")
+                        .WithMany("Coupon_Categories")
+                        .HasForeignKey("Id_Category")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Baldan.Pricing.Application.Domain.Entities.Cupom", "Cupom")
+                        .WithMany("Coupon_Categories")
+                        .HasForeignKey("Id_Cupom")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Cupom");
+
+                    b.Navigation("Product_Category");
+                });
+
+            modelBuilder.Entity("Mercado.Craibas.Application.Domain.Entities.Coupon_Product", b =>
+                {
+                    b.HasOne("Baldan.Pricing.Application.Domain.Entities.Cupom", "Cupom")
+                        .WithMany("Coupon_Products")
+                        .HasForeignKey("Id_Cupom")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Baldan.Pricing.Application.Domain.Entities.Product", "Product")
+                        .WithMany("Coupon_Products")
+                        .HasForeignKey("Id_Product")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Cupom");
+
+                    b.Navigation("Product");
+                });
+
+            modelBuilder.Entity("Mercado.Craibas.Application.Domain.Entities.Coupon_Use", b =>
+                {
+                    b.HasOne("Baldan.Pricing.Application.Domain.Entities.Cupom", "Cupom")
+                        .WithMany("Coupon_Uses")
+                        .HasForeignKey("Id_Cupom")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Baldan.Pricing.Application.Domain.Entities.Orders", "Order")
+                        .WithMany("Coupon_Uses")
+                        .HasForeignKey("Id_Order")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Baldan.Pricing.Application.Domain.Entities.User_Customer", "User_Customer")
+                        .WithMany("Coupon_Uses")
+                        .HasForeignKey("Id_User")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Cupom");
+
+                    b.Navigation("Order");
+
+                    b.Navigation("User_Customer");
+                });
+
             modelBuilder.Entity("Baldan.Pricing.Application.Domain.Entities.Address", b =>
                 {
                     b.Navigation("Orders");
@@ -1008,17 +1256,27 @@ namespace Mercado.Craibas.Infrastructure.Migrations
 
             modelBuilder.Entity("Baldan.Pricing.Application.Domain.Entities.Cupom", b =>
                 {
+                    b.Navigation("Coupon_Categories");
+
+                    b.Navigation("Coupon_Products");
+
+                    b.Navigation("Coupon_Uses");
+
                     b.Navigation("Orders");
                 });
 
             modelBuilder.Entity("Baldan.Pricing.Application.Domain.Entities.Orders", b =>
                 {
+                    b.Navigation("Coupon_Uses");
+
                     b.Navigation("OrderLineItens");
                 });
 
             modelBuilder.Entity("Baldan.Pricing.Application.Domain.Entities.Product", b =>
                 {
                     b.Navigation("Cart_Items");
+
+                    b.Navigation("Coupon_Products");
 
                     b.Navigation("Imagens_Products");
 
@@ -1031,6 +1289,8 @@ namespace Mercado.Craibas.Infrastructure.Migrations
 
             modelBuilder.Entity("Baldan.Pricing.Application.Domain.Entities.Product_Category", b =>
                 {
+                    b.Navigation("Coupon_Categories");
+
                     b.Navigation("Product");
                 });
 
@@ -1044,6 +1304,8 @@ namespace Mercado.Craibas.Infrastructure.Migrations
                     b.Navigation("Address");
 
                     b.Navigation("Carts");
+
+                    b.Navigation("Coupon_Uses");
 
                     b.Navigation("Customize_Cliente");
 

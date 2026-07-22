@@ -34,7 +34,7 @@ export const useBrandsController = (): BrandsControllerReturn => {
         const result = await loadProducts();
         // SetLoading(false);
         if (!result?.success) {
-            notify.error(result?.error || "Erro ao carregar produtos", "error");
+            notify.error((result?.error?.error?.code ?? "error"), (result?.error?.error.message || "Erro ao carregar produtos"));
         }
     };
 

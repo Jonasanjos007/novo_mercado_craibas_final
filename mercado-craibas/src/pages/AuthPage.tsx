@@ -82,7 +82,7 @@ export default function AuthPage() {
                 <label className="block text-xs font-display font-semibold text-surface-600 mb-1.5">Nome completo</label>
                 <div className="relative">
                   <User className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-surface-300" />
-                  <input type="text" value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} placeholder="João Silva" className="w-full pl-10 pr-4 py-3 border-2 border-surface-200 rounded-xl font-body text-sm text-surface-800 placeholder:text-surface-300 focus:border-brand-400 focus:outline-none transition-colors" />
+                  <input type="text" value={form.email} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} placeholder="João Silva" className="w-full pl-10 pr-4 py-3 border-2 border-surface-200 rounded-xl font-body text-sm text-surface-800 placeholder:text-surface-300 focus:border-brand-400 focus:outline-none transition-colors" />
                 </div>
               </div>
             )}
@@ -133,7 +133,7 @@ export default function AuthPage() {
               <p className="text-xs font-display font-semibold text-surface-500 mb-3">🧪 Contas de demonstração (senha: qualquer)</p>
               <div className="space-y-2">
                 {hints.map(h => (
-                  <button key={h.email} onClick={() => setForm({ name: '', email: h.email, password: '123456' })} className="w-full flex items-center justify-between px-3 py-2 bg-white border border-surface-200 rounded-xl hover:border-brand-300 hover:bg-brand-50 transition-all">
+                  <button key={h.email} onClick={() => setForm({ email: h.email, password: '123456' })} className="w-full flex items-center justify-between px-3 py-2 bg-white border border-surface-200 rounded-xl hover:border-brand-300 hover:bg-brand-50 transition-all">
                     <span className="text-xs font-body text-surface-600 truncate">{h.email}</span>
                     <span className="text-xs bg-surface-100 px-2 py-0.5 rounded-full text-surface-500 shrink-0 ml-2">{h.badge} {h.label}</span>
                   </button>

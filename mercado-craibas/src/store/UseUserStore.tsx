@@ -70,7 +70,7 @@ export const UseUserStore = create<UserState>()(persist((set, get) => ({
     },
     SaveColorGlobal: async (NameColorGlobal: string, UserId: number) => {
         if (!NameColorGlobal) {
-            return makeResult(false, false, "Erro ao carregar Cor!");
+            return makeResult(false, false);
         }
         const responseTema = await UserService.saveColorGlobalService(NameColorGlobal, UserId);
         if (responseTema.success) {
@@ -83,7 +83,7 @@ export const UseUserStore = create<UserState>()(persist((set, get) => ({
         }
         if (!responseTema.success) {
             set({ ColorGlobalTema: "bg-brand-600" });
-            return makeResult(false, false, "Erro ao carregar Cor Deixamos a cor padrão!");
+            return makeResult(false, false, responseTema.error);
         }
         return makeResult(true, true);
     },

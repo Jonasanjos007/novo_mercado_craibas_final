@@ -10,20 +10,22 @@ import { UseUserStore } from '../store/UseUserStore';
 import AlertPopup from '../components/AlertPopup';
 import Loading from '../components/Loading';
 import { useCategoryController } from '../controller/useCategoryController';
+import { UseOrderStore } from '../store/UseOrderStore';
 
 type SortOption = 'relevancia' | 'menor-preco' | 'maior-preco' | 'avaliacao' | 'mais-vendidos';
 
 export default function CategoryPage() {
   const Controller = useCategoryController();
+  const { Category } = UseOrderStore();
 
   const { products } = UseProductStore();
   const { searchQuery, selectedCategory } = UseRouteStore();
-  const { ColorGlobalTema } = UseUserStore();
+  const { ColorGlobalTema, ColorGlobalText, ColorGlobalHoverText } = UseUserStore();
 
   const { search } = useParams();
   const [sort, setSort] = useState<SortOption>('relevancia');
   const [filterOpen, setFilterOpen] = useState(false);
-  const [priceRange, setPriceRange] = useState<[number, number]>([0, 15000]);
+  const [priceRange, setPriceRange] = useState<[number, number]>([0, 1005000]);
   const [ratingFilter, setRatingFilter] = useState(0);
   const [freeShippingOnly, setFreeShippingOnly] = useState(false);
   const [badgeFilter, setBadgeFilter] = useState<string>('');
@@ -31,14 +33,23 @@ export default function CategoryPage() {
   const isSearch = search === 'search';
   const query = searchQuery.toLowerCase();
   let filtered = products.filter(p => {
-    if (isSearch) return (
-      p.name.toLowerCase().includes(query) ||
-      p.description.toLowerCase().includes(query) ||
-      p.tags.split(",").some(t => t.trim().toLowerCase().includes(query.toLowerCase())) ||
-      p.category.toLowerCase().includes(query)
-    );
-    return selectedCategory ? p.category === selectedCategory : true;
+    if (isSearch) {
+      return (
+        p.name.toLowerCase().includes(query) ||
+        p.description.toLowerCase().includes(query) ||
+        p.tags.split(",").some(t =>
+          t.trim().toLowerCase().includes(query)
+        ) ||
+        (Category.find(c => c.id === p.id_category)
+          ?.category
+          .toLowerCase()
+          .includes(query) ?? false)
+      );
+    }
+
+    return selectedCategory ? Category.find(c => c.id === p.id_category)?.category || "Sem categoria" === selectedCategory : true;
   });
+  console.log("selectedCategory", selectedCategory);
 
   filtered = filtered.filter(p =>
     p.price_Unic >= priceRange[0] && p.price_Unic <= priceRange[1] &&
@@ -46,6 +57,7 @@ export default function CategoryPage() {
     (!freeShippingOnly || p.freeShipping) &&
     (!badgeFilter || p.badge === badgeFilter)
   );
+  console.log("filtered", filtered);
 
   const sorted = [...filtered].sort((a, b) => {
     if (sort === 'menor-preco') return a.price_Unic - b.price_Unic;
@@ -96,7 +108,7 @@ export default function CategoryPage() {
                 <button
                   key={s}
                   onClick={() => setSort(s)}
-                  className={`px-3 py-2 rounded-xl border-2 text-xs font-body font-medium transition-all whitespace-nowrap ${sort === s ? ` ${ColorGlobalTema} bg-brand-50 text-white` : 'border-surface-200 text-surface-500 hover:border-surface-300'}`}
+                  className={`px-3 py-2 rounded-xl border-2 text-xs font-body font-medium transition-all whitespace-nowrap ${sort === s ? ` ${ColorGlobalTema}  text-white` : 'border-surface-200 text-surface-500 hover:border-surface-300'}`}
                 >
                   {s === 'relevancia' ? 'Relevância' : s === 'menor-preco' ? 'Menor Preço' : s === 'maior-preco' ? 'Maior Preço' : s === 'avaliacao' ? 'Avaliação' : 'Mais Vendidos'}
                 </button>
@@ -134,7 +146,7 @@ export default function CategoryPage() {
 
               <button
                 onClick={clearFilters}
-                className={`text-xs font-medium text-brand-500 hover:text-brand-700 transition-colors`}
+                className={`text-xs font-medium ${ColorGlobalText} ${ColorGlobalHoverText} transition-colors`}
               >
                 Limpar
               </button>
@@ -202,7 +214,7 @@ export default function CategoryPage() {
               <Search className="w-16 h-16 text-surface-200 mx-auto mb-4" />
               <h2 className="font-display font-bold text-surface-700 text-xl mb-2">Nenhum produto encontrado</h2>
               <p className="text-surface-400 font-body text-sm mb-4">Tente outros filtros ou termos de busca</p>
-              <button onClick={() => { setFreeShippingOnly(false); setRatingFilter(0); setBadgeFilter(''); setPriceRange([0, 15000]); }} className="px-5 py-2.5 bg-brand-500 text-white font-display font-bold rounded-xl shadow-brand text-sm">
+              <button onClick={() => { setFreeShippingOnly(false); setRatingFilter(0); setBadgeFilter(''); setPriceRange([0, 15000]); }} className={`px-5 py-2.5 ${ColorGlobalTema} text-white font-display font-bold rounded-xl shadow-brand text-sm`}>
                 Limpar Filtros
               </button>
             </div>

@@ -1,5 +1,4 @@
 ﻿using backend.services.interfaces;
-using Baldan.Pricing.Application.DTOs.Requests;
 using Mercado.Craibas.Application.Interfaces.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;

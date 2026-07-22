@@ -87,26 +87,26 @@ export const useCheckoutController = (): CheckoutControllerReturn => {
         const result = await LoadCupons();
         // SetLoading(false);
         if (!result?.success) {
-            notify.error(result?.error || "Erro ao carregar produtos", "error");
+            notify.error(result.error?.error.code || "error", result?.error?.error.message || "Erro ao carregar produtos");
         }
     };
     const GetListProducts = async () => {
         const result = await loadProducts();
         // SetLoading(false);
         if (!result?.success) {
-            notify.error(result?.error || "Erro ao carregar produtos", "error");
+            notify.error(result.error?.error.code || "error", result?.error?.error.message || "Erro ao carregar produtos");
         }
     };
     const GetCartUser = async () => {
         const result = await LoadCartUser(user);
         if (!result?.success) {
-            notify.error(result?.error || "Erro ao carregar Carrinho", "error");
+            notify.error(result.error?.error.code || "error", result?.error?.error.message || "Erro ao carregar Carrinho");
         }
     };
     const GetAddressUser = async () => {
         const result = await LoadAddressUser();
         if (!result?.success) {
-            notify.error(result?.error || "Erro ao carregar Endereços", "error");
+            notify.error(result.error?.error.code || "error", result?.error?.error.message || "Erro ao carregar Endereços");
         }
     };
 
@@ -140,7 +140,7 @@ export const useCheckoutController = (): CheckoutControllerReturn => {
         const result = await SaveOrderUser(OrderSave);
         console.log(result, 'result');
         if (!result?.success) {
-            notify.error(result?.error || "Erro ao salvar pedido", "error");
+            notify.error(result.error?.error.code || "error", result?.error?.error.message || "Erro ao salvar pedido");
             setLoading(false);
             return;
         }

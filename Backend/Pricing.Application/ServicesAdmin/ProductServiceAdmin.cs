@@ -2,8 +2,10 @@
 using Baldan.Pricing.Application.Domain.Entities;
 using Baldan.Pricing.Application.Interfaces;
 using Mercado.Craibas.Application.DTOs.Requests;
+using Mercado.Craibas.Application.Interfaces.Repositories;
 using Mercado.Craibas.Application.InterfacesAdmin;
 using Mercado.Craibas.Application.InterfacesAdmin.Services;
+using Pricing.Api.DTOs.Responses;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -21,6 +23,72 @@ namespace Mercado.Craibas.Application.ServicesAdmin
             _unitOfWorkAdmin = unitOfWorkAdmin;
         }
 
+
+        public async Task<Result<List<ProductResponse>>> GetProductListAdmin()
+        {
+            var Products = await _unitOfWorkAdmin.GetAllEntityAsyncList<Product>();
+
+            if (Products == null || !Products.Any())
+            {
+                return Result<List<ProductResponse>>
+                    .Failure(Error.Failure(
+                        "Produtos",
+                        "Produtos não encontrados!"
+                    ));
+            }
+
+            var productList = new List<ProductResponse>();
+
+            foreach (var Product in Products)
+            {
+                var variants = await _unitOfWorkAdmin.GetClassListById<Variante_Products>(Product.Id, "Id_Product");
+
+                if (variants == null || !variants.Any())
+                {
+                    continue;
+                }
+
+                var Imagens_Product = await _unitOfWorkAdmin.GetClassListById<Imagens_Products>(Product.Id, "Id_Product");
+
+                if (Imagens_Product is null)
+                {
+                    continue;
+                }
+
+                var CategoryName = await _unitOfWorkAdmin.GetClassById<Product_Category,int>(Product.Id_Category, "Id");
+                if (CategoryName is null)
+                {
+                    continue;
+                }
+                productList.Add(new ProductResponse
+                {
+                    Id = Product.Id,
+                    Name = Product.Name,
+                    Description = Product.Description,
+                    Price_Unic = Product.Price_Unit,
+                    Origin_Price = Product.Origin_Price,
+                    Imagens = Imagens_Product,
+                    Id_category = CategoryName.Id,
+                    Count_Rating = Product.Rating,
+                    Review_Count = Product.ReviewCount,
+                    Count_Sold = Product.CountSold,
+                    variations = variants,
+                    Total_Stock = Product.Total_Stock,
+                    Badge = Product.Badge,
+                    FreeShipping = Product.FreeShipping,
+                    Installments = Product.installments,
+                    Tags = Product.Tags,
+                    Featured = Product.Featured,
+                    InsertDate = Product.InsertDate,
+                    Ativo = Product.Ativo,
+                    ShowBanner = Product.ShowBanner
+
+
+                });
+            }
+            return Result<List<ProductResponse>>.Success(productList);
+        }
+
         public async Task<Result<bool>> PostSaveProduct(ProductRequest product)
         {
 
@@ -30,6 +98,7 @@ namespace Mercado.Craibas.Application.ServicesAdmin
 
                 OnePoduct = new Product
                 {
+
                     Name = product.Name,
                     Description = product.Description,
                     Price_Unit = product.Price_Unit,
@@ -37,11 +106,14 @@ namespace Mercado.Craibas.Application.ServicesAdmin
                     Id_Category = product.Id_Category,
                     Total_Stock = product.Total_Stock ?? 0,
                     Badge = product.Badge,
-                    FreeShipping = product.FreeShipping,
+                    FreeShipping = product.FreeShipping ?? false,
                     installments = product.installments,
                     Tags = product.Tags,
                     Featured = product.Featured,
-                    InsertDate = DateTime.Now
+                    Ativo = product.Ativo,
+                    InsertDate = DateTime.Now,
+                    Isdelete = false,
+                    ShowBanner = product.ShowBanner
                 };
 
 
@@ -128,7 +200,7 @@ namespace Mercado.Craibas.Application.ServicesAdmin
                     foreach (var imagemDeleteId in product.RemovedImages)
                     {
                         // Busca a imagem antes de excluir
-                        var imagem = await _unitOfWorkAdmin.GetClassById<Imagens_Products>(imagemDeleteId, "Id");
+                        var imagem = await _unitOfWorkAdmin.GetClassById<Imagens_Products,int>(imagemDeleteId, "Id");
 
                         if (imagem != null)
                         {
@@ -172,6 +244,8 @@ namespace Mercado.Craibas.Application.ServicesAdmin
                              {"installments",product.installments},
                              {"Tags",product.Tags},
                              { "Featured", product.Featured},
+                             { "Ativo", product.Ativo},
+                             {"ShowBanner",product.ShowBanner},
                              {"UpdateDate", DateTime.Now }
                          });
 
@@ -224,7 +298,8 @@ namespace Mercado.Craibas.Application.ServicesAdmin
                                 Type = Variante.Type,
                                 Stoke = Variante.Stoke ?? 0,
                                 Price_Modifier = Variante.Price_Modifier,
-                                InsertDate = DateTime.Now
+                                InsertDate = DateTime.Now,
+                                Isdelete = false
                             });
                         }
                         else
@@ -247,6 +322,86 @@ namespace Mercado.Craibas.Application.ServicesAdmin
                       
 
                     }
+                }
+                return Result<bool>.Success(true);
+            }
+            catch (Exception ex)
+            {
+                return Result<bool>.Failure(Error.Failure("Product", ex.Message));
+            }
+        }
+
+        public async Task<Result<bool>> DeleteProductId(int Id_Product)
+        {
+            try
+            {
+                if(Id_Product == 0)
+                {
+                    return Result<bool>.Failure(Error.Failure("Id Usuario", "Erro Nunhum id selecionado!"));
+                }
+                var Produto = await _unitOfWorkAdmin.GetClassById<Product, int>(Id_Product, "Id");
+
+                await _unitOfWorkAdmin.UpdateFieldsAsyncEntity<Product>(filters: new Dictionary<string, object>
+                        {
+                                { "Id", Produto.Id}
+                        },
+
+                 fieldsToUpdate: new Dictionary<string, object>
+                 {
+                             {"Isdelete",true },
+                             {"Ativo",false },
+                  });
+
+                //var raizCaminhoProjeto = Directory.GetCurrentDirectory();
+
+                //    // sobe duas pastas (Mercado.Api -> Backend -> novo_mercado_craibas_final)
+                //    var raizCaminho = Directory.GetParent(raizCaminhoProjeto)!.Parent!.FullName;
+
+                //    var pastaDestinoImage = Path.Combine(
+                //        raizCaminho,
+                //        "mercado-craibas",
+                //        "Imagens",
+                //        "Produtos"
+                //    );
+                var ImagensDelete = await _unitOfWorkAdmin.GetClassListById<Imagens_Products>(Id_Product, "Id_Product");
+
+                foreach (var imagemDeleteId in ImagensDelete)
+                    {
+                    await _unitOfWorkAdmin.UpdateFieldsAsyncEntity<Imagens_Products>(filters: new Dictionary<string, object>
+                        {
+                                { "Id", imagemDeleteId.Id}
+                        },
+
+                    fieldsToUpdate: new Dictionary<string, object>
+                    {
+                             {"Isdelete",true },
+                     });
+                }
+                //if (imagemDeleteId != null)
+                //{
+                //    var caminhoArquivo = Path.Combine(pastaDestinoImage, imagemDeleteId.Url_Imagem);
+
+                //    if (File.Exists(caminhoArquivo))
+                //    {
+                //        File.Delete(caminhoArquivo);
+                //    }
+
+                //    await _unitOfWorkAdmin.DeleteAllByColumnAsync<Imagens_Products>("Id", imagemDeleteId.Id);
+                //}
+            //}
+                var VariantsDelete = await _unitOfWorkAdmin.GetClassListById<Variante_Products>(Id_Product, "Id_Product");
+
+                foreach (var VariantDeleteEtity in VariantsDelete)
+                    {
+                    await _unitOfWorkAdmin.UpdateFieldsAsyncEntity<Variante_Products>(filters: new Dictionary<string, object>
+                        {
+                                { "Id", VariantDeleteEtity.Id}
+                        },
+
+                        fieldsToUpdate: new Dictionary<string, object>
+                        {
+                              {"Isdelete",true },
+                        });
                 }
                 return Result<bool>.Success(true);
             }

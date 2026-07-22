@@ -1,4 +1,5 @@
 ﻿using Baldan.Pricing.Application.Domain.Enums;
+using Mercado.Craibas.Application.Domain.Entities;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -23,7 +24,7 @@ namespace Baldan.Pricing.Application.Domain.Entities
         public ICollection<Rating> Ratings { get; set; } = [];
         public string? RefreshToken { get; set; }
         public DateTime? RefreshTokenExpiresAt { get; set; }
-
+        public ICollection<Coupon_Use> Coupon_Uses { get; set; } = [];
 
     }
 }

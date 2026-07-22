@@ -80,18 +80,18 @@ export default function ProfilePage() {
   });
 
   const [prefs, setPrefs] = useState({
-    notifications: user?.preferences?.notifications ?? true,
-    newsletter: user?.preferences?.newsletter ?? false,
-    darkMode: user?.preferences?.darkMode ?? false,
+    notifications: true,
+    newsletter: false,
+    darkMode: false,
   });
 
-  const userOrders = orders.filter(o => o.userId === user?.id || true).slice(0, 10);
-  const totalSpent = userOrders.reduce((s, o) => s + o.total, 0);
+  const userOrders = orders.filter(o => o.id_Order === user?.id || true).slice(0, 10);
+  const totalSpent = userOrders.reduce((s, o) => s + o.total_Value_Order, 0);
   const AVATAR_URL =
     "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=800&h=280&fit=crop&crop=face,top";
 
   const saveProfile = () => {
-    updateUser({ name: form.name, email: form.email, phone: form.phone, bio: form.bio });
+    updateUser({ name: form.name, email: form.email, phone: form.phone });
     setEditing(false);
   };
   const getTotalOriginalOrder = (idOrder: number) => {
@@ -108,7 +108,7 @@ export default function ProfilePage() {
 
 
 
-  const savePrefs = () => updateUser({ preferences: { ...prefs, language: 'pt-BR' } });
+  // const savePrefs = () => updateUser({ preferences: { ...prefs, language: 'pt-BR' } });
 
   const navTabs: { id: ProfileTab; label: string; icon: React.ReactNode }[] = [
     { id: 'overview', label: 'Meus Dados', icon: <User className="w-4 h-4" /> },
@@ -1415,7 +1415,7 @@ export default function ProfilePage() {
                       </div>
                     ))}
                   </div>
-                  <button onClick={savePrefs} className="mt-5 px-6 py-2.5 bg-brand-500 hover:bg-brand-600 text-white font-bold text-sm rounded-xl transition-all flex items-center gap-2 shadow-brand">
+                  <button className="mt-5 px-6 py-2.5 bg-brand-500 hover:bg-brand-600 text-white font-bold text-sm rounded-xl transition-all flex items-center gap-2 shadow-brand">
                     <Check className="w-4 h-4" /> Salvar Preferências
                   </button>
                 </div>

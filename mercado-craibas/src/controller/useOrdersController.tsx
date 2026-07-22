@@ -28,7 +28,7 @@ export const useOrdersController = (): OrdersControllerReturn => {
         const result = await LoadOrders();
         // SetLoading(false);
         if (!result?.success) {
-            notify.error(result?.error || "Erro ao carregar pedidos", "error");
+            notify.error(result.error?.error.code || "error", result?.error?.error.message || "Erro ao carregar pedidos");
         }
     };
 

@@ -1,8 +1,8 @@
 // export type ProductCategory = 'eletronicos' | 'garrafas' | 'acessorios' | 'virais';
 
 import { Address } from "../models/Address";
-import { CartItem } from "../models/CartUser";
 import { Product } from "../models/Product";
+// import { CartItem } from "../models/CartUser";
 
 // export interface ProductVariation {
 //   id: string;
@@ -69,7 +69,7 @@ export type OrderStatus = 'pendente' | 'confirmado' | 'preparando' | 'saiu_entre
 export interface Order {
   id: number;
   userId: number;
-  items: CartItem[];
+  // items: CartItem[];
   total: number;
   status: OrderStatus;
   createdAt: Date;
@@ -83,9 +83,15 @@ export interface Order {
 }
 
 export interface Promotion {
-  id: string; title: string; description: string;
-  discount: number; code: string; minValue?: number;
-  validUntil: Date; active: boolean;
+  id: number;
+  name_Cupom: string;
+  cod_Cupom: string;
+  description: string;
+  discount: number;
+  active: boolean;
+  minimum_Value?: number;
+  date_Start: Date;
+  date_End: Date;
   productIds?: string[];
   type?: 'percent' | 'fixed';
 }

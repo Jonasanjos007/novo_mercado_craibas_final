@@ -286,7 +286,7 @@ export default function OrdersPage() {
                             className="group/item flex items-center gap-3 rounded-xl p-2 cursor-pointer hover:bg-surface-50 transition-all"
                           >
                             <img
-                              src={`/Imagens/Produtos/Imagens/${item.imagens?.[0]?.url_Imagem}`}
+                              src={`/Imagens/Produtos/${item.imagens?.[0]?.url_Imagem}`}
                               className="w-12 h-12 rounded-xl object-cover"
                             />
 

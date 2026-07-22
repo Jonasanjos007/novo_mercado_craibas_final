@@ -94,7 +94,7 @@ export const useLoginController = () => {
                 }
             },
             (err) => {
-                notify.error("Erro", err);
+                notify.error("Erro", err.error.message);
                 cleanUserData();
             }
         );

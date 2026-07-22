@@ -7,14 +7,17 @@ import { UseUserStore } from '../store/UseUserStore';
 import { getColorConfig } from '../types/Colors';
 import { useFlashSaleController } from '../controller/useFlashSaleController';
 import Loading from '../components/Loading';
+import { UseOrderStore } from '../store/UseOrderStore';
 
 const TARGET = new Date(Date.now() + 4 * 60 * 60 * 1000 + 23 * 60 * 1000 + 45 * 1000);
 
 export default function FlashSalePage() {
   const Controller = useFlashSaleController();
   const { products } = UseProductStore();
+  const { Category } = UseOrderStore();
+
   const { ColorGlobalTema, ColorGlobalText, NameColorGlobal } = UseUserStore();
-  const [filter, setFilter] = useState('all');
+  const [filter, setFilter] = useState<number | null>(null);
   const [timeLeft, setTimeLeft] = useState({ h: '04', m: '23', s: '45' });
   const navigate = useNavigate();
   const colorConfig = getColorConfig(NameColorGlobal);
@@ -33,10 +36,7 @@ export default function FlashSalePage() {
     return () => clearInterval(id);
   }, []);
   const saleProducts = products.filter(p => p.origin_Price && p.origin_Price > p.price_Unic);
-
-  const filtered = filter === 'all' ? saleProducts : saleProducts.filter(p => p.category === filter);
-  const cats = ['all', ...Array.from(new Set(saleProducts.map(p => p.category)))];
-  const catLabels: Record<string, string> = { all: 'Todos', eletronicos: 'Eletrônicos', garrafas: 'Stanley', acessorios: 'Acessórios', virais: 'Virais' };
+  const filtered = filter === null ? saleProducts : saleProducts.filter(p => p.id_category === filter);
   return (
     <div className="min-h-screen bg-[#f5f5f7]">
       {/* Hero */}
@@ -92,18 +92,31 @@ export default function FlashSalePage() {
             <span className="text-sm font-body">Filtrar:</span>
           </div>
           <div className="flex gap-2 flex-wrap">
-            {cats.map(c => (
+            <button
+              key={0}
+              onClick={() => setFilter(null)}
+              className={`px-4 py-2 rounded-xl text-sm font-display font-semibold transition-all ${filter === null
+                ? `${ColorGlobalTema} text-white shadow-brand`
+                : `bg-white text-surface-500 border border-surface-200 hover:border-${ColorGlobalTema.slice(3)} hover:${ColorGlobalText}`
+                }`}
+            >
+              {/* {catLabels[c] || c} */}
+              Todos
+            </button>
+            {Category.map(c => (
               <button
-                key={c}
-                onClick={() => setFilter(c)}
-                className={`px-4 py-2 rounded-xl text-sm font-display font-semibold transition-all ${filter === c
+                key={c.id}
+                onClick={() => setFilter(Number(c.id))}
+                className={`px-4 py-2 rounded-xl text-sm font-display font-semibold transition-all ${filter === c.id
                   ? `${ColorGlobalTema} text-white shadow-brand`
                   : `bg-white text-surface-500 border border-surface-200 hover:border-${ColorGlobalTema.slice(3)} hover:${ColorGlobalText}`
                   }`}
               >
-                {catLabels[c] || c}
+                {/* {catLabels[c] || c} */}
+                {Category.find(d => d.id === c.id)?.category || "Sem categoria"}
               </button>
             ))}
+
           </div>
           <span className="ml-auto text-surface-400 text-sm">{filtered.length} produtos</span>
         </div>

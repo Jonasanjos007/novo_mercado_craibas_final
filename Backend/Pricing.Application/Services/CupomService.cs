@@ -44,11 +44,11 @@ namespace Mercado.Craibas.Application.Services
                     Id = Cupom.Id,
                     Name_Cupom = Cupom.Name_Cupom,
                     Cod_Cupom = Cupom.Cod_Cupom,
-                    Descriotion = Cupom.Descriotion,
-                    Discont = Cupom.Discont,
+                    Descriotion = Cupom.Description,
+                    Discont = Cupom.Discount,
                     Active = Cupom.Active,
                     Date_Start = Cupom.Date_Start,
-                    Date_end = Cupom.Date_end,
+                    Date_end = Cupom.Date_End,
                     Minimum_Value = Cupom.Minimum_Value
                 });
             }

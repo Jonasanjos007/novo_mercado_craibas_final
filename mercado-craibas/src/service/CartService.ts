@@ -8,14 +8,18 @@ export const CartService = {
         try {
 
             const response = await api.get("/v1/product/GetProductCart");
+            console.log("response", response)
             const { success, data, error } = response.data;
             if (!data) {
-                return makeResult(false, [] as CartItensProduct[], "Itens do carrinho não encontrados");
+                return makeResult(false, [] as CartItensProduct[], error);
             }
 
             return makeResult(success, data, error);
-        } catch (error) {
-            return makeResult(false, [] as CartItensProduct[], "Falha na comunicação");
+        } catch (err: any) {
+            console.log(err)
+            console.log(err.response);
+            console.log(err.response?.data);
+            return makeResult(false, [] as CartItensProduct[], err.response?.data);
         }
     }, DeleteCartProduct: async (Cart_Itens_Id: number): Promise<Result<{ success?: boolean; error?: string }>> => {
         try {
@@ -23,12 +27,15 @@ export const CartService = {
             const { success, data, error } = response.data;
 
             if (!data) {
-                return makeResult(false, { success: false, error: "Itens do carrinho não removidos" }, "Erro ao remover item do carrinho");
+                return makeResult(false, { success: false, error: "Itens do carrinho não removidos" }, error);
             }
 
             return makeResult(success, { success: true, error: "" }, error);
-        } catch (error) {
-            return makeResult(false, { success: false, error: "Falha na comunicação" }, "Erro ao remover item do carrinho");
+        } catch (err: any) {
+            console.log(err)
+            console.log(err.response);
+            console.log(err.response?.data);
+            return makeResult(false, { success: false, error: "Falha na comunicação" }, err.response?.data);
         }
     },
 }

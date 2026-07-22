@@ -65,14 +65,14 @@ export const userProfileController = (): ProfileControllerReturn => {
     const GetAddressUser = async () => {
         const result = await LoadAddressUser();
         if (!result?.success) {
-            notify.error(result?.error || "Erro ao carregar Endereços", "error");
+            notify.error(result.error?.error.code || "error", result?.error?.error.message || "Erro ao carregar Endereços");
         }
     };
     const GetListOrders = async () => {
         const result = await LoadOrders();
         // SetLoading(false);
         if (!result?.success) {
-            notify.error(result?.error || "Erro ao carregar pedidos", "error");
+            notify.error(result.error?.error.code || "error", result?.error?.error.message || "Erro ao carregar pedidos");
         }
     };
     const [addrForm, setAddrForm] = useState<Address>(
@@ -132,7 +132,7 @@ export const userProfileController = (): ProfileControllerReturn => {
             const result = await saveAddress(FormAddres, user?.id || 0);
 
             if (!result?.success) {
-                notify.error(result?.error || "Erro ao salvar o endereço!", "error");
+                notify.error(result.error?.error.code || "error", result?.error?.error.message || "Erro ao salvar o endereço!");
                 return false;
             }
             notify.success("Sucesso", "Endereço cadastrado com sucesso!");
@@ -177,7 +177,7 @@ export const userProfileController = (): ProfileControllerReturn => {
 
             const result = await updateAddress(FormAddres);
             if (!result?.success) {
-                notify.error(result?.error || "Erro ao salvar o endereço!", "error");
+                notify.error(result.error?.error.code || "error", result?.error?.error.message || "Erro ao salvar o endereço!");
                 return false;
             }
             notify.success("Sucesso", "Endereço Editado com sucesso!");
@@ -242,7 +242,7 @@ export const userProfileController = (): ProfileControllerReturn => {
             }
             const result = await SaveColorGlobal(NameColorGlobal, user?.id || 0)
             if (!result.success) {
-                notify.error("Error", result.error || "Cor não salva Entre em coontato com Suporte!");
+                notify.error(result.error?.error.code || "error", result?.error?.error.message || "Cor não salva Entre em coontato com Suporte!");
             } else {
                 notify.success("Sucesso", "Cor salva com sucesso!");
             }

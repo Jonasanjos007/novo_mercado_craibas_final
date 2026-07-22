@@ -38,19 +38,19 @@ namespace Pricing.Api
             builder.Services.AddSwaggerGen();
 
             // DbContext - SQL
-            builder.Services.AddDbContext<AppDbContext>(options =>
-            {
-                options.UseSqlServer(
-                    builder.Configuration.GetConnectionString("Default")
-                );
-            });
+            //builder.Services.AddDbContext<AppDbContext>(options =>
+            //{
+            //    options.UseSqlServer(
+            //        builder.Configuration.GetConnectionString("Default")
+            //    );
+            //});
 
             // CORS
             builder.Services.AddCors(options =>
             {
                 options.AddDefaultPolicy(policy =>
                 {
-                    policy.WithOrigins("http://192.168.15.11:5173")
+                    policy.WithOrigins("https://mavihstudio.com.br")
                           .AllowAnyHeader()
                           .AllowAnyMethod();
                 });
@@ -91,6 +91,7 @@ namespace Pricing.Api
             builder.Services.AddScoped<IUnitOfWorkAdmin, IUnitOfWorkAdminRepository>();
             builder.Services.AddScoped<IProductServiceAdmin, ProductServiceAdmin>();
             builder.Services.AddScoped<IOrderAdminService, OrderServiceAdmin>();
+            builder.Services.AddScoped<ICupomAdminService, CupomServiceAdmin>();
             builder.Services.AddScoped<IProductService, ProductService>();
             builder.Services.AddScoped<IProductRepository, ProductRepository>();
             builder.Services.AddScoped<IOrderService, OrderService>();

@@ -104,5 +104,26 @@ namespace Mercado.Craibas.Application.ServicesAdmin
 
             return Result<List<Product_Category>>.Success(Categorys);
         }
+
+        public async Task<Result<bool>> PostUpdateStatusOrder(int Id_Order,string NewStatus)
+        {
+            var Update_StatusOrder = await _unitOfWorkAdmin.UpdateFieldsAsyncEntity<Orders>(filters: new Dictionary<string, object>
+                        {
+                                { "Id", Id_Order }
+                        },
+
+                      fieldsToUpdate: new Dictionary<string, object>
+                      {
+                             {"Order_Status",NewStatus }
+                         
+                       });
+
+            if (Update_StatusOrder == null)
+            {
+                return Result<bool>.Failure(Error.Failure("Status", "Erro ao atualizar status!"));
+            }
+
+            return Result<bool>.Success(true);
+        }
     }
 }

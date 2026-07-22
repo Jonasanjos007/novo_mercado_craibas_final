@@ -13,7 +13,7 @@ import BrandsPage from './pages/BrandsPage';
 import AboutPage from './pages/AboutPage';
 import ProfilePage from './pages/ProfilePage';
 import AdminPage from './pages/AdminPage';
-import DeliveryPage from './pages/DeliveryPage';
+// import DeliveryPage from './pages/DeliveryPage';
 import CheckoutAutUser from './pages/CheckoutAutUser';
 import AddressPage from './pages/AddressPage';
 
@@ -71,7 +71,7 @@ export default function App() {
 
         <Route element={<ProtectedRoute allowedRoles={["DELIVERY"]} />}>
           <Route element={<AdminLayout />}>
-            <Route path="/delivery" element={<DeliveryPage />} />
+            {/* <Route path="/delivery" element={<DeliveryPage />} /> */}
           </Route>
         </Route>
 

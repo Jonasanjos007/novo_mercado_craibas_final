@@ -107,7 +107,7 @@ export default function CartSidebar() {
                                   notify.success("Produto atualizado", "Quantidade atualizada com sucesso");
                                 }
                               } else {
-                                notify.error("Erro ao atualizar", Subtrair.error || "Não foi possível atualizar");
+                                notify.error(Subtrair.error?.error.code || "error", Subtrair?.error?.error.message || "Não foi possível atualizar");
                               }
                               setLoadingUpdate(null);
                             }}
@@ -126,7 +126,7 @@ export default function CartSidebar() {
                             if (Soma.success) {
                               notify.success("Produto atualizado", "Quantidade atualizada com sucesso");
                             } else {
-                              notify.error("Erro ao atualizar", Soma.error || "Não foi possível atualizar");
+                              notify.error(Soma.error?.error.code || "error", Soma?.error?.error.message || "Não foi possível atualizar");
                             }
                             setLoadingUpdate(null);
                           }}
@@ -153,7 +153,7 @@ export default function CartSidebar() {
                     if (result.success) {
                       notify.success("Produto removido", "O produto foi removido do carrinho");
                     } else {
-                      notify.error("Erro", result.error || "Não foi possível remover o produto");
+                      notify.error(result.error?.error.code || "error", result?.error?.error.message || "Não foi possível remover o produto");
                     }
                     setOpenDelete(false);
                   }}

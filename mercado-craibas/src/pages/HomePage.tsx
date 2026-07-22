@@ -6,7 +6,7 @@ import {
   User
 } from 'lucide-react';
 import { useStore } from '../context/store';
-import { BANNER_SLIDES, PROMOTIONS } from '../data/products';
+import { PROMOTIONS } from '../data/products';
 import ProductCard from '../components/ProductCard';
 import { formatPrice, categoryLabels, categoryIcons } from '../utils';
 import { useNavigate } from 'react-router-dom';
@@ -16,6 +16,7 @@ import { UseProductStore } from '../store/UseProductStore';
 import { UseRouteStore } from '../store/UseRouteStore';
 import { UseUserStore } from '../store/UseUserStore';
 import { getColorConfig } from '../types/Colors';
+import { UseOrderStore } from '../store/UseOrderStore';
 
 const COUNTDOWN_TARGET = new Date(Date.now() + 4 * 60 * 60 * 1000 + 23 * 60 * 1000 + 45 * 1000);
 
@@ -42,6 +43,7 @@ export default function HomePage() {
 
   const { toggleWishlist, isWishlisted, setListProducts } = useStore();
   const { navigatePages, navigateTo } = UseRouteStore();
+  const { Category } = UseOrderStore();
   const { products } = UseProductStore();
   const navigate = useNavigate();
   const [bannerIndex, setBannerIndex] = useState(0);
@@ -52,17 +54,15 @@ export default function HomePage() {
   const { NameColorGlobal, ColorGlobalTema, ColorGlobalHover, ColorGlobalText, ColorGlobalHoverText } = UseUserStore();
   const colorConfig = getColorConfig(NameColorGlobal);
   const scrollRef = useRef<HTMLDivElement>(null);
-  useEffect(() => {
-    if (!autoPlay) return;
-    const timer = setInterval(() => setBannerIndex(i => (i + 1) % BANNER_SLIDES.length), 4500);
-    return () => clearInterval(timer);
-  }, [autoPlay]);
+
   const featured = products.filter(p => p.featured);
   const viral = products.filter(p => p.badge === 'viral');
   const offers = products.filter(p => p.badge === 'oferta' || (p.origin_Price && p.origin_Price > p.price_Unic));
   const newProducts = products.filter(p => p.badge === 'novo');
   const bestsellers = [...products].sort((a, b) => b.count_Sold - a.count_Sold).slice(0, 8);
+  const BANNER_SLIDE = products.filter(p => p.showBanner === true);
 
+  console.log("BANNER_SLIDE", BANNER_SLIDE)
   const tabProducts = {
     featured: featured.slice(0, 8),
     new: newProducts.slice(0, 8),
@@ -75,6 +75,13 @@ export default function HomePage() {
     acessorios: { from: '#6d28d9', to: '#7c3aed', accent: '#c084fc' },
     virais: { from: '#9a3412', to: '#c2410c', accent: '#fb923c' },
   };
+
+  useEffect(() => {
+    if (!autoPlay) return;
+    const timer = setInterval(() => setBannerIndex(i => (i + 1) % BANNER_SLIDE.length), 4500);
+    return () => clearInterval(timer);
+  }, [autoPlay]);
+
   return (
 
     <div className="min-h-screen bg-[#f5f5f7]">
@@ -92,7 +99,7 @@ export default function HomePage() {
 
       {/* ── HERO BANNER ── */}
       <section className="relative h-[420px] md:h-[520px] bg-[#09090b] overflow-hidden">
-        {BANNER_SLIDES.map((slide, i) => (
+        {BANNER_SLIDE.map((slide, i) => (
 
           <div
             key={slide.id}
@@ -101,8 +108,8 @@ export default function HomePage() {
           >
 
             <img
-              src={slide.image}
-              alt={slide.title}
+              src={`/Imagens/Produtos/${slide.imagens[0].url_Imagem}`}
+              alt={slide.name}
               className="w-full h-full object-cover opacity-50"
             />
             <div className="absolute inset-0 bg-gradient-to-r from-black/80 via-black/40 to-transparent" />
@@ -119,20 +126,21 @@ export default function HomePage() {
                       {slide.badge}
                     </span>
                     <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold bg-red-500/90 text-white border border-red-400/30">
-                      {slide.discount}
+                      {slide.origin_Price && slide.origin_Price > 0 ? `${Math.round(((slide.origin_Price - slide.price_Unic) / slide.origin_Price) * 100)}%` : ""
+                      } OFF
                     </span>
                   </div>
-                  <h1 className="font-display font-bold text-white text-4xl md:text-6xl leading-[1.05] mb-3 tracking-tight">
-                    {slide.title}
+                  <h1 className="font-display font-bold text-white text-2xl md:text-4xl leading-[1.05] mb-3 tracking-tight">
+                    {slide.name}
                   </h1>
-                  <p className="text-white/70 font-body text-base md:text-lg mb-6 leading-relaxed">
-                    {slide.subtitle}
+                  <p className="text-white/70 font-body text-base md:text-0xl mb-6 leading-relaxed">
+                    {slide.description}
                   </p>
                   <div className="flex items-center gap-3 flex-wrap">
                     <button
                       onClick={() => {
 
-                        navigate(`/product/${BANNER_SLIDES[bannerIndex].productId}`)
+                        navigate(`/product/${BANNER_SLIDE[bannerIndex].id}`)
                       }}
                       className="px-7 py-3.5 bg-white text-[#09090b] font-display font-bold rounded-2xl hover:bg-brand-50 hover:text-brand-600 transition-all shadow-strong text-sm flex items-center gap-2 group"
                     >
@@ -154,13 +162,13 @@ export default function HomePage() {
 
         {/* Controls */}
         <button
-          onClick={() => { setBannerIndex(i => (i - 1 + BANNER_SLIDES.length) % BANNER_SLIDES.length); setAutoPlay(false); }}
+          onClick={() => { setBannerIndex(i => (i - 1 + BANNER_SLIDE.length) % BANNER_SLIDE.length); setAutoPlay(false); }}
           className="absolute left-4 top-1/2 -translate-y-1/2 w-11 h-11 rounded-2xl bg-black/30 backdrop-blur-sm text-white flex items-center justify-center hover:bg-black/50 transition-all border border-white/10"
         >
           <ChevronLeft className="w-5 h-5" />
         </button>
         <button
-          onClick={() => { setBannerIndex(i => (i + 1) % BANNER_SLIDES.length); setAutoPlay(false); }}
+          onClick={() => { setBannerIndex(i => (i + 1) % BANNER_SLIDE.length); setAutoPlay(false); }}
           className="absolute right-4 top-1/2 -translate-y-1/2 w-11 h-11 rounded-2xl bg-black/30 backdrop-blur-sm text-white flex items-center justify-center hover:bg-black/50 transition-all border border-white/10"
         >
           <ChevronRight className="w-5 h-5" />
@@ -168,7 +176,7 @@ export default function HomePage() {
 
         {/* Dots */}
         <div className="absolute bottom-5 left-1/2 -translate-x-1/2 flex gap-2">
-          {BANNER_SLIDES.map((_, i) => (
+          {BANNER_SLIDE.map((_, i) => (
             <button
               key={i}
               onClick={() => { setBannerIndex(i); setAutoPlay(false); }}
@@ -179,7 +187,7 @@ export default function HomePage() {
 
         {/* Scroll indicator */}
         <div className="absolute bottom-5 right-6 flex items-center gap-2 text-white/40 text-xs font-body">
-          {bannerIndex + 1} / {BANNER_SLIDES.length}
+          {bannerIndex + 1} / {BANNER_SLIDE.length}
         </div>
       </section>
 
@@ -248,7 +256,7 @@ export default function HomePage() {
             {Object.entries(categoryLabels).map(([key, label]) => {
               const cat = key as keyof typeof catColors;
               const c = catColors[cat];
-              const count = products.filter(p => p.category === key).length;
+              const count = products.filter(p => Category.find(c => c.id === p.id_category)?.category === key).length;
               return (
                 <button
                   key={key}

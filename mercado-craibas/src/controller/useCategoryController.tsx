@@ -7,6 +7,7 @@ import { UseAddressStore } from "../store/UseAddressStore";
 import { UseUserStore } from "../store/UseUserStore";
 import { UseCartStore } from "../store/UseCartStore";
 import { UseProductStore } from "../store/UseProductStore";
+import { UseOrderStore } from "../store/UseOrderStore";
 
 type CategoryControllerReturn = {
     result: {
@@ -19,6 +20,7 @@ type CategoryControllerReturn = {
 
 export const useCategoryController = (): CategoryControllerReturn => {
     const { loadProducts } = UseProductStore();
+    const { LoadCategory } = UseOrderStore();
     const notify = useNotification();
     const [Loading, SetLoading] = useState(false);
     useEffect(() => {
@@ -26,6 +28,7 @@ export const useCategoryController = (): CategoryControllerReturn => {
         const load = async () => {
             SetLoading(true);
             await GetListProducts();
+            await GetListCategory();
             SetLoading(false);
         };
         load();
@@ -34,10 +37,16 @@ export const useCategoryController = (): CategoryControllerReturn => {
         const result = await loadProducts();
         // SetLoading(false);
         if (!result?.success) {
-            notify.error(result?.error || "Erro ao carregar produtos", "error");
+            notify.error(result?.error?.error.code || "error", result?.error?.error.message || "Erro ao carregar produtos");
         }
     };
-
+    const GetListCategory = async () => {
+        const result = await LoadCategory();
+        // SetLoading(false);
+        if (!result?.success) {
+            notify.error(result.error?.error.code || "error", result?.error?.error.message || "Erro ao carregar Categorias");
+        }
+    };
     return {
         result: {
             Loading

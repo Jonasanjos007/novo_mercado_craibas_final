@@ -21,16 +21,16 @@ import AlertPopup from '../components/AlertPopup';
 export default function CheckoutPage() {
   const Controller = useCheckoutController();
   const navigate = useNavigate();
-  const { placeOrder } = useStore();
   const { setCartOpen } = UseCartStore();
   const { navigateTo } = UseRouteStore();
   const { cart } = UseCartStore();
   const { address } = UseAddressStore();
   const { Cupons } = UseOrderStore();
+  console.log("Cupons", Cupons)
   const { user, ColorGlobalTema, ColorGlobalText, ColorGlobalHoverText, NameColorGlobal } = UseUserStore();
   const [selectedAddress, setSelectedAddress] = useState(true);
   const [cardData, setCardData] = useState({ number: '', name: '', expiry: '', cvv: '' });
-  const [coupon, setCoupon] = useState('');
+  const [coupon, setCoupon] = useState(String);
   const colorConfig = getColorConfig(NameColorGlobal);
   const [openCouponModal, setOpenCouponModal] = useState(false);
   const [OpenAlert, setOpenAlert] = useState(false);
@@ -651,7 +651,7 @@ export default function CheckoutPage() {
                             {Controller.result.selectedCoupon.name_Cupom}
                           </h3>
                           <p className="text-sm text-surface-500 mt-1">
-                            {Controller.result.selectedCoupon.descriotion}
+                            {Controller.result.selectedCoupon.description}
                           </p>
                         </div>
                         <div className="text-right">
@@ -812,7 +812,7 @@ export default function CheckoutPage() {
                                       </h3>
 
                                       <p className="mt-1 line-clamp-2 text-xs sm:text-sm text-surface-500">
-                                        {coupon.descriotion}
+                                        {coupon.description}
                                       </p>
                                     </div>
 
@@ -905,7 +905,7 @@ export default function CheckoutPage() {
                             onClick={() => {
                               if (!selectedCouponTed) return;
                               Controller?.action.setSelectedCoupon(selectedCouponTed);
-                              setCoupon(selectedCouponTed.cod_Cupom);
+                              setCoupon(String(selectedCouponTed.cod_Cupom));
                               Controller?.action.setDiscount((Controller?.result.total || 0) * ((selectedCouponTed.discont ?? 0) / 100));
                               setOpenCouponModal(false);
                             }}

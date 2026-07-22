@@ -43,7 +43,8 @@ public class OrderService : IOrderService
                     Payment_terms = Order.Payment_terms,
                     Id_User_Customer = userId,
                     Id_Address = Order.Address.Id,
-                    InsertDate = DateTime.Now
+                    InsertDate = DateTime.Now,
+                    Isdelete = false
                 };
             }
             else
@@ -59,7 +60,8 @@ public class OrderService : IOrderService
                     Payment_terms = Order.Payment_terms,
                     Id_User_Customer = userId,
                     Id_Address = Order.Address.Id,
-                    InsertDate = DateTime.Now
+                    InsertDate = DateTime.Now,
+                    Isdelete = false
                 };
             }
                
@@ -86,7 +88,8 @@ public class OrderService : IOrderService
                     Total_Price = (OrderLine.Price_Unic * Order.Discont),
                     Origin_Price = OrderLine.Origin_Price,
                     Price_Unit = OrderLine.Price_Unic,
-                    Discont = (OrderLine.Origin_Price - OrderLine.Price_Unic) * OrderLine.Quantity
+                    Discont = (OrderLine.Origin_Price - OrderLine.Price_Unic) * OrderLine.Quantity,
+                    Isdelete = false
                 };
 
                 InsertOrderLineItens = await _unitOfWork.InsertAsyncReturnId(OrderLineItens);
@@ -113,61 +116,75 @@ public class OrderService : IOrderService
     public async Task<Result<List<OrderResponse>>> GetOrderAll(int userId)
     {
         var OrderResponseList = new List<OrderResponse>();
-
         var orderResponseList = await _unitOfWork.Query<Orders>()
-     .Where(x => x.Id_User_Customer == userId)
-     .OrderByDescending(x => x.InsertDate)
-     .Select(x => new OrderResponse
-     {
-         Id_Order = x.Id,
-         Number_Order = x.Number_Order,
-         Total_Value_Order = x.Total_Value_Order,
-         Status_Pay = x.Status_Pay,
-         Order_Status = x.Order_Status,
-         Payment_terms = x.Payment_terms,
-         InsertDate = x.InsertDate,
-         Estimated_Delivery_Date = x.Estimated_Delivery_Date,
-         Discont = x.Discont,
-         Quantity = x.OrderLineItens.Sum(i => i.Quantity),
-         Category = x.OrderLineItens
-    .Select(i => i.Product.Product_Category.Category)
-    .FirstOrDefault(),
-         Address = new AddressResponse
-         {
-             Id = x.Address.Id,
-             Name = x.Address.Name,
-             Road = x.Address.Road,
-             Number = x.Address.Number,
-             Neighborhood = x.Address.Neighborhood,
-             Supplement = x.Address.Supplement,
-             ReferencePoint = x.Address.ReferencePoint,
-             Standard = x.Address.Standard,
-             City = x.Address.City
-         },
+            .Where(x => x.Id_User_Customer == userId && x.Isdelete != true)
+            .OrderByDescending(x => x.InsertDate)
+            .Select(x => new OrderResponse
+            {
+                Id_Order = x.Id,
+                Number_Order = x.Number_Order,
+                Total_Value_Order = x.Total_Value_Order,
+                Status_Pay = x.Status_Pay,
+                Order_Status = x.Order_Status,
+                Payment_terms = x.Payment_terms,
+                InsertDate = x.InsertDate,
+                Estimated_Delivery_Date = x.Estimated_Delivery_Date,
+                Discont = x.Discont,
 
-         Products = x.OrderLineItens.Select(i => new ProductResponse
-         {
-             Id = i.Product.Id,
-             Name = i.Product.Name,
-             Description = i.Product.Description,
-             Price_Unic = i.Price_Unit,
-             Origin_Price = i.Origin_Price,
-             Quantity = i.Quantity,
-             Count_Rating = i.Product.Rating,
-             Review_Count = i.Product.ReviewCount,
-             Count_Sold = i.Product.CountSold,
-             Total_Stock = i.Product.Total_Stock,
-             Badge = i.Product.Badge,
-             FreeShipping = i.Product.FreeShipping,
-             Installments = i.Product.installments,
-             Tags = i.Product.Tags,
-             Featured = i.Product.Featured,
-             Imagens = i.Product.Imagens_Products.ToList(),
-             variations = i.Product.Variante_Products.ToList()
-         }).ToList(),
+                Quantity = x.OrderLineItens
+                    .Where(i => i.Isdelete != true)
+                    .Sum(i => i.Quantity),
 
-     })
-     .ToListAsync();
+                Category = x.OrderLineItens
+                    .Where(i => i.Isdelete != true)
+                    .Select(i => i.Product.Product_Category.Category)
+                    .FirstOrDefault(),
+
+                Address = new AddressResponse
+                {
+                    Id = x.Address.Id,
+                    Name = x.Address.Name,
+                    Road = x.Address.Road,
+                    Number = x.Address.Number,
+                    Neighborhood = x.Address.Neighborhood,
+                    Supplement = x.Address.Supplement,
+                    ReferencePoint = x.Address.ReferencePoint,
+                    Standard = x.Address.Standard,
+                    City = x.Address.City
+                },
+
+                Products = x.OrderLineItens
+                    .Where(i => i.Isdelete != true)
+                    .Select(i => new ProductResponse
+                    {
+                        Id = i.Product.Id,
+                        Name = i.Product.Name,
+                        Description = i.Product.Description,
+                        Price_Unic = i.Price_Unit,
+                        Origin_Price = i.Origin_Price,
+                        Quantity = i.Quantity,
+                        Count_Rating = i.Product.Rating,
+                        Review_Count = i.Product.ReviewCount,
+                        Count_Sold = i.Product.CountSold,
+                        Total_Stock = i.Product.Total_Stock,
+                        Badge = i.Product.Badge,
+                        FreeShipping = i.Product.FreeShipping,
+                        Installments = i.Product.installments,
+                        Tags = i.Product.Tags,
+                        Featured = i.Product.Featured,
+
+                        Imagens = i.Product.Imagens_Products
+                            .Where(img => img.Isdelete != true)
+                            .ToList(),
+
+                        variations = i.Product.Variante_Products
+                            .Where(v => v.Isdelete != true)
+                            .ToList()
+
+                    }).ToList()
+
+            })
+            .ToListAsync();
 
         return Result<List<OrderResponse>>.Success(orderResponseList);
 

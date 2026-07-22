@@ -14,6 +14,7 @@ public class ProductResponse
     public int? Id_category { get; set; } = default!;
     public double? Count_Rating { get; set; } = default!;
     public int? Review_Count { get; set; } = default!;
+    public bool? ShowBanner { get; set; }
     public int? Count_Sold { get; set; } = default!;
     public List<Variante_Products?> variations { get; set; }
     public int? Total_Stock { get; set; }
@@ -23,5 +24,6 @@ public class ProductResponse
     public double? Installments { get; set; }
     public string? Tags { get; set; }
     public bool? Featured { get; set; }
+    public bool? Ativo { get; set; }
    public DateTime? InsertDate { get; set; }
 }

@@ -1,4 +1,5 @@
 ﻿using Backend.Services.Interfaces;
+using Mercado.Craibas.Application.DTOs.Requests;
 using Mercado.Craibas.Application.InterfacesAdmin.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -48,6 +49,14 @@ namespace Mercado.Api.Controllers.Admin
         {
             var result = await _service.GetAllCategory();
 
+            return result.ToActionResult();
+        }
+
+        [Authorize]
+        [HttpPost("PostUpdateOrderNewStatus")]
+        public async Task<IActionResult> PostUpdateOrderNewStatus(int Id_Order,string NewStatus)
+        {
+            var result = await _service.PostUpdateStatusOrder(Id_Order, NewStatus);
             return result.ToActionResult();
         }
     }

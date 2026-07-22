@@ -1,7 +1,5 @@
 import { create } from 'zustand';
 import { Order, AppPage, OrderStatus, WishlistItem, Promotion } from '../types';
-import { MOCK_USERS, MOCK_ORDERS } from '../data/users';
-import { PRODUCTS, PROMOTIONS as INITIAL_PROMOS } from '../data/products';
 import { Product } from '../models/Product';
 import { User } from '../models/User';
 import { persist } from 'zustand/middleware';
@@ -22,29 +20,29 @@ interface AppState {
   // Navigation
   // currentPage: AppPage;
   // Pages: string;
-  ColorGlobal: string;
+  // ColorGlobal: string;
   // selectedProductId: number | null;
-  selectedCategory: string | null;
+  // selectedCategory: string | null;
   searchQuery: string;
   // navigateTo: (page: AppPage, productId?: number, category?: string) => void;
   // navigatePages: (page: string, productId: number | null, category: string | null) => void;
   setSearchQuery: (q: string) => void;
 
-  saveColorGlobal: () => boolean;
+  // saveColorGlobal: () => boolean;
   // Auth
   user: User | null;
-  address: Address[] | null;
-  login: (email: string, password: string) => {
-    success: boolean;
-    role?: 'admin' | 'delivery' | 'customer';
-  };
-  logout: () => void;
+  // address: Address[] | null;
+  // login: (email: string, password: string) => {
+  //   success: boolean;
+  //   role?: 'admin' | 'delivery' | 'customer';
+  // };
+  // logout: () => void;
   // saveAddress: (anddres: Address, Id_User: number) => Promise<{ success?: boolean; error?: string }>;
   // updateAddress: (anddres: Address) => Promise<{ success?: boolean; error?: string }>;
   // removerAddress: (Address: Address) => Promise<{ success?: boolean; error?: { data: any; success: boolean; }; }>;
 
   // Cart
-  cart: CartItensProduct[];
+  // cart: CartItensProduct[];
   // addToCart: (item: CartItensProduct) => Promise<boolean>;
   // removeFromCart: (productId: number) => Promise<{ success?: boolean; error?: string }>;
   // updateQuantity: (CartId: number, productId: number, quantity: number, operador: string) => Promise<{ success?: boolean; error?: string }>;
@@ -58,9 +56,9 @@ interface AppState {
   isWishlisted: (productId: number) => boolean;
 
   // Orders
-  orders: Order[];
-  placeOrder: (paymentMethod: string) => Order | null;
-  updateOrderStatus: (orderId: string, status: OrderStatus) => void;
+  // orders: Order[];
+  // placeOrder: (paymentMethod: string) => Order | null;
+  // updateOrderStatus: (orderId: string, status: OrderStatus) => void;
 
   // Products
   products: Product[];
@@ -72,11 +70,11 @@ interface AppState {
   applyPromoToProduct: (productId: number, discount: number) => void;
 
   // Promotions
-  promotions: Promotion[];
-  addPromotion: (promo: Promotion) => void;
-  updatePromotion: (promo: Promotion) => void;
-  deletePromotion: (promoId: string) => void;
-  togglePromotion: (promoId: string) => void;
+  // promotions: Promotion[];
+  // addPromotion: (promo: Promotion) => void;
+  // updatePromotion: (promo: Promotion) => void;
+  // deletePromotion: (promoId: string) => void;
+  // togglePromotion: (promoId: number) => void;
 
   // UI
   // cartOpen: boolean;
@@ -104,7 +102,7 @@ export const useStore = create<AppState>()(persist((set, get) => ({
   // Pages: 'home',
   // selectedProductId: null,
   // selectedCategory: null,
-  // searchQuery: '',
+  searchQuery: '',
   // navigateTo: (page, productId, category) => {
   //   set({ currentPage: page, selectedProductId: productId || null, selectedCategory: category || null });
   //   window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -121,21 +119,21 @@ export const useStore = create<AppState>()(persist((set, get) => ({
 
   // Auth
   user: null,
-  login: (email: string, password: string) => {
-    const found = MOCK_USERS.find(
-      u => u.email === email && u.senha === password
-    );
+  // login: (email: string, password: string) => {
+  //   const found = MOCK_USERS.find(
+  //     u => u.email === email && u.senha === password
+  //   );
 
-    if (!found) {
-      return { success: false };
-    }
-    set({ user: found });
+  //   if (!found) {
+  //     return { success: false };
+  //   }
+  //   set({ user: found });
 
-    return {
-      success: true,
-      role: found.role,
-    };
-  },
+  //   return {
+  //     success: true,
+  //     role: found.role,
+  //   };
+  // },
   // saveAddress: async (anddres: Address, Id_User: number) => {
   //   anddres.id_User_Customer = Id_User;
   //   const result = await AddressService.PostSaveAddres(anddres);
@@ -184,7 +182,7 @@ export const useStore = create<AppState>()(persist((set, get) => ({
   //   }
   //   return { success: true };
   // },
-  updateUser: (updates) => set(s => ({ user: s.user ? { ...s.user, ...updates } : null })),
+  // updateUser: (updates) => set(s => ({ user: s.user ? { ...s.user, ...updates } : null })),
 
   // Cart
   // addToCart: async (item) => {
@@ -270,26 +268,26 @@ export const useStore = create<AppState>()(persist((set, get) => ({
   isWishlisted: (productId) => get().wishlist.some(w => w.product.id === productId),
 
   // Orders
-  orders: MOCK_ORDERS,
-  placeOrder: (paymentMethod) => {
-    const { cart, user } = get();
-    if (!user || cart.length === 0) return null;
-    const total = get().cartTotal();
-    const order: Order = {
-      id: `ORD-${String(Date.now()).slice(-6)}`,
-      userId: user.id, items: [...cart], total,
-      status: 'confirmado', createdAt: new Date(), updatedAt: new Date(),
-      address: user.address || { street: 'Rua das Flores', number: '123', neighborhood: 'Centro', city: 'Craibas', state: 'AL', zipCode: '57465-000' },
-      paymentMethod, trackingCode: `MC${String(Date.now()).slice(-9)}BR`,
-      deliveryCommission: +(total * 0.05).toFixed(2),
-    };
-    set({ orders: [order, ...get().orders] });
-    get().clearCart();
-    return order;
-  },
-  updateOrderStatus: (orderId, status) => set({
-    orders: get().orders.map(o => o.id === orderId ? { ...o, status, updatedAt: new Date() } : o)
-  }),
+  // orders: MOCK_ORDERS,
+  // placeOrder: (paymentMethod) => {
+  //   const { cart, user } = get();
+  //   if (!user || cart.length === 0) return null;
+  //   const total = get().cartTotal();
+  //   const order: Order = {
+  //     id: `ORD-${String(Date.now()).slice(-6)}`,
+  //     userId: user.id, items: [...cart], total,
+  //     status: 'confirmado', createdAt: new Date(), updatedAt: new Date(),
+  //     address: user.address || { street: 'Rua das Flores', number: '123', neighborhood: 'Centro', city: 'Craibas', state: 'AL', zipCode: '57465-000' },
+  //     paymentMethod, trackingCode: `MC${String(Date.now()).slice(-9)}BR`,
+  //     deliveryCommission: +(total * 0.05).toFixed(2),
+  //   };
+  //   set({ orders: [order, ...get().orders] });
+  //   get().clearCart();
+  //   return order;
+  // },
+  // updateOrderStatus: (orderId, status) => set({
+  //   orders: get().orders.map(o => o.id === orderId ? { ...o, status, updatedAt: new Date() } : o)
+  // }),
 
   // Products
   products: [],
@@ -333,19 +331,19 @@ export const useStore = create<AppState>()(persist((set, get) => ({
   },
 
   // Promotions
-  promotions: INITIAL_PROMOS as Promotion[],
-  addPromotion: (promo) => {
-    set({ promotions: [promo, ...get().promotions] });
-    if (promo.productIds && promo.productIds.length > 0) {
-      promo.productIds.forEach(pid => get().applyPromoToProduct(pid, promo.discount));
-    }
-    get().showNotification(`Promoção "${promo.code}" criada com sucesso!`, 'success');
-  },
-  updatePromotion: (promo) => set({ promotions: get().promotions.map(p => p.id === promo.id ? promo : p) }),
-  deletePromotion: (promoId) => set({ promotions: get().promotions.filter(p => p.id !== promoId) }),
-  togglePromotion: (promoId) => set({
-    promotions: get().promotions.map(p => p.id === promoId ? { ...p, active: !p.active } : p)
-  }),
+  // promotions: INITIAL_PROMOS as Promotion[],
+  // addPromotion: (promo) => {
+  //   set({ promotions: [promo, ...get().promotions] });
+  //   if (promo.productIds && promo.productIds.length > 0) {
+  //     promo.productIds.forEach(pid => get().applyPromoToProduct(pid, promo.discount));
+  //   }
+  //   get().showNotification(`Promoção "${promo.code}" criada com sucesso!`, 'success');
+  // },
+  // updatePromotion: (promo) => set({ promotions: get().promotions.map(p => p.id === promo.id ? promo : p) }),
+  // deletePromotion: (promoId) => set({ promotions: get().promotions.filter(p => p.id !== promoId) }),
+  // togglePromotion: (promoId) => set({
+  //   promotions: get().promotions.map(p => p.id === promoId ? { ...p, active: !p.active } : p)
+  // }),
 
   // UI
   // cartOpen: false,
@@ -358,9 +356,7 @@ export const useStore = create<AppState>()(persist((set, get) => ({
   {
     name: '@app-storage',
     partialize: (state) => ({
-      user: state.user,
-      address: state.address,
-      cart: state.cart
+      user: state.user
     }),
   }
 
