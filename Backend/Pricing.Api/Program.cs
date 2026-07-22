@@ -38,19 +38,19 @@ namespace Pricing.Api
             builder.Services.AddSwaggerGen();
 
             // DbContext - SQL
-            //builder.Services.AddDbContext<AppDbContext>(options =>
-            //{
-            //    options.UseSqlServer(
-            //        builder.Configuration.GetConnectionString("Default")
-            //    );
-            //});
+            builder.Services.AddDbContext<AppDbContext>(options =>
+            {
+                options.UseSqlServer(
+                    builder.Configuration.GetConnectionString("Default")
+                );
+            });
 
             // CORS
             builder.Services.AddCors(options =>
             {
                 options.AddDefaultPolicy(policy =>
                 {
-                    policy.WithOrigins("https://mavihstudio.com.br")
+                    policy.WithOrigins("http://192.168.15.11:5173/")
                           .AllowAnyHeader()
                           .AllowAnyMethod();
                 });

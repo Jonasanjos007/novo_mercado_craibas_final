@@ -23,13 +23,11 @@ namespace Mercado.Api.Controllers.V1
         }
 
         [HttpGet("list")]
-        public IActionResult ProductList()
+        public async Task<IActionResult> ProductList()
         {
-            return Ok(new
-            {
-                sucesso = true,
-                mensagem = "API funcionando"
-            });
+            var result = await _service.GetProductList();
+
+            return result.ToActionResult();
         }
         [Authorize]
         [HttpPost("postCartSave")]
