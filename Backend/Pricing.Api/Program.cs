@@ -46,16 +46,19 @@ namespace Pricing.Api
             });
 
             // CORS
-            builder.Services.AddCors(options =>
+         
+    builder.Services.AddCors(options =>
             {
                 options.AddDefaultPolicy(policy =>
                 {
-                    policy.WithOrigins("http://192.168.15.11:5173/")
-                          .AllowAnyHeader()
-                          .AllowAnyMethod();
-                });
+                   policy.WithOrigins(
+                            "https://mavihstudio.com.br",
+                            "https://www.mavihstudio.com.br"
+                        )
+                        .AllowAnyHeader()
+                        .AllowAnyMethod();
+                }); 
             });
-
             // Auth
 
             builder.Services

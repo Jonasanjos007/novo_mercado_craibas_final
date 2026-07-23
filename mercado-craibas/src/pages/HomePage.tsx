@@ -62,7 +62,6 @@ export default function HomePage() {
   const bestsellers = [...products].sort((a, b) => b.count_Sold - a.count_Sold).slice(0, 8);
   const BANNER_SLIDE = products.filter(p => p.showBanner === true);
 
-  console.log("BANNER_SLIDE", BANNER_SLIDE)
   const tabProducts = {
     featured: featured.slice(0, 8),
     new: newProducts.slice(0, 8),

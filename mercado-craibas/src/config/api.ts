@@ -11,7 +11,7 @@ import { Address } from "../models/Address";
 import { useSessionStore } from "../store/SessionStore";
 import { UseUserStore } from "../store/UseUserStore";
 
-const baseURL = "http://192.168.15.11:5022/api";
+const baseURL = "https://api.mavihstudio.com.br/api";
 
 export const api = axios.create({
     baseURL,
@@ -82,7 +82,7 @@ api.interceptors.response.use(
             isRefreshing = true;
 
             try {
-                const response = await api.post("/auth/refresh", {
+                const response = await api.post("/v1/auth/refresh", {
                     refreshToken: tokens.refreshToken,
                 });
 
