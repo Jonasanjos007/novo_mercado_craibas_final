@@ -6,8 +6,8 @@ import { UseProductStore } from "../store/UseProductStore";
 import { UseCartStore } from "../store/UseCartStore";
 
 export const useHomeController = () => {
-    const { loadProducts } = UseProductStore();
-    const { LoadCartUser } = UseCartStore();
+    const { loadProducts ,products} = UseProductStore();
+    const { LoadCartUser,cart } = UseCartStore();
     const { user } = UseUserStore();
     const notify = useNotification();
     const [Loading, SetLoading] = useState(false);
@@ -15,9 +15,14 @@ export const useHomeController = () => {
     useEffect(() => {
         const load = async () => {
             SetLoading(true);
+            if(!products)
+            {
             await GetListProducts();
+            }
             if (user) {
+                if(cart){
                 await GetCartUser();
+                }
             }
             SetLoading(false);
         };

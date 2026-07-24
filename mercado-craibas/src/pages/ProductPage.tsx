@@ -33,6 +33,8 @@ export const ProductPage = () => {
     setImgIndex(0);
   }, [product?.id]);
 
+  if(!selectedProductId) return navigate('/');
+  
   if (!product) return null;
 
   return (

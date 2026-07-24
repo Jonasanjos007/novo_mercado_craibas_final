@@ -76,10 +76,15 @@ export default function HomePage() {
   };
 
   useEffect(() => {
-    if (!autoPlay) return;
-    const timer = setInterval(() => setBannerIndex(i => (i + 1) % BANNER_SLIDE.length), 4500);
-    return () => clearInterval(timer);
-  }, [autoPlay]);
+  if (!autoPlay || BANNER_SLIDE.length === 0) return;
+
+  const timer = setInterval(() => {
+    setBannerIndex(i => (i + 1) % BANNER_SLIDE.length);
+  }, 4500);
+
+  return () => clearInterval(timer);
+}, [autoPlay, BANNER_SLIDE.length]);
+  
 
   return (
 

@@ -11,7 +11,7 @@ import { Address } from "../models/Address";
 import { useSessionStore } from "../store/SessionStore";
 import { UseUserStore } from "../store/UseUserStore";
 
-const baseURL = "https://api.mavihstudio.com.br/api";
+const baseURL = "http://192.168.15.7:5022/api";
 
 export const api = axios.create({
     baseURL,

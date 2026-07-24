@@ -9,14 +9,17 @@ import { UseRouteStore } from '../store/UseRouteStore';
 import { UseCartStore } from '../store/UseCartStore';
 import { getColorConfig } from '../types/Colors';
 import { UseUserStore } from '../store/UseUserStore';
+import { UseOrderStore } from '../store/UseOrderStore';
 export default function Header() {
   const navigate = useNavigate();
   const { searchQuery, setSearchQuery, wishlist } = useStore();
   const { setCartOpen } = UseCartStore();
+    const { Category } = UseOrderStore();
   const { navigatePages, Pages, selectedCategory } = UseRouteStore();
   const { cartCount } = UseCartStore();
   const { user, logout, NameColorGlobal, ColorGlobalTema, ColorGlobalHover, ColorGlobalText, ColorGlobalHoverText } = UseUserStore();
   const colorConfig = getColorConfig(NameColorGlobal);
+
 
   const [menuOpen, setMenuOpen] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
@@ -125,10 +128,21 @@ export default function Header() {
       <nav className="hidden md:block border-t border-surface-800">
         <div className="max-w-7xl mx-auto px-4 flex items-center gap-1 py-1.5">
           <NavBtn active={Pages === 'home'} Color={ColorGlobalTema} ColorText={ColorGlobalText} HoverText={ColorGlobalHover} onClick={() => { navigatePages('home', null, null); navigate(`/`) }} label="🏠 Início" />
-          {Object.entries(categoryLabels).map(([key, label]) => (
-
-            <NavBtn key={key} active={Pages === 'category' && selectedCategory === key} Color={ColorGlobalTema} ColorText={ColorGlobalText} HoverText={ColorGlobalHover} onClick={() => { navigatePages('category', null, key); navigate(`category/${key}`) }} label={`${categoryIcons[key]} ${label}`} />
-          ))}
+         
+     {Category.map((cat) => (
+  <NavBtn
+    key={cat.id}
+    active={Pages === 'category' && selectedCategory === cat.category}
+    Color={ColorGlobalTema}
+    ColorText={ColorGlobalText}
+    HoverText={ColorGlobalHover}
+    onClick={() => {
+      navigatePages('category', null, cat.category);
+      navigate(`category/${cat.category}`);
+    }}
+    label={`${categoryIcons[cat.category]} ${categoryLabels[cat.category]}`}
+  />
+))}
           <div className="mx-1 h-4 w-px bg-surface-700" />
           <NavBtn active={Pages === 'flash-sale'} colorConfig={colorConfig.hex} Color={ColorGlobalTema} ColorText={ColorGlobalText} HoverText={ColorGlobalHover} onClick={() => { navigatePages('flash-sale', null, null); navigate('/flash-sale') }} label="⚡ Relâmpago" highlight />
           <NavBtn active={Pages === 'brands'} Color={ColorGlobalTema} ColorText={ColorGlobalText} HoverText={ColorGlobalHover} onClick={() => { navigatePages('brands', null, null); navigate('/brands') }} label="⭐ Marcas" />
@@ -147,6 +161,7 @@ export default function Header() {
             <button onClick={() => { navigate('/flash-sale'); setMenuOpen(false); }} className={`flex items-center gap-2 p-3 rounded-xl  text-surface-300 hover:bg-brand-500/30 transition-all text-sm`} style={{
               background: `${colorConfig.hex}22`
             }}>⚡ Relâmpago</button>
+              <button  onClick={() => { navigatePages('brands', null, null); navigate('/brands') }} className="flex items-center gap-2 p-3 rounded-xl bg-surface-800 text-surface-300 hover:bg-surface-700 transition-all text-sm">⭐ Marcas </button>
             <button onClick={() => { navigate('/about'); setMenuOpen(false); }} className="flex items-center gap-2 p-3 rounded-xl bg-surface-800 text-surface-300 hover:bg-surface-700 transition-all text-sm">ℹ️ Sobre Nós</button>
           </div>
         </div>

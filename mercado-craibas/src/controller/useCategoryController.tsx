@@ -19,7 +19,7 @@ type CategoryControllerReturn = {
 } | null;
 
 export const useCategoryController = (): CategoryControllerReturn => {
-    const { loadProducts } = UseProductStore();
+    const { loadProducts ,products} = UseProductStore();
     const { LoadCategory } = UseOrderStore();
     const notify = useNotification();
     const [Loading, SetLoading] = useState(false);
@@ -27,7 +27,7 @@ export const useCategoryController = (): CategoryControllerReturn => {
 
         const load = async () => {
             SetLoading(true);
-            await GetListProducts();
+            if(!products) await GetListProducts();
             await GetListCategory();
             SetLoading(false);
         };

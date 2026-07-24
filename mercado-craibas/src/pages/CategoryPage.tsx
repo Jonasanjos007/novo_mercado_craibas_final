@@ -21,7 +21,7 @@ export default function CategoryPage() {
   const { products } = UseProductStore();
   const { searchQuery, selectedCategory } = UseRouteStore();
   const { ColorGlobalTema, ColorGlobalText, ColorGlobalHoverText } = UseUserStore();
-
+const selectedCategoryData = Category.find(cat => cat.category === selectedCategory);
   const { search } = useParams();
   const [sort, setSort] = useState<SortOption>('relevancia');
   const [filterOpen, setFilterOpen] = useState(false);
@@ -32,23 +32,20 @@ export default function CategoryPage() {
   const navigate = useNavigate();
   const isSearch = search === 'search';
   const query = searchQuery.toLowerCase();
-  let filtered = products.filter(p => {
-    if (isSearch) {
-      return (
-        p.name.toLowerCase().includes(query) ||
-        p.description.toLowerCase().includes(query) ||
-        p.tags.split(",").some(t =>
-          t.trim().toLowerCase().includes(query)
-        ) ||
-        (Category.find(c => c.id === p.id_category)
-          ?.category
-          .toLowerCase()
-          .includes(query) ?? false)
-      );
-    }
+let filtered = products.filter(p => {
+  if (isSearch) {
+    return (
+      p.name.toLowerCase().includes(query) ||
+      p.description.toLowerCase().includes(query) ||
+      p.tags.split(",").some(t => t.trim().toLowerCase().includes(query)) ||
+      (Category.find(c => c.id === p.id_category)?.category.toLowerCase().includes(query) ?? false)
+    );
+  }
 
-    return selectedCategory ? Category.find(c => c.id === p.id_category)?.category || "Sem categoria" === selectedCategory : true;
-  });
+  return selectedCategory
+    ? p.id_category === selectedCategoryData?.id
+    : true;
+});
   console.log("selectedCategory", selectedCategory);
 
   filtered = filtered.filter(p =>

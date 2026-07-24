@@ -43,7 +43,6 @@ namespace Mercado.Api.Controllers.Admin
 
             return result.ToActionResult();
         }
-        [Authorize]
         [HttpGet("GetCategoryAllListAdmin")]
         public async Task<IActionResult> GetCategoryAllListAdmin()
         {

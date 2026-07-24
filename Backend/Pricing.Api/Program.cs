@@ -52,8 +52,7 @@ namespace Pricing.Api
                 options.AddDefaultPolicy(policy =>
                 {
                    policy.WithOrigins(
-                            "https://mavihstudio.com.br",
-                            "https://www.mavihstudio.com.br"
+                            "http://192.168.15.7:5173"
                         )
                         .AllowAnyHeader()
                         .AllowAnyMethod();
