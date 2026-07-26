@@ -1,28 +1,64 @@
+export interface ApiError {
+    success: boolean;
+    data: any;
+    error: {
+        code: string;
+        message: string;
+    };
+}
+
 export type Result<T> = {
     success: boolean;
     data?: T;
-    error?: string;
+    error?: ApiError;
 
-    fold: <R>(onSuccess: (data: T) => R, onFailure: (error: string) => R) => R;
-    chain: <R>(next: (data: T) => Promise<Result<R>>) => Promise<Result<R>>;
+    fold: <R>(
+        onSuccess: (data: T) => R,
+        onFailure: (error: ApiError) => R
+    ) => R;
+
+    chain: <R>(
+        next: (data: T) => Promise<Result<R>>
+    ) => Promise<Result<R>>;
 };
 
-export function makeResult<T>(success: boolean, data?: T, error?: string): Result<T> {
+export function makeResult<T>(
+    success: boolean,
+    data?: T,
+    error?: ApiError
+): Result<T> {
     return {
-        success: success,
-        data: data,
-        error: error,
+        success,
+        data,
+        error,
 
-        fold(onSuccess, onFailure) {
-            return success && data !== undefined
-                ? onSuccess(data)
-                : onFailure(error || "Erro desconhecido");
+        fold<R>(
+            onSuccess: (data: T) => R,
+            onFailure: (error: ApiError) => R
+        ): R {
+            if (success && data !== undefined) {
+                return onSuccess(data);
+            }
+
+            return onFailure(
+                error ?? {
+                    success: false,
+                    data: null,
+                    error: {
+                        code: "Erro",
+                        message: "Erro desconhecido"
+                    }
+                }
+            );
         },
 
-        async chain<R>(next: (data: T) => Promise<Result<R>>): Promise<Result<R>> {
+        async chain<R>(
+            next: (data: T) => Promise<Result<R>>
+        ): Promise<Result<R>> {
             if (success && data !== undefined) {
                 return next(data);
             }
+
             return makeResult<R>(false, undefined, error);
         }
     };

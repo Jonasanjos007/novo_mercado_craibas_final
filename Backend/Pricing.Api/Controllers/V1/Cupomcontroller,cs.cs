@@ -1,5 +1,4 @@
 ﻿using backend.services.interfaces;
-using Baldan.Pricing.Application.DTOs.Requests;
 using Mercado.Craibas.Application.Interfaces.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -22,10 +21,27 @@ public class Cupomcontroller : ControllerBase
     }
 
     [HttpGet("GetAllCupom")]
-
     public async Task<IActionResult> GetAllCupom()
     {
         var result = await _service.GetCupomList();
+
+        return result.ToActionResult();
+    }
+
+    [HttpPost("ApplyCupom")]
+    public async Task<IActionResult> ApplyCupom([FromBody] string Cod_Cupom)
+    {
+        var userid = User.GetUserId();
+        var result = await _service.ApplyCupom(Cod_Cupom,userid);
+
+        return result.ToActionResult();
+    }
+
+    [HttpPost("RemoveApllyCupom")]
+    public async Task<IActionResult> RemoveApllyCupom()
+    {
+        var userid = User.GetUserId();
+        var result = await _service.RemoveApllyCupom(userid);
 
         return result.ToActionResult();
     }

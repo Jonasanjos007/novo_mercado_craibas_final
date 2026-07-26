@@ -26,11 +26,12 @@ export const AuthService = {
             );
 
             return makeResult(data.success, data.data, data.error);
-        } catch {
+        } catch (err: any) {
+            console.log(err)
+            console.log(err.response);
+            console.log(err.response?.data);
             return makeResult(
-                false,
-                {} as TokenResponse,
-                "Credenciais inválidas"
+                false, {} as TokenResponse, err.response?.data
             );
         }
     },

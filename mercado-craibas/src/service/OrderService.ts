@@ -11,12 +11,15 @@ export const OrderService = {
             const response = await api.get("/v1/cupom/GetAllCupom");
             const { success, data, error } = response.data;
             if (!success) {
-                return makeResult(false, [], error || "Erro ao buscar cupons");
+                return makeResult(false, [], error);
             }
 
             return makeResult(true, data || [], error);
-        } catch {
-            return makeResult(false, [], "Falha na comunicação");
+        } catch (err: any) {
+            console.log(err)
+            console.log(err.response);
+            console.log(err.response?.data);
+            return makeResult(false, [], err.response?.data);
         }
     },
     GetOrderAllList: async (): Promise<Result<Order[]>> => {
@@ -25,12 +28,15 @@ export const OrderService = {
             console.log("response.datalist", response)
             const { success, data, error } = response.data;
             if (!success) {
-                return makeResult(false, [], error || "Erro ao buscar pedidos");
+                return makeResult(false, [], error);
             }
 
             return makeResult(true, data || [], error);
-        } catch {
-            return makeResult(false, [], "Falha na comunicação");
+        } catch (err: any) {
+            console.log(err)
+            console.log(err.response);
+            console.log(err.response?.data);
+            return makeResult(false, [], err.response?.data);
         }
     },
     PostOrder: async (Order: OrderSave): Promise<Result<Order | null>> => {
@@ -39,12 +45,15 @@ export const OrderService = {
             console.log("response.data teste", response.data)
             const { success, data, error } = response.data;
             if (!success) {
-                return makeResult(false, null, error || "Erro ao criar pedido");
+                return makeResult(false, null, error);
             }
 
             return makeResult(true, data || null, error);
-        } catch {
-            return makeResult(false, null, "Falha na comunicação");
+        } catch (err: any) {
+            console.log(err)
+            console.log(err.response);
+            console.log(err.response?.data);
+            return makeResult(false, null, err.response?.data);
         }
     }
 };

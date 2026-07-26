@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useMemo } from 'react';
 import {
   LayoutDashboard, Package, ShoppingBag, Tag, Settings, LogOut,
   TrendingUp, TrendingDown, DollarSign, Bell, Search, Plus, Edit3,
@@ -11,10 +11,15 @@ import {
   Clock,
   ImagePlus,
   ArrowRight,
-  ArrowLeft
+  ArrowLeft,
+  Loader2,
+  ChevronDown,
+  CheckCircle,
+  PauseCircle,
+  LucideIcon
 } from 'lucide-react';
 import { useStore } from '../context/store';
-import { formatPrice, orderStatusLabels, orderStatusColors, categoryLabels, badgeLabels, badgeLabel } from '../utils';
+import { formatPrice, orderStatusLabels, orderStatusColors, categoryLabels, badgeLabels, badgeLabel, cupomStatusLabels } from '../utils';
 import { useAdminController } from '../controller/useAdminController';
 import { UseOrderStore } from '../store/UseOrderStore';
 import { UseOrderAdminStore } from '../storeAdmin/UseOrderAdminStore';
@@ -25,14 +30,22 @@ import { GraficoMes } from '../components/GraficoMes';
 import { GraficoDay } from '../components/GraficoDay';
 import { GraficoMediaCIrcule } from '../components/GraficoMediaCIrcule';
 import { UseProductStore } from '../store/UseProductStore';
-import { Imagens_Products, Product, ProductVariation } from '../models/Product';
+import { Imagens_Products, Product, ProductAdmin, ProductVariation } from '../models/Product';
 import { Promotion } from '../types';
 import { UseProductAdminStore } from '../storeAdmin/UseProductAdminStore';
+import ConfirmAdminPopup from '../components/ConfirmAdminPopup';
+import { UseRouteStore } from '../store/UseRouteStore';
+import { useNavigate } from 'react-router-dom';
+import OrderQuickView from '../components/OrderQuickView';
+import { Order } from '../models/OrderSave';
+import { ProductQuickView } from '../components/ProductQuickView';
+import { Cupom, CupomAdmin, DiscountType } from '../models/Cupom';
+import { UseCupomAdminStore } from '../storeAdmin/UseCupomAdminStore';
 
 type AdminTab = 'dashboard' | 'products' | 'orders' | 'promotions' | 'profile' | 'settings';
 
 
-
+type ApplicationScope = "store" | "categories" | "products";
 
 
 
@@ -40,42 +53,153 @@ type AdminTab = 'dashboard' | 'products' | 'orders' | 'promotions' | 'profile' |
 export default function AdminPage() {
 
   const {
-    promotions, darkMode, toggleDarkMode,
-    updateOrderStatus, deleteProduct, addProduct, updateProduct,
-    addPromotion, updatePromotion, deletePromotion, togglePromotion,
-    applyPromoToProduct, navigateTo, logout, updateUser, showNotification
+    darkMode, toggleDarkMode,
+    deleteProduct, addProduct, updateProduct,
+    applyPromoToProduct, showNotification
   } = useStore();
+  const navigate = useNavigate();
+
   const Controller = useAdminController();
   const { ordersAdmin, logs, Category } = UseOrderAdminStore();
-  const { user } = UseUserStore();
+  const { user, logout } = UseUserStore();
   const { products } = UseProductAdminStore();
   const { orders } = UseOrderStore();
-  console.log("orders", orders);
+  const { navigatePages, navigateTo } = UseRouteStore();
+  const { cupom } = UseCupomAdminStore();
+  console.log("products", products)
   const [tab, setTab] = useState<AdminTab>('dashboard');
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [productSearch, setProductSearch] = useState('');
   const [orderSearch, setOrderSearch] = useState('');
   const [orderStatusFilter, setOrderStatusFilter] = useState('all');
-  const [showPromoModal, setShowPromoModal] = useState(false);
-  const [editingPromo, setEditingPromo] = useState<Promotion | null>(null);
+
+  const [ProductCategoryFilter, setProductCategoryFilter] = useState('all');
+  const [quickViewOrder, setQuickViewOrder] = useState<Order | null>(null);
+  const [applicationScope, setApplicationScope] = useState<'store' | 'categories' | 'products'>('store');
+  // const [editingCoupon, setEditingCoupon] = useState<Cupom | null>(null);
   const [editingProfile, setEditingProfile] = useState(false);
-  const [profileForm, setProfileForm] = useState({ name: user?.name || '', email: user?.email || '', phone: user?.phone || '', bio: user?.bio || '' });
+  const [selectedCoupon, setSelectedCoupon] = useState<CupomAdmin | null>(null);
+  const [cupomSearch, setCupomSearch] = useState("");
+  const [cupomFilter, setCupomFilter] = useState<"all" | "active" | "paused" | "expired">("all");
+  //popap delete cupom confirm
+  const [idCupom, setIdCupom] = useState(Number);
+
+
+
+  // categories: assumido já existente no componente (ex: veio de fetch, igual "products").
+  // Caso não exista ainda, declarar algo como:
+  // const [categories, setCategories] = useState<{ id: number; name: string }[]>([]);
+
+
+  // ─── estado (perto dos outros estados do componente) ───
+  useEffect(() => {
+    if (!Controller?.result.editingCoupon) return;
+
+    if ((Controller?.result.newCoupon.categoryIds?.length ?? 0) > 0) {
+      setApplicationScope("categories");
+    } else if ((Controller?.result.newCoupon.productIds?.length ?? 0) > 0) {
+      setApplicationScope("products");
+    } else {
+      setApplicationScope("store");
+    }
+
+    const discountType = Controller.result.newCoupon.discount_Type;
+
+    if (typeof discountType === "string") {
+      Controller.action.setNewCoupon(prev => ({
+        ...prev,
+        discount_Type: DiscountType[discountType as keyof typeof DiscountType]
+      }));
+    }
+
+  }, [
+    Controller?.result.editingCoupon,
+  ]);
+  // ─── computed: produtos filtrados pelo cupom selecionado ───
+  const filteredPromotionProducts = useMemo(() => {
+
+    // Nenhum cupom selecionado
+    if (!selectedCoupon) {
+
+      const productIds = new Set<number>();
+      const categoryIds = new Set<number>();
+
+      let hasGlobalCoupon = false;
+
+      cupom.forEach(c => {
+
+        const hasProducts = (c.productIds?.length ?? 0) > 0;
+        const hasCategories = (c.categoryIds?.length ?? 0) > 0;
+
+        // Cupom aplicado na loja inteira
+        if (!hasProducts && !hasCategories) {
+          hasGlobalCoupon = true;
+          return;
+        }
+
+        c.productIds?.forEach(p =>
+          productIds.add(p.id_Product)
+        );
+
+        c.categoryIds?.forEach(cat =>
+          categoryIds.add(cat.id_Category)
+        );
+      });
+
+      if (hasGlobalCoupon) {
+        return products;
+      }
+
+      return products.filter(product =>
+        productIds.has(product.id) ||
+        categoryIds.has(product.id_category)
+      );
+    }
+
+    // ----------------------------
+    // Usuário clicou em Ver Produtos
+    // ----------------------------
+
+    const productIds = new Set(
+      selectedCoupon.productIds?.map(x => x.id_Product) ?? []
+    );
+
+    const categoryIds = new Set(
+      selectedCoupon.categoryIds?.map(x => x.id_Category) ?? []
+    );
+
+    if (productIds.size === 0 && categoryIds.size === 0) {
+      return products;
+    }
+
+    return products.filter(product =>
+      productIds.has(product.id) ||
+      categoryIds.has(product.id_category)
+    );
+
+  }, [selectedCoupon, cupom, products]);
+
+
+  const [quickViewProduct, setQuickViewProduct] = useState<ProductAdmin | null>(null);
+  const [editingStatus, setEditingStatus] = useState<Record<number, string>>({});
+  const [loadingOrderId, setLoadingOrderId] = useState<number | null>(null);
+  const [profileForm, setProfileForm] = useState({ name: user?.name || '', email: user?.email || '', phone: user?.phone || '', bio: user?.name || '' });
   const [settingsForm, setSettingsForm] = useState({
     storeName: 'Mercado Craibas', slogan: 'O melhor marketplace de Craibas',
     primaryColor: '#2d14be', freeShippingAbove: '299', baseShipping: '19.90', deliveryDays: '3-5',
     twoFactor: false, sessionTimeout: '30',
   });
 
-  const blankProduct: Partial<Product> = {
-    name: '', price: 0, originalPrice: undefined, category: 'eletronicos', stoke: 0,
-    images: [],
-    description: '', rating: 0, reviewCount: 0, sold: 0, freeShipping: false, variations: [], tags: [], featured: false,
-  };
-  const blankPromo: Partial<Promotion> = {
-    title: '', description: '', discount: 10, code: '', minValue: 0,
-    validUntil: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), active: true, productIds: [], type: 'percent',
-  };
-  const [newPromo, setNewPromo] = useState<Partial<Promotion>>(blankPromo);
+  // const blankProduct: Partial<Product> = {
+  //   name: '', price: 0, originalPrice: undefined, category: 'eletronicos', stoke: 0,
+  //   images: [],
+  //   description: '', rating: 0, reviewCount: 0, sold: 0, freeShipping: false, variations: [], tags: [], featured: false,
+  // };
+  // const blankPromo: Partial<Promotion> = {
+  //   title: '', description: '', discount: 10, code: '', minValue: 0,
+  //   validUntil: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), active: true, productIds: [], type: 'percent',
+  // };
+  // const [newPromo, setNewPromo] = useState<Partial<Promotion>>(blankPromo);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -84,7 +208,7 @@ export default function AdminPage() {
   const cancelledOrdersPerDay = orders.reduce((acc, order) => {
     if (order.order_Status !== 'CANCELADO') return acc;
 
-    const day = new Date(order.date || 0)
+    const day = new Date(order.insertDate || 0)
       .toISOString()
       .split('T')[0];
 
@@ -99,7 +223,7 @@ export default function AdminPage() {
 
   // AGRUPA E SOMA POR DATA
   const groupedCancelled = cancelledOrders.reduce((acc, order) => {
-    const date = new Date(order.date || order.createdAt);
+    const date = new Date(order.insertDate || order.insertDate);
 
     const key = date.toLocaleDateString('pt-BR', {
       day: '2-digit',
@@ -113,13 +237,13 @@ export default function AdminPage() {
 
   // PEGA MENOR E MAIOR DATA
   const allDates = cancelledOrders.map(
-    o => new Date(o.date || o.createdAt)
+    o => new Date(o.insertDate || o.insertDate)
   );
 
   const minDate = new Date(Math.min(...allDates.map(d => d.getTime())));
   const maxDate = new Date(Math.max(...allDates.map(d => d.getTime())));
 
-  // MONTA TODOS OS DIAS ENTRE ELAS
+  // // MONTA TODOS OS DIAS ENTRE ELAS
   const cancelledlabels: string[] = [];
   const cancelledData: number[] = [];
 
@@ -140,7 +264,7 @@ export default function AdminPage() {
   }
 
 
-  const lowStock = products.filter(p => p.stock < 0).length;
+  const lowStock = products.filter(p => p.total_Stock < 0).length;
 
   const revenueData = [5200, 4100, 3800, 5200, 8800, 6100, Math.max(1000, Math.round(Controller?.result.totalRevenue || 0 / 10))];
 
@@ -186,13 +310,23 @@ export default function AdminPage() {
     .filter(p =>
       p.name.toLowerCase().includes(productSearch.toLowerCase())
     )
+    .filter(
+      p =>
+        ProductCategoryFilter === "all" ||
+        p.id_category === Number(ProductCategoryFilter)
+    )
     .sort(
       (a, b) =>
         new Date(b.insertDate).getTime() - new Date(a.insertDate).getTime()
     );
 
-  console.log("filteredProducts", filteredProducts);
-
+  const filteredProductsCategory = products
+    .filter(p =>
+      p.name.toLowerCase().includes(productSearch.toLowerCase())
+    ).sort(
+      (a, b) =>
+        new Date(b.insertDate).getTime() - new Date(a.insertDate).getTime()
+    );
   const filteredOrders = ordersAdmin.filter(o => {
     const ms = o.id_Order
       .toString()
@@ -204,22 +338,50 @@ export default function AdminPage() {
 
     return ms && mst;
   });
+  const filteredCupom = cupom.filter(c => {
+    // Pesquisa pelo código do cupom
+    const matchSearch =
+      c.cod_Cupom
+        ?.toLowerCase()
+        .includes(cupomSearch.toLowerCase()) ?? false;
+
+    // Está vencido?
+    const expired =
+      !!c.date_End &&
+      new Date(c.date_End).getTime() < Date.now();
+
+    // Status
+    const matchStatus =
+      cupomFilter === "all" ||
+
+      (cupomFilter === "active" &&
+        c.active &&
+        !expired) ||
+
+      (cupomFilter === "paused" &&
+        !c.active &&
+        !expired) ||
+
+      (cupomFilter === "expired" &&
+        expired);
+
+    return matchSearch && matchStatus;
+  });
 
 
+  // const handleSavePromo = () => {
+  //   const promo: Promotion = {
+  //     ...blankPromo, ...newPromo,
+  //     id: editingPromo ? editingPromo.id : `promo-${Date.now()}`,
+  //     validUntil: newPromo.validUntil instanceof Date ? newPromo.validUntil : new Date(newPromo.validUntil as any),
+  //   } as Promotion;
+  //   if (editingPromo) { updatePromotion(promo); if (promo.productIds?.length) promo.productIds.forEach(pid => applyPromoToProduct(pid, promo.discount)); showNotification('Promoção atualizada!', 'success'); }
+  //   else addPromotion(promo);
+  //   Controller?.action.setShowCouponModal(false); setEditingCoupon(null); setNewPromo(blankPromo);
+  // };
 
-  const handleSavePromo = () => {
-    const promo: Promotion = {
-      ...blankPromo, ...newPromo,
-      id: editingPromo ? editingPromo.id : `promo-${Date.now()}`,
-      validUntil: newPromo.validUntil instanceof Date ? newPromo.validUntil : new Date(newPromo.validUntil as any),
-    } as Promotion;
-    if (editingPromo) { updatePromotion(promo); if (promo.productIds?.length) promo.productIds.forEach(pid => applyPromoToProduct(pid, promo.discount)); showNotification('Promoção atualizada!', 'success'); }
-    else addPromotion(promo);
-    setShowPromoModal(false); setEditingPromo(null); setNewPromo(blankPromo);
-  };
-
-  const openEditProduct = (p: Product) => { Controller?.action.setEditingProduct(p); Controller?.action.setNewProduct({ ...p }); Controller?.action.setShowProductModal(true); };
-  const openEditPromo = (pr: Promotion) => { setEditingPromo(pr); setNewPromo({ ...pr }); setShowPromoModal(true); };
+  // const openEditProduct = (p: Product) => { Controller?.action.setEditingProduct(p); Controller?.action.setNewProduct({ ...p }); Controller?.action.setShowProductModal(true); };
+  // const openEditPromo = (pr: Promotion) => { setEditingCoupon(pr); setNewPromo({ ...pr }); Controller?.action.setShowCouponModal(true); };
 
   const dk = darkMode;
   const bg = dk ? 'bg-[#0a0a0f]' : 'bg-[#f0f0f5]';
@@ -235,6 +397,45 @@ export default function AdminPage() {
   const bord = dk ? "border-white/10" : "border-black/20";
   const rowH = dk ? 'hover:bg-white/[0.02]' : 'hover:bg-surface-50';
 
+
+  const options: { key: ApplicationScope; label: string }[] = [
+    { key: "store", label: "Toda Loja" },
+    { key: "categories", label: "Categorias" },
+    { key: "products", label: "Produtos" },
+  ];
+  type CupomFilter = "all" | "active" | "paused" | "expired";
+
+  const filtros: {
+    v: CupomFilter;
+    l: string;
+    n: number;
+    icon: LucideIcon;
+  }[] = [
+      {
+        v: "all",
+        l: "Todos",
+        n: cupom.length,
+        icon: ShoppingBag,
+      },
+      {
+        v: "active",
+        l: "Ativos",
+        n: cupom.filter(c => c.active).length,
+        icon: CheckCircle,
+      },
+      {
+        v: "paused",
+        l: "Pausados",
+        n: cupom.filter(c => !c.active && c.date_End && new Date(c.date_End).getTime() >= Date.now()).length,
+        icon: PauseCircle,
+      },
+      {
+        v: "expired",
+        l: "Vencidos",
+        n: cupom.filter(c => c.date_End && new Date(c.date_End) < new Date()).length,
+        icon: Clock,
+      },
+    ];
   const navGroups = [
     {
       label: 'Principal', items: [
@@ -292,10 +493,10 @@ export default function AdminPage() {
           {dk ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
           {dk ? 'Modo Claro' : 'Modo Escuro'}
         </button>
-        <button onClick={() => { setSidebarOpen(false); navigateTo('home'); }} className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all ${txt2} ${dk ? 'hover:bg-white/[0.06]' : 'hover:bg-surface-50'}`}>
+        <button onClick={() => { setSidebarOpen(false); navigate('/'); }} className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all ${txt2} ${dk ? 'hover:bg-white/[0.06]' : 'hover:bg-surface-50'}`}>
           <Store className="w-4 h-4" /> Ver Loja
         </button>
-        <button onClick={() => { logout(); navigateTo('home'); }} className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all text-red-400 hover:bg-red-500/10">
+        <button onClick={() => { logout(); }} className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all text-red-400 hover:bg-red-500/10">
           <LogOut className="w-4 h-4" /> Sair
         </button>
       </div>
@@ -846,7 +1047,7 @@ export default function AdminPage() {
 
                               {/* imagem */}
                               <img
-                                src={`/Imagens/Produtos/${p.imagens[0].url_Imagem}`}
+                                src={p.imagens?.length ? `/Imagens/Produtos/${p.imagens[0].url_Imagem}` : "/Imagens/sem-imagem.png"}
                                 alt={p.name}
                                 className={`w-11 h-11 md:w-12 md:h-12 rounded-xl object-cover border flex-shrink-0 ${dk
                                   ? 'border-white/10'
@@ -915,6 +1116,124 @@ export default function AdminPage() {
           {tab === 'products' && (
             <>
               {/* topo */}
+              <div
+                className={`relative overflow-hidden rounded-[28px] border backdrop-blur-2xl ${card} `}
+              >
+                {/* Glow */}
+                <div className="absolute inset-0 pointer-events-none overflow-hidden">
+                  <div className="absolute -top-24 right-0 w-72 h-72 bg-brand-500/10 blur-3xl rounded-full" />
+                  <div className="absolute bottom-0 left-0 w-52 h-52 bg-blue-500/10 blur-3xl rounded-full" />
+                </div>
+
+                <div className="relative z-10 p-4 md:p-6">
+
+                  {/* TOP */}
+                  <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
+
+                    {/* TITLE */}
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-3">
+                        <div className="w-12 h-12 rounded-2xl bg-brand-500/15 border border-brand-500/20 flex items-center justify-center shadow-lg shadow-brand-500/10 flex-shrink-0">
+                          <Package className="w-5 h-5 text-brand-400" />
+                        </div>
+
+                        <div className="min-w-0">
+                          <h2 className={`font-display font-black text-lg md:text-xl truncate ${txt}`}>
+                            Produtos
+                          </h2>
+
+                          <p className={`text-xs md:text-sm mt-1 ${sub}`}>
+                            Acompanhe Produtos ou adicione Novos produtos
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* ACTIONS */}
+                    <div className="flex flex-col sm:flex-row gap-3 w-full xl:w-auto">
+
+                      {/* SEARCH */}
+                      <div className="relative flex-1 xl:w-[320px]">
+                        <Search
+                          className={`absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 ${sub}`}
+                        />
+
+                        <input
+                          value={productSearch}
+                          onChange={e => setProductSearch(e.target.value)}
+                          placeholder="Buscar produtos..."
+                          className={`w-full pl-10 pr-4 py-3 border rounded-2xl text-sm outline-none transition-all ${inp}`}
+                        />
+                      </div>
+
+                      {/* SELECT */}
+                      <select
+                        value={ProductCategoryFilter}
+                        onChange={e => setProductCategoryFilter(e.target.value)}
+                        className={`w-full sm:w-[220px] h-12 px-4 rounded-2xl border text-sm outline-none transition-all backdrop-blur-xl ${inp} `}
+                      >
+                        <option value="all">Todas Categorias</option>
+
+                        {Object.entries(Category).map(([k, v]) => (
+                          <option key={k} value={v.id}>
+                            {v.category}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+
+                  {/* FILTER CHIPS */}
+                  <div className="flex gap-2 overflow-x-auto no-scrollbar mt-5 pb-1">
+
+                    {[
+                      {
+                        Filtro: 'Todos',
+                        Category: 'all',
+                        Quantity: filteredProductsCategory.length,
+                        icon: ShoppingBag,
+                      },
+                      ...Category.map(c => ({
+                        Filtro: c.category.charAt(0).toUpperCase() + c.category.slice(1).toLowerCase(),
+                        Category: c.id,
+                        Quantity: filteredProductsCategory.filter(p => p.id_category === c.id).length,
+                        icon: ShoppingBag,
+                      })),
+
+                    ].map(s => {
+                      const active = ProductCategoryFilter === s.Category.toString();
+                      const Icon = s.icon;
+
+                      return (
+                        <button
+                          key={s.Filtro}
+                          onClick={() => setProductCategoryFilter(s.Category.toString())}
+                          className={`flex items-center gap-2 h-10 px-4 rounded-2xl whitespace-nowrap border transition-all duration-300 flex-shrink-0 ${active
+                            ? 'bg-brand-500 border-brand-500 text-white shadow-lg shadow-brand-500/20'
+                            : `${bord} ${txt2}
+                        ${dk
+                              ? 'bg-white/[0.04] hover:bg-white/[0.07]'
+                              : 'bg-white hover:bg-surface-50'
+                            }`
+                            }`}
+                        >
+                          <Icon className="w-3.5 h-3.5" />
+
+                          <span className="text-xs font-bold">
+                            {s.Filtro}
+                          </span>
+
+                          <span
+                            className={` px-2 py-0.5 rounded-full text-[10px] font-bold ${active ? 'bg-white/20' : dk ? 'bg-white/10' : 'bg-surface-100'} `}
+                          >
+                            {s.Quantity}
+                          </span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              </div>
               <div className="flex flex-col md:flex-row md:items-center gap-3 mb-4">
                 {/* busca */}
                 <div className="relative flex-1">
@@ -960,6 +1279,7 @@ export default function AdminPage() {
                           'Promoção',
                           'Estoque',
                           'Vendidos',
+                          'Ativo',
                           'Ações'
                         ].map(h => (
                           <th
@@ -994,7 +1314,7 @@ export default function AdminPage() {
                             <td className="px-5 py-4">
                               <div className="flex items-center gap-3 min-w-[220px]">
                                 <img
-                                  src={`/Imagens/Produtos/${p.imagens[0].url_Imagem}`}
+                                  src={p.imagens?.length ? `/Imagens/Produtos/${p.imagens[0].url_Imagem}` : "/Imagens/sem-imagem.png"}
                                   alt=""
                                   className={`w-12 h-12 rounded-2xl object-cover border flex-shrink-0 ${dk
                                     ? 'border-white/10'
@@ -1022,7 +1342,7 @@ export default function AdminPage() {
                             <td
                               className={`px-5 py-4 text-xs capitalize ${sub}`}
                             >
-                              {p.id_category}
+                              {Category.find(c => c.id === p.id_category)?.category || "Sem categoria"}
                             </td>
 
                             {/* preço */}
@@ -1080,13 +1400,17 @@ export default function AdminPage() {
                             >
                               {p.count_Sold.toLocaleString('pt-BR')}
                             </td>
-
+                            <td
+                              className={`px-5 py-4 text-sm font-medium ${txt}`}
+                            >
+                              {p.ativo ? "Sim" : "Não"}
+                            </td>
                             {/* ações */}
                             <td className="px-5 py-4">
                               <div className="flex items-center gap-1">
                                 <button
                                   onClick={() =>
-                                    navigateTo('product', p.id)
+                                    setQuickViewProduct(p)
                                   }
                                   className={`p-2 rounded-xl transition-all ${txt2} hover:text-blue-400 ${dk
                                     ? 'hover:bg-blue-500/10'
@@ -1111,7 +1435,13 @@ export default function AdminPage() {
                                 </button>
 
                                 <button
-                                  onClick={() => deleteProduct(p.id)}
+                                  onClick={() => {
+                                    Controller?.action.setNewProduct({ ...p });
+                                    Controller?.action.SetTitleCOnfirm("Excluir Produto");
+                                    Controller?.action.SetDescriptionConfirm("Tem certeza que deseja excluir este produto? Essa ação é permanente e não poderá ser desfeita.");
+                                    Controller?.action.SetButtonConfirm("Exluir Produto");
+                                    Controller?.action.setShowDeleteModal(true);
+                                  }}
                                   className={`p-2 rounded-xl transition-all ${txt2} hover:text-red-400 ${dk
                                     ? 'hover:bg-red-500/10'
                                     : 'hover:bg-red-50'
@@ -1153,7 +1483,7 @@ export default function AdminPage() {
                         {/* topo */}
                         <div className="flex items-center gap-3">
                           <img
-                            src={`/Imagens/Produtos/${p.imagens[0].url_Imagem}`}
+                            src={p.imagens?.length ? `/Imagens/Produtos/${p.imagens[0].url_Imagem}` : "/Imagens/sem-imagem.png"}
                             alt=""
                             className={`w-14 h-14 rounded-2xl object-cover border ${dk
                               ? 'border-white/10'
@@ -1171,7 +1501,7 @@ export default function AdminPage() {
                             <p
                               className={`text-xs capitalize mt-0.5 ${sub}`}
                             >
-                              {p.id_category}
+                              {Category.find(c => c.id === p.id_category)?.category ?? "Sem categoria"}
                             </p>
 
                             {p.badge && (
@@ -1220,27 +1550,65 @@ export default function AdminPage() {
                               {p.count_Sold.toLocaleString('pt-BR')}
                             </p>
                           </div>
+
                         </div>
 
                         {/* promoção */}
-                        {hasPromo && (
-                          <div className="flex items-center gap-2">
-                            <span className="bg-red-500/15 text-red-400 text-[10px] font-bold px-2 py-1 rounded-full">
-                              -{discPct}%
-                            </span>
+                        {/* Informações Extras */}
+                        <div className="grid grid-cols-3 gap-3 min-h-[60px]">
+                          <div>
+                            <p className={`text-[10px] uppercase ${sub}`}>
+                              Desconto
+                            </p>
 
-                            <span
-                              className={`text-[11px] line-through ${sub}`}
-                            >
-                              {formatPrice(p.origin_Price!)}
-                            </span>
+                            {hasPromo ? (
+                              <div className="flex flex-col gap-1">
+                                <span className="bg-red-500/15 text-red-400 text-[10px] font-bold px-2 py-1 rounded-full w-fit">
+                                  -{discPct}%
+                                </span>
+
+                                <span className={`text-[11px] line-through ${sub}`}>
+                                  {formatPrice(p.origin_Price!)}
+                                </span>
+                              </div>
+                            ) : (
+                              <span className={`text-xs ${sub}`}>—</span>
+                            )}
                           </div>
-                        )}
+
+                          <div>
+                            <p className={`text-[10px] uppercase ${sub}`}>
+                              Frete
+                            </p>
+
+                            <p
+                              className={`text-sm font-bold ${p.freeShipping ? "text-green-500" : "text-red-500"
+                                }`}
+                            >
+                              {p.freeShipping ? "Sim" : "Não"}
+                            </p>
+                          </div>
+
+                          <div>
+                            <p className={`text-[10px] uppercase ${sub}`}>
+                              Ativo
+                            </p>
+
+                            <p
+                              className={`text-sm font-bold ${p.ativo ? "text-green-500" : "text-red-500"
+                                }`}
+                            >
+                              {p.ativo ? "Sim" : "Não"}
+                            </p>
+                          </div>
+                        </div>
 
                         {/* ações */}
                         <div className="flex items-center gap-2 pt-1">
                           <button
-                            onClick={() => navigateTo('product', p.id)}
+                            onClick={() =>
+                              setQuickViewProduct(p)
+                            }
                             className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl transition-all ${dk
                               ? 'bg-white/[0.04] hover:bg-white/[0.07]'
                               : 'bg-surface-100 hover:bg-surface-200'
@@ -1265,12 +1633,18 @@ export default function AdminPage() {
                           >
                             <Edit3 className="w-4 h-4 text-brand-400" />
                             <span className={`text-xs font-medium ${txt}`}>
-                              teste
+                              Editar
                             </span>
                           </button>
 
                           <button
-                            onClick={() => deleteProduct(p.id)}
+                            onClick={() => {
+                              Controller?.action.setNewProduct({ ...p });
+                              Controller?.action.SetTitleCOnfirm("Excluir Produto");
+                              Controller?.action.SetDescriptionConfirm("Tem certeza que deseja excluir este produto? Essa ação é permanente e não poderá ser desfeita.");
+                              Controller?.action.SetButtonConfirm("Exluir Produto");
+                              Controller?.action.setShowDeleteModal(true);
+                            }}
                             className="w-11 h-11 flex items-center justify-center rounded-xl bg-red-500/10 hover:bg-red-500/20 transition-all"
                           >
                             <Trash2 className="w-4 h-4 text-red-400" />
@@ -1433,17 +1807,23 @@ export default function AdminPage() {
               </div>
 
               {/* DESKTOP TABLE */}
-              <div className={` hidden lg:block rounded-[30px] border overflow-hidden backdrop-blur-2xl shadow-[0_10px_40px_rgba(0,0,0,0.08)] ${card} `} >
+              <div className={`hidden lg:block rounded-[30px] border overflow-hidden backdrop-blur-2xl shadow-[0_10px_40px_rgba(0,0,0,0.08)] ${card}`}>
                 <div className="overflow-x-auto">
-
-                  <table className="w-full min-w-[900px]">
+                  <table className="w-full table-fixed">
+                    <colgroup>
+                      <col className="w-[15%]" />
+                      <col className="w-[27%]" />
+                      <col className="w-[10%]" />
+                      <col className="w-[14%]" />
+                      <col className="w-[13%]" />
+                      <col className="w-[14%]" />
+                      <col className="w-[7%]" />
+                    </colgroup>
 
                     <thead>
-                      <tr
-                        className={`border-b last:border-0 ${bord} ${rowH} transition-colors`}
-                      >
-                        {['Pedido', 'Itens', 'Valor', 'Status', 'Data', 'Atualizar',].map(h => (
-                          <th key={h} className={`px-6 py-5 text-left text-[11px] font-black uppercase tracking-[0.18em] whitespace-nowrap ${sub} `}>
+                      <tr className={`border-b last:border-0 ${bord} ${rowH} transition-colors`}>
+                        {['Pedido', 'Itens', 'Valor', 'Status', 'Data', 'Atualizar', 'Visualizar'].map(h => (
+                          <th key={h} className={`px-4 xl:px-6 py-5 text-left text-[10px] xl:text-[11px] font-black uppercase tracking-[0.14em] xl:tracking-[0.18em] ${sub}`}>
                             {h}
                           </th>
                         ))}
@@ -1451,125 +1831,188 @@ export default function AdminPage() {
                     </thead>
 
                     <tbody>
-
                       {filteredOrders.map((o, index) => (
-                        <tr key={`${o.id_Order}-${index}`} className={`border-b last:border-none ${bord} transition-all duration-300 hover:bg-brand-500/[0.03] `}>
+                        <tr key={`${o.id_Order}-${index}`} className={`border-b last:border-none ${bord} transition-all duration-300 hover:bg-brand-500/[0.03]`}>
 
                           {/* PEDIDO */}
-                          <td className="px-6 py-5">
-
-                            <div className="flex items-center gap-3">
-
-                              <div className="w-11 h-11 rounded-2xl bg-brand-500/10 border border-brand-500/20 flex items-center justify-center flex-shrink-0">
+                          <td className="px-4 xl:px-6 py-5">
+                            <div className="flex items-center gap-3 min-w-0">
+                              <div className="w-10 h-10 xl:w-11 xl:h-11 rounded-2xl bg-brand-500/10 border border-brand-500/20 flex items-center justify-center flex-shrink-0">
                                 <ShoppingBag className="w-4 h-4 text-brand-400" />
                               </div>
-
                               <div className="min-w-0">
-                                <p className={`font-black text-sm truncate ${txt}`}>
-                                  #{o.number_Order}
-                                </p>
-
-                                <p className={`text-[11px] mt-1 ${sub}`}>
+                                <p className={`font-black text-sm truncate ${txt}`}>#{o.number_Order}</p>
+                                <p className={`text-[11px] mt-1 truncate ${sub}`}>
                                   {o.products.reduce((s, i) => s + i.quantity, 0)} itens
                                 </p>
                               </div>
                             </div>
-
                           </td>
 
-                          {/* ITENS */}
-                          <td className="px-6 py-5">
-                            <div className="flex flex-col gap-3">
-
-                              <div className="flex items-center -space-x-2">
-                                {o.products.slice(0, 4).map((item, i) => (
+                          {/* ITENS — resumo compacto */}
+                          <td className="px-4 xl:px-6 py-5">
+                            <div className="flex items-center gap-3 min-w-0">
+                              <div className="flex items-center -space-x-2 flex-shrink-0">
+                                {o.products.slice(0, 3).map((item, i) => (
                                   <img
                                     key={i}
-                                    src={`/Imagens/Produtos/${item.imagens?.[0]?.url_Imagem}`}
+                                    src={item.imagens?.length ? `/Imagens/Produtos/${item?.imagens[0]?.url_Imagem}` : "/Imagens/sem-imagem.png"}
                                     alt={item.name}
-                                    className={`w-11 h-11 rounded-2xl object-cover border-2 shadow-lg transition-transform hover:scale-105 ${dk ? 'border-[#111]' : 'border-white'
-                                      }`}
+                                    className={`w-9 h-9 xl:w-10 xl:h-10 rounded-xl object-cover border-2 shadow-lg ${dk ? 'border-[#111]' : 'border-white'}`}
                                   />
                                 ))}
-                              </div>
-
-                              <div className="flex flex-col gap-1">
-                                {o.products.slice(0, 4).map((item, i) => (
-                                  <span
-                                    key={i}
-                                    className={`text-[11px] sm:text-xs font-medium truncate max-w-[180px] ${dk ? 'text-white/70' : 'text-slate-600'
-                                      }`}
-                                  >
-                                    {item.name}
-                                  </span>
-                                ))}
-
-                                {o.products.length > 4 && (
-                                  <span className="text-[11px] text-brand-400 font-semibold">
-                                    +{o.products.length - 4} itens
-                                  </span>
+                                {o.products.length > 3 && (
+                                  <div className={`w-9 h-9 xl:w-10 xl:h-10 rounded-xl border-2 flex items-center justify-center text-[10px] font-black flex-shrink-0 ${dk ? 'border-[#111] bg-white/10 text-white/70' : 'border-white bg-surface-100 text-surface-600'}`}>
+                                    +{o.products.length - 3}
+                                  </div>
                                 )}
                               </div>
-
+                              <p className={`text-xs font-medium truncate ${dk ? 'text-white/70' : 'text-slate-600'}`}>
+                                {o.products[0]?.name}
+                                {o.products.length > 1 && <span className={sub}> e mais {o.products.length - 1}</span>}
+                              </p>
                             </div>
                           </td>
 
                           {/* VALOR */}
-                          <td className="px-6 py-5">
+                          <td className="px-4 xl:px-6 py-5">
                             <p className="text-brand-400 font-black text-sm whitespace-nowrap">
                               {formatPrice(o.total_Value_Order)}
                             </p>
                           </td>
 
                           {/* STATUS */}
-                          <td className="px-6 py-5">
-
-                            <span
-                              className={` inline-flex items-center text-[11px] font-black px-3 py-1.5 rounded-full border whitespace-nowrap ${orderStatusColors[o.status]}`} >
+                          <td className="px-4 xl:px-6 py-5">
+                            <span className={`inline-flex items-center text-[10px] xl:text-[11px] font-black px-2.5 xl:px-3 py-1.5 rounded-full border whitespace-nowrap ${orderStatusColors[o.order_Status]}`}>
                               {orderStatusLabels[o.order_Status]}
                             </span>
-
                           </td>
 
                           {/* DATA */}
-                          <td className={`px-6 py-5 text-xs font-medium whitespace-nowrap ${sub}`}>
+                          <td className={`px-4 xl:px-6 py-5 text-xs font-medium ${sub}`}>
                             {new Date(o.insertDate).toLocaleString('pt-BR', {
                               day: '2-digit',
                               month: '2-digit',
-                              year: 'numeric',
                               hour: '2-digit',
                               minute: '2-digit',
                             })}
                           </td>
 
                           {/* UPDATE */}
-                          <td className="px-6 py-5">
+                          <td className="px-4 xl:px-6 py-5">
+                            <div className="space-y-2">
 
-                            <select
-                              value={o.order_Status}
-                              onChange={e =>
-                                updateOrderStatus(
-                                  o.id_Order,
-                                  e.target.value as OrderStatus
-                                )
-                              }
-                              className={` h-11 px-4 rounded-2xl border text-xs font-bold outline-none transition-all min-w-[180px] ${inp}`}
+
+
+
+
+                              {loadingOrderId === o.id_Order ? (
+                                <div
+                                  className={`w-full h-10 xl:h-8 px-5 xl:px-4 rounded-2xl border flex items-center justify-center ${inp}`}
+                                >
+                                  <Loader2 className="w-4 h-4 animate-spin" />
+                                </div>
+                              ) : (
+                                <select
+                                  value={editingStatus[o.id_Order] ?? o.order_Status}
+                                  onChange={(e) =>
+                                    setEditingStatus((prev) => ({
+                                      ...prev,
+                                      [o.id_Order]: e.target.value,
+                                    }))
+                                  }
+                                  className={`w-full h-10 xl:h-8 px-5 xl:px-4 rounded-2xl border text-[11px] xl:text-xs font-bold outline-none transition-all ${inp}`}
+                                >
+                                  {Object.entries(orderStatusLabels).map(([k, v]) => (
+                                    <option key={k} value={k}>
+                                      {v}
+                                    </option>
+                                  ))}
+                                </select>
+                              )}
+                              {(editingStatus[o.id_Order] ?? o.order_Status) !== o.order_Status && (
+                                <>
+                                  <div
+                                    className={`rounded-xl border p-3 ${dk
+                                      ? "bg-amber-500/10 border-amber-500/20"
+                                      : "bg-amber-50 border-amber-200"
+                                      }`}
+                                  >
+                                    <p
+                                      className={`text-xs ${dk ? "text-amber-300" : "text-amber-700"
+                                        }`}
+                                    >
+                                      O cliente será notificado automaticamente sobre essa alteração de
+                                      status.
+                                    </p>
+                                  </div>
+
+                                  <div className="flex gap-2">
+
+                                    <button
+                                      onClick={() =>
+                                        setEditingStatus((prev) => {
+                                          const copy = { ...prev };
+                                          delete copy[o.id_Order];
+                                          return copy;
+                                        })
+                                      }
+                                      className={`flex-1 h-9 rounded-xl text-xs font-bold ${dk
+                                        ? "bg-white/5 hover:bg-white/10 text-white"
+                                        : "bg-surface-100 hover:bg-surface-200 text-surface-700"
+                                        }`}
+                                    >
+                                      Cancelar
+                                    </button>
+
+                                    <button
+                                      onClick={async () => {
+                                        setLoadingOrderId(o.id_Order);
+
+                                        try {
+                                          await Controller?.action.UpdateStatusOrder(
+                                            o.id_Order,
+                                            editingStatus[o.id_Order]
+                                          );
+
+                                          setEditingStatus((prev) => {
+                                            const copy = { ...prev };
+                                            delete copy[o.id_Order];
+                                            return copy;
+                                          });
+                                        } finally {
+                                          setLoadingOrderId(null);
+                                        }
+                                      }}
+                                      className="flex-1 h-9 rounded-xl bg-brand-500 hover:bg-brand-600 text-white text-xs font-bold"
+                                    >
+                                      Confirmar
+                                    </button>
+
+                                  </div>
+                                </>
+                              )}
+
+                            </div>
+                          </td>
+
+                          {/* AÇÕES */}
+                          <td className="px-2 xl:px-4 py-5">
+                            <button
+                              onClick={() => setQuickViewOrder(o)}
+                              className={`p-2 rounded-xl transition-all ${txt2} hover:text-blue-400 ${dk ? 'hover:bg-blue-500/10' : 'hover:bg-blue-50'}`}
                             >
-                              {Object.entries(orderStatusLabels).map(([k, v]) => (
-                                <option key={k} value={k}>
-                                  {v}
-                                </option>
-                              ))}
-                            </select>
-
+                              <Eye className="w-4 h-4" />
+                            </button>
                           </td>
                         </tr>
                       ))}
-
                     </tbody>
                   </table>
                 </div>
               </div>
+
+
 
               {/* MOBILE CARDS */}
               <div className="lg:hidden space-y-4">
@@ -1600,7 +2043,7 @@ export default function AdminPage() {
                                 #{o.number_Order}
                               </h3>
 
-                              <span className={` text-[10px] font-black px-3 py-1 rounded-full border whitespace-nowrap ${orderStatusColors[o.status]}`} >
+                              <span className={` text-[10px] font-black px-3 py-1 rounded-full border whitespace-nowrap ${orderStatusColors[o.order_Status]}`} >
                                 {orderStatusLabels[o.order_Status]}
                               </span>
 
@@ -1651,7 +2094,7 @@ export default function AdminPage() {
                             <div className="relative flex-shrink-0">
 
                               <img
-                                src={`/Imagens/Produtos/${item.imagens?.[0]?.url_Imagem}`}
+                                src={item.imagens?.length ? `/Imagens/Produtos/${item?.imagens[0]?.url_Imagem}` : "/Imagens/sem-imagem.png"}
                                 alt=""
                                 className="w-16 h-16 rounded-2xl object-cover"
                               />
@@ -1809,30 +2252,137 @@ export default function AdminPage() {
                       </div>
 
                       {/* SELECT */}
-                      <div className="mt-5">
+                      {/* STATUS */}
+                      <div className="mt-5 space-y-3">
 
-                        <select
-                          value={o.order_Status}
-                          onChange={e =>
-                            updateOrderStatus(
-                              o.id_Order,
-                              e.target.value as OrderStatus
-                            )
-                          }
-                          className={`
-          w-full h-13 rounded-3xl
-          px-5 border text-sm
-          font-black outline-none
-          transition-all
-          ${inp}
-        `}
-                        >
-                          {Object.entries(orderStatusLabels).map(([k, v]) => (
-                            <option key={k} value={k}>
-                              {v}
-                            </option>
-                          ))}
-                        </select>
+                        <div className="flex items-center gap-3">
+
+                          <button
+                            onClick={() => setQuickViewOrder(o)}
+                            className={`
+        h-13 w-13 rounded-3xl
+        flex items-center justify-center
+        transition-all flex-shrink-0
+        ${dk
+                                ? "bg-white/[0.05] border border-white/10 hover:bg-white/[0.08]"
+                                : "bg-surface-100 border border-surface-200 hover:bg-surface-200"
+                              }
+      `}
+                          >
+                            <Eye className="w-5 h-5 text-blue-400" />
+                          </button>
+
+                          {loadingOrderId === o.id_Order ? (
+                            <div
+                              className={`w-full h-10 xl:h-8 px-5 xl:px-4 rounded-2xl border flex items-center justify-center ${inp}`}
+                            >
+                              <Loader2 className="w-4 h-4 animate-spin" />
+                            </div>
+                          ) : (
+                            <select
+                              value={editingStatus[o.id_Order] ?? o.order_Status}
+                              onChange={(e) =>
+                                setEditingStatus(prev => ({
+                                  ...prev,
+                                  [o.id_Order]: e.target.value,
+                                }))
+                              }
+                              className={` flex-1 h-13 rounded-3xl px-5 border text-sm font-black outline-none transition-all ${inp}`}
+                            >
+                              {Object.entries(orderStatusLabels).map(([k, v]) => (
+                                <option key={k} value={k}>
+                                  {v}
+                                </option>
+                              ))}
+                            </select>
+                          )}
+
+                        </div>
+                        {(editingStatus[o.id_Order] ?? o.order_Status) !== o.order_Status && (
+                          <>
+                            <div
+                              className={`rounded-3xl border p-4 ${dk
+                                ? "bg-amber-500/10 border-amber-500/20"
+                                : "bg-amber-50 border-amber-200"
+                                }`}
+                            >
+                              <div className="flex items-start gap-3">
+
+                                <div className="w-10 h-10 rounded-2xl bg-amber-500/15 border border-amber-500/20 flex items-center justify-center flex-shrink-0">
+                                  <Bell className="w-5 h-5 text-amber-400" />
+                                </div>
+
+                                <div>
+                                  <p
+                                    className={`text-sm font-bold ${dk ? "text-amber-300" : "text-amber-700"
+                                      }`}
+                                  >
+                                    Confirmar alteração
+                                  </p>
+
+                                  <p
+                                    className={`text-xs mt-1 ${dk ? "text-amber-200/80" : "text-amber-700"
+                                      }`}
+                                  >
+                                    O cliente será notificado automaticamente sobre a alteração do
+                                    status do pedido.
+                                  </p>
+                                </div>
+
+                              </div>
+                            </div>
+
+                            <div className="grid grid-cols-2 gap-3">
+
+                              <button
+                                onClick={() =>
+                                  setEditingStatus(prev => {
+                                    const copy = { ...prev };
+                                    delete copy[o.id_Order];
+                                    return copy;
+                                  })
+                                }
+                                className={`
+            h-12 rounded-2xl font-bold transition-all
+            ${dk
+                                    ? "bg-white/[0.05] hover:bg-white/[0.08] text-white border border-white/10"
+                                    : "bg-surface-100 hover:bg-surface-200 text-surface-700 border border-surface-200"
+                                  }
+          `}
+                              >
+                                Cancelar
+                              </button>
+
+                              <button
+                                onClick={async () => {
+                                  setLoadingOrderId(o.id_Order);
+
+                                  try {
+                                    await Controller?.action.UpdateStatusOrder(
+                                      o.id_Order,
+                                      editingStatus[o.id_Order]
+                                    );
+
+                                    setEditingStatus((prev) => {
+                                      const copy = { ...prev };
+                                      delete copy[o.id_Order];
+                                      return copy;
+                                    });
+                                  } finally {
+                                    setLoadingOrderId(null);
+                                  }
+                                }}
+                                className="h-12 rounded-2xl bg-brand-500 hover:bg-brand-600 text-white font-bold shadow-brand transition-all"
+                              >
+                                Confirmar
+                              </button>
+
+
+                            </div>
+                          </>
+                        )}
+                        {/* AÇÕES */}
+                        {/* AÇÕES */}
 
                       </div>
 
@@ -1845,91 +2395,457 @@ export default function AdminPage() {
           )}
 
           {/* ─── PROMOTIONS ─── */}
+          {/* ─── PROMOTIONS ─── */}
           {tab === 'promotions' && (
             <div className="space-y-6">
               <div className="flex items-center justify-between">
                 <div>
                   <h2 className={`font-display font-bold text-lg ${txt}`}>Promoções & Cupons</h2>
-                  <p className={`text-xs mt-0.5 ${sub}`}>{promotions.filter(p => p.active).length} ativas</p>
+                  <p className={`text-xs mt-0.5 ${sub}`}>{cupom.filter(p => p.active).length} ativas</p>
                 </div>
-                <button onClick={() => { setEditingPromo(null); setNewPromo(blankPromo); setShowPromoModal(true); }}
-                  className="flex items-center gap-2 px-4 py-2.5 bg-brand-500 hover:bg-brand-600 text-white rounded-xl text-sm font-bold transition-all shadow-brand">
+                <button
+                  onClick={() => { Controller?.action.setEditingCoupon(false); Controller?.action.setShowCouponModal(true); }}
+                  className="flex items-center gap-2 px-4 py-2.5 bg-brand-500 hover:bg-brand-600 text-white rounded-xl text-sm font-bold transition-all shadow-brand"
+                >
                   <Plus className="w-4 h-4" /> Nova Promoção
                 </button>
               </div>
+              <div
+                className={`relative overflow-hidden rounded-[28px] border backdrop-blur-2xl ${card} `}
+              >
+                {/* Glow */}
+                <div className="absolute inset-0 pointer-events-none overflow-hidden">
+                  <div className="absolute -top-24 right-0 w-72 h-72 bg-brand-500/10 blur-3xl rounded-full" />
+                  <div className="absolute bottom-0 left-0 w-52 h-52 bg-blue-500/10 blur-3xl rounded-full" />
+                </div>
+
+                <div className="relative z-10 p-4 md:p-6">
+
+                  {/* TOP */}
+                  <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
+
+                    {/* TITLE */}
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-3">
+                        <div className="w-12 h-12 rounded-2xl bg-brand-500/15 border border-brand-500/20 flex items-center justify-center shadow-lg shadow-brand-500/10 flex-shrink-0">
+                          <ShoppingBag className="w-5 h-5 text-brand-400" />
+                        </div>
+
+                        <div className="min-w-0">
+                          <h2 className={`font-display font-black text-lg md:text-xl truncate ${txt}`}>
+                            Cupons
+                          </h2>
+
+                          <p className={`text-xs md:text-sm mt-1 ${sub}`}>
+                            Acompanhe os cupons de desconto onde ver os resultados e o uso com clientes
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* ACTIONS */}
+                    <div className="flex flex-col sm:flex-row gap-3 w-full xl:w-auto">
+
+                      {/* SEARCH */}
+                      <div className="relative flex-1 xl:w-[320px]">
+                        <Search
+                          className={`absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 ${sub}`}
+                        />
+
+                        <input
+                          value={cupomSearch}
+                          onChange={e => setCupomSearch(e.target.value)}
+                          placeholder="Buscar código do cupom..."
+                          className={`w-full h-12 pl-11 pr-4 rounded-2xl border text-sm outline-none transition-all backdrop-blur-xl ${inp}`}
+                        />
+                      </div>
+
+                      {/* SELECT */}
+                      <select
+                        value={cupomFilter}
+                        onChange={(e) =>
+                          setCupomFilter(e.target.value as "all" | "active" | "paused" | "expired")}
+                        className={`w-full sm:w-[220px] h-12 px-4 rounded-2xl border text-sm outline-none transition-all backdrop-blur-xl ${inp}`}
+                      >
+                        {Object.entries(cupomStatusLabels).map(([k, v]) => (
+                          <option key={k} value={k}>
+                            {v}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+
+                  {/* FILTER CHIPS */}
+                  <div className="flex gap-2 overflow-x-auto no-scrollbar mt-5 pb-1">
+
+                    {filtros.map(s => {
+                      const active = cupomFilter === s.v;
+                      const Icon = s.icon;
+
+                      return (
+                        <button
+                          key={s.v}
+                          onClick={() => setCupomFilter(s.v)}
+                          className={`flex items-center gap-2 h-10 px-4 rounded-2xl whitespace-nowrap border transition-all duration-300 flex-shrink-0 ${active
+                            ? 'bg-brand-500 border-brand-500 text-white shadow-lg shadow-brand-500/20'
+                            : `${bord} ${txt2}
+                        ${dk
+                              ? 'bg-white/[0.04] hover:bg-white/[0.07]'
+                              : 'bg-white hover:bg-surface-50'
+                            }`
+                            }`}
+                        >
+                          <Icon className="w-3.5 h-3.5" />
+
+                          <span className="text-xs font-bold">
+                            {s.l}
+                          </span>
+
+                          <span
+                            className={` px-2 py-0.5 rounded-full text-[10px] font-bold ${active ? 'bg-white/20' : dk ? 'bg-white/10' : 'bg-surface-100'} `}
+                          >
+                            {s.n}
+                          </span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              </div>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {promotions.map(promo => {
-                  const linked = products.filter(p => promo.productIds?.includes(p.id));
-                  const grads = ['linear-gradient(145deg,#1e3a8a,#3730a3)', 'linear-gradient(145deg,#0e7490,#0f766e)', 'linear-gradient(145deg,#9a3412,#c2410c)', 'linear-gradient(145deg,#6d28d9,#7c3aed)'];
+                {filteredCupom.map(promo => {
+                  const linked = products.filter(product =>
+                    promo.productIds?.some(cp => cp.id_Product === product.id)
+                  );
+                  const palettes = [
+                    { grad: 'linear-gradient(155deg,#0f172a 0%,#1e2a4a 55%,#2b1f52 100%)', ring: 'ring-1 ring-white/10' },
+                    { grad: 'linear-gradient(155deg,#0c2b2e 0%,#0e3b3f 55%,#0f4f4a 100%)', ring: 'ring-1 ring-white/10' },
+                    { grad: 'linear-gradient(155deg,#2a140c 0%,#3d1f10 55%,#5a2a12 100%)', ring: 'ring-1 ring-white/10' },
+                    { grad: 'linear-gradient(155deg,#1f1233 0%,#301a4d 55%,#452166 100%)', ring: 'ring-1 ring-white/10' },
+                  ];
+                  const pal = palettes[cupom.indexOf(promo) % palettes.length];
+
+                  const isPercent = promo.discount_Type === 0;
+                  const hasUsageLimit = !!promo.quantity_Uses;
+                  const usagePct = hasUsageLimit ? Math.min(100, Math.round(((promo?.quantity_Used ?? 0) / promo.quantity_Uses!) * 100)) : 0;
+                  const isSelected = selectedCoupon?.id === promo.id;
+
+                  const fmtShort = (d?: string | null) =>
+                    d ? new Date(d).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' }) : '--';
+                  const fmtFull = (d?: string | null) =>
+                    d ? new Date(d).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' }) : '--';
+                  const isExpired =
+                    !!promo.date_End &&
+                    new Date(promo.date_End).getTime() < Date.now();
                   return (
-                    <div key={promo.id} className={`relative overflow-hidden rounded-2xl ${promo.active ? '' : 'opacity-60'}`} style={{ background: grads[promotions.indexOf(promo) % grads.length] }}>
-                      <div className="absolute -top-6 -right-6 w-24 h-24 rounded-full bg-white/10" />
+                    <div
+                      key={promo.id}
+                      className={`group relative overflow-hidden rounded-3xl ${pal.ring} shadow-soft transition-all duration-300 hover:-translate-y-0.5 hover:shadow-xl ${promo.active ? '' : 'opacity-55 grayscale-[0.3]'} ${isSelected ? 'ring-2 ring-brand-400' : ''}`}
+                      style={{ background: pal.grad }}
+                    >
+                      {/* glow accents */}
+                      <div className="absolute -top-10 -right-10 w-32 h-32 rounded-full bg-white/[0.06] blur-2xl" />
+                      <div className="absolute -bottom-8 -left-8 w-24 h-24 rounded-full bg-brand-400/10 blur-2xl" />
+
+                      {/* ticket cutout divider */}
+                      <div className="absolute left-0 right-0 top-[96px] flex items-center px-1">
+                        <div className="w-3 h-3 rounded-full bg-black/40 -ml-1.5" />
+                        <div className="flex-1 border-t border-dashed border-white/15 mx-1" />
+                        <div className="w-3 h-3 rounded-full bg-black/40 -mr-1.5" />
+                      </div>
+
                       <div className="p-5 relative">
+                        {/* code + status */}
                         <div className="flex items-start justify-between mb-3">
-                          <div className="bg-white/15 border border-white/20 rounded-xl px-3 py-1.5">
-                            <span className="text-white font-display font-bold text-lg tracking-widest">{promo.code}</span>
+                          <div>
+                            <div className="bg-white/10 backdrop-blur-sm border border-white/15 rounded-xl px-3 py-1.5 inline-block">
+                              <span className="text-white font-display font-bold text-base tracking-[0.15em]">{promo.cod_Cupom}</span>
+                            </div>
+                            {promo.name_Cupom && (
+                              <p className="text-white/45 text-[10px] mt-1.5 ml-0.5 font-medium truncate max-w-[160px]">{promo.name_Cupom}</p>
+                            )}
                           </div>
-                          <span className={`text-[10px] font-bold px-2 py-1 rounded-full border ${promo.active ? 'bg-green-400/20 text-green-300 border-green-400/30' : 'bg-red-400/20 text-red-300 border-red-400/30'}`}>
-                            {promo.active ? 'Ativa' : 'Pausada'}
+                          <span className={`text-[10px] font-bold px-2.5 py-1 rounded-full border backdrop-blur-sm shrink-0 ${promo.active
+                            ? 'bg-emerald-400/15 text-emerald-300 border-emerald-400/25'
+                            : 'bg-white/[0.06] text-white/40 border-white/10'
+                            }`}>
+                            {promo.active ? '● Ativa' : 'Pausada'}
                           </span>
                         </div>
-                        <p className="text-white font-display font-bold text-3xl leading-none mb-1">{promo.discount}% OFF</p>
-                        <p className="text-white/75 text-sm mb-3">{promo.description}</p>
-                        {promo.minValue ? <p className="text-white/50 text-xs mb-2">Mín. {formatPrice(promo.minValue)}</p> : null}
-                        <p className="text-white/40 text-xs mb-3">Vence: {(promo.validUntil instanceof Date ? promo.validUntil : new Date(promo.validUntil)).toLocaleDateString('pt-BR')}</p>
-                        {linked.length > 0 && (
-                          <div className="mb-3">
-                            <p className="text-white/50 text-[10px] mb-1.5 uppercase tracking-wider">Produtos com desconto</p>
-                            <div className="flex gap-1.5 flex-wrap">
-                              {linked.slice(0, 4).map(p => (
-                                <div key={p.id} className="flex items-center gap-1 bg-white/15 rounded-lg px-2 py-1">
-                                  <img src={p.images[0]} alt="" className="w-5 h-5 rounded object-cover" />
-                                  <span className="text-white text-[10px] font-medium max-w-[80px] truncate">{p.name}</span>
-                                </div>
-                              ))}
-                              {linked.length > 4 && <span className="text-white/50 text-[10px] self-center">+{linked.length - 4}</span>}
+
+                        {/* discount */}
+                        <div className="mb-1 flex items-baseline gap-2">
+                          <p className="text-white font-display font-bold text-4xl leading-none tracking-tight">
+                            {isPercent ? (
+                              <>{promo.discount}<span className="text-2xl align-top ml-0.5">% OFF</span></>
+                            ) : (
+                              <>{formatPrice(promo.discount || 0)}<span className="text-2xl align-top ml-0.5"> OFF</span></>
+                            )}
+                          </p>
+                          {isPercent && promo.maximum_Discount ? (
+                            <span className="text-white/40 text-[11px] mb-1">até {formatPrice(promo.maximum_Discount)}</span>
+                          ) : null}
+                        </div>
+                        <p className="text-white/60 text-sm mb-3 leading-snug">{promo.description}</p>
+
+                        {/* rule badges */}
+                        {(promo.first_Order_Only || promo.per_User_Limit) && (
+                          <div className="flex flex-wrap gap-1.5 mb-3">
+                            {promo.first_Order_Only && (
+                              <span className="text-[10px] font-medium px-2 py-1 rounded-lg bg-amber-400/10 text-amber-300 border border-amber-400/20">
+                                1ª compra
+                              </span>
+                            )}
+                            {promo.per_User_Limit ? (
+                              <span className="text-[10px] font-medium px-2 py-1 rounded-lg bg-white/10 text-white/60 border border-white/10">
+                                Limite {promo.per_User_Limit}/cliente
+                              </span>
+                            ) : null}
+                          </div>
+                        )}
+
+                        {/* min value + validity */}
+                        <div className="flex items-center flex-wrap gap-x-3 gap-y-1 mb-3 text-xs">
+                          {promo.minimum_Value ? (
+                            <span className="text-white/45">Mín. <span className="text-white/70 font-medium">{formatPrice(promo.minimum_Value)}</span></span>
+                          ) : null}
+                          <span className="text-white/45">
+                            Vigência{' '}
+                            <span className="text-white/70 font-medium">
+                              {fmtShort(promo.date_Start)} – {fmtFull(promo.date_End)}
+                            </span>
+                          </span>
+                        </div>
+
+                        {/* usage bar */}
+                        {hasUsageLimit && (
+                          <div className="mb-4">
+                            <div className="flex items-center justify-between mb-1">
+                              <span className="text-white/40 text-[10px] uppercase tracking-wider font-medium">Uso do cupom</span>
+                              <span className="text-white/60 text-[10px] font-medium">{promo.quantity_Used} de {promo.quantity_Uses}</span>
+                            </div>
+                            <div className="h-1.5 rounded-full bg-white/10 overflow-hidden">
+                              <div
+                                className="h-full rounded-full bg-gradient-to-r from-brand-400 to-brand-500"
+                                style={{ width: `${usagePct}%` }}
+                              />
                             </div>
                           </div>
                         )}
-                        <div className="flex gap-2">
-                          <button onClick={() => togglePromotion(promo.id)} className="flex-1 py-1.5 bg-white/15 hover:bg-white/25 text-white text-xs font-bold rounded-lg border border-white/20 transition-all">{promo.active ? 'Pausar' : 'Ativar'}</button>
-                          <button onClick={() => openEditPromo(promo)} className="flex-1 py-1.5 bg-white/15 hover:bg-white/25 text-white text-xs font-bold rounded-lg border border-white/20 transition-all">Editar</button>
-                          <button onClick={() => deletePromotion(promo.id)} className="px-3 py-1.5 bg-red-500/30 hover:bg-red-500/50 text-white text-xs font-bold rounded-lg transition-all"><Trash2 className="w-3.5 h-3.5" /></button>
+
+                        {linked.length > 0 ? (
+                          <div className="mb-4">
+                            <p className="text-white/40 text-[10px] mb-1.5 uppercase tracking-wider font-medium">
+                              Produtos com desconto
+                            </p>
+                            <div className="flex gap-1.5 flex-wrap">
+                              {linked.slice(0, 4).map(p => (
+                                <div
+                                  key={p.id}
+                                  className="flex items-center gap-1.5 bg-white/10 border border-white/10 rounded-lg pl-1 pr-2 py-1"
+                                >
+                                  <img
+                                    src={p.imagens?.length ? `/Imagens/Produtos/${p.imagens[0].url_Imagem}` : "/Imagens/sem-imagem.png"}
+                                    alt=""
+                                    className="w-5 h-5 rounded-md object-cover"
+                                  />
+                                  <span className="text-white/85 text-[10px] font-medium max-w-[80px] truncate">
+                                    {p.name}
+                                  </span>
+                                </div>
+                              ))}
+                              {linked.length > 4 && (
+                                <span className="text-white/45 text-[10px] self-center font-medium">
+                                  +{linked.length - 4}
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                        ) : (promo.categoryIds?.length ?? 0) > 0 ? (
+                          <div className="mb-4">
+                            <p className="text-white/40 text-[10px] mb-1.5 uppercase tracking-wider font-medium">
+                              Categorias com desconto
+                            </p>
+                            <div className="flex gap-1.5 flex-wrap">
+                              {promo.categoryIds!.slice(0, 4).map(category => (
+                                <span
+                                  key={category.id}
+                                  className="px-2 py-1 rounded-lg bg-white/10 border border-white/10 text-white/85 text-[10px]"
+                                >
+                                  {Category.find(c => c.id === category.id_Category)?.category || "Sem categoria"}
+                                </span>
+                              ))}
+                              {promo.categoryIds!.length > 4 && (
+                                <span className="text-white/45 text-[10px] self-center font-medium">
+                                  +{promo.categoryIds!.length - 4}
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                        ) : null}
+
+                        <div className="flex gap-2 pt-1">
+                          <div className="relative flex-1 group">
+                            <button
+                              disabled={isExpired}
+                              onClick={() => {
+                                setIdCupom(promo.id || 0);
+                                Controller?.action.SetTitleCOnfirm(`${promo.active ? "Pausar" : "Ativar"} Cupom`);
+                                Controller?.action.SetDescriptionConfirm(
+                                  `Tem certeza que deseja ${promo.active ? "Pausar" : "Ativar"} este cupom? ${promo.active
+                                    ? "Ao pausá-lo, ele deixará de ficar disponível para os clientes até ser ativado novamente."
+                                    : "Ao ativá-lo, ele ficará disponível para os clientes utilizarem nas compras, desde que atenda às regras de validade e uso."
+                                  }`
+                                );
+                                Controller?.action.SetButtonConfirm(`${promo.active ? "Pausar" : "Ativar"} Cupom`);
+                                Controller?.action.setShowCouponModalActive(true);
+                              }
+
+                              }
+                              className={`w-full py-2 text-xs font-bold rounded-xl border transition-all ${isExpired
+                                ? "bg-gray-500/20 border-gray-500/30 text-gray-400 cursor-not-allowed"
+                                : "bg-white/10 hover:bg-white/20 border-white/10 text-white"
+                                }`}
+                            >
+                              {promo.active ? "Pausar" : "Ativar"}
+                            </button>
+
+                            {isExpired && (
+                              <div
+                                className=" absolute bottom-full mb-2 left-full -translate-x-1/2 opacity-0 group-hover:opacity-100 pointer-events-none transition-all duration-200 z-50 w-72 max-w-[calc(100vw-2rem)]">
+                                <div className="rounded-xl bg-slate-900 text-white text-xs p-3 shadow-2xl border border-slate-700 text-center">
+                                  <p className="font-semibold mb-1">
+                                    ⚠️ Cupom expirado
+                                  </p>
+
+                                  <p className="text-white/80 leading-relaxed">
+                                    Este cupom já venceu e não pode mais ser ativado.
+                                    Para utilizá-lo novamente, edite o cupom e altere a
+                                    data de vencimento para uma data futura.
+                                  </p>
+                                </div>
+
+                                <div className="absolute left-1/2 -translate-x-1/2 -bottom-1.5 w-3 h-3 bg-slate-900 border-r border-b border-slate-700 rotate-45" />
+                              </div>
+                            )}
+                          </div>
+                          <button
+                            onClick={() => {
+                              Controller?.action.setEditingCoupon(true);
+                              Controller?.action.setShowCouponModal(true);
+                              Controller?.action.setOriginalProducts((promo?.productIds ?? []).map(x => x.id_Product));
+                              Controller?.action.setOriginalCategories((promo.categoryIds ?? []).map(x => x.id_Category));
+                              Controller?.action.setNewCoupon(promo);
+                            }}
+                            className="flex-1 py-2 bg-white/10 hover:bg-white/20 text-white text-xs font-bold rounded-xl border border-white/10 transition-all"
+                          >
+                            Editar
+                          </button>
+                          <button
+                            onClick={() => {
+                              Controller?.action.SetTitleCOnfirm("Excluir Cupom");
+                              Controller?.action.SetDescriptionConfirm("Tem certeza que deseja excluir este Cupom? Essa ação é Permanecerá no historico do sistema você pode cunsultar quando quiser!");
+                              Controller?.action.SetButtonConfirm("Exluir Cupom");
+                              Controller?.action.setshowDeleteModalCupom(true);
+                              setIdCupom(promo.id || 0);
+                            }}
+                            className="px-3 py-2 bg-red-500/15 hover:bg-red-500/30 text-red-300 rounded-xl border border-red-500/20 transition-all"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
                         </div>
+
+                        <button
+                          onClick={() => setSelectedCoupon(promo)}
+                          className={`w-full mt-2 py-2 flex items-center justify-center gap-1.5 text-xs font-bold rounded-xl border transition-all ${isSelected
+                            ? 'bg-brand-500/25 border-brand-400/40 text-brand-200'
+                            : 'bg-white/[0.04] hover:bg-white/10 border-white/10 text-white/70'
+                            }`}
+                        >
+                          <Eye className="w-3.5 h-3.5" /> Ver produtos
+                        </button>
                       </div>
                     </div>
                   );
                 })}
-                <button onClick={() => { setEditingPromo(null); setNewPromo(blankPromo); setShowPromoModal(true); }}
-                  className={`rounded-2xl border-2 border-dashed flex flex-col items-center justify-center gap-2 min-h-[180px] transition-all ${dk ? 'border-white/[0.10] text-white/30 hover:border-brand-400 hover:text-brand-400' : 'border-surface-200 text-surface-300 hover:border-brand-400 hover:text-brand-500'}`}>
-                  <Plus className="w-8 h-8" /><span className="font-display font-bold text-sm">Nova Promoção</span>
+
+                <button
+                  onClick={() => { Controller?.action.setEditingCoupon(false); Controller?.action.setShowCouponModal(true); }}
+                  className={`rounded-3xl border-2 border-dashed flex flex-col items-center justify-center gap-2 min-h-[220px] transition-all ${dk
+                    ? 'border-white/[0.10] text-white/30 hover:border-brand-400 hover:text-brand-400 hover:bg-white/[0.02]'
+                    : 'border-surface-200 text-surface-300 hover:border-brand-400 hover:text-brand-500 hover:bg-surface-50'
+                    }`}
+                >
+                  <div className={`w-12 h-12 rounded-2xl flex items-center justify-center ${dk ? 'bg-white/5' : 'bg-surface-100'}`}>
+                    <Plus className="w-6 h-6" />
+                  </div>
+                  <span className="font-display font-bold text-sm">Nova Promoção</span>
                 </button>
               </div>
+
               {/* Products with promos */}
               <div>
-                <h3 className={`font-display font-bold text-base mb-3 ${txt}`}>Produtos em Promoção</h3>
+                <div className="flex items-center justify-between mb-3">
+                  <div>
+                    <h3 className={`font-display font-bold text-base ${txt}`}>Produtos em Promoção</h3>
+                    {selectedCoupon ? (
+                      <p className={`text-xs mt-0.5 ${sub}`}>
+                        Cupom selecionado <span className="font-bold text-brand-400">{selectedCoupon.cod_Cupom}</span>
+                        {' · '}{filteredPromotionProducts.length} produto{filteredPromotionProducts.length !== 1 ? 's' : ''} encontrado{filteredPromotionProducts.length !== 1 ? 's' : ''}
+                      </p>
+                    ) : (
+                      <p className={`text-xs mt-0.5 ${sub}`}>Nenhum cupom selecionado</p>
+                    )}
+                  </div>
+                  {selectedCoupon && (
+                    <button
+                      onClick={() => setSelectedCoupon(null)}
+                      className={`text-xs font-bold px-3 py-1.5 rounded-lg border transition-all ${dk ? 'border-white/10 text-white/60 hover:bg-white/5' : 'border-surface-200 text-surface-400 hover:bg-surface-50'
+                        }`}
+                    >
+                      Limpar seleção
+                    </button>
+                  )}
+                </div>
+
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                  {products.filter(p => p.originalPrice && p.originalPrice > p.price).map(p => {
-                    const d = Math.round(((p.originalPrice! - p.price) / p.originalPrice!) * 100);
+                  {filteredPromotionProducts.map(p => {
+                    const hasDiscount = p.origin_Price && p.origin_Price > p.price_Unic;
+                    const d = hasDiscount ? Math.round(((p.origin_Price! - p.price_Unic) / p.origin_Price!) * 100) : 0;
                     return (
-                      <div key={p.id} className={`rounded-2xl border p-4 flex items-center gap-3 ${card} ${cardH}`}>
-                        <img src={p.images[0]} alt="" className="w-12 h-12 rounded-xl object-cover flex-shrink-0" />
+                      <div
+                        key={p.id}
+                        className={`rounded-2xl border p-4 flex items-center gap-3 transition-all ${card} ${cardH}`}
+                      >
+                        <img
+                          src={p.imagens?.length ? `/Imagens/Produtos/${p.imagens[0].url_Imagem}` : "/Imagens/sem-imagem.png"}
+                          alt=""
+                          className="w-12 h-12 rounded-xl object-cover flex-shrink-0" />
                         <div className="flex-1 min-w-0">
                           <p className={`text-sm font-medium truncate ${txt}`}>{p.name}</p>
                           <div className="flex items-center gap-2 mt-1">
-                            <span className={`text-[10px] line-through ${sub}`}>{formatPrice(p.originalPrice!)}</span>
-                            <span className="text-brand-400 font-bold text-sm">{formatPrice(p.price)}</span>
+                            {hasDiscount && (
+                              <span className={`text-[10px] line-through ${sub}`}>{formatPrice(p.origin_Price!)}</span>
+                            )}
+                            <span className="text-brand-400 font-display font-bold text-sm">{formatPrice(p.price_Unic)}</span>
                           </div>
                         </div>
-                        <div className="bg-red-500/15 border border-red-500/20 rounded-xl px-2.5 py-1.5 text-center flex-shrink-0">
-                          <p className="text-red-400 font-display font-bold text-base leading-none">-{d}%</p>
-                          <p className={`text-[9px] ${sub}`}>desconto</p>
-                        </div>
+                        {hasDiscount && (
+                          <div className="bg-red-500/10 border border-red-500/20 rounded-2xl px-2.5 py-1.5 text-center flex-shrink-0">
+                            <p className="text-red-400 font-display font-bold text-base leading-none">-{d}%</p>
+                            <p className={`text-[9px] mt-0.5 ${sub}`}>desconto</p>
+                          </div>
+                        )}
                       </div>
                     );
                   })}
-                  {products.filter(p => p.originalPrice && p.originalPrice > p.price).length === 0 && (
-                    <p className={`text-sm ${sub} py-4 col-span-3`}>Nenhum produto com promoção ativa ainda.</p>
+                  {filteredPromotionProducts.length === 0 && (
+                    <div className={`col-span-3 rounded-2xl border border-dashed py-8 text-center ${dk ? 'border-white/10' : 'border-surface-200'}`}>
+                      <p className={`text-sm ${sub}`}>
+                        {selectedCoupon ? 'Nenhum produto encontrado para este cupom.' : 'Nenhum produto com promoção ativa ainda.'}
+                      </p>
+                    </div>
                   )}
                 </div>
               </div>
@@ -1955,13 +2871,13 @@ export default function AdminPage() {
                       <h2 className={`font-display font-bold text-xl ${txt}`}>{user?.name || 'Admin Master'}</h2>
                       <p className="text-brand-400 text-sm font-semibold">Administrador</p>
                     </div>
-                    <button onClick={() => editingProfile ? (updateUser({ name: profileForm.name, email: profileForm.email, phone: profileForm.phone, bio: profileForm.bio }), setEditingProfile(false), showNotification('Perfil atualizado!', 'success')) : setEditingProfile(true)}
+                    {/* <button onClick={() => editingProfile ? (updateUser({ name: profileForm.name, email: profileForm.email, phone: profileForm.phone, bio: profileForm.bio }), setEditingProfile(false), showNotification('Perfil atualizado!', 'success')) : setEditingProfile(true)}
                       className="flex items-center gap-2 px-4 py-2 bg-brand-500 hover:bg-brand-600 text-white text-sm font-bold rounded-xl transition-all mb-1">
                       {editingProfile ? <><Check className="w-4 h-4" /> Salvar</> : <><Edit3 className="w-4 h-4" /> Editar</>}
-                    </button>
+                    </button> */}
                   </div>
                   <div className="grid grid-cols-3 gap-3 mb-5">
-                    {[{ l: 'Pedidos', v: orders.length }, { l: 'Produtos', v: products.length }, { l: 'Promoções', v: promotions.filter(p => p.active).length }].map((s, i) => (
+                    {[{ l: 'Pedidos', v: orders.length }, { l: 'Produtos', v: products.length }, { l: 'Promoções', v: cupom.filter(p => p.active).length }].map((s, i) => (
                       <div key={i} className={`rounded-xl p-3 text-center ${dk ? 'bg-white/[0.04]' : 'bg-surface-50'}`}>
                         <p className={`font-bold text-lg leading-none ${txt}`}>{s.v}</p>
                         <p className={`text-[10px] mt-1 ${sub}`}>{s.l}</p>
@@ -2061,13 +2977,13 @@ export default function AdminPage() {
       {/* ─── PRODUCT MODAL ─── */}
 
       {Controller?.result.showProductModal && Controller?.result.modalStep === 1 && (
-        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4" onClick={() => Controller?.action.setShowProductModal(false)}>
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4" onClick={() => { Controller?.action.setShowProductModal(false), Controller.action.setNewProduct({}) }}>
           <div className={`rounded-2xl border p-6 w-full max-w-lg max-h-[85vh] overflow-y-auto shadow-2xl ${card}`} onClick={e => e.stopPropagation()}>
             <div className="flex items-center justify-between mb-5">
               <h3 className={`font-display font-bold text-lg ${txt}`}>
                 {Controller?.result.editingProduct ? 'Editar Produto' : 'Novo Produto'}
               </h3>
-              <button onClick={() => Controller?.action.setShowProductModal(false)} className={`p-2 rounded-xl ${txt2} ${dk ? 'hover:bg-white/[0.08]' : 'hover:bg-surface-100'}`}>
+              <button onClick={() => { Controller?.action.setShowProductModal(false), Controller.action.setNewProduct({}) }} className={`p-2 rounded-xl ${txt2} ${dk ? 'hover:bg-white/[0.08]' : 'hover:bg-surface-100'}`}>
                 <X className="w-4 h-4" />
               </button>
             </div>
@@ -2270,6 +3186,7 @@ export default function AdminPage() {
                     {Controller?.result.newProduct.imagens!.map((src, i) => (
                       <div key={i} className="relative group aspect-square rounded-xl overflow-hidden cursor-pointer" onClick={() => Controller?.action.setLightboxImage(src)}>
                         <img
+
                           src={
                             src.file
                               ? src.url_Imagem
@@ -2356,6 +3273,22 @@ export default function AdminPage() {
                 </span>
                 <button onClick={() => Controller?.action.setNewProduct(p => ({ ...p, freeShipping: !p.freeShipping }))}>
                   {Controller?.result.newProduct.freeShipping ? <ToggleRight className="w-8 h-8 text-green-500" /> : <ToggleLeft className="w-8 h-8 text-surface-300" />}
+                </button>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className={`text-sm ${txt2}`}>
+                  Ativo?
+                </span>
+                <button onClick={() => Controller?.action.setNewProduct(p => ({ ...p, ativo: !p.ativo }))}>
+                  {Controller?.result.newProduct.ativo ? <ToggleRight className="w-8 h-8 text-green-500" /> : <ToggleLeft className="w-8 h-8 text-surface-300" />}
+                </button>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className={`text-sm ${txt2}`}>
+                  Mostrar Banner?
+                </span>
+                <button onClick={() => Controller?.action.setNewProduct(p => ({ ...p, showBanner: !p.showBanner }))}>
+                  {Controller?.result.newProduct.showBanner ? <ToggleRight className="w-8 h-8 text-green-500" /> : <ToggleLeft className="w-8 h-8 text-surface-300" />}
                 </button>
               </div>
               <div className={`pt-4 border-t flex gap-3 ${bord}`}>
@@ -2557,82 +3490,681 @@ export default function AdminPage() {
                 <ArrowLeft className="w-4 h-4" /> Voltar
               </button>
               {Controller?.result.editingProduct ? (
-                <button onClick={Controller?.action.handleEditeProduct} className="flex-1 py-2.5 bg-brand-500 hover:bg-brand-600 text-white rounded-xl text-sm font-bold shadow-brand flex items-center justify-center gap-2">
-                  <Check className="w-4 h-4" /> Editar
-                </button>) : (
-                <button onClick={Controller?.action.handleSaveProduct} className="flex-1 py-2.5 bg-brand-500 hover:bg-brand-600 text-white rounded-xl text-sm font-bold shadow-brand flex items-center justify-center gap-2">
-                  <Check className="w-4 h-4" /> Salvar
-                </button>)}
-
+                <button
+                  onClick={Controller?.action.handleEditeProduct}
+                  disabled={Controller?.result.SaveEditeLoading}
+                  className="flex-1 py-2.5 bg-brand-500 hover:bg-brand-600 disabled:opacity-70 disabled:cursor-not-allowed text-white rounded-xl text-sm font-bold shadow-brand flex items-center justify-center gap-2"
+                >
+                  {Controller?.result.SaveEditeLoading ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : (
+                    <>
+                      <Check className="w-4 h-4" />
+                      Editar
+                    </>
+                  )}
+                </button>
+              ) : (
+                <button
+                  onClick={Controller?.action.handleSaveProduct}
+                  disabled={Controller?.result.SaveEditeLoading}
+                  className="flex-1 py-2.5 bg-brand-500 hover:bg-brand-600 disabled:opacity-70 disabled:cursor-not-allowed text-white rounded-xl text-sm font-bold shadow-brand flex items-center justify-center gap-2"
+                >
+                  {Controller?.result.SaveEditeLoading ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : (
+                    <>
+                      <Check className="w-4 h-4" />
+                      Salvar
+                    </>
+                  )}
+                </button>
+              )}
             </div>
           </div>
         </div>
       )}
       {/* ─── PROMO MODAL ─── */}
-      {
-        showPromoModal && (
-          <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4" onClick={() => setShowPromoModal(false)}>
-            <div className={`rounded-2xl border p-6 w-full max-w-xl max-h-[90vh] overflow-y-auto shadow-2xl ${card}`} onClick={e => e.stopPropagation()}>
-              <div className="flex items-center justify-between mb-5">
-                <h3 className={`font-display font-bold text-lg ${txt}`}>{editingPromo ? 'Editar Promoção' : 'Nova Promoção'}</h3>
-                <button onClick={() => setShowPromoModal(false)} className={`p-2 rounded-xl ${txt2} ${dk ? 'hover:bg-white/[0.08]' : 'hover:bg-surface-100'}`}><X className="w-4 h-4" /></button>
-              </div>
+      {/*
+  Modal adaptado: Promoção → Cupom de Desconto
+  Mantido: mesmo layout, cores, tema claro/escuro, classes (card, txt, txt2, sub, inp, bord, dk),
+  animações, backdrop, scroll, botões Cancelar/Salvar e preview de produtos.
+
+  Renomeações necessárias no restante do arquivo (fora deste bloco), já que "Promoção" virou "Cupom":
+    showPromoModal   -> showCouponModal
+    setShowPromoModal-> setShowCouponModal
+    editingPromo     -> editingCoupon
+    newPromo         -> newCoupon
+    setNewPromo      -> setNewCoupon
+    handleSavePromo  -> handleSaveCoupon
+
+  Novo estado local (não faz parte do objeto Coupon, é só controle de UI):
+    const [applicationScope, setApplicationScope] = useState<'store' | 'categories' | 'products'>('store');
+
+  Assumido um array `categories` já existente no componente, no formato { id: number; name: string }[].
+  Caso os campos sejam diferentes (ex: name_Category), é só ajustar a linha `cat.name`.
+*/}
+      {Controller?.result.showCouponModal && (
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+          onClick={() => {
+            Controller?.action.setShowCouponModal(false)
+            Controller?.action.setEditingCoupon(false);
+            Controller?.action.setNewCoupon({});
+            setApplicationScope("store");
+          }}>
+          <div className={`rounded-2xl border p-6 w-full max-w-xl max-h-[80vh] overflow-y-auto shadow-2xl ${card}`} onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between mb-5">
+              <h3 className={`font-display font-bold text-lg ${txt}`}>{Controller?.result.editingCoupon ? 'Editar Cupom' : 'Novo Cupom'}</h3>
+              <button
+                onClick={() => {
+                  Controller?.action.setShowCouponModal(false)
+                  Controller?.action.setEditingCoupon(false);
+                  Controller?.action.setNewCoupon({});
+                  setApplicationScope("store");
+                }}
+                className={`p-2 rounded-xl ${txt2} ${dk ? 'hover:bg-white/[0.08]' : 'hover:bg-surface-100'}`}>
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <div className="space-y-6">
+
+              {/* ===============================
+             Informações Gerais
+          ================================ */}
               <div className="space-y-4">
+                <p className={`text-xs font-bold uppercase tracking-wider ${sub}`}>Informações Gerais</p>
                 <div className="grid grid-cols-2 gap-3">
-                  <div><label className={`block text-xs font-bold uppercase tracking-wider mb-2 ${sub}`}>Código</label><input value={newPromo.code || ''} onChange={e => setNewPromo(p => ({ ...p, code: e.target.value.toUpperCase().replace(/\s/g, '') }))} placeholder="EX: VERAO30" className={`w-full px-4 py-2.5 border rounded-xl text-sm outline-none uppercase ${inp}`} /></div>
-                  <div><label className={`block text-xs font-bold uppercase tracking-wider mb-2 ${sub}`}>Desconto (%)</label><input type="number" min="1" max="100" value={newPromo.discount || ''} onChange={e => setNewPromo(p => ({ ...p, discount: Number(e.target.value) }))} className={`w-full px-4 py-2.5 border rounded-xl text-sm outline-none ${inp}`} /></div>
-                  <div><label className={`block text-xs font-bold uppercase tracking-wider mb-2 ${sub}`}>Título</label><input value={newPromo.title || ''} onChange={e => setNewPromo(p => ({ ...p, title: e.target.value }))} placeholder="Semana Tech" className={`w-full px-4 py-2.5 border rounded-xl text-sm outline-none ${inp}`} /></div>
-                  <div><label className={`block text-xs font-bold uppercase tracking-wider mb-2 ${sub}`}>Valor Mínimo (R$)</label><input type="number" value={newPromo.minValue || ''} onChange={e => setNewPromo(p => ({ ...p, minValue: Number(e.target.value) }))} placeholder="0" className={`w-full px-4 py-2.5 border rounded-xl text-sm outline-none ${inp}`} /></div>
-                </div>
-                <div><label className={`block text-xs font-bold uppercase tracking-wider mb-2 ${sub}`}>Descrição</label><input value={newPromo.description || ''} onChange={e => setNewPromo(p => ({ ...p, description: e.target.value }))} placeholder="Ex: 30% OFF em eletrônicos" className={`w-full px-4 py-2.5 border rounded-xl text-sm outline-none ${inp}`} /></div>
-                <div>
-                  <label className={`block text-xs font-bold uppercase tracking-wider mb-2 ${sub}`}>Aplicar em Produtos</label>
-                  <p className={`text-xs mb-3 ${sub}`}>Produtos selecionados terão o desconto aplicado automaticamente no preço.</p>
-                  <div className="max-h-52 overflow-y-auto space-y-1.5 pr-1">
-                    {products.map(p => {
-                      const sel = (newPromo.productIds || []).includes(p.id);
-                      return (
-                        <label key={p.id} className={`flex items-center gap-3 p-3 rounded-xl cursor-pointer transition-all border ${sel ? (dk ? 'bg-brand-500/15 border-brand-500/30' : 'bg-brand-50 border-brand-200') : (dk ? 'bg-white/[0.03] hover:bg-white/[0.06] border-white/[0.06]' : 'bg-surface-50 hover:bg-surface-100 border-surface-100')}`}>
-                          <input type="checkbox" checked={sel} onChange={e => {
-                            const ids = e.target.checked ? [...(newPromo.productIds || []), p.id] : (newPromo.productIds || []).filter(id => id !== p.id);
-                            setNewPromo(pr => ({ ...pr, productIds: ids }));
-                          }} className="accent-brand-500 w-4 h-4 flex-shrink-0" />
-                          <img src={p.images[0]} alt="" className="w-9 h-9 rounded-xl object-cover flex-shrink-0" />
-                          <div className="flex-1 min-w-0">
-                            <p className={`text-xs font-medium truncate ${txt}`}>{p.name}</p>
-                            <p className={`text-[10px] ${sub}`}>{formatPrice(p.price)} · {p.category}</p>
-                          </div>
-                          {sel && newPromo.discount && (
-                            <div className="flex-shrink-0 text-right">
-                              <p className="text-red-400 text-[10px] font-bold">-{newPromo.discount}%</p>
-                              <p className="text-green-400 text-[10px]">{formatPrice(p.price * (1 - (newPromo.discount || 0) / 100))}</p>
-                            </div>
-                          )}
-                        </label>
-                      );
-                    })}
+                  <div className="col-span-2">
+                    <label className={`block text-xs font-bold uppercase tracking-wider mb-2  ${sub}`}>Nome do Cupom</label>
+                    <input
+                      value={Controller?.result.newCoupon?.name_Cupom || ''}
+                      onChange={e => Controller?.action.setNewCoupon(p => ({ ...p, name_Cupom: e.target.value }))}
+                      placeholder="Ex: Semana Tech" className={`w-full px-4 py-2.5 border rounded-xl text-sm outline-none ${inp}`} />
+
+                    {Controller?.result.cuponsErrors.name_Cupom && (
+                      <p className="mt-1 flex items-center gap-1 text-xs text-red-500">
+                        ⚠ {Controller?.result.cuponsErrors.name_Cupom}
+                      </p>
+                    )}
                   </div>
-                  {(newPromo.productIds || []).length > 0 && (
-                    <p className="mt-2 text-brand-400 text-xs font-semibold flex items-center gap-1"><Check className="w-3.5 h-3.5" /> {(newPromo.productIds || []).length} produto{(newPromo.productIds || []).length > 1 ? 's' : ''} selecionado{(newPromo.productIds || []).length > 1 ? 's' : ''}</p>
+                  <div>
+                    <label className={`block text-xs font-bold uppercase tracking-wider mb-2 ${sub}`}>Código</label>
+                    <input value={Controller?.result.newCoupon?.cod_Cupom || ''}
+                      onChange={e => Controller?.action.setNewCoupon(p => ({ ...p, cod_Cupom: e.target.value.toUpperCase().replace(/\s/g, '') }))}
+                      placeholder="EX: VERAO30" className={`w-full px-4 py-2.5 border rounded-xl text-sm outline-none uppercase ${inp}`} />
+
+                    {Controller?.result.cuponsErrors.cod_Cupom && (
+                      <p className="mt-1 flex items-center gap-1 text-xs text-red-500">
+                        ⚠ {Controller?.result.cuponsErrors.cod_Cupom}
+                      </p>
+                    )}
+                  </div>
+                  <div>
+                    <label className={`block text-xs font-bold uppercase tracking-wider mb-2 ${sub}`}>Tipo de Desconto</label>
+                    <select
+                      value={
+                        typeof Controller?.result.newCoupon?.discount_Type === "string"
+                          ? DiscountType[
+                          Controller.result.newCoupon.discount_Type as keyof typeof DiscountType
+                          ]
+                          : (Controller?.result.newCoupon?.discount_Type ?? 0)
+                      }
+                      onChange={e =>
+                        Controller?.action.setNewCoupon(p => ({
+                          ...p,
+                          discount_Type: Number(e.target.value)
+                        }))
+                      }
+                      className={`w-full px-4 py-2.5 border rounded-xl text-sm outline-none ${inp}`}>
+                      <option value={DiscountType.Percentage}>Percentual</option>
+                      <option value={DiscountType.FixedValue}>Valor Fixo</option>
+                      <option value={DiscountType.FreeShipping}>Frete Grátis</option>
+                    </select>
+                    {Controller?.result.cuponsErrors.discount_Type && (
+                      <p className="mt-1 flex items-center gap-1 text-xs text-red-500">
+                        ⚠ {Controller?.result.cuponsErrors.discount_Type}
+                      </p>
+                    )}
+                  </div>
+                  {Controller?.result.newCoupon?.discount_Type !== 2 && (
+                    <div>
+                      <label className={`block text-xs font-bold uppercase tracking-wider mb-2 ${sub}`}>
+                        Valor do Desconto {Controller?.result.newCoupon?.discount_Type === 1 ? '(R$)' : '(%)'}
+                      </label>
+                      <input
+                        type="number"
+                        min="1"
+                        max={Controller?.result.newCoupon?.discount_Type === 0 ? 100 : undefined}
+                        value={Controller?.result.newCoupon?.discount || ''}
+                        onChange={e => Controller?.action.setNewCoupon(p => ({ ...p, discount: Number(e.target.value) }))}
+                        className={`w-full px-4 py-2.5 border rounded-xl text-sm outline-none ${inp}`}
+                      />
+                      {Controller?.result.cuponsErrors.discount && (
+                        <p className="mt-1 flex items-center gap-1 text-xs text-red-500">
+                          ⚠ {Controller?.result.cuponsErrors.discount}
+                        </p>
+                      )}
+                    </div>
                   )}
+                  <div className="col-span-2">
+                    <label className={`block text-xs font-bold uppercase tracking-wider mb-2 ${sub}`}>Descrição</label>
+                    <input value={Controller?.result.newCoupon?.description || ''}
+                      onChange={e => Controller?.action.setNewCoupon(p => ({ ...p, description: e.target.value }))}
+                      placeholder="Ex: 30% OFF em eletrônicos" className={`w-full px-4 py-2.5 border rounded-xl text-sm outline-none ${inp}`} />
+                    {Controller?.result.cuponsErrors.description && (
+                      <p className="mt-1 flex items-center gap-1 text-xs text-red-500">
+                        ⚠ {Controller?.result.cuponsErrors.description}
+                      </p>
+                    )}
+                  </div>
+                  <div className="col-span-2">
+                    <label className={`flex items-center gap-3 p-3 rounded-xl cursor-pointer border ${Controller?.result.newCoupon?.active ? (dk ? 'bg-brand-500/15 border-brand-500/30' : 'bg-brand-50 border-brand-200') : (dk ? 'bg-white/[0.03] border-white/[0.06]' : 'bg-surface-50 border-surface-100')}`}>
+                      <input type="checkbox" checked={Controller?.result.newCoupon?.active ?? true} onChange={e => Controller?.action.setNewCoupon(p => ({ ...p, active: e.target.checked }))} className="accent-brand-500 w-4 h-4" />
+                      <span className={`text-sm font-medium ${txt}`}>Cupom ativo</span>
+                    </label>
+                  </div>
                 </div>
-                <div className={`pt-4 border-t flex gap-3 ${bord}`}>
-                  <button onClick={() => setShowPromoModal(false)} className={`flex-1 py-2.5 rounded-xl text-sm font-bold ${dk ? 'bg-white/[0.06] text-white/60 hover:bg-white/[0.10]' : 'bg-surface-100 text-surface-500 hover:bg-surface-200'}`}>Cancelar</button>
-                  <button onClick={handleSavePromo} disabled={!newPromo.code || !newPromo.discount}
-                    className="flex-1 py-2.5 bg-brand-500 hover:bg-brand-600 disabled:opacity-50 text-white rounded-xl text-sm font-bold shadow-brand flex items-center justify-center gap-2">
-                    <Zap className="w-4 h-4" /> {editingPromo ? 'Salvar' : 'Criar Promoção'}
+              </div>
+
+              {/* ===============================
+             Regras
+          ================================ */}
+              <div className={`space-y-4 pt-4 border-t ${bord}`}>
+                <p className={`text-xs font-bold uppercase tracking-wider ${sub}`}>Regras</p>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className={`block text-xs font-bold uppercase tracking-wider mb-2 ${sub}`}>Compra Mínima (R$)</label>
+                    <input type="number"
+                      value={Controller?.result.newCoupon?.minimum_Value ?? ''}
+                      onChange={e => Controller?.action.setNewCoupon(p => ({ ...p, minimum_Value: e.target.value === '' ? null : Number(e.target.value) }))}
+                      placeholder="0" className={`w-full px-4 py-2.5 border rounded-xl text-sm outline-none ${inp}`} />
+
+                    {Controller?.result.cuponsErrors.minimum_Value && (
+                      <p className="mt-1 flex items-center gap-1 text-xs text-red-500">
+                        ⚠ {Controller?.result.cuponsErrors.minimum_Value}
+                      </p>
+                    )}
+                  </div>
+                  <div>
+                    <label className={`block text-xs font-bold uppercase tracking-wider mb-2 ${sub}`}>Desconto Máximo (R$)</label>
+                    <input type="number"
+                      value={Controller?.result.newCoupon?.maximum_Discount ?? ''}
+                      onChange={e => Controller?.action.setNewCoupon(p => ({ ...p, maximum_Discount: e.target.value === '' ? null : Number(e.target.value) }))}
+                      placeholder="Sem limite" className={`w-full px-4 py-2.5 border rounded-xl text-sm outline-none ${inp}`} />
+
+                    {Controller?.result.cuponsErrors.maximum_Discount && (
+                      <p className="mt-1 flex items-center gap-1 text-xs text-red-500">
+                        ⚠ {Controller?.result.cuponsErrors.maximum_Discount}
+                      </p>
+                    )}
+                  </div>
+                  <div>
+                    <label className={`block text-xs font-bold uppercase tracking-wider mb-2 ${sub}`}>Qtd. Máxima de Usos</label>
+                    <input
+                      type="number"
+                      value={Controller?.result.newCoupon?.quantity_Uses ?? ''}
+                      onChange={e => Controller?.action.setNewCoupon(p => ({ ...p, quantity_Uses: e.target.value === '' ? null : Number(e.target.value) }))}
+                      placeholder="Ilimitado" className={`w-full px-4 py-2.5 border rounded-xl text-sm outline-none ${inp}`} />
+                  </div>
+                  <div>
+                    <label className={`block text-xs font-bold uppercase tracking-wider mb-2 ${sub}`}>Limite por Cliente</label>
+                    <input
+                      type="number"
+                      value={Controller?.result.newCoupon?.per_User_Limit ?? ''}
+                      onChange={e => Controller?.action.setNewCoupon(p => ({ ...p, per_User_Limit: e.target.value === '' ? null : Number(e.target.value) }))}
+                      placeholder="Ilimitado" className={`w-full px-4 py-2.5 border rounded-xl text-sm outline-none ${inp}`} />
+                  </div>
+                  <div>
+                    <label className={`block text-xs font-bold uppercase tracking-wider mb-2 ${sub}`}>Data Inicial</label>
+                    <input
+                      type="date"
+                      value={Controller?.result.newCoupon?.date_Start || ''}
+                      onChange={e => Controller?.action.setNewCoupon(p => ({ ...p, date_Start: e.target.value || null }))}
+                      className={`w-full px-4 py-2.5 border rounded-xl text-sm outline-none ${inp}`} />
+                    {Controller?.result.cuponsErrors.date_Start && (
+                      <p className="mt-1 flex items-center gap-1 text-xs text-red-500">
+                        ⚠ {Controller?.result.cuponsErrors.date_Start}
+                      </p>
+                    )}
+                  </div>
+                  <div>
+                    <label className={`block text-xs font-bold uppercase tracking-wider mb-2 ${sub}`}>Data Final</label>
+                    <input
+                      type="date"
+                      value={Controller?.result.newCoupon?.date_End || ''}
+                      onChange={e => Controller?.action.setNewCoupon(p => ({ ...p, date_End: e.target.value || '' }))}
+                      className={`w-full px-4 py-2.5 border rounded-xl text-sm outline-none ${inp}`} />
+
+                    {Controller?.result.cuponsErrors.date_End && (
+                      <p className="mt-1 flex items-center gap-1 text-xs text-red-500">
+                        ⚠ {Controller?.result.cuponsErrors.date_End}
+                      </p>
+                    )}
+                  </div>
+                  <div className="col-span-2">
+                    <label className={`flex items-center gap-3 p-3 rounded-xl cursor-pointer border ${Controller?.result.newCoupon?.first_Order_Only ? (dk ? 'bg-brand-500/15 border-brand-500/30' : 'bg-brand-50 border-brand-200') : (dk ? 'bg-white/[0.03] border-white/[0.06]' : 'bg-surface-50 border-surface-100')}`}>
+                      <input
+                        type="checkbox"
+                        checked={Controller?.result.newCoupon?.first_Order_Only ?? false}
+                        onChange={e => Controller?.action.setNewCoupon(p => ({ ...p, first_Order_Only: e.target.checked }))}
+                        className="accent-brand-500 w-4 h-4" />
+                      <span className={`text-sm font-medium ${txt}`}>Válido apenas na primeira compra</span>
+                    </label>
+                  </div>
+                  <button
+                    onClick={() => {
+                      Controller?.action.setEditingCoupon(false);
+                      Controller?.action.setNewCoupon({});
+                      setApplicationScope("store");
+                    }}
+                    className="flex items-center gap-2 px-4 py-2 rounded-xl bg-slate-600 hover:bg-slate-700 text-white transition-all"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                    Limpar
                   </button>
                 </div>
               </div>
+
+              {/* ===============================
+             Aplicação
+          ================================ */}
+              <div className={`space-y-4 pt-4 border-t ${bord}`}>
+                <p className={`text-xs font-bold uppercase tracking-wider ${sub}`}>Aplicação</p>
+                <div className="grid grid-cols-3 gap-2">
+                  {options.map(opt => (
+                    <label
+                      key={opt.key}
+                      className={`flex items-center gap-2 p-3 rounded-xl cursor-pointer border text-sm font-medium justify-center ${txt} ${applicationScope === opt.key
+                        ? (dk ? 'bg-brand-500/15 border-brand-500/30' : 'bg-brand-50 border-brand-200')
+                        : (dk ? 'bg-white/[0.03] hover:bg-white/[0.06] border-white/[0.06]' : 'bg-surface-50 hover:bg-surface-100 border-surface-100')
+                        }`}
+                    >
+                      <input
+                        type="radio"
+                        name="applicationScope"
+                        checked={applicationScope === opt.key}
+                        onChange={() => {
+                          setApplicationScope(opt.key);
+                          Controller?.action.setNewCoupon(p => ({ ...p, application: opt.key }))
+                          if (opt.key === 'store') Controller?.action.setNewCoupon(p => ({ ...p, categoryIds: [], productIds: [] }));
+                          if (opt.key === 'categories') Controller?.action.setNewCoupon(p => ({ ...p, productIds: [] }));
+                          if (opt.key === 'products') Controller?.action.setNewCoupon(p => ({ ...p, categoryIds: [] }));
+                        }}
+                        className="accent-brand-500 w-4 h-4"
+                      />
+                      {opt.label}
+                    </label>
+                  ))}
+                  {Controller?.result.cuponsErrors.Application && (
+                    <p className="mt-1 flex items-center gap-1 text-xs text-red-500">
+                      ⚠ {Controller?.result.cuponsErrors.Application}
+                    </p>
+                  )}
+                </div>
+
+                {applicationScope === 'categories' && (
+                  <div className="max-h-52 overflow-y-auto space-y-1.5 pr-1">
+                    {Category.map(cat => {
+                      const sel = (Controller?.result.newCoupon.categoryIds ?? []).some(c => Number(c.id_Category) === Number(cat.id)
+                      );
+                      return (
+                        <label key={cat.id} className={`flex items-center gap-3 p-3 rounded-xl cursor-pointer transition-all border ${sel ? (dk ? 'bg-brand-500/15 border-brand-500/30' : 'bg-brand-50 border-brand-200') : (dk ? 'bg-white/[0.03] hover:bg-white/[0.06] border-white/[0.06]' : 'bg-surface-50 hover:bg-surface-100 border-surface-100')}`}>
+                          <input
+                            type="checkbox"
+                            checked={sel}
+                            onChange={e => {
+                              const current = Controller?.result.newCoupon.categoryIds ?? [];
+
+                              const categories = e.target.checked
+                                ? [
+                                  ...current,
+                                  {
+                                    id: 0,
+                                    id_Cupom: Controller?.result.newCoupon.id ?? 0,
+                                    id_Category: cat.id,
+                                  }
+                                ]
+                                : current.filter(c => c.id_Category !== cat.id);
+
+                              Controller?.action.setNewCoupon(prev => ({
+                                ...prev,
+                                categoryIds: categories
+                              }));
+                            }}
+                            className="accent-brand-500 w-4 h-4 flex-shrink-0"
+                          />
+                          <span className={`flex-1 text-xs font-medium truncate ${txt}`}>{cat.category}</span>
+                        </label>
+                      );
+                    })}
+                    {(Controller?.result.newCoupon.categoryIds || []).length > 0 && (
+                      <p className="mt-2 text-brand-400 text-xs font-semibold flex items-center gap-1">
+                        <Check className="w-3.5 h-3.5" /> {(Controller?.result.newCoupon.categoryIds || []).length} categoria{(Controller?.result.newCoupon.categoryIds || []).length > 1 ? 's' : ''} selecionada{(Controller?.result.newCoupon.categoryIds || []).length > 1 ? 's' : ''}
+                      </p>
+                    )}
+                  </div>
+                )}
+
+                {applicationScope === 'products' && (
+                  <>
+                    <p className={`text-xs ${sub}`}>Produtos selecionados terão o cupom aplicado no checkout.</p>
+                    <div className="max-h-52 overflow-y-auto space-y-1.5 pr-1">
+                      {products.map(p => {
+                        const sel = (Controller?.result.newCoupon.productIds ?? []).some(prod => Number(prod.id_Product) === Number(p.id));
+
+                        return (
+                          <label key={p.id} className={`flex items-center gap-3 p-3 rounded-xl cursor-pointer transition-all border ${sel ? (dk ? 'bg-brand-500/15 border-brand-500/30' : 'bg-brand-50 border-brand-200') : (dk ? 'bg-white/[0.03] hover:bg-white/[0.06] border-white/[0.06]' : 'bg-surface-50 hover:bg-surface-100 border-surface-100')}`}>
+                            <input
+                              type="checkbox"
+                              checked={sel}
+                              onChange={e => {
+                                const current = Controller?.result.newCoupon.productIds ?? [];
+
+                                const products = e.target.checked
+                                  ? [
+                                    ...current,
+                                    {
+                                      id: 0,
+                                      id_Cupom: Controller?.result.newCoupon.id ?? 0,
+                                      id_Product: p.id,
+                                    }
+                                  ]
+                                  : current.filter(prod => prod.id_Product !== p.id);
+
+                                Controller?.action.setNewCoupon(prev => ({
+                                  ...prev,
+                                  productIds: products,
+                                }));
+                              }}
+                              className="accent-brand-500 w-4 h-4 flex-shrink-0" />
+                            <img
+                              src={p.imagens?.length ? `/Imagens/Produtos/${p.imagens[0].url_Imagem}` : "/Imagens/sem-imagem.png"}
+                              alt=""
+                              className="w-9 h-9 rounded-xl object-cover flex-shrink-0" />
+                            <div className="flex-1 min-w-0">
+                              <p className={`text-xs font-medium truncate ${txt}`}>{p.name}</p>
+                              <p className={`text-[10px] ${sub}`}>{formatPrice(p.price_Unic)} · {p.id_category}</p>
+                            </div>
+                          </label>
+                        );
+                      })}
+                    </div>
+                    {(Controller?.result.newCoupon.productIds || []).length > 0 && (
+                      <p className="mt-2 text-brand-400 text-xs font-semibold flex items-center gap-1">
+                        <Check className="w-3.5 h-3.5" /> {(Controller?.result.newCoupon.productIds || []).length} produto{(Controller?.result.newCoupon.productIds || []).length > 1 ? 's' : ''} selecionado{(Controller?.result.newCoupon.productIds || []).length > 1 ? 's' : ''}
+                      </p>
+                    )}
+                  </>
+                )}
+              </div>
+
+            </div>
+            {/* ===============================
+             Resumo
+          ================================ */}
+            <div className={`pt-4 border-t ${bord}`}>
+              <p className={`text-xs font-bold uppercase tracking-wider mb-3 ${sub}`}>Resumo do Cupom</p>
+              <div className={`rounded-xl border p-4 space-y-2 ${dk ? 'bg-white/[0.03] border-white/[0.06]' : 'bg-surface-50 border-surface-100'}`}>
+                <div className="flex items-center justify-between gap-3">
+                  <span className={`text-xs ${sub}`}>Código</span>
+                  <span className={`text-xs font-bold ${txt}`}>{Controller?.result.newCoupon.cod_Cupom || '—'}</span>
+                </div>
+                <div className="flex items-center justify-between gap-3">
+                  <span className={`text-xs ${sub}`}>Nome</span>
+                  <span className={`text-xs font-medium truncate max-w-[60%] text-right ${txt}`}>{Controller?.result.newCoupon.name_Cupom || '—'}</span>
+                </div>
+                <div className="flex items-center justify-between gap-3">
+                  <span className={`text-xs ${sub}`}>Desconto</span>
+                  <span className="text-xs font-bold text-brand-400">
+                    {Controller?.result.newCoupon.discount_Type === 2
+                      ? 'Frete Grátis'
+                      : Controller?.result.newCoupon.discount_Type === 1
+                        ? formatPrice(Controller?.result.newCoupon.discount || 0)
+                        : `${Controller?.result.newCoupon.discount || 0}%`}
+                  </span>
+                </div>
+                {!!Controller?.result.newCoupon.minimum_Value && (
+                  <div className="flex items-center justify-between gap-3">
+                    <span className={`text-xs ${sub}`}>Compra mínima</span>
+                    <span className={`text-xs font-medium ${txt}`}>{formatPrice(Controller?.result.newCoupon.minimum_Value)}</span>
+                  </div>
+                )}
+                {!!Controller?.result.newCoupon.maximum_Discount && (
+                  <div className="flex items-center justify-between gap-3">
+                    <span className={`text-xs ${sub}`}>Desconto máximo</span>
+                    <span className={`text-xs font-medium ${txt}`}>{formatPrice(Controller?.result.newCoupon.maximum_Discount)}</span>
+                  </div>
+                )}
+                {!!Controller?.result.newCoupon.quantity_Uses && (
+                  <div className="flex items-center justify-between gap-3">
+                    <span className={`text-xs ${sub}`}>Usos totais</span>
+                    <span className={`text-xs font-medium ${txt}`}>{Controller?.result.newCoupon.quantity_Uses}</span>
+                  </div>
+                )}
+                {!!Controller?.result.newCoupon.per_User_Limit && (
+                  <div className="flex items-center justify-between gap-3">
+                    <span className={`text-xs ${sub}`}>Limite por cliente</span>
+                    <span className={`text-xs font-medium ${txt}`}>{Controller?.result.newCoupon.per_User_Limit}</span>
+                  </div>
+                )}
+                {Controller?.result.newCoupon.first_Order_Only && (
+                  <div className="flex items-center justify-between gap-3">
+                    <span className={`text-xs ${sub}`}>Restrição</span>
+                    <span className={`text-xs font-medium ${txt}`}>Apenas primeira compra</span>
+                  </div>
+                )}
+                {(Controller?.result.newCoupon.date_Start || Controller?.result.newCoupon.date_End) && (
+                  <div className="flex items-center justify-between gap-3">
+                    <span className={`text-xs ${sub}`}>Vigência</span>
+                    <span className={`text-xs font-medium ${txt}`}>
+                      {Controller?.result.newCoupon.date_Start || '...'} até {Controller?.result.newCoupon.date_End || '...'}
+                    </span>
+                  </div>
+                )}
+                {/* Aplicação */}
+                <div className="space-y-3">
+
+                  <div className="flex items-center justify-between gap-3">
+                    <span className={`text-xs ${sub}`}>Aplicação</span>
+
+                    <span className={`text-xs font-semibold ${txt}`}>
+                      {applicationScope === "store" && "Toda a Loja"}
+
+                      {applicationScope === "categories" &&
+                        `${Controller?.result.newCoupon.categoryIds?.length || 0} categoria(s)`}
+
+                      {applicationScope === "products" &&
+                        `${Controller?.result.newCoupon.productIds?.length || 0} produto(s)`}
+                    </span>
+                  </div>
+
+                  {/* Categorias */}
+                  {applicationScope === "categories" &&
+                    (Controller?.result.newCoupon.categoryIds?.length ?? 0) > 0 && (
+
+                      <div className="flex flex-wrap gap-2">
+
+                        {Category.filter(c => Controller?.result.newCoupon.categoryIds?.some(cat => cat.id === c.id)
+                        ).map(category => (
+
+                          <span key={category.id} className={`px-3 py-1 rounded-full text-[11px] font-semibold${dk
+                            ? "bg-brand-500/15 text-brand-300 border border-brand-500/30"
+                            : "bg-brand-50 text-brand-600 border border-brand-200"
+                            }`}
+                          >
+                            {category.category}
+                          </span>
+
+                        ))}
+
+                      </div>
+
+                    )}
+
+                  {/* Produtos */}
+                  {applicationScope === "products" &&
+                    (Controller?.result.newCoupon.productIds?.length ?? 0) > 0 && (
+
+                      <div className="space-y-2 max-h-52 overflow-y-auto">
+
+                        {products.filter(p => Controller?.result.newCoupon.productIds?.some(Pro => Pro.id === p.id))
+                          .map(product => (
+
+                            <div
+                              key={product.id}
+                              className={`flex items-center gap-3 rounded-xl p-2 border ${dk
+                                ? "bg-white/[0.03] border-white/[0.06]"
+                                : "bg-white border-surface-100"
+                                }`}
+                            >
+
+                              <img
+                                src={product.imagens?.length ? `/Imagens/Produtos/${product.imagens[0].url_Imagem}` : "/Imagens/sem-imagem.png"}
+                                className="w-10 h-10 rounded-lg object-cover flex-shrink-0"
+                              />
+                              <div className="flex-1 min-w-0">
+                                <p className={`text-xs font-semibold truncate ${txt}`}>
+                                  {product.name}
+                                </p>
+
+                                <p className={`text-[10px] ${sub}`}>
+                                  {formatPrice(product.price_Unic)}
+                                </p>
+
+                              </div>
+                              {Controller?.result.newCoupon.discount_Type !== 2 && (
+                                <div className="text-right">
+
+                                  <p className="text-[10px] text-red-400 font-bold">
+
+                                    {Controller?.result.newCoupon.discount_Type === 0
+                                      ? `-${Controller?.result.newCoupon.discount}%`
+                                      : `-${formatPrice(Controller?.result.newCoupon.discount || 0)}`}
+
+                                  </p>
+
+                                  {Controller?.result.newCoupon.discount_Type === 0 && (
+
+                                    <p className="text-[10px] text-green-400">
+
+                                      {formatPrice(
+                                        product.price_Unic *
+                                        (1 - (Controller?.result.newCoupon.discount || 0) / 100)
+                                      )}
+
+                                    </p>
+
+                                  )}
+
+                                </div>
+                              )}
+
+                            </div>
+
+                          ))}
+
+                      </div>
+
+                    )}
+
+                </div>
+                <div className="flex items-center justify-between gap-3">
+                  <span className={`text-xs ${sub}`}>Status</span>
+                  <span className={`text-xs font-bold ${Controller?.result.newCoupon.active ?? true ? 'text-green-400' : 'text-red-400'}`}>
+                    {Controller?.result.newCoupon.active ?? true ? 'Ativo' : 'Inativo'}
+                  </span>
+                </div>
+              </div>
+            </div>
+            <div className={`pt-4 mt-2 border-t flex gap-3 ${bord}`}>
+              <button
+                onClick={() => {
+                  Controller?.action.setShowCouponModal(false)
+                  Controller?.action.setEditingCoupon(false);
+                  Controller?.action.setNewCoupon({});
+                  setApplicationScope("store");
+                }}
+                className={`flex-1 py-2.5 rounded-xl text-sm font-bold ${dk ? 'bg-white/[0.06] text-white/60 hover:bg-white/[0.10]' : 'bg-surface-100 text-surface-500 hover:bg-surface-200'}`}>
+                Cancelar
+              </button>
+              <button
+                onClick={Controller?.result.editingCoupon ? Controller?.action.handleUpdateCoupon : Controller?.action.handleSaveCoupon}
+                disabled={Controller?.result.Loading}
+                className="flex-1 py-2.5 bg-brand-500 hover:bg-brand-600 disabled:opacity-50 text-white rounded-xl text-sm font-bold shadow-brand flex items-center justify-center gap-2"
+              >
+                {Controller?.result.Loading ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  <>
+                    <Zap className="w-4 h-4" /> {Controller?.result.editingCoupon ? 'Salvar' : 'Criar Cupom'}
+                  </>
+                )}
+
+              </button>
             </div>
           </div>
-        )
+        </div>
+      )
       }
+
       <AdminPageLoading
-        loading={Controller?.result.Loading || false && user?.role === 'ADMIN'}
+        loading={Controller?.result.LoadingPageAll || false && user?.role === 'ADMIN'}
         message="Carregando painel"
         subMessage="Buscando pedidos, produtos e estatísticas..."
       />
+      <ConfirmAdminPopup
+        open={Controller?.result.showDeleteModal ?? false}
+        title={Controller?.result.TitleCOnfirm}
+        description={Controller?.result.DescriptionConfirm}
+        confirmText={Controller?.result.ButtonConfirm}
+        cancelText="Cancelar"
+        confirmColor="red"
+        loading={Controller?.result.Loading}
+        onConfirm={Controller!.action.handleDeleteProduct}
+        onCancel={() => {
+          Controller?.action.setShowDeleteModal(false),
+            Controller?.action.setNewProduct({});
+        }}
+      />
+
+      <ConfirmAdminPopup
+        open={Controller?.result.showDeleteModalCupom ?? false}
+        title={Controller?.result.TitleCOnfirm}
+        description={Controller?.result.DescriptionConfirm}
+        confirmText={Controller?.result.ButtonConfirm}
+        cancelText="Cancelar"
+        confirmColor="red"
+        loading={Controller?.result.Loading}
+        onConfirm={() => Controller?.action.handleDeleteCoupon(idCupom)}
+        onCancel={() => {
+          Controller?.action.setshowDeleteModalCupom(false)
+        }}
+      />
+
+      <ConfirmAdminPopup
+        open={Controller?.result.showCouponModalActive ?? false}
+        title={Controller?.result.TitleCOnfirm}
+        description={Controller?.result.DescriptionConfirm}
+        confirmText={Controller?.result.ButtonConfirm}
+        cancelText="Cancelar"
+        confirmColor="red"
+        loading={Controller?.result.Loading}
+        onConfirm={() => Controller?.action.handleUpdateActiveCoupon(idCupom)}
+        onCancel={() => {
+          Controller?.action.setShowCouponModalActive(false)
+        }}
+      />
+
+      {quickViewProduct && (
+        <ProductQuickView
+          product={quickViewProduct}
+          onClose={() => setQuickViewProduct(null)}
+        />
+      )};
+      {quickViewOrder && (
+        <OrderQuickView order={quickViewOrder} onClose={() => setQuickViewOrder(null)} />
+      )}
     </div >
   );
 }

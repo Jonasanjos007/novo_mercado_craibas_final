@@ -17,13 +17,12 @@ export default function ProductCard({ product, compact = false }: ProductCardPro
   const { navigateTo } = UseRouteStore();
   const { addToCart } = UseCartStore();
   const discount = product.origin_Price ? formatDiscount(product.origin_Price, product.price_Unic) : 0;
-  const wishlisted = isWishlisted(product.id);
+  const wishlisted = isWishlisted(Number(product.id));
 
   const handleQuickAdd = (e: React.MouseEvent) => {
     e.stopPropagation();
     addToCart({ product, quantity: 1 });
   };
-  console.log(`/Imagens/Produtos/${product.imagens[0]?.url_Imagem}`);
   const handleWishlist = (e: React.MouseEvent) => {
     e.stopPropagation();
     toggleWishlist(product);

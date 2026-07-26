@@ -42,7 +42,7 @@ export const categoryIcons: Record<string, string> = {
 
 export const badgeLabels: Record<string, string> = {
   novo: 'NOVO',
-  'mais-vendido': 'MAIS VENDIDO',
+  'mais_vendido': 'MAIS VENDIDO',
   oferta: 'OFERTA',
   viral: 'VIRAL 🔥',
 };
@@ -61,6 +61,13 @@ export const orderStatusLabels: Record<string, string> = {
   SAIU_PARA_ENTREGA: 'SAIU_PARA_ENTREGA',
   ENTREGUE: 'ENTREGUE',
   CANCELADO: 'CANCELADO',
+};
+
+export const cupomStatusLabels: Record<string, string> = {
+  all: "Todos",
+  active: "Ativos",
+  paused: "Pausados",
+  expired: "Vencidos",
 };
 
 export const orderStatusColors: Record<string, string> = {

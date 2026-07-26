@@ -1,0 +1,1 @@
+1° verificar se o cupom.End_date < date.now:> trocar active = false

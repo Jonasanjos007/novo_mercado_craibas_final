@@ -10,12 +10,15 @@ export const ProductsService = {
             const { success, data, error } = response.data;
             console.log(data)
             if (!data) {
-                return makeResult(false, [] as Product[], "Produtos não encontrados");
+                return makeResult(false, [] as Product[], error);
             }
 
             return makeResult(success, data, error);
-        } catch (error) {
-            return makeResult(false, [] as Product[], "Falha na comunicação");
+        } catch (err: any) {
+            console.log(err)
+            console.log(err.response);
+            console.log(err.response?.data);
+            return makeResult(false, [] as Product[], err.response?.data);
         }
     }, PostCartProduct: async (Cart_Itens: CartItensProduct): Promise<Result<CartItensProduct>> => {
         try {
@@ -24,12 +27,15 @@ export const ProductsService = {
             const { success, data, error } = response.data;
 
             if (!data) {
-                return makeResult(false, {} as CartItensProduct, "Itens do carrinho não Adicionados");
+                return makeResult(false, {} as CartItensProduct, error);
             }
 
             return makeResult(success, data, error);
-        } catch (error) {
-            return makeResult(false, {} as CartItensProduct, "Falha na comunicação");
+        } catch (err: any) {
+            console.log(err)
+            console.log(err.response);
+            console.log(err.response?.data);
+            return makeResult(false, {} as CartItensProduct, err.response?.data);
         }
     }, PostCartProductExistent: async (Cart_Itens: CartItensProduct, Operador: string): Promise<Result<CartItensProduct>> => {
         try {
@@ -37,12 +43,15 @@ export const ProductsService = {
             const { success, data, error } = response.data;
 
             if (!data) {
-                return makeResult(false, {} as CartItensProduct, "Itens do carrinho não Adicionados");
+                return makeResult(false, {} as CartItensProduct, error);
             }
 
             return makeResult(success, data, error);
-        } catch (error) {
-            return makeResult(false, {} as CartItensProduct, "Falha na comunicação");
+        } catch (err: any) {
+            console.log(err)
+            console.log(err.response);
+            console.log(err.response?.data);
+            return makeResult(false, {} as CartItensProduct, err.response?.data);
         }
     }, PostUpdateQuantity: async (Cart_Itens_Id: number, Quantity: number, Operador: string): Promise<Result<{ success?: boolean; error?: string }>> => {
         try {
@@ -50,12 +59,15 @@ export const ProductsService = {
             const { success, data, error } = response.data;
 
             if (!data) {
-                return makeResult(false, { success: false, error: "Itens do carrinho não Adicionados" }, "Erro ao atualizar quantidade");
+                return makeResult(false, { success: false, error: "Itens do carrinho não Adicionados" }, error);
             }
 
             return makeResult(success, { success: true, error: "" }, error);
-        } catch (error) {
-            return makeResult(false, { success: false, error: "Falha na comunicação" }, "Erro ao atualizar quantidade");
+        } catch (err: any) {
+            console.log(err)
+            console.log(err.response);
+            console.log(err.response?.data);
+            return makeResult(false, { success: false, error: "Falha na comunicação" }, err.response?.data);
         }
     },
 }

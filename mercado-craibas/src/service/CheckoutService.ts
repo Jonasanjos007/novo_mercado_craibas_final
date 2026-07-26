@@ -9,12 +9,15 @@ export const CheckoutService = {
             const response = await api.get("/v1/product/list");
             const { success, data, error } = response.data;
             if (!data) {
-                return makeResult(false, [] as Product[], "Produtos não encontrados");
+                return makeResult(false, [] as Product[], error);
             }
 
             return makeResult(success, data, error);
-        } catch (error) {
-            return makeResult(false, [] as Product[], "Falha na comunicação");
+        } catch (err: any) {
+            console.log(err)
+            console.log(err.response);
+            console.log(err.response?.data);
+            return makeResult(false, [] as Product[], err.response?.data);
         }
     },
 }

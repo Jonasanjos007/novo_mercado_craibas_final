@@ -1,8 +1,8 @@
 import { ArrowLeft, MapPin, Heart, Shield, Star, Package, Users, Zap, Mail, Phone, Clock } from 'lucide-react';
-import { useStore } from '../context/store';
+import { useNavigate } from 'react-router-dom';
 
 export default function AboutPage() {
-  const { navigateTo } = useStore();
+  const navigate = useNavigate();
 
   const team = [
     { name: 'João Carlos', role: 'CEO & Fundador', emoji: '👨‍💼', bio: 'Empreendedor craibense com mais de 10 anos em e-commerce.' },
@@ -22,7 +22,7 @@ export default function AboutPage() {
     <div className="min-h-screen bg-[#f5f5f7]">
       <div className="bg-white border-b border-surface-100">
         <div className="max-w-7xl mx-auto px-4 py-5 flex items-center gap-3">
-          <button onClick={() => navigateTo('home')} className="p-2 rounded-xl text-surface-400 hover:text-surface-700 hover:bg-surface-100 transition-all">
+          <button onClick={() => navigate('/')} className="p-2 rounded-xl text-surface-400 hover:text-surface-700 hover:bg-surface-100 transition-all">
             <ArrowLeft className="w-5 h-5" />
           </button>
           <div>

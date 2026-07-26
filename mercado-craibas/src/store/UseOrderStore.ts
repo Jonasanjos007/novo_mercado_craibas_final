@@ -2,31 +2,34 @@ import { create } from "zustand";
 import { ProductsService } from "../service/ProductsService";
 import { makeResult, Result } from "../utils/Result";
 import { User } from "../models/User";
-import { Product } from "../models/Product";
+import { Category, Product } from "../models/Product";
 import { OrderService } from "../service/OrderService";
 import { Cupom } from "../models/Cupom";
 import { Order, OrderSave } from "../models/OrderSave";
 import { UseUserStore } from "./UseUserStore";
 import { CartItensProduct } from "../models/CartItensProduct";
 import { UseCartStore } from "./UseCartStore";
+import { OrderServiceAdmin } from "../adminService/OrderServiceAdmin";
 
 interface OrderState {
     LoadCupons: () => Promise<Result<boolean>>;
     Cupons: Cupom[];
     orders: Order[];
+    Category: Category[];
     SaveOrderUser: (Order: OrderSave) => Promise<Result<CartItensProduct | null>>;
     LoadOrders: () => Promise<Result<boolean>>;
+    LoadCategory: () => Promise<Result<boolean>>;
 }
 
 export const UseOrderStore = create<OrderState>((set, get) => ({
     Cupons: [],
     orders: [],
-
+    Category: [],
     LoadCupons: async (): Promise<Result<boolean>> => {
         const result = await OrderService.GetCupomSearch();
         if (!result.success) {
             set({ Cupons: [] });
-            return makeResult(false, false, "Erro ao carregar Cupom");
+            return makeResult(false, false, result.error);
         }
         set({ Cupons: result.data });
         return makeResult(true, true);
@@ -37,7 +40,7 @@ export const UseOrderStore = create<OrderState>((set, get) => ({
         console.log("resultigi.data", result.data);
         if (!result.success) {
             set({ orders: [] });
-            return makeResult(false, false, "Erro ao carregar pedidos");
+            return makeResult(false, false, result.error);
         }
         set({ orders: result.data || [] });
         return makeResult(true, true);
@@ -46,12 +49,12 @@ export const UseOrderStore = create<OrderState>((set, get) => ({
     SaveOrderUser: async (orderData: OrderSave) => {
         const { user } = UseUserStore.getState();
         if (!user) {
-            return makeResult(false, null, "Usuário não encontrado");
+            return makeResult(false, null);
         }
         const result = await OrderService.PostOrder(orderData);
 
         if (!result.success) {
-            return makeResult(false, null, "Erro ao salvar pedido");
+            return makeResult(false, null, result.error);
         } console.log("result.data teste", result.data)
         // const total = get().cartTotal();
         // const order: Order = {
@@ -66,6 +69,16 @@ export const UseOrderStore = create<OrderState>((set, get) => ({
         // get().clearCart();
         // return order;
         return makeResult(true, result.data);
+    },
+    LoadCategory: async (): Promise<Result<boolean>> => {
+        const result = await OrderServiceAdmin.GetCategoryAllListAdmin();
+        console.log("resultigi.data", result.data);
+        if (!result.success) {
+            set({ Category: [] as Category[] });
+            return makeResult(false, false, result.error);
+        }
+        set({ Category: result.data || [] as Category[] });
+        return makeResult(true, true);
     },
 
 }));

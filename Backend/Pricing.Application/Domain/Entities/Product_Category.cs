@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Mercado.Craibas.Application.Domain.Entities;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -10,6 +11,7 @@ namespace Baldan.Pricing.Application.Domain.Entities
     {
         public string Category { get; set; }
         public ICollection<Product> Product { get; set; } = [];
+        public ICollection<Coupon_Category> Coupon_Categories { get; set; } = [];
 
     }
 }

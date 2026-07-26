@@ -105,11 +105,25 @@ namespace Mercado.Craibas.Infrastructure.RepositoriesAdmin
 
             return true;
         }
-        public async Task<T?> GetClassById<T>(int id, string columnName) where T : class
+        public async Task<T?> GetClassById<T, TValue>(TValue value, string columnName) where T : class
         {
             return await _context.Set<T>()
                 .AsNoTracking()
-                .FirstOrDefaultAsync(x => EF.Property<int>(x, columnName) == id);
+                .FirstOrDefaultAsync(x => EF.Property<TValue>(x, columnName)!.Equals(value));
+        }
+
+        public async Task<List<T>> GetClassListById<T>(int id, string columnName) where T : class
+        {
+            return await _context.Set<T>()
+                .AsNoTracking()
+                .Where(x => EF.Property<int>(x, columnName) == id)
+                .ToListAsync();
+        }
+        public async Task<T?> GetClassAsyncWhere<T>(Expression<Func<T, bool>> predicate) where T : class
+        {
+            return await _context.Set<T>()
+                .AsNoTracking()
+                .FirstOrDefaultAsync(predicate);
         }
     }
 }

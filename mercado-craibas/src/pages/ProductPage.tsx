@@ -9,12 +9,14 @@ import { useNotification } from '../utils/NotificationCard';
 import Loading from '../components/Loading';
 import { UseProductStore } from '../store/UseProductStore';
 import { UseRouteStore } from '../store/UseRouteStore';
+import { UseOrderStore } from '../store/UseOrderStore';
 
 export const ProductPage = () => {
   const Controller = useProductController();
   const action = Controller?.action;
   const result = Controller?.result;
   const navigate = useNavigate();
+  const { Category } = UseOrderStore();
   const { selectedProductId, navigatePages } = UseRouteStore();
   const { products } = UseProductStore();
   const product = products.find(p => p.id === Number(selectedProductId));
@@ -30,7 +32,10 @@ export const ProductPage = () => {
     setQuantity(1);
     setImgIndex(0);
   }, [product?.id]);
-
+  if (!selectedProductId) {
+    navigate('/');
+    return null;
+  }
   if (!product) return null;
 
   return (
@@ -42,8 +47,17 @@ export const ProductPage = () => {
             <ArrowLeft className="w-3.5 h-3.5" /> Início
           </button>
           <span>/</span>
-          <button onClick={() => { navigatePages('category', null, product.category), navigate(`/category/${product.category}`) }} className="hover:text-brand-500 transition-colors capitalize">
-            {product.id_category}
+          <button
+            onClick={() => {
+              const categoryName =
+                Category.find(c => c.id === product.id_category)?.category ?? "Sem categoria";
+
+              navigatePages("category", null, categoryName);
+              navigate(`/category/${categoryName}`);
+            }}
+            className="hover:text-brand-500 transition-colors capitalize"
+          >
+            {Category.find(c => c.id === product.id_category)?.category ?? "Sem categoria"}
           </button>
           <span>/</span>
           <span className="text-surface-600 truncate max-w-[200px]">{product.name}</span>
@@ -108,7 +122,7 @@ export const ProductPage = () => {
             {/* Header */}
             <div>
               <div className="flex items-center gap-2 mb-2">
-                <span className="text-xs text-surface-400 font-body bg-surface-100 px-2 py-0.5 rounded-full capitalize">{product.category}</span>
+                <span className="text-xs text-surface-400 font-body bg-surface-100 px-2 py-0.5 rounded-full capitalize">{Category.find(c => c.id === product.id_category)?.category || "Sem categoria"}</span>
                 {product.freeShipping && (
                   <span className="text-xs text-green-600 font-body bg-green-50 px-2 py-0.5 rounded-full flex items-center gap-1">
                     <Truck className="w-3 h-3" /> Frete Grátis
@@ -166,8 +180,8 @@ export const ProductPage = () => {
                       <button
                         key={opt.id}
                         onClick={() => setSelectedVariations(prev => ({ ...prev, [type]: opt.value }))}
-                        className={`px-3 py-1.5 rounded-xl text-sm font-body border-2 transition-all ${selectedVariations[type] === opt.value ? 'border-brand-500 bg-brand-50 text-brand-700 font-semibold' : 'border-surface-200 text-surface-600 hover:border-brand-300'} ${opt.stock === 0 ? 'opacity-40 cursor-not-allowed line-through' : ''}`}
-                        disabled={opt.stock === 0}
+                        className={`px-3 py-1.5 rounded-xl text-sm font-body border-2 transition-all ${selectedVariations[type] === opt.value ? 'border-brand-500 bg-brand-50 text-brand-700 font-semibold' : 'border-surface-200 text-surface-600 hover:border-brand-300'} ${opt.stoke === 0 ? 'opacity-40 cursor-not-allowed line-through' : ''}`}
+                        disabled={opt.stoke === 0}
                       >
                         {opt.value}
                         {opt.price_Modifier && opt.price_Modifier > 0 ? ` (+${formatPrice(opt.price_Modifier)})` : ''}
@@ -258,7 +272,7 @@ export const ProductPage = () => {
               <p className="font-body text-surface-700 leading-relaxed text-base">{product.description}</p>
               <div className="mt-4 grid grid-cols-2 md:grid-cols-4 gap-3">
                 {[
-                  { label: 'Categoria', value: product.category },
+                  { label: 'Categoria', value: Category.find(c => c.id === product.id_category)?.category || "Sem categoria" },
                   { label: 'Estoque', value: `${product.total_Stock} unidades` },
                   { label: 'Avaliação', value: `${product.count_Rating}/5.0` },
                   { label: 'Vendidos', value: product.count_Sold.toLocaleString() },

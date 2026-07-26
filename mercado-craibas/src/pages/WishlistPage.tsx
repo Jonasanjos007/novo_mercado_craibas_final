@@ -49,11 +49,11 @@ export default function WishlistPage() {
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
             {wishlist.map(({ product, addedAt }) => {
-              const disc = product.originalPrice ? Math.round(((product.originalPrice - product.price) / product.originalPrice) * 100) : 0;
+              const disc = product.origin_Price ? Math.round(((product.origin_Price - product.price_Unic) / product.origin_Price) * 100) : 0;
               return (
                 <div key={product.id} className="bg-white rounded-2xl border border-surface-100 overflow-hidden hover:shadow-medium hover:-translate-y-0.5 transition-all group">
                   <div className="relative aspect-square overflow-hidden bg-surface-50 cursor-pointer" onClick={() => navigateTo('product', product.id)}>
-                    <img src={product.images[0]} alt={product.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+                    <img src={`/Imagens/Produtos/${product.imagens[0].url_Imagem}`} alt={product.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
                     {product.badge && (
                       <span className={`absolute top-2 left-2 text-white text-[10px] font-bold px-2 py-0.5 rounded-full ${badgeColors[product.badge]}`}>
                         {badgeLabels[product.badge]}
@@ -66,10 +66,10 @@ export default function WishlistPage() {
                   <div className="p-3">
                     <p className="font-body text-surface-700 text-xs line-clamp-2 mb-2 leading-relaxed">{product.name}</p>
                     <div className="mb-3">
-                      {product.originalPrice && (
-                        <p className="text-surface-300 text-[10px] line-through">{formatPrice(product.originalPrice)}</p>
+                      {product.origin_Price && (
+                        <p className="text-surface-300 text-[10px] line-through">{formatPrice(product.origin_Price)}</p>
                       )}
-                      <p className="font-display font-bold text-surface-900 text-lg">{formatPrice(product.price)}</p>
+                      <p className="font-display font-bold text-surface-900 text-lg">{formatPrice(product.price_Unic)}</p>
                     </div>
                     <div className="flex gap-2">
                       <button

@@ -17,11 +17,13 @@ export interface Product {
     tags: string;
     featured: boolean;
     insertDate: Date;
-
+    ativo?: boolean;
+    showBanner?: boolean;
+    valorDicont?: number;
 }
 
 export interface ProductAdmin {
-    id?: number;
+    id: number;
     name: string;
     description: string;
     price_Unic: number;
@@ -41,7 +43,8 @@ export interface ProductAdmin {
     insertDate: Date;
     removedImages: number[];
     removedVariants: number[];
-
+    ativo?: boolean;
+    showBanner?: boolean;
 }
 
 export interface ProductSaveOrder {
@@ -56,6 +59,9 @@ export interface ProductSaveOrder {
     badge?: string;
     Count_Rating?: number;
     variations: ProductVariation | null;
+    id_category?: number;
+    valorDicont?: number;
+
 }
 export interface ProductVariation {
     id: number;

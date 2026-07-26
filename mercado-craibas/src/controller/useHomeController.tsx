@@ -6,8 +6,9 @@ import { UseProductStore } from "../store/UseProductStore";
 import { UseCartStore } from "../store/UseCartStore";
 
 export const useHomeController = () => {
-    const { loadProducts } = UseProductStore();
-    const { LoadCartUser } = UseCartStore();
+    const { loadProducts, products } = UseProductStore();
+    const { LoadCartUser, cart } = UseCartStore();
+
     const { user } = UseUserStore();
     const notify = useNotification();
     const [Loading, SetLoading] = useState(false);
@@ -15,9 +16,13 @@ export const useHomeController = () => {
     useEffect(() => {
         const load = async () => {
             SetLoading(true);
-            await GetListProducts();
+            if (!products.length) {
+                await GetListProducts();
+            }
             if (user) {
-                await GetCartUser();
+                if (cart) {
+                    await GetCartUser();
+                }
             }
             SetLoading(false);
         };
@@ -26,12 +31,18 @@ export const useHomeController = () => {
     const GetListProducts = async () => {
         const result = await loadProducts();
         if (!result?.success) {
-            notify.error(result?.error || "Erro ao carregar produtos", "error");
+            notify.error(result.error?.error.code || "error", result?.error?.error.message || "Erro ao carregar produtos");
         }
     };
     const GetCartUser = async () => {
-        await LoadCartUser(user);
+        const result = await LoadCartUser(user);
+        if (user?.role === "CLIENTE") {
+            if (!result?.success) {
+                notify.error(result.error?.error.code || "error", result?.error?.error.message || "Erro ao carregar Carrinho!");
+            }
+        }
     };
+
     return {
         action: {
 

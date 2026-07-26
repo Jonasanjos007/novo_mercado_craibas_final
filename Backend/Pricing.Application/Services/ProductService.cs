@@ -2,6 +2,8 @@
 using Baldan.Pricing.Application.Domain.Entities;
 using Baldan.Pricing.Application.Interfaces;
 using Baldan.Pricing.Application.Interfaces.Repositories;
+using Baldan.Pricing.Application.Models.Enums;
+using Mercado.Craibas.Application.Domain.Entities;
 using Mercado.Craibas.Application.DTOs.Requests;
 using Mercado.Craibas.Application.DTOs.Responses;
 using Mercado.Craibas.Application.Interfaces.Repositories;
@@ -39,6 +41,7 @@ namespace Mercado.Craibas.Application.Services
                 Imagens = imagens_,
                 Count_Rating = product.Rating,
                 Review_Count = product.ReviewCount,
+                Id_category = product.Id_Category,
                 Count_Sold = product.CountSold,
                 variations = product.Variante_Products.ToList(),
                 Total_Stock = product.Total_Stock,
@@ -51,7 +54,7 @@ namespace Mercado.Craibas.Application.Services
         }
         public async Task<Result<List<ProductResponse>>> GetProductList()
         {
-            var Products = await _productRepository.GetAllProductAsyncList<Product>();
+            var Products = await _unitOfWork.GetClassListById<Product>(1,"Ativo");
 
             if (Products == null || !Products.Any())
             {
@@ -104,7 +107,9 @@ namespace Mercado.Craibas.Application.Services
                     Installments = Product.installments,
                     Tags = Product.Tags,
                     Featured = Product.Featured,
-                    InsertDate = Product.InsertDate
+                    InsertDate = Product.InsertDate,
+                    Ativo = Product.Ativo,
+                    ShowBanner = Product.ShowBanner
                     
 
                 });
@@ -121,6 +126,7 @@ namespace Mercado.Craibas.Application.Services
                 Quantity = CartProduto.Quantity,
                 Id_Product = CartProduto.Product.Id,
                 Id_Variante = CartProduto.SelectedVariation.Id,
+                Isdelete = false,
                 InsertDate = DateTime.Now
                 
             };
@@ -165,27 +171,27 @@ namespace Mercado.Craibas.Application.Services
             return Result<bool>.Success(true);
         }
 
-        public async Task<Result<List<CartItemResponse>>> GetProductCartList(int Id_Customer)
+        public async Task<Result<CartUserResponse>> GetProductCartList(int Id_Customer)
         {
             var Cart = await _unitOfWork.GetClassById<Cart>(Id_Customer, "Id_User_Customer");
 
-            if (Cart == null)
+            if (Cart is null)
             {
-                return Result<List<CartItemResponse>>.Failure(Error.Failure("Carriho","Você Não Tem Carrinho Entre em Contato com Suporte!"));
+                return Result<CartUserResponse>.Failure(Error.Failure("Carriho","Você Não Tem Carrinho Entre em Contato com Suporte!"));
             }
 
-            var ListItens = await _unitOfWork.GetClassListById<Cart_Item>(Cart.Id, "Id_Cart");
+            var ListItens = await _unitOfWork.GetClassListAsyncWhere<Cart_Item>(x => x.Id_Cart ==Cart.Id && x.Isdelete != true);
 
             var CartProductList = new List<CartItemResponse>();
 
-            foreach (var Product in ListItens)
+            foreach (var ProductOne in ListItens)
             {
-                var ProductSelected = await _unitOfWork.GetClassById<Product>(Product.Id_Product,"Id");
+                var ProductSelected = await _unitOfWork.GetClassAsyncWhere<Product>(x => x.Id == ProductOne.Id_Product && x.Isdelete != true);
 
-                var ImageProductSelected = await _productRepository.GetAllVariantAsyncListById<Imagens_Products>(ProductSelected.Id, "Id_Product");
+                var ImageProductSelected = await _unitOfWork.GetClassListAsyncWhere<Imagens_Products>(x => x.Id_Product == ProductSelected.Id && x.Isdelete != true);
 
 
-                var Variants = await _unitOfWork.GetClassById<Variante_Products>(Product.Id, "Id_Product");
+                var Variants = await _unitOfWork.GetClassAsyncWhere<Variante_Products>(x => x.Id_Product == ProductSelected.Id && x.Isdelete != true);
 
                 if (Variants == null)
                 {
@@ -205,16 +211,202 @@ namespace Mercado.Craibas.Application.Services
 
                 CartProductList.Add(new CartItemResponse
                 {
-                    Id = Product.Id,
+                    Id = ProductOne.Id,
                     Id_Cart = Cart.Id,
-                    Quantity = Product.Quantity,
+                    Quantity = ProductOne.Quantity,
                     SelectedVariation = CartVariant,
                     Product = MapToResponse(ProductSelected, ImageProductSelected)
 
 
                 });
             }
-            return Result<List<CartItemResponse>>.Success(CartProductList);
+            var total = CartProductList.Sum(x => x.Quantity * x.Product.Price_Unic);
+
+            var subtotal = CartProductList.Sum(x =>x.Quantity * x.Product.Price_Unic);
+            double discount = 0;
+            int? IdCupom = null ;
+            bool? ErroCupom = false;
+            string message = "";
+            string? Cod_Cupom = null;
+            string? DiscountTypeValue = null;
+            bool CouponApplied = false;
+            string? WhereApplyCoupon = null;
+
+            var getCupom = await _unitOfWork.GetClassAsyncWhere<Cupom>(x => x.Id == Cart.Id_Cupom && x.Isdelete != true);
+
+            var fees = await _unitOfWork.GetClassAsyncWhere<BaseRates>(x => x.Isdelete != true);
+
+
+            if (getCupom is not null)
+            {
+                IdCupom = getCupom.Id;
+                bool cupomValido = true;
+
+                if (!getCupom.Active)
+                {
+                    if(DateTime.Now > getCupom.Date_End)
+                    {
+                        ErroCupom = true;
+                        message = "Cupom Expirou! Cupom Vencido chegou a data de expiração!";
+                        cupomValido = false;
+                    }
+                    else
+                    {
+                        ErroCupom = true;
+                        message = "Cupom Inativo!";
+                        cupomValido = false;
+                    }
+
+                }
+                if(cupomValido && DateTime.Now < getCupom.Date_Start)
+                {
+                    ErroCupom = true;
+                    message = "Cupom ainda não está disponível";
+                    cupomValido = false;
+                }
+                if(cupomValido && DateTime.Now > getCupom.Date_End)
+                {
+                    ErroCupom = true;
+                    message = "Cupom expirado";
+                    cupomValido = false;
+                }
+                if(cupomValido && getCupom.Quantity_Used >= getCupom.Quantity_Uses)
+                {
+                    ErroCupom = true;
+                    message = "O limite de uso deste cupom foi atingido e ele foi removido do carrinho.";
+                    cupomValido = false;
+                }
+                if(cupomValido && getCupom.First_Order_Only)
+                {
+                    var OrderQuantity = await _unitOfWork.GetClassListAsyncWhere<Coupon_Use>(x => x.Id_User == Id_Customer && x.Id_Cupom == getCupom.Id && x.Isdelete != true);
+                    if(OrderQuantity.Count() > 0)
+                    {
+                        ErroCupom = true;
+                        message = "Este cupom é válido apenas para a primeira compra e foi removido do carrinho.";
+                        cupomValido = false;
+                    }
+                }
+                var usos = await _unitOfWork.GetClassListById<Coupon_Use>(Id_Customer, "Id_User");
+                if (cupomValido && usos.Count() >= getCupom.Per_User_Limit)
+                {
+                    ErroCupom = true;
+                    message = "Você já atingiu o limite de uso deste cupom.";
+                    cupomValido = false;
+                }
+
+                if(cupomValido && subtotal < getCupom.Minimum_Value)
+                {
+                    ErroCupom = true;
+                    message = "O valor mínimo da compra não foi atingido para utilizar este cupom.";
+                    cupomValido = false;
+                }
+
+                var Coupon_Product = await _unitOfWork.GetClassListAsyncWhere<Coupon_Product>(x => x.Id_Cupom == getCupom.Id && x.Isdelete != true);
+
+                var Coupon_Category = await _unitOfWork.GetClassListAsyncWhere<Coupon_Category>(x => x.Id_Cupom == getCupom.Id && x.Isdelete != true);
+
+            
+                // tipo porcentagem
+                if (getCupom.Discount_Type == DiscountType.Percentage)
+                {
+                    DiscountTypeValue = "Percentage";
+                    if (cupomValido && Coupon_Product.Count > 0)
+                    {
+                        WhereApplyCoupon = "Products";
+                        var productIds = Coupon_Product.Select(x => x.Id_Product).ToList();
+
+                        subtotal = CartProductList.Sum(x =>
+                        {
+                            var valor = x.Quantity * x.Product.Price_Unic;
+
+                            if (productIds.Contains(x.Product.Id))
+                            {
+                                var desconto = valor * (getCupom.Discount / 100.0);
+
+                                x.Product.ValorDicont = desconto;
+
+                                valor -= desconto;
+                            }
+                            else
+                            {
+                                x.Product.ValorDicont = 0;
+                            }
+
+                            return valor;
+                        });
+                        subtotal += fees.ShippingCost;
+                        CouponApplied = true;
+                    }
+
+                    if (cupomValido && Coupon_Category.Count > 0)
+                    {
+                        WhereApplyCoupon = "Categories";
+                        var categoryIds = Coupon_Category
+                            .Select(x => x.Id_Category)
+                            .ToHashSet();
+
+                        subtotal = CartProductList.Sum(x =>
+                        {
+                            var valor = x.Quantity * x.Product.Price_Unic;
+
+                            if (categoryIds.Contains(x.Product.Id_category))
+                            {
+                                var desconto = valor * (getCupom.Discount / 100.0);
+
+                                x.Product.ValorDicont = desconto;
+
+                                valor -= desconto;
+                            }
+                            else
+                            {
+                                x.Product.ValorDicont = 0;
+                            }
+
+                            return valor;
+                        });
+
+                        subtotal += fees.ShippingCost;
+                        CouponApplied = true;
+                    }
+                    discount = getCupom.Discount;
+                }
+                //Tipo Fixo 
+                if(getCupom.Discount_Type == DiscountType.FixedValue )
+                {
+                    DiscountTypeValue = "FixedValue";
+                    subtotal -= getCupom.Discount;
+                    discount = getCupom.Discount;
+                    subtotal += fees.ShippingCost;
+                    CouponApplied = true;
+                }
+
+                //Frete Gratis
+                if(getCupom.Discount_Type == DiscountType.FreeShipping)
+                {
+                    CouponApplied = true;
+                    DiscountTypeValue = "FreeShipping";
+                }
+            }
+            else
+            {
+                subtotal += fees.ShippingCost;
+            }
+
+                return Result<CartUserResponse>.Success(new CartUserResponse
+                {
+                    CartItensProduct = CartProductList,
+                    SubTotal = subtotal,
+                    Discount = discount,
+                    Total = total,
+                    Cupom = Cod_Cupom,
+                    Id_Cupom = IdCupom,
+                    ErroCupom = ErroCupom,
+                    Menssege = message,
+                    ShippingCost = DiscountTypeValue == "FreeShipping" ? 0 : fees.ShippingCost ?? 0,
+                    Discount_Type = DiscountTypeValue,
+                    CouponApplied = CouponApplied,
+                    WhereApplyCoupon = WhereApplyCoupon
+                });
         }
         public async Task<Result<bool>>DeleteProductCartList(int Id_Customer)
         {

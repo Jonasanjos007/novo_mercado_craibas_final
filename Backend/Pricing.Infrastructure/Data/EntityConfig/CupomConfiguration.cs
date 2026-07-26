@@ -4,8 +4,7 @@ using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
 namespace Mercado.Craibas.Infrastructure.Configurations
 {
-    public class CupomConfiguration
-        : IEntityTypeConfiguration<Cupom>
+    public class CupomConfiguration : IEntityTypeConfiguration<Cupom>
     {
         public void Configure(EntityTypeBuilder<Cupom> builder)
         {
@@ -18,17 +17,43 @@ namespace Mercado.Craibas.Infrastructure.Configurations
                 .HasMaxLength(150);
 
             builder.Property(x => x.Cod_Cupom)
-                .IsRequired();
+                .IsRequired()
+                .HasMaxLength(50);
 
-            builder.Property(x => x.Descriotion)
+            builder.HasIndex(x => x.Cod_Cupom)
+                .IsUnique();
+
+            builder.Property(x => x.Description)
                 .HasMaxLength(500);
 
-            builder.Property(x => x.Discont)
+            builder.Property(x => x.Discount)
+                .HasColumnType("decimal(18,2)")
                 .IsRequired();
 
+            builder.Property(x => x.Discount_Type)
+                .HasConversion<int>()
+                .IsRequired();
 
             builder.Property(x => x.Active)
                 .IsRequired();
+
+            builder.Property(x => x.Minimum_Value)
+                .HasColumnType("decimal(18,2)");
+
+            builder.Property(x => x.Maximum_Discount)
+                .HasColumnType("decimal(18,2)");
+
+            builder.Property(x => x.Quantity_Uses);
+
+            builder.Property(x => x.Quantity_Used);
+
+            builder.Property(x => x.Per_User_Limit);
+
+            builder.Property(x => x.First_Order_Only);
+
+            builder.Property(x => x.Date_Start);
+
+            builder.Property(x => x.Date_End);
 
             builder.HasMany(x => x.Orders)
                 .WithOne(x => x.Cupom)

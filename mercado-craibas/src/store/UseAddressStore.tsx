@@ -1,16 +1,16 @@
 import { Address } from "../models/Address";
 import { create } from "zustand";
 import { AddressService } from "../service/AddressService";
-import { makeResult } from "../utils/Result";
+import { makeResult, Result } from "../utils/Result";
 import { User } from "../models/User";
 
 interface AddressState {
-    saveAddress: (anddres: Address, Id_User: number) => Promise<{ success?: boolean; error?: string }>;
-    updateAddress: (anddres: Address) => Promise<{ success?: boolean; error?: string }>;
+    saveAddress: (anddres: Address, Id_User: number) => Promise<Result<boolean>>;
+    updateAddress: (anddres: Address) => Promise<Result<boolean>>;
     removerAddress: (Address: Address) => Promise<{ success?: boolean; error?: { data: any; success: boolean; }; }>;
     setAddress: (address: Address[] | []) => void;
     address: Address[];
-    LoadAddressUser: () => Promise<{ success?: boolean; error?: string }>;
+    LoadAddressUser: () => Promise<Result<boolean>>;
 }
 
 export const UseAddressStore = create<AddressState>((set, get) => ({
@@ -20,10 +20,10 @@ export const UseAddressStore = create<AddressState>((set, get) => ({
 
         if (!ListAddress.success) {
             set({ address: [] });
-            return makeResult(false, ListAddress.error || "Erro ao carregar carrinho");
+            return makeResult(false, false, ListAddress.error);
         }
         set({ address: ListAddress.data || [] });
-        return makeResult(true);
+        return makeResult(true, true);
     },
     saveAddress: async (anddres: Address, Id_User: number) => {
         anddres.id_User_Customer = Id_User;

@@ -14,6 +14,8 @@ interface OrderState {
     LoadOrdersAdmin: () => Promise<Result<boolean>>;
     LoadLogsAdmin: () => Promise<Result<boolean>>;
     LoadCategoryAdmin: () => Promise<Result<boolean>>;
+    UpdateNewStatusOrder: (Id_Order: number, New_Status: string) => Promise<Result<boolean>>;
+
 }
 
 export const UseOrderAdminStore = create<OrderState>((set, get) => ({
@@ -25,7 +27,7 @@ export const UseOrderAdminStore = create<OrderState>((set, get) => ({
         console.log("resultigi.data", result.data);
         if (!result.success) {
             set({ ordersAdmin: [] });
-            return makeResult(false, false, "Erro ao carregar pedidos");
+            return makeResult(false, false, result.error);
         }
         set({ ordersAdmin: result.data || [] });
         return makeResult(true, true);
@@ -36,7 +38,7 @@ export const UseOrderAdminStore = create<OrderState>((set, get) => ({
         console.log("resultigi.data", result.data);
         if (!result.success) {
             set({ logs: [] as Logs[] });
-            return makeResult(false, false, "Erro ao carregar logs");
+            return makeResult(false, false, result.error);
         }
         set({ logs: result.data || [] as Logs[] });
         return makeResult(true, true);
@@ -46,9 +48,18 @@ export const UseOrderAdminStore = create<OrderState>((set, get) => ({
         console.log("resultigi.data", result.data);
         if (!result.success) {
             set({ Category: [] as Category[] });
-            return makeResult(false, false, "Erro ao carregar logs");
+            return makeResult(false, false, result.error);
         }
         set({ Category: result.data || [] as Category[] });
+        return makeResult(true, true);
+    },
+    UpdateNewStatusOrder: async (Id_Order: number, New_Status: string): Promise<Result<boolean>> => {
+        const result = await OrderServiceAdmin.PostUpdateNewStatus(Id_Order, New_Status);
+        console.log("resultigi.data", result.data);
+        if (!result.success) {
+            return makeResult(false, false, result.error);
+        }
+        await get().LoadOrdersAdmin();
         return makeResult(true, true);
     },
 }));

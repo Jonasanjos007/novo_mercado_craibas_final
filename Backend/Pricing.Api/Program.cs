@@ -46,16 +46,18 @@ namespace Pricing.Api
             });
 
             // CORS
-            builder.Services.AddCors(options =>
+         
+    builder.Services.AddCors(options =>
             {
                 options.AddDefaultPolicy(policy =>
                 {
-                    policy.WithOrigins("http://192.168.15.11:5173")
-                          .AllowAnyHeader()
-                          .AllowAnyMethod();
-                });
+                   policy.WithOrigins(
+                            "http://192.168.15.11:5173"
+                        )
+                        .AllowAnyHeader()
+                        .AllowAnyMethod();
+                }); 
             });
-
             // Auth
 
             builder.Services
@@ -91,6 +93,7 @@ namespace Pricing.Api
             builder.Services.AddScoped<IUnitOfWorkAdmin, IUnitOfWorkAdminRepository>();
             builder.Services.AddScoped<IProductServiceAdmin, ProductServiceAdmin>();
             builder.Services.AddScoped<IOrderAdminService, OrderServiceAdmin>();
+            builder.Services.AddScoped<ICupomAdminService, CupomServiceAdmin>();
             builder.Services.AddScoped<IProductService, ProductService>();
             builder.Services.AddScoped<IProductRepository, ProductRepository>();
             builder.Services.AddScoped<IOrderService, OrderService>();

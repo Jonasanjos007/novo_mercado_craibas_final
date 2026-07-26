@@ -14,8 +14,11 @@ export const AddressService = {
                 return makeResult(false, {} as Address, error);
             }
             return makeResult(success, data, error);
-        } catch {
-            return makeResult(false, {} as Address, "Falha na comunicação");
+        } catch (err: any) {
+            console.log(err)
+            console.log(err.response);
+            console.log(err.response?.data);
+            return makeResult(false, {} as Address, err.response?.data);
         }
 
 
@@ -29,8 +32,11 @@ export const AddressService = {
                 return makeResult(false, {} as Address[], error);
             }
             return makeResult(success, data, error);
-        } catch {
-            return makeResult(false, {} as Address[], "Falha na comunicação");
+        } catch (err: any) {
+            console.log(err)
+            console.log(err.response);
+            console.log(err.response?.data);
+            return makeResult(false, {} as Address[], err.response?.data);
         }
 
 
@@ -45,8 +51,11 @@ export const AddressService = {
             }
             return makeResult(success, data);
 
-        } catch {
-            return makeResult(false, {} as Address, "Falha na comunicação");
+        } catch (err: any) {
+            console.log(err)
+            console.log(err.response);
+            console.log(err.response?.data);
+            return makeResult(false, {} as Address, err.response?.data);
         }
     },
     DeleteAddress: async (address: Address): Promise<Result<boolean>> => {

@@ -82,7 +82,7 @@ api.interceptors.response.use(
             isRefreshing = true;
 
             try {
-                const response = await api.post("/auth/refresh", {
+                const response = await api.post("/v1/auth/refresh", {
                     refreshToken: tokens.refreshToken,
                 });
 

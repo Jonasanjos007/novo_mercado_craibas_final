@@ -13,12 +13,15 @@ export const OrderServiceAdmin = {
             console.log("response.datalist", response)
             const { success, data, error } = response.data;
             if (!success) {
-                return makeResult(false, [], error || "Erro ao buscar pedidos");
+                return makeResult(false, [], error);
             }
 
             return makeResult(true, data || [], error);
-        } catch {
-            return makeResult(false, [], "Falha na comunicação");
+        } catch (err: any) {
+            console.log(err)
+            console.log(err.response);
+            console.log(err.response?.data);
+            return makeResult(false, [], err.response?.data);
         }
     },
     GetLogsAllListAdmin: async (): Promise<Result<Logs[]>> => {
@@ -31,8 +34,11 @@ export const OrderServiceAdmin = {
             }
 
             return makeResult(true, data || [], error);
-        } catch {
-            return makeResult(false, [], "Falha na comunicação");
+        } catch (err: any) {
+            console.log(err)
+            console.log(err.response);
+            console.log(err.response?.data);
+            return makeResult(false, [], err.response?.data);
         }
     },
     GetCategoryAllListAdmin: async (): Promise<Result<Category[]>> => {
@@ -45,8 +51,28 @@ export const OrderServiceAdmin = {
             }
 
             return makeResult(true, data || [], error);
-        } catch {
-            return makeResult(false, [], "Falha na comunicação");
+        } catch (err: any) {
+            console.log(err)
+            console.log(err.response);
+            console.log(err.response?.data);
+            return makeResult(false, [], err.response?.data);
+        }
+    },
+    PostUpdateNewStatus: async (Id_Order: number, New_Order: string): Promise<Result<boolean>> => {
+        try {
+            const response = await api.post(`/admin/orders/PostUpdateOrderNewStatus?Id_Order=${Id_Order}&NewStatus=${New_Order}`);
+            console.log("response.datalist", response);
+            const { success, data, error } = response.data;
+            if (!success) {
+                return makeResult(false, false, error || "Erro ao atualizar status!");
+            }
+
+            return makeResult(true, success, error);
+        } catch (err: any) {
+            console.log(err)
+            console.log(err.response);
+            console.log(err.response?.data);
+            return makeResult(false, false, err.response?.data);
         }
     },
 
