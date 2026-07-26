@@ -1,4 +1,4 @@
-import { Package, MapPin, ChevronRight, ArrowLeft, Hash, Calendar, CreditCard, BadgePercent, ShoppingCart, X } from 'lucide-react';
+import { Package, MapPin, ChevronRight, ArrowLeft, Hash, Calendar, CreditCard, BadgePercent, ShoppingCart, X, Ticket, TicketPercent, ShoppingBag } from 'lucide-react';
 import { useStore } from '../context/store';
 import { formatPrice, orderStatusLabels, orderStatusColors, orderStatusSteps } from '../utils';
 import { useNavigate } from 'react-router-dom';
@@ -9,18 +9,25 @@ import { getColorConfig } from '../types/Colors';
 import Headerpages from '../components/Headerpages';
 import { useState } from 'react';
 import { Order } from '../models/OrderSave';
+import { Cupom } from '../models/Cupom';
+import Loading from '../components/Loading';
 
 export default function OrdersPage() {
   const Controller = useOrdersController();
 
   const navigate = useNavigate();
   const { orders } = UseOrderStore();
-  // const { orders } = useStore();
+  const { Cupons } = UseOrderStore();
+
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
+  const [selectedCupom, setSelectedCupom] = useState<Cupom | null>(null);
+
   const [expandedOrder, setExpandedOrder] = useState<number | null>(null);
   const { NameColorGlobal, ColorGlobalHoverText, ColorGlobalTema } = UseUserStore();
   const colorConfig = getColorConfig(NameColorGlobal);
-  console.log('colorConfig:', colorConfig);
+  console.log('orders:', orders);
+  console.log('selectedCupom:', selectedCupom);
+
   const userOrders = orders;
   const getTotalOriginalOrder = (idOrder: number) => {
     const order = orders.find(o => o.id_Order === idOrder);
@@ -84,21 +91,11 @@ export default function OrdersPage() {
                 <button
                   key={filter.value}
                   onClick={() => setStatusFilter(filter.value)}
-                  className={`
-              shrink-0
-              px-4
-              py-2.5
-              rounded-full
-              text-xs
-              font-semibold
-              transition-all
-              duration-200
+                  className={`shrink-0 px-4 py-2.5 rounded-full text-xs font-semibold transition-all duration-200
               ${statusFilter === filter.value
                       ? `${ColorGlobalTema} text-white shadow-lg scale-105`
                       : "bg-surface-100 text-surface-500 hover:bg-surface-200 hover:text-surface-700"
-                    }
-            `}
-                >
+                    }`}>
                   {filter.label}
                 </button>
               ))}
@@ -123,6 +120,7 @@ export default function OrdersPage() {
             const statusIdx = orderStatusSteps.indexOf(order.order_Status);
             const itemsCount = order.products.reduce((s, i) => s + i.quantity, 0);
             const isPending = order.status_Pay === "PENDENTE";
+            const cupomSelecionado = Cupons.find(c => c.id === order.id_Cupom) ?? null;
 
             return (
               <div
@@ -135,124 +133,138 @@ export default function OrdersPage() {
                 />
 
                 {/* Header */}
-                <div className="p-5 border-b border-surface-100">
-                  <div className="flex flex-col sm:flex-row justify-between gap-4">
-
-                    <div className="flex gap-3">
-
+                <div className="p-4 sm:p-5 border-b border-surface-100">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="flex gap-3 min-w-0">
                       <div className="flex -space-x-2 shrink-0">
                         {order.products.slice(0, 3).map((item, i) => (
                           <img
                             key={i}
                             src={`/Imagens/Produtos/${item.imagens?.[0]?.url_Imagem}`}
-                            className="w-14 h-14 rounded-xl border-2 border-white shadow object-cover"
+                            className="w-11 h-11 sm:w-14 sm:h-14 rounded-xl border-2 border-white shadow object-cover"
                           />
                         ))}
 
                         {order.products.length > 3 && (
-                          <div className="w-14 h-14 rounded-xl bg-surface-100 border-2 border-white flex items-center justify-center text-xs font-bold">
+                          <div className="w-11 h-11 sm:w-14 sm:h-14 rounded-xl bg-surface-100 border-2 border-white flex items-center justify-center text-xs font-bold shrink-0">
                             +{order.products.length - 3}
                           </div>
                         )}
                       </div>
 
-                      <div>
+                      <div className="min-w-0">
+                        <h3 className="font-display font-bold text-surface-900 text-sm truncate">
+                          Pedido #{order.number_Order}
+                        </h3>
 
-                        <div className="flex items-center gap-2 flex-wrap">
-                          <h3 className="font-display font-bold text-surface-900">
-                            Pedido #{order.number_Order}
-                          </h3>
-
-                          {isPending && (
-                            <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-amber-50 border border-amber-200 text-amber-700 text-[10px] font-bold">
-                              <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse" />
-                              Pagamento pendente
-                            </span>
-                          )}
-                        </div>
-
-                        <p className="text-xs text-surface-400 mt-2">
+                        <p className="text-xs text-surface-400 mt-0.5">
                           {new Date(order.insertDate).toLocaleDateString("pt-BR")} •{" "}
                           {itemsCount} {itemsCount === 1 ? "item" : "itens"}
                         </p>
-
-                        <span
-                          className={`inline-flex mt-3 px-3 py-1 rounded-full text-[11px] font-bold ${orderStatusColors[order.order_Status]}`}
-                        >
-                          {orderStatusLabels[order.order_Status]}
-                        </span>
-
                       </div>
-
                     </div>
 
-                    <div className="flex flex-row sm:flex-col justify-between items-end">
-                      <p className="font-display font-bold text-xl text-surface-900">
+                    <div className="flex flex-col items-end gap-2 shrink-0">
+                      <p className="font-display font-bold text-base sm:text-xl text-surface-900">
                         {formatPrice(order.total_Value_Order)}
                       </p>
 
                       <button
-                        onClick={() => setSelectedOrder(order)}
-                        className={`${colorConfig.class_text} flex items-center gap-1 text-sm font-semibold group-hover:translate-x-1 transition-all`}
+                        onClick={() => {
+                          setSelectedOrder(order),
+                            setSelectedCupom(Cupons.find(c => c.id === order.id_Cupom) ?? null)
+
+                        }}
+                        className={`flex items-center gap-0.5 px-2.5 py-1 rounded-lg text-xs font-semibold ${colorConfig.class_text} bg-surface-50 hover:bg-surface-100 transition-all whitespace-nowrap`}
                       >
-                        Ver detalhes
-                        <ChevronRight className="w-4 h-4" />
+                        Detalhes
+                        <ChevronRight className="w-3.5 h-3.5" />
                       </button>
                     </div>
-
                   </div>
+
+                  {/* Badges: agora fora da coluna do título, com a largura total do card */}
+                  <div className="flex flex-wrap items-center gap-0.5 mt-3">
+                    <span
+                      className={`inline-flex px-2.5 py-1 rounded-full text-[10px] font-bold ${orderStatusColors[order.order_Status]}`}
+                    >
+                      {orderStatusLabels[order.order_Status]}
+                    </span>
+
+                    {isPending && (
+                      <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-amber-50 border border-amber-200 text-amber-700 text-[10px] font-bold">
+                        <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse" />
+                        Pagamento pendente
+                      </span>
+                    )}
+
+                    {order.couponApplied && (
+                      <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-green-50 border border-green-200">
+                        <Ticket className="w-3 h-3 text-green-600 shrink-0" />
+                        <span className="text-[10px] font-semibold text-green-700 truncate max-w-[110px]">
+                          Cupom: {cupomSelecionado?.cod_Cupom}
+                        </span>
+                      </span>
+                    )}
+                  </div>
+                  <Loading
+                    loading={Controller?.result.Loading || false}
+                    message="Carregando Pedidos..."
+                    subMessage="Aguarde..."
+                  />
                 </div>
-
                 {/* Timeline */}
-                {!isPending && (
-                  <div className="px-5 py-4 bg-surface-50 border-b border-surface-100">
-                    <div className="flex justify-between relative">
+                {
+                  !isPending && (
+                    <div className="px-5 py-4 bg-surface-50 border-b border-surface-100">
+                      <div className="flex justify-between relative">
 
-                      <div className="absolute left-7 right-7 top-3.5 h-1 bg-surface-200 rounded-full" />
+                        <div className="absolute left-7 right-7 top-3.5 h-1 bg-surface-200 rounded-full" />
 
-                      <div
-                        className="absolute left-7 top-3.5 h-1 bg-green-600 rounded-full transition-all"
-                        style={{
-                          width: `${(statusIdx / (orderStatusSteps.length - 1)) * 84}%`
-                        }}
-                      />
+                        <div
+                          className="absolute left-7 top-3.5 h-1 bg-green-600 rounded-full transition-all"
+                          style={{
+                            width: `${(statusIdx / (orderStatusSteps.length - 1)) * 84}%`
+                          }}
+                        />
 
-                      {orderStatusSteps.map((step, i) => {
-                        const done = i <= statusIdx;
+                        {orderStatusSteps.map((step, i) => {
+                          const done = i <= statusIdx;
 
-                        return (
-                          <div key={step} className="relative z-10 flex flex-col items-center">
+                          return (
+                            <div key={step} className="relative z-10 flex flex-col items-center">
 
-                            <div
-                              className={`w-7 h-7 rounded-full border-2 flex items-center justify-center text-[10px] font-bold
+                              <div
+                                className={`w-7 h-7 rounded-full border-2 flex items-center justify-center text-[10px] font-bold
                     ${done
-                                  ? "bg-green-600 border-green-600 text-white"
-                                  : "bg-white border-surface-300 text-surface-300"
-                                }`}
-                            >
-                              {done ? "✓" : i + 1}
+                                    ? "bg-green-600 border-green-600 text-white"
+                                    : "bg-white border-surface-300 text-surface-300"
+                                  }`}
+                              >
+                                {done ? "✓" : i + 1}
+                              </div>
+
+                              <span
+                                className={`mt-1 text-[9px] text-center max-w-[55px]
+                    ${done
+                                    ? "text-green-600"
+                                    : "text-surface-400"
+                                  }`}
+                              >
+                                {orderStatusLabels[step]}
+                              </span>
+
                             </div>
+                          );
+                        })}
 
-                            <span
-                              className={`mt-1 text-[9px] text-center max-w-[55px]
-                    ${done
-                                  ? "text-green-600"
-                                  : "text-surface-400"
-                                }`}
-                            >
-                              {orderStatusLabels[step]}
-                            </span>
-
-                          </div>
-                        );
-                      })}
-
+                      </div>
                     </div>
-                  </div>
-                )}
+                  )
+                }
 
                 {/* Produtos */}
-                <div className="p-5 space-y-3">
+                <div className=" space-y-3">
 
                   <div className="px-5 py-4 border-t border-surface-100">
 
@@ -265,9 +277,7 @@ export default function OrdersPage() {
                       <div className="flex items-center gap-2">
                         <Package className="w-4 h-4" />
                         <span className="font-semibold text-sm">
-                          {expandedOrder === order.id_Order
-                            ? "Ocultar produtos"
-                            : `Ver produtos (${order.products.length})`}
+                          {expandedOrder === order.id_Order ? "Ocultar produtos" : `Ver produtos (${order.products.length})`}
                         </span>
                       </div>
 
@@ -436,42 +446,121 @@ export default function OrdersPage() {
                     </div>
                   )}
 
-                  {selectedOrder.discont && (
+                  {(selectedOrder.discont > 0) && selectedOrder.couponApplied && (
                     <div className="flex items-start gap-2 p-3 bg-surface-50 rounded-xl">
                       <BadgePercent className="w-4 h-4 text-surface-400 mt-0.5 shrink-0" />
                       <div>
                         <p className="text-[10px] text-surface-400 font-body">Disconto</p>
                         <p className="text-sm font-bold text-surface-900">
-                          {selectedOrder.discont.toLocaleString("pt-BR", {
-                            style: "currency",
-                            currency: "BRL",
-                          })}
+                          {formatPrice(selectedOrder.discont)}
                         </p>
                       </div>
                     </div>
-
+                  )}
+                  {selectedOrder.discount_Type === "FreeShipping" && (
+                    <div className="flex items-start gap-2 p-3 bg-surface-50 rounded-xl">
+                      <BadgePercent className="w-4 h-4 text-surface-400 mt-0.5 shrink-0" />
+                      <div>
+                        <p className="text-[10px] text-surface-400 font-body">Cupom</p>
+                        <p className="text-sm font-bold text-surface-900">
+                          Frete Grátis
+                        </p>
+                      </div>
+                    </div>
                   )}
                 </div>
+                {selectedOrder.id_Cupom && (
+                  <div className="grid grid-cols-2 gap-2">
 
+                    <div className="flex items-start gap-2 p-3 bg-surface-50 rounded-xl">
+                      <ShoppingBag className="w-4 h-4 text-surface-400 mt-0.5 shrink-0" />
+                      <div>
+                        <p className="text-[10px] text-surface-400 font-body">Cupom Mín. compra</p>
+                        <p className="text-sm font-bold text-surface-900">
+                          {formatPrice(selectedCupom?.minimum_Value || 0)}
+                        </p>
+                      </div>
+                    </div>
+                    {selectedOrder.couponApplied && (
+                      <div className="flex items-start gap-2 p-3 bg-surface-50 rounded-xl">
+                        <TicketPercent className="w-4 h-4 text-surface-400 mt-0.5 shrink-0" />
+                        <div>
+                          <p className="text-[10px] text-black-400 font-body">Cupom aplicado</p>
+                          <p className="text-sm font-bold text-surface-900 truncate">
+                            {selectedCupom?.cod_Cupom}
+                          </p>
+                        </div>
+                      </div>)}
+                  </div>
+                )}
                 {/* Endereço */}
                 {selectedOrder.address && (
-                  <div className="p-3 bg-surface-50 rounded-xl flex items-start gap-2">
-                    <MapPin className="w-4 h-4 text-surface-400 mt-0.5 shrink-0" />
-                    <div>
-                      <p className="text-[10px] text-surface-400 font-body">Endereço de entrega</p>
-                      <p className="text-sm font-semibold text-surface-900">
-                        {selectedOrder.address.road}, {selectedOrder.address.number}
-                      </p>
-                      <p className="text-xs text-surface-500">
-                        {selectedOrder.address.neighborhood ? `${selectedOrder.address.neighborhood} · ` : ""}
-                        {selectedOrder.address.city} - {selectedOrder.address.state}
-                      </p>
-                      {selectedOrder.address.number && (
-                        <p className="text-xs text-surface-400">CEP: {selectedOrder.address.number}</p>
-                      )}
+                  <div className="rounded-xl bg-surface-50 p-4">
+                    <div className="flex items-start gap-3">
+                      <MapPin className="w-5 h-5 text-surface-400 mt-1 shrink-0" />
+
+                      <div className="flex-1">
+                        <p className="text-xs text-surface-500 mb-2">
+                          Endereço de entrega
+                        </p>
+
+                        <h3 className="text-base font-bold text-surface-900">
+                          {selectedOrder.address.road}, {selectedOrder.address.number}
+                        </h3>
+
+                        <div className="grid grid-cols-2 gap-x-6 gap-y-2 mt-3 text-sm">
+                          <div>
+                            <span className="text-surface-500">Destinatário</span>
+                            <p className="font-medium">
+                              {selectedOrder.address.name}
+                            </p>
+                          </div>
+
+                          <div>
+                            <span className="text-surface-500">Bairro</span>
+                            <p className="font-medium">
+                              {selectedOrder.address.neighborhood || "-"}
+                            </p>
+                          </div>
+
+                          <div>
+                            <span className="text-surface-500">Cidade</span>
+                            <p className="font-medium">
+                              {selectedOrder.address.city}
+                            </p>
+                          </div>
+
+                          <div>
+                            <span className="text-surface-500">Estado</span>
+                            <p className="font-medium">
+                              {selectedOrder.address.state || "-"}
+                            </p>
+                          </div>
+
+                          {selectedOrder.address.supplement && (
+                            <div className="col-span-2">
+                              <span className="text-surface-500">Complemento</span>
+                              <p className="font-medium">
+                                {selectedOrder.address.supplement}
+                              </p>
+                            </div>
+                          )}
+
+                          {selectedOrder.address.referencePoint && (
+                            <div className="col-span-2">
+                              <span className="text-surface-500">Ponto de referência</span>
+                              <p className="font-medium">
+                                {selectedOrder.address.referencePoint}
+                              </p>
+                            </div>
+                          )}
+                        </div>
+                      </div>
                     </div>
                   </div>
                 )}
+
+
 
                 {/* Produtos */}
                 <div>
@@ -509,9 +598,17 @@ export default function OrdersPage() {
                           </p>
                         </div>
 
-                        <p className="text-sm font-bold text-surface-900 shrink-0">
-                          {formatPrice(item.price_Unic * item.quantity)}
-                        </p>
+                        <div className="flex flex-col items-end">
+                          <p className="text-sm font-bold text-surface-900 shrink-0">
+                            {formatPrice(item.price_Unic * item.quantity)}
+                          </p>
+
+
+                          {(item.valorDicont || 0) > 0 && (<p className="text-sm font-bold text-green-600 shrink-0">
+                            Cupom:{formatPrice(item.valorDicont || 0)}
+                          </p>)}
+
+                        </div>
                       </div>
                     ))}
                   </div>
@@ -532,20 +629,27 @@ export default function OrdersPage() {
                           <span className="text-sm text-surface-500">
                             Valor dos produtos
                           </span>
+                          {(selectedOrder.total_Value_OrderCupom || 0) > 0 && (
+                            <span className="font-semibold text-surface-900">
+                              {formatPrice((selectedOrder.total_Value_OrderCupom || 0))}
+                            </span>)}
 
-                          <span className="font-semibold text-surface-900">
-                            {formatPrice(getTotalOriginalOrder(selectedOrder.id_Order))}
-                          </span>
                         </div>
 
                         <div className="flex items-center justify-between">
                           <span className="text-sm text-surface-500">
-                            Desconto
+                            Desconto Total
                           </span>
+                          {selectedOrder.discont === 0 ?
+                            (
+                              <span className="font-bold text-green-600">
+                                Fréte Grátis
+                              </span>
+                            ) : (
+                              <span className="font-bold text-green-600">
+                                - {formatPrice(selectedOrder.discont)}
+                              </span>)}
 
-                          <span className="font-bold text-green-600">
-                            - {formatPrice(selectedOrder.discont)}
-                          </span>
                         </div>
                       </>
                     )}
@@ -556,14 +660,14 @@ export default function OrdersPage() {
                       </span>
 
                       <span
-                        className={`font-semibold ${selectedOrder.total_Value_Order === 0
+                        className={`font-semibold ${selectedOrder.discount_Type === "FreeShipping"
                           ? "text-green-600"
                           : "text-surface-900"
                           }`}
                       >
-                        {selectedOrder.total_Value_Order === 0
+                        {selectedOrder.discount_Type === "FreeShipping"
                           ? "Grátis"
-                          : formatPrice(selectedOrder.total_Value_Order)}
+                          : formatPrice(selectedOrder.shippingCost || 0)}
                       </span>
                     </div>
 
@@ -601,6 +705,8 @@ export default function OrdersPage() {
           </div>
         )}
       </div>
-    </div>
+
+    </div >
   );
+
 }

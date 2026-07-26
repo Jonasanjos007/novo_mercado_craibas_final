@@ -19,7 +19,7 @@ type CategoryControllerReturn = {
 } | null;
 
 export const useCategoryController = (): CategoryControllerReturn => {
-    const { loadProducts ,products} = UseProductStore();
+    const { loadProducts, products } = UseProductStore();
     const { LoadCategory } = UseOrderStore();
     const notify = useNotification();
     const [Loading, SetLoading] = useState(false);
@@ -27,8 +27,7 @@ export const useCategoryController = (): CategoryControllerReturn => {
 
         const load = async () => {
             SetLoading(true);
-            if(!products) await GetListProducts();
-            await GetListCategory();
+            if (!products) await GetListProducts();
             SetLoading(false);
         };
         load();
@@ -40,13 +39,7 @@ export const useCategoryController = (): CategoryControllerReturn => {
             notify.error(result?.error?.error.code || "error", result?.error?.error.message || "Erro ao carregar produtos");
         }
     };
-    const GetListCategory = async () => {
-        const result = await LoadCategory();
-        // SetLoading(false);
-        if (!result?.success) {
-            notify.error(result.error?.error.code || "error", result?.error?.error.message || "Erro ao carregar Categorias");
-        }
-    };
+
     return {
         result: {
             Loading

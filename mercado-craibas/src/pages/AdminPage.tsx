@@ -61,12 +61,12 @@ export default function AdminPage() {
 
   const Controller = useAdminController();
   const { ordersAdmin, logs, Category } = UseOrderAdminStore();
-  const { user } = UseUserStore();
+  const { user, logout } = UseUserStore();
   const { products } = UseProductAdminStore();
   const { orders } = UseOrderStore();
   const { navigatePages, navigateTo } = UseRouteStore();
   const { cupom } = UseCupomAdminStore();
-
+  console.log("products", products)
   const [tab, setTab] = useState<AdminTab>('dashboard');
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [productSearch, setProductSearch] = useState('');
@@ -496,7 +496,7 @@ export default function AdminPage() {
         <button onClick={() => { setSidebarOpen(false); navigate('/'); }} className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all ${txt2} ${dk ? 'hover:bg-white/[0.06]' : 'hover:bg-surface-50'}`}>
           <Store className="w-4 h-4" /> Ver Loja
         </button>
-        <button onClick={() => { navigateTo('home'); }} className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all text-red-400 hover:bg-red-500/10">
+        <button onClick={() => { logout(); }} className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all text-red-400 hover:bg-red-500/10">
           <LogOut className="w-4 h-4" /> Sair
         </button>
       </div>
@@ -1047,7 +1047,7 @@ export default function AdminPage() {
 
                               {/* imagem */}
                               <img
-                                src={`/Imagens/Produtos/${p.imagens[0].url_Imagem}`}
+                                src={p.imagens?.length ? `/Imagens/Produtos/${p.imagens[0].url_Imagem}` : "/Imagens/sem-imagem.png"}
                                 alt={p.name}
                                 className={`w-11 h-11 md:w-12 md:h-12 rounded-xl object-cover border flex-shrink-0 ${dk
                                   ? 'border-white/10'
@@ -1314,7 +1314,7 @@ export default function AdminPage() {
                             <td className="px-5 py-4">
                               <div className="flex items-center gap-3 min-w-[220px]">
                                 <img
-                                  src={`/Imagens/Produtos/${p.imagens[0].url_Imagem}`}
+                                  src={p.imagens?.length ? `/Imagens/Produtos/${p.imagens[0].url_Imagem}` : "/Imagens/sem-imagem.png"}
                                   alt=""
                                   className={`w-12 h-12 rounded-2xl object-cover border flex-shrink-0 ${dk
                                     ? 'border-white/10'
@@ -1483,7 +1483,7 @@ export default function AdminPage() {
                         {/* topo */}
                         <div className="flex items-center gap-3">
                           <img
-                            src={`/Imagens/Produtos/${p.imagens[0].url_Imagem}`}
+                            src={p.imagens?.length ? `/Imagens/Produtos/${p.imagens[0].url_Imagem}` : "/Imagens/sem-imagem.png"}
                             alt=""
                             className={`w-14 h-14 rounded-2xl object-cover border ${dk
                               ? 'border-white/10'
@@ -1856,7 +1856,7 @@ export default function AdminPage() {
                                 {o.products.slice(0, 3).map((item, i) => (
                                   <img
                                     key={i}
-                                    src={`/Imagens/Produtos/${item.imagens?.[0]?.url_Imagem}`}
+                                    src={item.imagens?.length ? `/Imagens/Produtos/${item?.imagens[0]?.url_Imagem}` : "/Imagens/sem-imagem.png"}
                                     alt={item.name}
                                     className={`w-9 h-9 xl:w-10 xl:h-10 rounded-xl object-cover border-2 shadow-lg ${dk ? 'border-[#111]' : 'border-white'}`}
                                   />
@@ -2094,7 +2094,7 @@ export default function AdminPage() {
                             <div className="relative flex-shrink-0">
 
                               <img
-                                src={`/Imagens/Produtos/${item.imagens?.[0]?.url_Imagem}`}
+                                src={item.imagens?.length ? `/Imagens/Produtos/${item?.imagens[0]?.url_Imagem}` : "/Imagens/sem-imagem.png"}
                                 alt=""
                                 className="w-16 h-16 rounded-2xl object-cover"
                               />
@@ -2646,7 +2646,7 @@ export default function AdminPage() {
                                   className="flex items-center gap-1.5 bg-white/10 border border-white/10 rounded-lg pl-1 pr-2 py-1"
                                 >
                                   <img
-                                    src={`/Imagens/Produtos/${p.imagens[0].url_Imagem}`}
+                                    src={p.imagens?.length ? `/Imagens/Produtos/${p.imagens[0].url_Imagem}` : "/Imagens/sem-imagem.png"}
                                     alt=""
                                     className="w-5 h-5 rounded-md object-cover"
                                   />
@@ -2818,7 +2818,10 @@ export default function AdminPage() {
                         key={p.id}
                         className={`rounded-2xl border p-4 flex items-center gap-3 transition-all ${card} ${cardH}`}
                       >
-                        <img src={`/Imagens/Produtos/${p.imagens[0].url_Imagem}`} alt="" className="w-12 h-12 rounded-xl object-cover flex-shrink-0" />
+                        <img
+                          src={p.imagens?.length ? `/Imagens/Produtos/${p.imagens[0].url_Imagem}` : "/Imagens/sem-imagem.png"}
+                          alt=""
+                          className="w-12 h-12 rounded-xl object-cover flex-shrink-0" />
                         <div className="flex-1 min-w-0">
                           <p className={`text-sm font-medium truncate ${txt}`}>{p.name}</p>
                           <div className="flex items-center gap-2 mt-1">
@@ -3183,6 +3186,7 @@ export default function AdminPage() {
                     {Controller?.result.newProduct.imagens!.map((src, i) => (
                       <div key={i} className="relative group aspect-square rounded-xl overflow-hidden cursor-pointer" onClick={() => Controller?.action.setLightboxImage(src)}>
                         <img
+
                           src={
                             src.file
                               ? src.url_Imagem
@@ -3874,7 +3878,10 @@ export default function AdminPage() {
                                 }));
                               }}
                               className="accent-brand-500 w-4 h-4 flex-shrink-0" />
-                            <img src={`/Imagens/Produtos/${p?.imagens[0]?.url_Imagem}`} alt="" className="w-9 h-9 rounded-xl object-cover flex-shrink-0" />
+                            <img
+                              src={p.imagens?.length ? `/Imagens/Produtos/${p.imagens[0].url_Imagem}` : "/Imagens/sem-imagem.png"}
+                              alt=""
+                              className="w-9 h-9 rounded-xl object-cover flex-shrink-0" />
                             <div className="flex-1 min-w-0">
                               <p className={`text-xs font-medium truncate ${txt}`}>{p.name}</p>
                               <p className={`text-[10px] ${sub}`}>{formatPrice(p.price_Unic)} · {p.id_category}</p>
@@ -4013,7 +4020,7 @@ export default function AdminPage() {
                             >
 
                               <img
-                                src={`/Imagens/Produtos/${product?.imagens[0]?.url_Imagem}`}
+                                src={product.imagens?.length ? `/Imagens/Produtos/${product.imagens[0].url_Imagem}` : "/Imagens/sem-imagem.png"}
                                 className="w-10 h-10 rounded-lg object-cover flex-shrink-0"
                               />
                               <div className="flex-1 min-w-0">

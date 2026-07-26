@@ -32,9 +32,10 @@ export const ProductPage = () => {
     setQuantity(1);
     setImgIndex(0);
   }, [product?.id]);
-
-  if(!selectedProductId) return navigate('/');
-  
+  if (!selectedProductId) {
+    navigate('/');
+    return null;
+  }
   if (!product) return null;
 
   return (

@@ -4,6 +4,7 @@ using Mercado.Craibas.Infrastructure.Data.Context;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace Mercado.Craibas.Infrastructure.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260725011708_objetTaxasBases")]
+    partial class objetTaxasBases
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -429,9 +432,6 @@ namespace Mercado.Craibas.Infrastructure.Migrations
                     b.Property<double>("Discont_Percentage")
                         .HasColumnType("float");
 
-                    b.Property<string>("Discount_Type")
-                        .HasColumnType("nvarchar(max)");
-
                     b.Property<DateTime?>("Estimated_Delivery_Date")
                         .HasColumnType("datetime2");
 
@@ -464,16 +464,10 @@ namespace Mercado.Craibas.Infrastructure.Migrations
                     b.Property<string>("Payment_terms")
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<double?>("ShippingCost")
-                        .HasColumnType("float");
-
                     b.Property<string>("Status_Pay")
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<double>("Total_Value_Order")
-                        .HasColumnType("float");
-
-                    b.Property<double?>("Total_Value_OrderCupom")
                         .HasColumnType("float");
 
                     b.Property<string>("Tracking_Code")
@@ -977,7 +971,7 @@ namespace Mercado.Craibas.Infrastructure.Migrations
                     b.Property<decimal>("Discount_Value")
                         .HasColumnType("decimal(18,2)");
 
-                    b.Property<int?>("Id_Cupom")
+                    b.Property<int>("Id_Cupom")
                         .HasColumnType("int");
 
                     b.Property<int>("Id_Order")
@@ -1270,7 +1264,9 @@ namespace Mercado.Craibas.Infrastructure.Migrations
                 {
                     b.HasOne("Baldan.Pricing.Application.Domain.Entities.Cupom", "Cupom")
                         .WithMany("Coupon_Uses")
-                        .HasForeignKey("Id_Cupom");
+                        .HasForeignKey("Id_Cupom")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
 
                     b.HasOne("Baldan.Pricing.Application.Domain.Entities.Orders", "Order")
                         .WithMany("Coupon_Uses")

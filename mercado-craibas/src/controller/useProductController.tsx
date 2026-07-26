@@ -28,7 +28,7 @@ export const useProductController = (): ProductControllerReturn => {
     const { setCartOpen } = UseCartStore();
     const { selectedProductId, ShowProduct } = UseRouteStore();
     const { loadProducts } = UseProductStore();
-    const { addToCart } = UseCartStore();
+    const { addToCart, LoadCartUser } = UseCartStore();
     const { LoadCategory } = UseOrderStore();
     const { user } = UseUserStore();
     const { id } = useParams();
@@ -44,6 +44,7 @@ export const useProductController = (): ProductControllerReturn => {
                 notify.error((result.error?.error.code ?? "error"), (result?.error?.error.message || "Erro ao carregar produtos Entre em contato com Suporte!"));
             }
             await GetListCategory();
+            await GetCartUser();
         };
         Response();
         if (id && Number(id) !== Number(selectedProductId)) {
@@ -57,6 +58,14 @@ export const useProductController = (): ProductControllerReturn => {
             notify.error(result.error?.error.code || "error", result?.error?.error.message || "Erro ao carregar Categoria");
         }
     };
+
+    const GetCartUser = async () => {
+        const result = await LoadCartUser(user);
+        if (!result?.success) {
+            notify.error(result.error?.error.code || "error", result?.error?.error.message || "Erro ao carregar Carrinho");
+        }
+    };
+
     const product = products.find(p => p.id === Number(selectedProductId));
     if (!product) return null;
 

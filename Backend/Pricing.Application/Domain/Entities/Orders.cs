@@ -12,12 +12,14 @@ namespace Baldan.Pricing.Application.Domain.Entities
     {
         public string Number_Order {  get; set; }
         public double Total_Value_Order { get; set; }
+        public double? Total_Value_OrderCupom { get; set; }
         public double Discont {  get; set; }
         public double Discont_Percentage { get; set; }
         public int? Id_Cupom { get; set; }
         public Cupom? Cupom { get; set; }
         public string Status_Pay { get; set; }
         public string? Tracking_Code { get; set; }
+        public double? ShippingCost { get; set; }
         public string Payment_terms { get; set; }
         public int? Id_User_Customer { get; set; }
         public User_Customer User_Customer { get; set; }
@@ -25,6 +27,7 @@ namespace Baldan.Pricing.Application.Domain.Entities
         public int Id_Address { get; set; }
         public Address Address { get; set; }
         public int? Id_User_Delivery { get; set; }
+        public string? Discount_Type { get; set; }
         public User_Delivery User_Delivery { get; set; }
         public double? Delivery_Commission { get; set; }
         public DateTime? Estimated_Delivery_Date { get; set; }

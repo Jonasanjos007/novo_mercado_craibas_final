@@ -52,7 +52,7 @@ namespace Pricing.Api
                 options.AddDefaultPolicy(policy =>
                 {
                    policy.WithOrigins(
-                            "http://192.168.15.7:5173"
+                            "http://192.168.15.11:5173"
                         )
                         .AllowAnyHeader()
                         .AllowAnyMethod();

@@ -18,6 +18,7 @@ namespace Mercado.Craibas.Application.InterfacesAdmin
         Task<bool> UpdateFieldsAsyncEntity<T>(Dictionary<string, object> filters, Dictionary<string, object> fieldsToUpdate) where T : class;
         Task<T?> GetClassById<T, TValue>(TValue value, string columnName)where T : class;
         Task<List<T>> GetClassListById<T>(int id, string columnName) where T : class;
+        Task<T?> GetClassAsyncWhere<T>(Expression<Func<T, bool>> predicate) where T : class;
 
 
     }

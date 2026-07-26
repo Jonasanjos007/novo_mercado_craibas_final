@@ -119,5 +119,11 @@ namespace Mercado.Craibas.Infrastructure.RepositoriesAdmin
                 .Where(x => EF.Property<int>(x, columnName) == id)
                 .ToListAsync();
         }
+        public async Task<T?> GetClassAsyncWhere<T>(Expression<Func<T, bool>> predicate) where T : class
+        {
+            return await _context.Set<T>()
+                .AsNoTracking()
+                .FirstOrDefaultAsync(predicate);
+        }
     }
 }

@@ -26,36 +26,32 @@ namespace Mercado.Craibas.Application.ServicesAdmin
 
         public async Task<Result<List<ProductResponse>>> GetProductListAdmin()
         {
-            var Products = await _unitOfWorkAdmin.GetAllEntityAsyncList<Product>();
+            var Products = await _unitOfWorkAdmin.GetClassListAsyncWhere<Product>(x => x.Isdelete != true);
 
             if (Products == null || !Products.Any())
             {
-                return Result<List<ProductResponse>>
-                    .Failure(Error.Failure(
-                        "Produtos",
-                        "Produtos não encontrados!"
-                    ));
+                return Result<List<ProductResponse>>.Failure(Error.Failure("Produtos","Produtos não encontrados!"));
             }
 
             var productList = new List<ProductResponse>();
 
             foreach (var Product in Products)
             {
-                var variants = await _unitOfWorkAdmin.GetClassListById<Variante_Products>(Product.Id, "Id_Product");
+                var variants = await _unitOfWorkAdmin.GetClassListAsyncWhere<Variante_Products>(x => x.Id_Product == Product.Id && x.Isdelete != true);
 
                 if (variants == null || !variants.Any())
                 {
                     continue;
                 }
 
-                var Imagens_Product = await _unitOfWorkAdmin.GetClassListById<Imagens_Products>(Product.Id, "Id_Product");
+                var Imagens_Product = await _unitOfWorkAdmin.GetClassListAsyncWhere<Imagens_Products>(x => x.Id_Product == Product.Id && x.Isdelete != true);
 
                 if (Imagens_Product is null)
                 {
                     continue;
                 }
 
-                var CategoryName = await _unitOfWorkAdmin.GetClassById<Product_Category,int>(Product.Id_Category, "Id");
+                var CategoryName = await _unitOfWorkAdmin.GetClassAsyncWhere<Product_Category>(x => x.Id == Product.Id_Category && x.Isdelete != true);
                 if (CategoryName is null)
                 {
                     continue;
@@ -187,7 +183,6 @@ namespace Mercado.Craibas.Application.ServicesAdmin
                 {
                     var raizCaminhoProjeto = Directory.GetCurrentDirectory();
 
-                    // sobe duas pastas (Mercado.Api -> Backend -> novo_mercado_craibas_final)
                     var raizCaminho = Directory.GetParent(raizCaminhoProjeto)!.Parent!.FullName;
 
                     var pastaDestinoImage = Path.Combine(
@@ -204,14 +199,26 @@ namespace Mercado.Craibas.Application.ServicesAdmin
 
                         if (imagem != null)
                         {
-                            var caminhoArquivo = Path.Combine(pastaDestinoImage, imagem.Url_Imagem);
 
-                            if (File.Exists(caminhoArquivo))
-                            {
-                                File.Delete(caminhoArquivo);
-                            }
+                             await _unitOfWorkAdmin.UpdateFieldsAsyncEntity<Imagens_Products>(filters: new Dictionary<string, object>
+                        {
+                                { "Id", imagem.Id }
+                        },
 
-                            await _unitOfWorkAdmin.DeleteAllByColumnAsync<Imagens_Products>("Id", imagemDeleteId);
+                       fieldsToUpdate: new Dictionary<string, object>
+                       {
+                            
+                             {"Isdelete",true},
+                             {"UpdateDate", DateTime.Now }
+                        });
+                            //var caminhoArquivo = Path.Combine(pastaDestinoImage, imagem.Url_Imagem);
+
+                            //if (File.Exists(caminhoArquivo))
+                            //{
+                            //    File.Delete(caminhoArquivo);
+                            //}
+
+                            //await _unitOfWorkAdmin.DeleteAllByColumnAsync<Imagens_Products>("Id", imagemDeleteId);
                         }
                     }
                 }
@@ -220,7 +227,18 @@ namespace Mercado.Craibas.Application.ServicesAdmin
                 {
                     foreach (var VariantDeleteId in product.removedVariants)
                     {
-                        await _unitOfWorkAdmin.DeleteAllByColumnAsync<Variante_Products>("Id", VariantDeleteId);
+                        await _unitOfWorkAdmin.UpdateFieldsAsyncEntity<Variante_Products>(filters: new Dictionary<string, object>
+                        {
+                                { "Id", VariantDeleteId }
+                        },
+
+                      fieldsToUpdate: new Dictionary<string, object>
+                      {
+
+                             {"Isdelete",true},
+                             {"UpdateDate", DateTime.Now }
+                       });
+                        //await _unitOfWorkAdmin.DeleteAllByColumnAsync<Variante_Products>("Id", VariantDeleteId);
                     }
                 }
 

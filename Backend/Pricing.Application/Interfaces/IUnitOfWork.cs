@@ -2,9 +2,10 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Linq;
+using System.Linq.Expressions;
 using System.Text;
 using System.Threading.Tasks;
-using System.Linq;
 namespace Baldan.Pricing.Application.Interfaces
 {
     public interface IUnitOfWork
@@ -17,6 +18,9 @@ namespace Baldan.Pricing.Application.Interfaces
         Task<T> InsertAsyncReturnId<T>(T entity) where T : EntityBase;
         IQueryable<T> Query<T>() where T : class;
         Task<bool> DeleteAllByColumnAsync<T>(string columnName, object value) where T : class;
-
+        Task<T?> GetClassByIdAnyType<T, TValue>(TValue value, string columnName) where T : class;
+        Task<T?> GetClassAsyncWhere<T>(Expression<Func<T, bool>> predicate) where T : class;
+   
+           Task<List<T>> GetClassListAsyncWhere<T>(Expression<Func<T, bool>>? predicate = null) where T : class;
     }
 }

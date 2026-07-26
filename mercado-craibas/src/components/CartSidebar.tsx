@@ -42,7 +42,7 @@ export default function CartSidebar() {
             </div>
             <div>
               <h2 className="font-display font-bold text-white text-lg">Seu Carrinho</h2>
-              <p className="text-xs text-surface-400 font-body">{cart.length} {cart.length === 1 ? 'item' : 'itens'}</p>
+              <p className="text-xs text-surface-400 font-body">{cart.cartItensProduct.length} {cart.cartItensProduct.length === 1 ? 'item' : 'itens'}</p>
             </div>
           </div>
           <button
@@ -55,7 +55,7 @@ export default function CartSidebar() {
 
         {/* Cart items */}
         <div className="flex-1 overflow-y-auto p-4 space-y-3">
-          {cart.length === 0 ? (
+          {cart.cartItensProduct.length === 0 ? (
             <div className="flex flex-col items-center justify-center h-full text-center py-16">
               <div className="w-20 h-20 rounded-2xl bg-surface-100 flex items-center justify-center mb-4">
                 <Package className="w-8 h-8 text-surface-300" />
@@ -70,7 +70,7 @@ export default function CartSidebar() {
               </button>
             </div>
           ) : (
-            cart.map(item => (
+            cart.cartItensProduct.map(item => (
               <div key={`${item.product?.id}-${item.selectedVariation?.id}`} className="flex gap-3 p-3 bg-surface-50 rounded-2xl group">
                 <img
                   src={`/Imagens/Produtos/${item.product?.imagens[0]?.url_Imagem}`}
@@ -164,7 +164,7 @@ export default function CartSidebar() {
         </div>
 
         {/* Footer */}
-        {cart.length > 0 && (
+        {cart.cartItensProduct.length > 0 && (
           <div className="p-4 border-t border-surface-100 space-y-3">
             {/* PIX discount */}
             <div className="flex items-center justify-between p-3 bg-green-50 rounded-xl border border-green-100">

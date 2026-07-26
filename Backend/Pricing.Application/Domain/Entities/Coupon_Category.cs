@@ -11,7 +11,7 @@ namespace Mercado.Craibas.Application.Domain.Entities
     {
         public int Id_Cupom { get; set; }
 
-        public int Id_Category { get; set; }
+        public int? Id_Category { get; set; }
 
         public Cupom Cupom { get; set; }
 

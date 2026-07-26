@@ -252,6 +252,7 @@ namespace Mercado.Craibas.Application.ServicesAdmin
                                 {"Name_Cupom",request.Name_Cupom},
                                 {"Cod_Cupom", request.Cod_Cupom},
                                 {"Description", request.Description},
+                                {"Discount", request.Discount},
                                 {"Discount_Type", request.Discount_Type},
                                 {"Active", request.Active},
                                 {"Minimum_Value", request.Minimum_Value},

@@ -2,7 +2,6 @@ import { Routes, Route } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
 
 import HomePage from './pages/HomePage';
-import ProductPage from './pages/ProductPage';
 import AuthPage from './pages/AuthPage';
 import CheckoutPage from './pages/CheckoutPage';
 import OrdersPage from './pages/OrdersPage';
@@ -24,6 +23,7 @@ import { MainLayout } from './routes/MainLayout';
 import { AdminLayout } from './routes/AdminLayout';
 import { ProtectedRoute } from './routes/ProtectedRoute';
 import { useSessionStore } from './store/SessionStore';
+import { ProductPage } from './pages/ProductPage';
 
 
 export default function App() {

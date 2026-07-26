@@ -26,4 +26,5 @@ public class ProductResponse
     public bool? Featured { get; set; }
     public bool? Ativo { get; set; }
    public DateTime? InsertDate { get; set; }
+   public double? ValorDicont { get; set; }
 }

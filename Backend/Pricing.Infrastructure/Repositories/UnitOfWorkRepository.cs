@@ -5,6 +5,7 @@ using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Linq.Expressions;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -113,6 +114,30 @@ namespace Pricing.Infrastructure.Repositories
         public IQueryable<T> Query<T>() where T : class
         {
             return _context.Set<T>().AsQueryable();
+        }
+
+        public async Task<T?> GetClassByIdAnyType<T, TValue>(TValue value, string columnName) where T : class
+        {
+            return await _context.Set<T>()
+                .AsNoTracking()
+                .FirstOrDefaultAsync(x => EF.Property<TValue>(x, columnName)!.Equals(value));
+        }
+        public async Task<List<T>> GetClassListAsyncWhere<T>(Expression<Func<T, bool>>? predicate = null) where T : class
+        {
+            IQueryable<T> query = _context.Set<T>().AsNoTracking();
+
+            if (predicate != null)
+            {
+                query = query.Where(predicate);
+            }
+
+            return await query.ToListAsync();
+        }
+        public async Task<T?> GetClassAsyncWhere<T>(Expression<Func<T, bool>> predicate) where T : class
+        {
+            return await _context.Set<T>()
+                .AsNoTracking()
+                .FirstOrDefaultAsync(predicate);
         }
     }
 }

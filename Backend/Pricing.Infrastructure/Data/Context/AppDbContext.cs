@@ -27,6 +27,10 @@ public class AppDbContext : DbContext
     public DbSet<User_Customer> User_Customer => Set<User_Customer>();
     public DbSet<User_Delivery> User_Delivery => Set<User_Delivery>();
     public DbSet<Variante_Products> Variante_Products => Set<Variante_Products>();
+    public DbSet<BaseRates> BaseRates => Set<BaseRates>();
+    public DbSet<Coupon_Category> Coupon_Category => Set<Coupon_Category>();
+    public DbSet<Coupon_Product> Coupon_Product => Set<Coupon_Product>();
+    public DbSet<Coupon_Use> Coupon_Use => Set<Coupon_Use>();
 
 
    

@@ -25,6 +25,10 @@ namespace Mercado.Craibas.Application.DTOs.Requests
         //public double? Delivery_Commission { get; set; }
         //public DateTime? Estimated_Delivery_Date { get; set; }
         public  List<ProductSaveOrder> Products { get; set; }
-        public CupomRequest Cupom { get; set; }
+        public int? Id_Cupom { get; set; }
+        public double? Total_Value_OrderCupom { get; set; }
+        public double? ShippingCost { get; set; }
+        public string? Discount_Type { get; set; }
+
     }
 }

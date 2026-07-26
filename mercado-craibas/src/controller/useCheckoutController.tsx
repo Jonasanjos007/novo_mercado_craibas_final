@@ -11,6 +11,7 @@ import { UseOrderStore } from "../store/UseOrderStore";
 import { Cupom } from "../models/Cupom";
 import { Status_Pay } from "../models/OrderSave";
 import { OrderSave } from "../models/OrderSave";
+import { UseCupomStore } from "../store/UseCupomStore";
 
 type CheckoutControllerReturn = {
     result: {
@@ -33,6 +34,8 @@ type CheckoutControllerReturn = {
         setSelectedCoupon: React.Dispatch<React.SetStateAction<Cupom | null>>;
         setLoading: React.Dispatch<React.SetStateAction<boolean>>;
         handlePlaceOrder: () => Promise<void>;
+        handleApllyCupom: (CodCupom: string) => Promise<void>;
+        RemoveApllyqueCupomController: () => Promise<void>;
         setStep: React.Dispatch<React.SetStateAction<Step>>;
     }
 };
@@ -46,7 +49,9 @@ export const useCheckoutController = (): CheckoutControllerReturn => {
     const { cart } = UseCartStore();
     console.log(cart, 'cart');
     const [loading, setLoading] = useState(false);
+    console.log("loading", loading)
     const [step, setStep] = useState<Step>('Endereço');
+    const { ApllyqueCupom, RemoveApllyqueCupom } = UseCupomStore();
 
     const { cartTotal } = UseCartStore();
     const [payment, setPayment] = useState<PaymentMethod>('pix');
@@ -85,14 +90,12 @@ export const useCheckoutController = (): CheckoutControllerReturn => {
 
     const GetListCupom = async () => {
         const result = await LoadCupons();
-        // SetLoading(false);
         if (!result?.success) {
             notify.error(result.error?.error.code || "error", result?.error?.error.message || "Erro ao carregar produtos");
         }
     };
     const GetListProducts = async () => {
         const result = await loadProducts();
-        // SetLoading(false);
         if (!result?.success) {
             notify.error(result.error?.error.code || "error", result?.error?.error.message || "Erro ao carregar produtos");
         }
@@ -118,13 +121,13 @@ export const useCheckoutController = (): CheckoutControllerReturn => {
 
         const OrderSave: OrderSave =
         {
-            total_Value_Order: finalTotal,
-            discont: discount,
-            discont_Percentage: selectedCoupon?.discont || 0,
+            total_Value_Order: cart.subTotal || 0,
+            discont: (total) - ((cart.subTotal || 0) - (cart.shippingCost || 0)),
+            discont_Percentage: cart?.discount || 0,
             payment_terms: payment,
             status_Pay: Status_Pay.PENDENTE,
             address: AddressStandard!,
-            products: cart.map(p => ({
+            products: cart.cartItensProduct.map(p => ({
                 id: p.product?.id || 0,
                 name: p.product?.name || '',
                 price_Unic: p.product?.price_Unic || 0,
@@ -132,8 +135,10 @@ export const useCheckoutController = (): CheckoutControllerReturn => {
                 origin_Price: p.product?.origin_Price || 0,
                 variations: p.selectedVariation || null,
             })),
-            cupom: selectedCoupon || undefined
-
+            id_Cupom: cart.id_Cupom || undefined,
+            total_Value_OrderCupom: cart.total,
+            shippingCost: cart.shippingCost ?? 0,
+            discount_Type: cart.discount_Type ?? ""
         };
         setOrder(OrderSave);
         console.log(OrderSave, 'OrderSave');
@@ -150,6 +155,35 @@ export const useCheckoutController = (): CheckoutControllerReturn => {
         // const placed = placeOrder(payLabel);
         // setOrder(placed);
         setStep('success');
+        setLoading(false);
+    };
+
+    const handleApllyCupom = async (CodCupom: string) => {
+        setLoading(true);
+
+        if (CodCupom.length < 4) {
+            notify.error("error", "Codigo Incompleto");
+            return;
+        }
+        const result = await ApllyqueCupom(CodCupom);
+        if (!result?.success) {
+            notify.error(result.error?.error.code || "error", result?.error?.error.message || "Erro ao Aplicar Cupom");
+            setLoading(false);
+            return;
+        }
+        notify.success("Cupom Aplicado com sucesso!", "success");
+        setLoading(false);
+    };
+
+    const RemoveApllyqueCupomController = async () => {
+        setLoading(true);
+        const result = await RemoveApllyqueCupom();
+        if (!result?.success) {
+            notify.error(result.error?.error.code || "error", result?.error?.error.message || "Erro ao Remover Cupom");
+            setLoading(false);
+            return;
+        }
+        notify.success("Cupom Removido com sucesso!", "success");
         setLoading(false);
     };
 
@@ -174,7 +208,9 @@ export const useCheckoutController = (): CheckoutControllerReturn => {
             setSelectedCoupon,
             setLoading,
             handlePlaceOrder,
-            setStep
+            setStep,
+            handleApllyCupom,
+            RemoveApllyqueCupomController
         }
     }
 }

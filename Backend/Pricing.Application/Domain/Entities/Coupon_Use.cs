@@ -9,7 +9,7 @@ namespace Mercado.Craibas.Application.Domain.Entities
 {
     public class Coupon_Use : EntityBase
     {
-        public int Id_Cupom { get; set; }
+        public int? Id_Cupom { get; set; }
 
         public int Id_Order { get; set; }
 

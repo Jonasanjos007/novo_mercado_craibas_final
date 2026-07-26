@@ -11,5 +11,7 @@ namespace Mercado.Craibas.Application.Interfaces.Services
     public interface ICupomService
     {
         Task<Result<List<CupomResponse>>> GetCupomList();
+        Task<Result<bool>> ApplyCupom(string Cod_upom, int userId);
+        Task<Result<bool>> RemoveApllyCupom(int IdUser);
     }
 }

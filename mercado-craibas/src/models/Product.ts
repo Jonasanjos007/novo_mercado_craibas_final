@@ -19,6 +19,7 @@ export interface Product {
     insertDate: Date;
     ativo?: boolean;
     showBanner?: boolean;
+    valorDicont?: number;
 }
 
 export interface ProductAdmin {
@@ -58,6 +59,9 @@ export interface ProductSaveOrder {
     badge?: string;
     Count_Rating?: number;
     variations: ProductVariation | null;
+    id_category?: number;
+    valorDicont?: number;
+
 }
 export interface ProductVariation {
     id: number;

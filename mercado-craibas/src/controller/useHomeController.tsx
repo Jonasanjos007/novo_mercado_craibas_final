@@ -6,8 +6,9 @@ import { UseProductStore } from "../store/UseProductStore";
 import { UseCartStore } from "../store/UseCartStore";
 
 export const useHomeController = () => {
-    const { loadProducts ,products} = UseProductStore();
-    const { LoadCartUser,cart } = UseCartStore();
+    const { loadProducts, products } = UseProductStore();
+    const { LoadCartUser, cart } = UseCartStore();
+
     const { user } = UseUserStore();
     const notify = useNotification();
     const [Loading, SetLoading] = useState(false);
@@ -15,13 +16,12 @@ export const useHomeController = () => {
     useEffect(() => {
         const load = async () => {
             SetLoading(true);
-            if(!products)
-            {
-            await GetListProducts();
+            if (!products.length) {
+                await GetListProducts();
             }
             if (user) {
-                if(cart){
-                await GetCartUser();
+                if (cart) {
+                    await GetCartUser();
                 }
             }
             SetLoading(false);
@@ -41,8 +41,8 @@ export const useHomeController = () => {
                 notify.error(result.error?.error.code || "error", result?.error?.error.message || "Erro ao carregar Carrinho!");
             }
         }
-
     };
+
     return {
         action: {
 
