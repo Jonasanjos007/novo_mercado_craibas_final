@@ -1,0 +1,72 @@
+
+
+export const PROMOTIONS = [
+  {
+    id: 'promo1',
+    title: 'TECH WEEK',
+    description: '15% OFF em todos os eletrônicos',
+    discount: 15,
+    code: 'TECH15',
+    minValue: 500,
+    validUntil: new Date('2026-04-30'),
+    active: true,
+  },
+  {
+    id: 'promo2',
+    title: 'STANLEY DAY',
+    description: 'Frete grátis + 10% OFF em garrafas Stanley',
+    discount: 10,
+    code: 'STANLEY10',
+    validUntil: new Date('2026-04-15'),
+    active: true,
+  },
+  {
+    id: 'promo3',
+    title: 'PRIMEIRA COMPRA',
+    description: '20% OFF na sua primeira compra',
+    discount: 20,
+    code: 'BEMVINDO20',
+    minValue: 100,
+    validUntil: new Date('2026-12-31'),
+    active: true,
+  },
+];
+
+// export const BANNER_SLIDES = [
+//   {
+//     id: 'b1',
+//     title: 'Stanley Quencher',
+//     subtitle: 'A garrafa mais viral do Brasil',
+//     cta: 'Comprar Agora',
+//     badge: '🔥 VIRAL',
+//     discount: '24% OFF',
+//     image: 'https://images.unsplash.com/photo-1602143407151-7111542de6e8?w=1200&q=80',
+//     productId: 'p3',
+//     gradient: 'from-rose-900/90 via-rose-800/70 to-transparent',
+//     accent: '#fb923c',
+//   },
+//   {
+//     id: 'b2',
+//     title: 'iPhone 15 Pro Max',
+//     subtitle: 'Titânio. O iPhone mais pro.',
+//     cta: 'Ver Oferta',
+//     badge: '⚡ OFERTA',
+//     discount: '18% OFF',
+//     image: 'https://images.unsplash.com/photo-1695048133142-1a20484d2569?w=1200&q=80',
+//     productId: 'p1',
+//     gradient: 'from-slate-900/90 via-slate-800/70 to-transparent',
+//     accent: '#6366f1',
+//   },
+//   {
+//     id: 'b3',
+//     title: 'MacBook Air M3',
+//     subtitle: 'Poder além do esperado',
+//     cta: 'Confira',
+//     badge: '✨ NOVO',
+//     discount: '17% OFF',
+//     image: 'https://images.unsplash.com/photo-1517336714731-489689fd1ca8?w=1200&q=80',
+//     productId: 'p6',
+//     gradient: 'from-zinc-900/90 via-zinc-800/70 to-transparent',
+//     accent: '#22d3ee',
+//   },
+// ];

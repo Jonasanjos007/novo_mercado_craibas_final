@@ -39,6 +39,7 @@ namespace Mercado.Api.Controllers.V1
 
             return result.ToActionResult();
         }
+        [Authorize]
         [HttpPost("postCartUpdate")]
         public async Task<IActionResult> PostCartUpdate([FromBody] CartItensRequest Cart_Itens)
         {
@@ -46,6 +47,7 @@ namespace Mercado.Api.Controllers.V1
 
             return result.ToActionResult();
         }
+        [Authorize]
         [HttpPost("PostUpdateQuantity")]
         public async Task<IActionResult> PostUpdateQuantity([FromBody] UpdateQuantityRequest request)
         {
@@ -64,7 +66,7 @@ namespace Mercado.Api.Controllers.V1
 
             return result.ToActionResult();
         }
-
+        [Authorize]
         [HttpDelete("DeleteProductCart/{Cart_Itens_Id}")]
         public async Task<IActionResult> DeleteProductCart(int Cart_Itens_Id)
         {
@@ -74,5 +76,6 @@ namespace Mercado.Api.Controllers.V1
 
             return result.ToActionResult();
         }
+
     }
 }

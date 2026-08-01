@@ -2,20 +2,15 @@
 node_modules/
 **/node_modules/
 
-# npm
+# Lock files
 package-lock.json
 
 # Visual Studio
 .vs/
+**/.vs/
+
+# Build
 bin/
 obj/
-
-# Rider
-.idea/
-
-# User files
-*.user
-*.suo
-
-# Cache
-*.cache
+**/bin/
+**/obj/

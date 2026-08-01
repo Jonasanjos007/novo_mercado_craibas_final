@@ -1,4 +1,6 @@
-﻿using Baldan.Pricing.Application.Domain.Entities;
+﻿using Baldan.Pricing.Application.Commons;
+using Baldan.Pricing.Application.Domain.Entities;
+using Mercado.Craibas.Application.DTOs.Requests;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -20,7 +22,7 @@ namespace Baldan.Pricing.Application.Interfaces
         Task<bool> DeleteAllByColumnAsync<T>(string columnName, object value) where T : class;
         Task<T?> GetClassByIdAnyType<T, TValue>(TValue value, string columnName) where T : class;
         Task<T?> GetClassAsyncWhere<T>(Expression<Func<T, bool>> predicate) where T : class;
-   
-           Task<List<T>> GetClassListAsyncWhere<T>(Expression<Func<T, bool>>? predicate = null) where T : class;
+        Task<List<T>> GetClassListAsyncWhere<T>(Expression<Func<T, bool>>? predicate = null) where T : class;
+        Task<Result<bool>> SaveLogUser(LogRequest Log, int? UserId);
     }
 }

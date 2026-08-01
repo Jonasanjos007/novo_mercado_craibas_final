@@ -124,7 +124,7 @@ namespace Mercado.Craibas.Application.ServicesAdmin
                 // sobe duas pastas (Mercado.Api -> Backend -> novo_mercado_craibas_final)
                 var raiz = Directory.GetParent(raizProjeto)!.Parent!.FullName;
 
-                var pastaDestino = Path.Combine(raiz, "mercado-craibas", "Imagens", "Produtos");
+                var pastaDestino = Path.Combine(raiz, "Imagens", "Produtos");
 
                 if (!Directory.Exists(pastaDestino))
                 {
@@ -187,7 +187,6 @@ namespace Mercado.Craibas.Application.ServicesAdmin
 
                     var pastaDestinoImage = Path.Combine(
                         raizCaminho,
-                        "mercado-craibas",
                         "Imagens",
                         "Produtos"
                     );
@@ -277,7 +276,7 @@ namespace Mercado.Craibas.Application.ServicesAdmin
                         // sobe duas pastas (Mercado.Api -> Backend -> novo_mercado_craibas_final)
                         var raizCaminho = Directory.GetParent(raizCaminhoProjeto)!.Parent!.FullName;
 
-                        var pastaDestinoImage = Path.Combine(raizCaminho, "mercado-craibas", "Imagens", "Produtos");
+                        var pastaDestinoImage = Path.Combine(raizCaminho, "Imagens", "Produtos");
 
                         if (!Directory.Exists(pastaDestinoImage))
                         {

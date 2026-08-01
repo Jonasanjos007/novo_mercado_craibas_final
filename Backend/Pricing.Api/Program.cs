@@ -104,6 +104,7 @@ namespace Pricing.Api
             builder.Services.AddScoped<IUserService, UserService>();
             builder.Services.AddScoped<ITokenService, TokenService>();
             builder.Services.AddScoped<ICupomService, CupomService>();
+            builder.Services.AddScoped<ICategoriaServiceAdmin, CategoriaServiceAdmin>();
             //builder.Services.AddScoped<IProfileRepository, ProfileRepository>();
             //builder.Services.AddScoped<IDashboardRepository, DashboardRepository>();
             //builder.Services.AddScoped<IDashboardService, DashboardService>();

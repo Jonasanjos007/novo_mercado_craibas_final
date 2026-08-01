@@ -2,6 +2,7 @@
 using Baldan.Pricing.Application.Domain.Entities;
 using Mercado.Craibas.Application.Domain.Entities;
 using Mercado.Craibas.Application.DTOs.Responses;
+using Mercado.Craibas.Application.DTOs.Requests;
 using System;
 using System.Collections.Generic;
 using System.Linq;

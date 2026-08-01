@@ -3,6 +3,7 @@ using Baldan.Pricing.Application.Domain.Entities;
 using Baldan.Pricing.Application.Interfaces;
 using Mercado.Craibas.Application.Domain.Entities;
 using Mercado.Craibas.Application.DTOs.Responses;
+using Mercado.Craibas.Application.DTOs.Requests;
 using Mercado.Craibas.Application.Interfaces.Repositories;
 using Mercado.Craibas.Application.InterfacesAdmin;
 using Mercado.Craibas.Application.InterfacesAdmin.Services;
@@ -13,6 +14,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using System.Text.Json;
 
 namespace Mercado.Craibas.Application.ServicesAdmin
 {
@@ -93,17 +95,17 @@ namespace Mercado.Craibas.Application.ServicesAdmin
 
             return Result<List<Logs>>.Success(logs);
         }
-        public async Task<Result<List<Product_Category>>> GetAllCategory()
+       public async Task<Result<List<Product_Category>>> GetAllCategory()
         {
-            var Categorys = await _unitOfWorkAdmin.GetClassListAsyncWhere<Product_Category>();
+            var Categorys = await _unitOfWorkAdmin.GetClassListAsyncWhere<Product_Category>(x => x.Isdelete != true && x.Ativo == true);
 
             if (Categorys == null)
             {
                 return Result<List<Product_Category>>.Failure(Error.Failure("Categorys", "Erro ao Carregar Categorys!"));
             }
 
-            return Result<List<Product_Category>>.Success(Categorys);
-        }
+           return Result<List<Product_Category>>.Success(Categorys);
+       }
 
         public async Task<Result<bool>> PostUpdateStatusOrder(int Id_Order,string NewStatus)
         {

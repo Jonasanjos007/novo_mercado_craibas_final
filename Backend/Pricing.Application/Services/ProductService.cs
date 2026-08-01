@@ -54,7 +54,7 @@ namespace Mercado.Craibas.Application.Services
         }
         public async Task<Result<List<ProductResponse>>> GetProductList()
         {
-            var Products = await _unitOfWork.GetClassListById<Product>(1,"Ativo");
+            var Products = await _unitOfWork.GetClassListAsyncWhere<Product>(x => x.Ativo == true && x.Isdelete != true);
 
             if (Products == null || !Products.Any())
             {
@@ -69,21 +69,21 @@ namespace Mercado.Craibas.Application.Services
 
             foreach (var Product in Products)
             {
-                var variants = await _productRepository.GetAllVariantAsyncListById<Variante_Products>(Product.Id,"Id_Product");
+                var variants = await _unitOfWork.GetClassListAsyncWhere<Variante_Products>(x => x.Id_Product == Product.Id && x.Isdelete != true);
 
                 if(variants == null || !variants.Any())
                 {
                     continue;
                 }
 
-                var Imagens_Product = await _productRepository.GetAllVariantAsyncListById<Imagens_Products>(Product.Id, "Id_Product");
+                var Imagens_Product = await _unitOfWork.GetClassListAsyncWhere<Imagens_Products>(x => x.Id_Product == Product.Id && x.Isdelete != true);
 
                 if(Imagens_Product is null)
                 {
                     continue;
                 }
 
-                var CategoryName = await _productRepository.GetVariantByIdAsync<Product_Category>(Product.Id_Category, "Id");
+                var CategoryName = await _unitOfWork.GetClassAsyncWhere<Product_Category>(x => x.Id == Product.Id_Category && x.Isdelete != true && x.Ativo == true);
                 if(CategoryName is null)
                 {
                     continue;
