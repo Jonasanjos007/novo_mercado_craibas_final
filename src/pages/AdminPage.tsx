@@ -17,7 +17,7 @@ import {
   CheckCircle,
   PauseCircle,
   LucideIcon,
-  FolderTree
+  FolderTree, Activity, ListFilter, CalendarDays, ShieldAlert
 } from 'lucide-react';
 import { useStore } from '../context/store';
 import { formatPrice, orderStatusLabels, orderStatusColors, categoryLabels, badgeLabels, badgeLabel, cupomStatusLabels } from '../utils';
@@ -43,7 +43,7 @@ import { ProductQuickView } from '../components/ProductQuickView';
 import { Cupom, CupomAdmin, DiscountType } from '../models/Cupom';
 import { UseCupomAdminStore } from '../storeAdmin/UseCupomAdminStore';
 
-type AdminTab = 'dashboard' | 'products' | 'categories' | 'orders' | 'promotions' | 'profile' | 'settings' | 'cartegories';
+type AdminTab = 'dashboard' | 'products' | 'categories' | 'orders' | 'promotions' | 'movements' | 'profile' | 'settings' | 'cartegories';
 
 
 type ApplicationScope = "store" | "categories" | "products";
@@ -75,6 +75,10 @@ export default function AdminPage() {
   const [productSearch, setProductSearch] = useState('');
   const [orderSearch, setOrderSearch] = useState('');
   const [orderStatusFilter, setOrderStatusFilter] = useState('all');
+  const [logSearch, setLogSearch] = useState('');
+  const [logTypeFilter, setLogTypeFilter] = useState('all');
+  const [logLevelFilter, setLogLevelFilter] = useState('all');
+  const [logPeriodFilter, setLogPeriodFilter] = useState<'all' | 'today' | '7days' | '30days'>('all');
 
   const [ProductCategoryFilter, setProductCategoryFilter] = useState('all');
   const [quickViewOrder, setQuickViewOrder] = useState<Order | null>(null);
@@ -566,6 +570,35 @@ export default function AdminPage() {
     return matchSearch && matchStatus;
   });
 
+  const logTypes = Array.from(new Set(logs.map(item => item.tipo).filter(Boolean))).sort();
+  const logLevels = Array.from(new Set(logs.map(item => item.nivel).filter(Boolean))).sort();
+  const filteredLogs = logs
+    .filter(item => {
+      const search = logSearch.trim().toLowerCase();
+      const matchesSearch = !search || [item.log, item.acao, item.info, item.tipo, item.nivel, String(item.id_User_Customer)]
+        .some(value => String(value ?? '').toLowerCase().includes(search));
+      const matchesType = logTypeFilter === 'all' || item.tipo === logTypeFilter;
+      const matchesLevel = logLevelFilter === 'all' || item.nivel === logLevelFilter;
+
+      const date = new Date(item.insertDate);
+      const now = new Date();
+      const startToday = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+      const elapsedDays = (now.getTime() - date.getTime()) / 86400000;
+      const matchesPeriod = logPeriodFilter === 'all'
+        || (logPeriodFilter === 'today' && date.getTime() >= startToday)
+        || (logPeriodFilter === '7days' && elapsedDays <= 7)
+        || (logPeriodFilter === '30days' && elapsedDays <= 30);
+
+      return matchesSearch && matchesType && matchesLevel && matchesPeriod;
+    })
+    .sort((a, b) => new Date(b.insertDate).getTime() - new Date(a.insertDate).getTime());
+
+  const logsToday = logs.filter(item => {
+    const date = new Date(item.insertDate);
+    const now = new Date();
+    return date.toDateString() === now.toDateString();
+  }).length;
+
 
   // const handleSavePromo = () => {
   //   const promo: Promotion = {
@@ -642,6 +675,7 @@ export default function AdminPage() {
         { id: 'products', label: 'Produtos', icon: <Package className="w-4 h-4" />, badge: lowStock > 0 ? `${lowStock} baixo` : undefined, badgeRed: true },
         { id: 'cartegories', label: 'Categoria', icon: <FolderTree className="w-4 h-4" /> },
         { id: 'promotions', label: 'Promoções', icon: <Tag className="w-4 h-4" /> },
+        { id: 'movements', label: 'Movimentação', icon: <Activity className="w-4 h-4" />, badge: logsToday > 0 ? String(logsToday) : undefined, badgeRed: false },
 
       ]
     },
@@ -3781,6 +3815,179 @@ export default function AdminPage() {
                     </div>
                   )}
                 </div>
+              </div>
+            </div>
+          )}
+
+          {/* MOVIMENTAÇÃO / LOGS */}
+          {tab === 'movements' && (
+            <div className="space-y-5">
+              <div className={`relative overflow-hidden rounded-[28px] border p-5 md:p-7 ${card}`}>
+                <div className="absolute -right-20 -top-24 h-64 w-64 rounded-full bg-violet-500/15 blur-3xl" />
+                <div className="absolute -bottom-28 left-1/3 h-52 w-52 rounded-full bg-blue-500/10 blur-3xl" />
+                <div className="relative flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
+                  <div>
+                    <div className="mb-3 flex h-11 w-11 items-center justify-center rounded-2xl border border-violet-500/20 bg-violet-500/10 text-violet-400">
+                      <Activity className="h-5 w-5" />
+                    </div>
+                    <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-violet-400">Auditoria do sistema</p>
+                    <h2 className={`mt-1 font-display text-2xl font-black ${txt}`}>Movimentações da plataforma</h2>
+                    <p className={`mt-2 max-w-2xl text-xs leading-5 ${txt2}`}>Acompanhe acessos, alterações e eventos registrados no site, organizados do mais recente para o mais antigo.</p>
+                  </div>
+                  <div className={`rounded-2xl border px-4 py-3 ${dk ? 'border-white/[0.07] bg-white/[0.03]' : 'border-surface-100 bg-surface-50'}`}>
+                    <p className={`text-[9px] font-bold uppercase tracking-wider ${sub}`}>Atualizado em</p>
+                    <p className={`mt-1 text-xs font-bold ${txt}`}>{new Date().toLocaleString('pt-BR')}</p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+                {[
+                  { label: 'Total registrado', value: logs.length, icon: Activity, color: 'text-violet-400 bg-violet-500/10 border-violet-500/20' },
+                  { label: 'Movimentações hoje', value: logsToday, icon: CalendarDays, color: 'text-blue-400 bg-blue-500/10 border-blue-500/20' },
+                  { label: 'Acessos', value: logs.filter(item => item.tipo?.toLowerCase() === 'acesso').length, icon: User, color: 'text-emerald-400 bg-emerald-500/10 border-emerald-500/20' },
+                  { label: 'Administrativas', value: logs.filter(item => item.nivel?.toUpperCase() === 'ADMIN').length, icon: ShieldAlert, color: 'text-amber-400 bg-amber-500/10 border-amber-500/20' },
+                ].map(summary => (
+                  <div key={summary.label} className={`rounded-2xl border p-4 ${card}`}>
+                    <div className={`flex h-9 w-9 items-center justify-center rounded-xl border ${summary.color}`}><summary.icon className="h-4 w-4" /></div>
+                    <p className={`mt-4 text-2xl font-black ${txt}`}>{summary.value.toLocaleString('pt-BR')}</p>
+                    <p className={`mt-1 text-[10px] font-bold uppercase tracking-wider ${sub}`}>{summary.label}</p>
+                  </div>
+                ))}
+              </div>
+
+              {logTypes.length > 0 && (
+                <div className={`rounded-2xl border p-4 ${card}`}>
+                  <div className="mb-3 flex items-center gap-2">
+                    <ListFilter className="h-4 w-4 text-brand-400" />
+                    <p className={`text-xs font-bold ${txt}`}>Eventos por tipo</p>
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    <button onClick={() => setLogTypeFilter('all')} className={`rounded-xl border px-3 py-2 text-[11px] font-bold transition-all ${logTypeFilter === 'all' ? 'border-brand-500 bg-brand-500 text-white' : `${bord} ${txt2}`}`}>Todos ({logs.length})</button>
+                    {logTypes.map(type => (
+                      <button key={type} onClick={() => setLogTypeFilter(type)} className={`rounded-xl border px-3 py-2 text-[11px] font-bold transition-all ${logTypeFilter === type ? 'border-brand-500 bg-brand-500 text-white' : `${bord} ${txt2}`}`}>
+                        {type} ({logs.filter(item => item.tipo === type).length})
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              <div className={`rounded-[24px] border p-4 md:p-5 ${card}`}>
+                <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+                  <div className="relative md:col-span-2 xl:col-span-1">
+                    <Search className={`absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 ${sub}`} />
+                    <input value={logSearch} onChange={event => setLogSearch(event.target.value)} placeholder="Buscar ação, informação ou usuário..." className={`h-11 w-full rounded-xl border py-2 pl-10 pr-3 text-xs outline-none ${inp}`} />
+                  </div>
+                  <select value={logLevelFilter} onChange={event => setLogLevelFilter(event.target.value)} className={`h-11 rounded-xl border px-3 text-xs outline-none ${inp}`}>
+                    <option value="all">Todos os níveis</option>
+                    {logLevels.map(level => <option key={level} value={level}>{level}</option>)}
+                  </select>
+                  <select value={logPeriodFilter} onChange={event => setLogPeriodFilter(event.target.value as typeof logPeriodFilter)} className={`h-11 rounded-xl border px-3 text-xs outline-none ${inp}`}>
+                    <option value="all">Todo o período</option>
+                    <option value="today">Hoje</option>
+                    <option value="7days">Últimos 7 dias</option>
+                    <option value="30days">Últimos 30 dias</option>
+                  </select>
+                  <button onClick={() => { setLogSearch(''); setLogTypeFilter('all'); setLogLevelFilter('all'); setLogPeriodFilter('all'); }} className={`h-11 rounded-xl border px-4 text-xs font-bold transition-all ${bord} ${txt2} ${rowH}`}>Limpar filtros</button>
+                </div>
+                <p className={`mt-3 text-[10px] ${sub}`}>{filteredLogs.length} de {logs.length} registros encontrados</p>
+              </div>
+
+              <div className="space-y-3">
+                {filteredLogs.map(item => {
+                  const level = item.nivel?.toUpperCase() || 'SISTEMA';
+
+                  const levelConfig = level === 'ADMIN'
+                    ? { text: 'text-amber-400', bg: 'bg-amber-500/10', border: 'border-amber-500/20', bar: 'bg-amber-500', icon: ShieldAlert, label: 'Ação administrativa' }
+                    : level === 'CLIENTE'
+                      ? { text: 'text-blue-400', bg: 'bg-blue-500/10', border: 'border-blue-500/20', bar: 'bg-blue-500', icon: User, label: 'Ação de cliente' }
+                      : { text: 'text-violet-400', bg: 'bg-violet-500/10', border: 'border-violet-500/20', bar: 'bg-violet-500', icon: Activity, label: 'Evento de sistema' };
+
+                  const date = new Date(item.insertDate);
+                  const hasDate = !Number.isNaN(date.getTime());
+
+                  const relativeTime = (() => {
+                    if (!hasDate) return null;
+                    const diffMs = Date.now() - date.getTime();
+                    const diffMin = Math.floor(diffMs / 60000);
+                    if (diffMin < 1) return 'agora mesmo';
+                    if (diffMin < 60) return `há ${diffMin} min`;
+                    const diffH = Math.floor(diffMin / 60);
+                    if (diffH < 24) return `há ${diffH}h`;
+                    const diffD = Math.floor(diffH / 24);
+                    if (diffD < 7) return `há ${diffD}d`;
+                    return date.toLocaleDateString('pt-BR');
+                  })();
+
+                  return (
+                    <article
+                      key={item.id}
+                      className={`group relative flex overflow-hidden rounded-2xl border transition-all hover:-translate-y-0.5 hover:shadow-lg ${card}`}
+                    >
+                      {/* Barra de cor lateral — identifica o nível à distância, sem precisar ler nada */}
+                      <div className={`w-1 shrink-0 ${levelConfig.bar}`} />
+
+                      <div className="flex flex-1 flex-col gap-4 p-4 md:flex-row md:items-start md:p-5">
+                        {/* Ícone do nível */}
+                        <div className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border ${levelConfig.border} ${levelConfig.bg} ${levelConfig.text}`}>
+                          <levelConfig.icon className="h-5 w-5" />
+                        </div>
+
+                        {/* Conteúdo principal */}
+                        <div className="min-w-0 flex-1">
+                          {/* Linha 1: contexto do evento (nível + tipo + quando) — o que é e quando aconteceu, de imediato */}
+                          <div className="flex flex-wrap items-center justify-between gap-2">
+                            <div className="flex flex-wrap items-center gap-2">
+                              <span className={`rounded-full border px-2.5 py-1 text-[9px] font-black uppercase tracking-wider ${levelConfig.border} ${levelConfig.bg} ${levelConfig.text}`}>
+                                {levelConfig.label}
+                              </span>
+                              {item.tipo && (
+                                <span className={`rounded-full border px-2.5 py-1 text-[9px] font-bold ${bord} ${txt2}`}>
+                                  {item.tipo}
+                                </span>
+                              )}
+                            </div>
+                            {relativeTime && (
+                              <span className={`shrink-0 text-[10px] font-bold ${sub}`}>{relativeTime}</span>
+                            )}
+                          </div>
+
+                          {/* Linha 2: título da ação — a informação mais importante, com mais peso visual */}
+                          <h3 className={`mt-2.5 text-sm font-bold leading-5 ${txt}`}>
+                            {item.acao || item.log || 'Movimentação registrada'}
+                          </h3>
+
+                          {/* Linha 3: detalhes, só aparece se houver algo além do título */}
+                          {item.info && (
+                            <p className={`mt-1.5 text-xs leading-5 ${txt2}`}>{item.info}</p>
+                          )}
+
+                          {/* Rodapé: metadados secundários, agrupados e discretos */}
+                          <div className={`mt-3 flex flex-wrap items-center gap-x-4 gap-y-1 border-t pt-2.5 text-[10px] ${bord} ${sub}`}>
+                            <span>Registro <span className={`font-bold ${txt2}`}>#{item.id}</span></span>
+                            <span>Usuário <span className={`font-bold ${txt2}`}>#{item.id_User_Customer}</span></span>
+                            {hasDate && (
+                              <span>
+                                <span className={`font-bold ${txt2}`}>{date.toLocaleDateString('pt-BR')}</span> às{' '}
+                                <span className={`font-bold ${txt2}`}>{date.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}</span>
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    </article>
+                  );
+                })}
+
+
+                {filteredLogs.length === 0 && (
+                  <div className={`rounded-[24px] border border-dashed py-14 text-center ${card}`}>
+                    <Activity className={`mx-auto h-8 w-8 ${sub}`} />
+                    <p className={`mt-3 text-sm font-bold ${txt}`}>Nenhuma movimentação encontrada</p>
+                    <p className={`mt-1 text-xs ${sub}`}>Altere ou limpe os filtros para visualizar outros registros.</p>
+                  </div>
+                )}
               </div>
             </div>
           )}
