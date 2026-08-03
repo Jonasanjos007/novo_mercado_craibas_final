@@ -1,5 +1,8 @@
-﻿using Baldan.Pricing.Application.Domain.Entities;
+﻿using Baldan.Pricing.Application.Commons;
+using Baldan.Pricing.Application.Domain.Entities;
 using Baldan.Pricing.Application.Interfaces;
+using Mercado.Craibas.Application.Domain.Entities;
+using Mercado.Craibas.Application.DTOs.Requests;
 using Mercado.Craibas.Infrastructure.Data.Context;
 using Microsoft.EntityFrameworkCore;
 using System;
@@ -138,6 +141,22 @@ namespace Pricing.Infrastructure.Repositories
             return await _context.Set<T>()
                 .AsNoTracking()
                 .FirstOrDefaultAsync(predicate);
+        }
+        public async Task<Result<bool>> SaveLogUser(LogRequest Log, int? UserId)
+        {
+            var patternChangeList = await InsertAsyncReturnId<Logs>(
+                new Logs
+                {
+                    Id_User = Log.Id_User,
+                    Log = Log.Log,
+                    Nivel = Log.Nivel,
+                    Tipo = Log.Tipo,
+                    Acao = Log.Acao,
+                    Info = Log.Info,
+                    InsertDate = DateTime.Now
+                });
+
+            return Result<bool>.Success(true);
         }
     }
 }

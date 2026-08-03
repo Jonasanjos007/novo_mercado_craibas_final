@@ -1,6 +1,7 @@
 ﻿using Baldan.Pricing.Application.Commons;
 using Baldan.Pricing.Application.Domain.Entities;
 using Baldan.Pricing.Application.Interfaces;
+using Mercado.Craibas.Application.Domain.Entities;
 using Mercado.Craibas.Application.DTOs.Requests;
 using Mercado.Craibas.Application.Interfaces.Repositories;
 using Mercado.Craibas.Application.InterfacesAdmin;
@@ -10,6 +11,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.Text.Json;
 using System.Threading.Tasks;
 
 namespace Mercado.Craibas.Application.ServicesAdmin
@@ -90,6 +92,34 @@ namespace Mercado.Craibas.Application.ServicesAdmin
 
             try
             {
+                if (product.Name == null)
+                {
+                    return Result<bool>.Failure(Error.Failure("Produto", "Nome do produto e obrigatório!"));
+                }
+                if (product.Description == null)
+                {
+                    return Result<bool>.Failure(Error.Failure("Produto", "Descrição do produto e obrigatório!"));
+                }
+                if (product.Price_Unit == 0)
+                {
+                    return Result<bool>.Failure(Error.Failure("Produto", "Preço do produto e obrigatório!"));
+                }
+                if (product.Origin_Price == 0)
+                {
+                    return Result<bool>.Failure(Error.Failure("Produto", "Preço original do produto e obrigatório!"));
+                }
+                if (product.Origin_Price < product.Price_Unit)
+                {
+                    return Result<bool>.Failure(Error.Failure("Produto", "Preço original deve ser maior que o preço do produto!"));
+                }
+                if (product.Id_Category == null || product.Id_Category == 0)
+                {
+                    return Result<bool>.Failure(Error.Failure("Produto", "Categoria do produto e obrigatório!"));
+                }
+                if (product.Tags == null)
+                {
+                    return Result<bool>.Failure(Error.Failure("Produto", "Tags do produto e obrigatório!"));
+                }
                 var OnePoduct = new Product();
 
                 OnePoduct = new Product
@@ -102,7 +132,7 @@ namespace Mercado.Craibas.Application.ServicesAdmin
                     Id_Category = product.Id_Category,
                     Total_Stock = product.Total_Stock ?? 0,
                     Badge = product.Badge,
-                    FreeShipping = product.FreeShipping ?? false,
+                    FreeShipping = false,
                     installments = product.installments,
                     Tags = product.Tags,
                     Featured = product.Featured,
@@ -124,7 +154,7 @@ namespace Mercado.Craibas.Application.ServicesAdmin
                 // sobe duas pastas (Mercado.Api -> Backend -> novo_mercado_craibas_final)
                 var raiz = Directory.GetParent(raizProjeto)!.Parent!.FullName;
 
-                var pastaDestino = Path.Combine(raiz, "mercado-craibas", "Imagens", "Produtos");
+                var pastaDestino = Path.Combine(raiz, "Imagens", "Produtos");
 
                 if (!Directory.Exists(pastaDestino))
                 {
@@ -175,10 +205,42 @@ namespace Mercado.Craibas.Application.ServicesAdmin
             }
         }
 
-        public async Task<Result<bool>>PostEditProduct(ProductRequest product)
+        public async Task<Result<bool>>PostEditProduct(ProductRequest product,int IdUser)
         {
             try
             {
+                if (product.Id == null)
+                {
+                    return Result<bool>.Failure(Error.Failure("Error", " Produto não selecionado!"));
+                }
+                if (product.Name == null)
+                {
+                    return Result<bool>.Failure(Error.Failure("Produto", "Nome do produto e obrigatório!"));
+                }
+                if (product.Description == null)
+                {
+                    return Result<bool>.Failure(Error.Failure("Produto", "Descrição do produto e obrigatório!"));
+                }
+                if (product.Price_Unit == 0)
+                {
+                    return Result<bool>.Failure(Error.Failure("Produto", "Preço do produto e obrigatório!"));
+                }
+                if (product.Origin_Price == 0)
+                {
+                    return Result<bool>.Failure(Error.Failure("Produto", "Preço original do produto e obrigatório!"));
+                }
+                if (product.Origin_Price < product.Price_Unit)
+                {
+                    return Result<bool>.Failure(Error.Failure("Produto", "Preço original deve ser maior que o preço do produto!"));
+                }
+                if (product.Id_Category == null || product.Id_Category == 0)
+                {
+                    return Result<bool>.Failure(Error.Failure("Produto", "Categoria do produto e obrigatório!"));
+                }
+                if (product.Tags == null)
+                {
+                    return Result<bool>.Failure(Error.Failure("Produto", "Tags do produto e obrigatório!"));
+                }
                 if (product.RemovedImages?.Any() == true)
                 {
                     var raizCaminhoProjeto = Directory.GetCurrentDirectory();
@@ -187,7 +249,6 @@ namespace Mercado.Craibas.Application.ServicesAdmin
 
                     var pastaDestinoImage = Path.Combine(
                         raizCaminho,
-                        "mercado-craibas",
                         "Imagens",
                         "Produtos"
                     );
@@ -197,28 +258,29 @@ namespace Mercado.Craibas.Application.ServicesAdmin
                         // Busca a imagem antes de excluir
                         var imagem = await _unitOfWorkAdmin.GetClassById<Imagens_Products,int>(imagemDeleteId, "Id");
 
+
                         if (imagem != null)
                         {
 
-                             await _unitOfWorkAdmin.UpdateFieldsAsyncEntity<Imagens_Products>(filters: new Dictionary<string, object>
-                        {
-                                { "Id", imagem.Id }
-                        },
+                       //      await _unitOfWorkAdmin.UpdateFieldsAsyncEntity<Imagens_Products>(filters: new Dictionary<string, object>
+                       // {
+                       //         { "Id", imagem.Id }
+                       // },
 
-                       fieldsToUpdate: new Dictionary<string, object>
-                       {
+                       //fieldsToUpdate: new Dictionary<string, object>
+                       //{
                             
-                             {"Isdelete",true},
-                             {"UpdateDate", DateTime.Now }
-                        });
-                            //var caminhoArquivo = Path.Combine(pastaDestinoImage, imagem.Url_Imagem);
+                       //      {"Isdelete",true},
+                       //      {"UpdateDate", DateTime.Now }
+                       // });
+                            var caminhoArquivo = Path.Combine(pastaDestinoImage, imagem.Url_Imagem);
 
-                            //if (File.Exists(caminhoArquivo))
-                            //{
-                            //    File.Delete(caminhoArquivo);
-                            //}
+                            if (File.Exists(caminhoArquivo))
+                            {
+                                File.Delete(caminhoArquivo);
+                            }
 
-                            //await _unitOfWorkAdmin.DeleteAllByColumnAsync<Imagens_Products>("Id", imagemDeleteId);
+                            await _unitOfWorkAdmin.DeleteAllByColumnAsync<Imagens_Products>("Id", imagem.Id);
                         }
                     }
                 }
@@ -227,18 +289,18 @@ namespace Mercado.Craibas.Application.ServicesAdmin
                 {
                     foreach (var VariantDeleteId in product.removedVariants)
                     {
-                        await _unitOfWorkAdmin.UpdateFieldsAsyncEntity<Variante_Products>(filters: new Dictionary<string, object>
-                        {
-                                { "Id", VariantDeleteId }
-                        },
+                      //  await _unitOfWorkAdmin.UpdateFieldsAsyncEntity<Variante_Products>(filters: new Dictionary<string, object>
+                      //  {
+                      //          { "Id", VariantDeleteId }
+                      //  },
 
-                      fieldsToUpdate: new Dictionary<string, object>
-                      {
+                      //fieldsToUpdate: new Dictionary<string, object>
+                      //{
 
-                             {"Isdelete",true},
-                             {"UpdateDate", DateTime.Now }
-                       });
-                        //await _unitOfWorkAdmin.DeleteAllByColumnAsync<Variante_Products>("Id", VariantDeleteId);
+                      //       {"Isdelete",true},
+                      //       {"UpdateDate", DateTime.Now }
+                      // });
+                        await _unitOfWorkAdmin.DeleteAllByColumnAsync<Variante_Products>("Id", VariantDeleteId);
                     }
                 }
 
@@ -258,7 +320,7 @@ namespace Mercado.Craibas.Application.ServicesAdmin
                              {"Id_Category",product.Id_Category},
                              {"Total_Stock",product.Total_Stock},
                              {"Badge",product.Badge},
-                             {"FreeShipping",product.FreeShipping},
+                             {"FreeShipping",false},
                              {"installments",product.installments},
                              {"Tags",product.Tags},
                              { "Featured", product.Featured},
@@ -277,7 +339,7 @@ namespace Mercado.Craibas.Application.ServicesAdmin
                         // sobe duas pastas (Mercado.Api -> Backend -> novo_mercado_craibas_final)
                         var raizCaminho = Directory.GetParent(raizCaminhoProjeto)!.Parent!.FullName;
 
-                        var pastaDestinoImage = Path.Combine(raizCaminho, "mercado-craibas", "Imagens", "Produtos");
+                        var pastaDestinoImage = Path.Combine(raizCaminho, "Imagens", "Produtos");
 
                         if (!Directory.Exists(pastaDestinoImage))
                         {
@@ -335,12 +397,25 @@ namespace Mercado.Craibas.Application.ServicesAdmin
                              {"Type",Variante.Type},
                              {"Stoke",Variante.Stoke},
                              {"Price_Modifier",Variante.Price_Modifier},
+                             {"UpdateDate", DateTime.Now }
                       });
                         }
                       
 
                     }
                 }
+                var User = await _unitOfWorkAdmin.GetClassAsyncWhere<User_Admin>(x => x.Id == IdUser);
+                await _unitOfWorkAdmin.InsertAsyncReturnObjeto<Logs>(new Logs
+                {
+                    Id_User = IdUser,
+
+                Log = $"Editou o Produto {product.Name} --------- {JsonSerializer.Serialize(product)}",
+                Tipo = "Edicao",
+                    Nivel = "Admin",
+                    Acao = User.Name + " " + User.Role + " " + $"Editou o Produto",
+                    Info = User.Name + " " + User.Role + " " + $"Editou o Produto em {DateTime.Now:dd/MM/yyyy HH:mm:ss}",
+                    InsertDate = DateTime.Now
+                });
                 return Result<bool>.Success(true);
             }
             catch (Exception ex)

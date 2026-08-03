@@ -40,7 +40,9 @@ namespace Mercado.Api.Controllers.admin
         [HttpPost("PostEditeProduct")]
         public async Task<IActionResult> PostEditeProduct([FromForm] ProductRequest product)
         {
-            var result = await _service.PostEditProduct(product);
+            var Id_User = User.GetUserId();
+
+            var result = await _service.PostEditProduct(product,Id_User);
 
             return result.ToActionResult();
         }

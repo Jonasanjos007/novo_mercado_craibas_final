@@ -71,12 +71,22 @@ namespace Mercado.Craibas.Application.ServicesAdmin
             }
 
 
-            var existe = await _unitOfWorkAdmin.GetClassById<Cupom, string>(cupomRequest.Name_Cupom, "Name_Cupom");
+            var existe = await _unitOfWorkAdmin.GetClassAsyncWhere<Cupom>(x=> x.Cod_Cupom == cupomRequest.Cod_Cupom && x.Isdelete != true);
 
             if (existe is not null)
             {
                 return Result<bool>.Failure(Error.Failure("Cupom", "Já existe um cupom com esse código."));
             }
+            if(cupomRequest.Show_Flash_Offer)
+            {
+                var show_Flash_Offer = await _unitOfWorkAdmin.GetClassAsyncWhere<Cupom>(x => x.Isdelete != true && x.Active == true && x.Show_Flash_Offer == true);
+
+                if (show_Flash_Offer is not null)
+                {
+                    return Result<bool>.Failure(Error.Failure("Óferta relâmpago", "Já existe um cupom relacionado a óferta relâmpago pode somente um por vez!."));
+                }
+            }
+           
 
             var InsertCupom = await _unitOfWorkAdmin.InsertAsyncReturnObjeto(new Cupom
             {
@@ -90,6 +100,7 @@ namespace Mercado.Craibas.Application.ServicesAdmin
                 Maximum_Discount = cupomRequest.Maximum_Discount,
                 Quantity_Uses = cupomRequest.Quantity_Uses,
                 Quantity_Used = cupomRequest.Quantity_Used,
+                Show_Flash_Offer = cupomRequest.Show_Flash_Offer,
                 Per_User_Limit = cupomRequest.Per_User_Limit,
                 First_Order_Only = cupomRequest.First_Order_Only,
                 Date_Start = cupomRequest.Date_Start,
@@ -222,6 +233,7 @@ namespace Mercado.Craibas.Application.ServicesAdmin
                     First_Order_Only = cupom.First_Order_Only,
                     Date_Start = cupom.Date_Start,
                     Date_End = cupom.Date_End,
+                    Show_Flash_Offer = cupom.Show_Flash_Offer,
                     InsertDate = cupom.InsertDate,
                     UpdateDate = cupom.UpdateDate,
 
@@ -235,6 +247,62 @@ namespace Mercado.Craibas.Application.ServicesAdmin
         }
         public async Task<Result<bool>> PostUpdateCupom(CupomUpdateRequest request, int IdUser)
         {
+
+            if (!Enum.IsDefined(typeof(DiscountType), request.Discount_Type))
+            {
+                return Result<bool>.Failure(
+                    Error.Failure("Tipo desconto", "Tipo de desconto inválido!")
+                );
+            }
+            if (request.Discount_Type == DiscountType.Percentage)
+            {
+                if (request.Discount < 0 || request.Discount > 100)
+                    return Result<bool>.Failure(Error.Failure("Valor de desconto", "Erro Valor de desconto invalido!"));
+            }
+            if (request.Discount_Type == DiscountType.FixedValue)
+            {
+                if (request.Discount < 0)
+                    return Result<bool>.Failure(Error.Failure("Valor de desconto", "Erro Valor de desconto invalido!"));
+            }
+            if (request.Discount_Type == DiscountType.FreeShipping)
+            {
+                request.Discount = 0;
+            }
+            if (request.Minimum_Value != null)
+            {
+                if (request.Minimum_Value < 0)
+                {
+                    return Result<bool>.Failure(Error.Failure("Valor minimo", "Erro Valor minimo deve ser maior que 0!"));
+                }
+            }
+            if (request.Maximum_Discount != null)
+            {
+                if (request.Maximum_Discount < 0)
+                {
+                    return Result<bool>.Failure(Error.Failure("desconto máximo", "Erro desconto máximo deve ser maior que 0!"));
+                }
+            }
+            if (request.Date_End < request.Date_Start)
+            {
+                return Result<bool>.Failure(Error.Failure("Data ", "Erro Data fim deve ser maior que data de inicio!"));
+            }
+
+
+            var existe = await _unitOfWorkAdmin.GetClassAsyncWhere<Cupom>(x=> x.Cod_Cupom == request.Cod_Cupom && x.Id != request.Id && x.Isdelete != true);
+
+            if (existe is not null)
+            {
+                return Result<bool>.Failure(Error.Failure("Cupom", "Já existe um cupom com esse código."));
+            }
+            if (request.Show_Flash_Offer)
+            {
+                var show_Flash_Offer = await _unitOfWorkAdmin.GetClassAsyncWhere<Cupom>(x => x.Isdelete != true && x.Active == true && x.Show_Flash_Offer == true && x.Id != request.Id);
+
+                if (show_Flash_Offer is not null)
+                {
+                    return Result<bool>.Failure(Error.Failure("Óferta relâmpago", "Já existe um cupom relacionado a óferta relâmpago pode somente um por vez!."));
+                }
+            }
 
             var coupon = await _unitOfWorkAdmin.GetClassById<Cupom, int>(request.Id, "Id");
 
@@ -258,6 +326,7 @@ namespace Mercado.Craibas.Application.ServicesAdmin
                                 {"Minimum_Value", request.Minimum_Value},
                                 {"Maximum_Discount", request.Maximum_Discount},
                                 {"Quantity_Uses", request.Quantity_Uses},
+                                {"Show_Flash_Offer", request.Show_Flash_Offer},
                                 {"Per_User_Limit", request.Per_User_Limit},
                                 {"Date_Start", request.Date_Start},
                                 {"Date_End", request.Date_End},
@@ -339,8 +408,8 @@ namespace Mercado.Craibas.Application.ServicesAdmin
                 Log = "Editou o Cupom" + " " + request.Name_Cupom,
                 Tipo = "Edicao",
                 Nivel = "Admin",
-                Acao = User.Name + $"Admin Editou o cupom",
-                Info = User.Name + $"Admin Editou o cupom em {DateTime.Now:dd/MM/yyyy HH:mm:ss}",
+                Acao = User.Name + " " + User.Role + " " + $"Editou o cupom",
+                Info = User.Name + " " + User.Role + " " + $"Editou o cupom em {DateTime.Now:dd/MM/yyyy HH:mm:ss}",
                 InsertDate = DateTime.Now
             });
             return Result<bool>.Success(true);
@@ -418,8 +487,8 @@ namespace Mercado.Craibas.Application.ServicesAdmin
                 Log = "Excluiu o Cupom" + " " + coupon.Name_Cupom,
                 Tipo = "Exclução Cupom",
                 Nivel = "Admin",
-                Acao = User.Name + $"Admin Excluiu o cupom",
-                Info = User.Name + $"Admin Excluiu o cupom em {DateTime.Now:dd/MM/yyyy HH:mm:ss}",
+                Acao = User.Name + " " + User.Role + " " + $"Excluiu o cupom",
+                Info = User.Name + " " + User.Role + " " + $"Excluiu o cupom em {DateTime.Now:dd/MM/yyyy HH:mm:ss}",
                 InsertDate = DateTime.Now
             });
             return Result<bool>.Success(true);
@@ -481,8 +550,8 @@ namespace Mercado.Craibas.Application.ServicesAdmin
                 Log = "Excluiu o Cupom" + " " + coupon.Name_Cupom,
                 Tipo = "Ativação Cupom",
                 Nivel = "Admin",
-                Acao = User.Name + $"Admin " +active +" o cupom",
-                Info = User.Name + "Admin " +active +$" o cupom em {DateTime.Now:dd/MM/yyyy HH:mm:ss}",
+                Acao = User.Name + " " + User.Role +  $" " + active +" o cupom",
+                Info = User.Name + " " + User.Role +  " " + active +$" o cupom em {DateTime.Now:dd/MM/yyyy HH:mm:ss}",
                 InsertDate = DateTime.Now
             });
             return Result<bool>.Success(true);
