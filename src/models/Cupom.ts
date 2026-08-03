@@ -15,8 +15,10 @@ export interface Cupom {
     application?: string;
     date_Start?: string | null;
     date_End?: string | null;
+    date_end?: string | null;
     productIds?: number[];
     categoryIds?: number[];
+    show_Flash_Offer: boolean;
 }
 
 export interface CupomAdmin {
@@ -39,6 +41,7 @@ export interface CupomAdmin {
     productIds?: Coupon_Product[];
     categoryIds?: Coupon_Category[];
     // couponUse?: Coupon_Use[];
+    show_Flash_Offer: boolean;
 }
 export type UpdateCouponRequest = CupomAdmin & {
     addedProducts: number[];

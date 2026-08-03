@@ -1,6 +1,7 @@
 using Baldan.Pricing.Application.Commons;
 using Baldan.Pricing.Application.Domain.Entities;
 using Baldan.Pricing.Application.Models.Enums;
+using Mercado.Craibas.Application.Domain.Entities;
 using Mercado.Craibas.Application.DTOs.Requests;
 using Mercado.Craibas.Application.InterfacesAdmin;
 using Mercado.Craibas.Application.InterfacesAdmin.Services;
@@ -9,6 +10,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.Text.Json;
 using System.Threading.Tasks;
 using static System.Net.Mime.MediaTypeNames;
 
@@ -21,7 +23,7 @@ namespace Mercado.Craibas.Application.ServicesAdmin
         {
             _unitOfWorkAdmin = unitOfWorkAdmin;
         }
-        public async Task<Result<bool>> PostSaveCategory(CategoryRequest category)
+        public async Task<Result<bool>> PostSaveCategory(CategoryRequest category, int IdUser)
         {
             if (category.Name == null)
             {
@@ -106,7 +108,18 @@ namespace Mercado.Craibas.Application.ServicesAdmin
                 {
                     return Result<bool>.Failure(Error.Failure("Salvar Cátegoria", "Erro ao salvar a categoria!"));
                 }
+                var User = await _unitOfWorkAdmin.GetClassAsyncWhere<User_Admin>(x => x.Id == IdUser);
 
+                await _unitOfWorkAdmin.InsertAsyncReturnObjeto<Logs>(new Logs
+                {
+                    Id_User = IdUser,
+                    Log = "Criou a Categoria" + " " + category.Name,
+                    Tipo = "Adição",
+                    Nivel = "Admin", 
+                    Acao = User.Name + " " + User.Role + " " + $"Criou uma Categoria",
+                    Info = User.Name + " " + User.Role + " " + $"Criou a Categoria em {DateTime.Now:dd/MM/yyyy HH:mm:ss}",
+                    InsertDate = DateTime.Now
+                });
                 return Result<bool>.Success(true);
             }
             catch (Exception ex)
@@ -185,7 +198,7 @@ namespace Mercado.Craibas.Application.ServicesAdmin
             return arquivos.Split(';',StringSplitOptions.RemoveEmptyEntries |StringSplitOptions.TrimEntries)
                 .Select(Path.GetFileName).Distinct(StringComparer.OrdinalIgnoreCase).ToList();
         }
-        public async Task<Result<bool>> UpdateCategory(CategoryRequest category)
+        public async Task<Result<bool>> UpdateCategory(CategoryRequest category,int IdUser)
         {
             if (category.Id <= 0)
             {
@@ -377,7 +390,17 @@ namespace Mercado.Craibas.Application.ServicesAdmin
                 {
                     RemoverArquivo(pastaDestino,bannerRemovido);
                 }
-
+                var User = await _unitOfWorkAdmin.GetClassAsyncWhere<User_Admin>(x => x.Id == IdUser);
+                await _unitOfWorkAdmin.InsertAsyncReturnObjeto<Logs>(new Logs
+                {
+                    Id_User = IdUser,
+                    Log = $"Editou a categoria {category.Name} --------- {JsonSerializer.Serialize(category)}",
+                    Tipo = "Edicao",
+                    Nivel = "Admin",
+                    Acao = User.Name + " " + User.Role + " " + $"Editou o Categoria",
+                    Info = User.Name + " " + User.Role + " " + $"Editou o Categoria em {DateTime.Now:dd/MM/yyyy HH:mm:ss}",
+                    InsertDate = DateTime.Now
+                });
                 return Result<bool>.Success(true);
             }
             catch (Exception ex)
@@ -386,7 +409,7 @@ namespace Mercado.Craibas.Application.ServicesAdmin
             }
         }
 
-        public async Task<Result<bool>> DeleteCategory(DeleteCategoryRequest request)
+        public async Task<Result<bool>> DeleteCategory(DeleteCategoryRequest request ,int IdUser)
         {
             if (request.Id <= 0)
             {
@@ -487,7 +510,21 @@ namespace Mercado.Craibas.Application.ServicesAdmin
                         { "Isdelete",true },
                         { "Ativo",false },
                         { "UpdateDate",DateTime.Now }
+                
                     });
+
+                var User = await _unitOfWorkAdmin.GetClassAsyncWhere<User_Admin>(x => x.Id == IdUser);
+
+                await _unitOfWorkAdmin.InsertAsyncReturnObjeto<Logs>(new Logs
+                {
+                    Id_User = IdUser,
+                    Log = "Apagou a Categoria" + " " + category.Category ,
+                    Tipo = "Deletou",
+                    Nivel = "Admin",
+                    Acao = User.Name + " " + User.Role + " " + $"apagou o Categoria",
+                    Info = User.Name + " " + User.Role + " " + $"apagou o Categoria em {DateTime.Now:dd/MM/yyyy HH:mm:ss}",
+                    InsertDate = DateTime.Now
+                });
 
                 return categoryDeleted
                     ? Result<bool>.Success(true)

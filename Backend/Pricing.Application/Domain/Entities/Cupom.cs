@@ -12,6 +12,7 @@ namespace Baldan.Pricing.Application.Domain.Entities
         public double Discount { get; set; }
         public DiscountType Discount_Type { get; set; }
         public bool Active { get; set; }
+        public bool Show_Flash_Offer { get; set; }
         public double? Minimum_Value { get; set; }
         public double? Maximum_Discount { get; set; }
         public int? Quantity_Uses { get; set; }

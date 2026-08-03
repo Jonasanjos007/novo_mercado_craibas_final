@@ -46,12 +46,6 @@ export default function Header() {
   };
   return (
     <header className="sticky top-0 z-50 shadow-strong" style={{ background: 'var(--header-bg)' }}>
-      <div className={`${ColorGlobalTema} text-white text-xs py-1.5 text-center font-body tracking-wide`}>
-        🚚 Frete grátis acima de R$ 299 · Código <strong>BEMVINDO20</strong> = 20% OFF ·{' '}
-        <button onClick={() => navigate('/flash-sale')} className="underline underline-offset-2 hover:text-brand-200 transition-colors">
-          ⚡ Ofertas Relâmpago
-        </button>
-      </div>
 
       <div className="max-w-7xl mx-auto px-4 py-3 flex flex-wrap items-center gap-3">
         <button onClick={() => navigate('/')} className="flex items-center gap-2 shrink-0 group">
@@ -147,7 +141,7 @@ export default function Header() {
         <div className="max-w-7xl mx-auto px-4 flex items-center gap-1 py-1.5">
           <NavBtn active={Pages === 'home'} Color={ColorGlobalTema} ColorText={ColorGlobalText} HoverText={ColorGlobalHover} onClick={() => { navigatePages('home', null, null); navigate(`/`) }} label="🏠 Início" />
 
-          {Category.map((cat) => (
+          {/* {Category.map((cat) => (
             <NavBtn
               key={cat.id}
               active={Pages === 'category' && selectedCategory === cat.category}
@@ -160,7 +154,7 @@ export default function Header() {
               }}
               label={`${categoryIcons[cat.category]} ${categoryLabels[cat.category]}`}
             />
-          ))}
+          ))} */}
           <div className="mx-1 h-4 w-px bg-surface-700" />
           <NavBtn active={Pages === 'flash-sale'} colorConfig={colorConfig.hex} Color={ColorGlobalTema} ColorText={ColorGlobalText} HoverText={ColorGlobalHover} onClick={() => { navigatePages('flash-sale', null, null); navigate('/flash-sale') }} label="⚡ Relâmpago" highlight />
           <NavBtn active={Pages === 'brands'} Color={ColorGlobalTema} ColorText={ColorGlobalText} HoverText={ColorGlobalHover} onClick={() => { navigatePages('brands', null, null); navigate('/brands') }} label="⭐ Marcas" />

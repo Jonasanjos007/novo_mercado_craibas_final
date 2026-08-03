@@ -48,12 +48,16 @@ namespace Mercado.Craibas.Application.Services
                     Id = Cupom.Id,
                     Name_Cupom = Cupom.Name_Cupom,
                     Cod_Cupom = Cupom.Cod_Cupom,
-                    Descriotion = Cupom.Description,
+                    Description = Cupom.Description,
                     Discont = Cupom.Discount,
                     Active = Cupom.Active,
+                    Show_Flash_Offer = Cupom.Show_Flash_Offer,
                     Date_Start = Cupom.Date_Start,
                     Date_end = Cupom.Date_End,
-                    Minimum_Value = Cupom.Minimum_Value
+                    Minimum_Value = Cupom.Minimum_Value,
+                    Quantity_Used = Cupom.Quantity_Used,
+                    Quantity_Uses = Cupom.Quantity_Uses,
+
                 });
             }
             return Result<List<CupomResponse>>.Success(ListCupons);

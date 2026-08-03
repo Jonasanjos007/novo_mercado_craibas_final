@@ -4,11 +4,12 @@ import { useNotification } from "../utils/NotificationCard";
 import { UseUserStore } from "../store/UseUserStore";
 import { UseProductStore } from "../store/UseProductStore";
 import { UseCartStore } from "../store/UseCartStore";
+import { UseOrderStore } from "../store/UseOrderStore";
 
 export const useHomeController = () => {
     const { loadProducts, products } = UseProductStore();
     const { LoadCartUser, cart } = UseCartStore();
-
+    const { LoadCupons, Cupons } = UseOrderStore();
     const { user } = UseUserStore();
     const notify = useNotification();
     const [Loading, SetLoading] = useState(false);
@@ -23,6 +24,9 @@ export const useHomeController = () => {
                 if (cart) {
                     await GetCartUser();
                 }
+            }
+            if (!Cupons.length) {
+                await GetLoadCupons();
             }
             SetLoading(false);
         };
@@ -40,6 +44,12 @@ export const useHomeController = () => {
             if (!result?.success) {
                 notify.error(result.error?.error.code || "error", result?.error?.error.message || "Erro ao carregar Carrinho!");
             }
+        }
+    };
+    const GetLoadCupons = async () => {
+        const result = await LoadCupons();
+        if (!result?.success) {
+            notify.error(result.error?.error.code || "error", result?.error?.error.message || "Erro ao carregar Cupons!");
         }
     };
 

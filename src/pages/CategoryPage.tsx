@@ -1,8 +1,7 @@
-import { useState } from 'react';
-import { SlidersHorizontal, X, ChevronDown, ArrowLeft, Search } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { SlidersHorizontal, X, ArrowLeft, Search, ChevronLeft, ChevronRight, ShoppingBag } from 'lucide-react';
 import { useStore } from '../context/store';
 import ProductCard from '../components/ProductCard';
-import { categoryLabels, categoryIcons } from '../utils';
 import { useNavigate, useParams } from 'react-router-dom';
 import { UseRouteStore } from '../store/UseRouteStore';
 import { UseProductStore } from '../store/UseProductStore';
@@ -11,18 +10,26 @@ import AlertPopup from '../components/AlertPopup';
 import Loading from '../components/Loading';
 import { useCategoryController } from '../controller/useCategoryController';
 import { UseOrderStore } from '../store/UseOrderStore';
+import { getColorConfig } from '../types/Colors';
 
 type SortOption = 'relevancia' | 'menor-preco' | 'maior-preco' | 'avaliacao' | 'mais-vendidos';
 
 export default function CategoryPage() {
+  const noScrollbar = '[&::-webkit-scrollbar]:hidden';
+  const noScrollbarStyle: React.CSSProperties = { scrollbarWidth: 'none' };
+
   const Controller = useCategoryController();
   const { Category } = UseOrderStore();
-
   const { products } = UseProductStore();
   const { searchQuery, selectedCategory } = UseRouteStore();
-  const { ColorGlobalTema, ColorGlobalText, ColorGlobalHoverText } = UseUserStore();
-const selectedCategoryData = Category.find(cat => cat.category === selectedCategory);
-  const { search } = useParams();
+  const { ColorGlobalTema, ColorGlobalText, ColorGlobalHoverText, NameColorGlobal } = UseUserStore();
+  const colorConfig = getColorConfig(NameColorGlobal);
+  const { id, search } = useParams<{ id?: string; search?: string }>();
+  const routeCategory = id ? decodeURIComponent(id) : selectedCategory;
+  const selectedCategoryData = Category.find(cat =>
+    cat.category.toLowerCase() === routeCategory?.toLowerCase()
+  );
+  const [bannerIndex, setBannerIndex] = useState(0);
   const [sort, setSort] = useState<SortOption>('relevancia');
   const [filterOpen, setFilterOpen] = useState(false);
   const [priceRange, setPriceRange] = useState<[number, number]>([0, 1005000]);
@@ -30,23 +37,22 @@ const selectedCategoryData = Category.find(cat => cat.category === selectedCateg
   const [freeShippingOnly, setFreeShippingOnly] = useState(false);
   const [badgeFilter, setBadgeFilter] = useState<string>('');
   const navigate = useNavigate();
-  const isSearch = search === 'search';
+  const isSearch = !id && search === 'search';
   const query = searchQuery.toLowerCase();
-let filtered = products.filter(p => {
-  if (isSearch) {
-    return (
-      p.name.toLowerCase().includes(query) ||
-      p.description.toLowerCase().includes(query) ||
-      p.tags.split(",").some(t => t.trim().toLowerCase().includes(query)) ||
-      (Category.find(c => c.id === p.id_category)?.category.toLowerCase().includes(query) ?? false)
-    );
-  }
+  let filtered = products.filter(p => {
+    if (isSearch) {
+      return (
+        p.name.toLowerCase().includes(query) ||
+        p.description.toLowerCase().includes(query) ||
+        p.tags.split(",").some(t => t.trim().toLowerCase().includes(query)) ||
+        (Category.find(c => c.id === p.id_category)?.category.toLowerCase().includes(query) ?? false)
+      );
+    }
 
-  return selectedCategory
-    ? p.id_category === selectedCategoryData?.id
-    : true;
-});
-  console.log("selectedCategory", selectedCategory);
+    return selectedCategoryData
+      ? p.id_category === selectedCategoryData?.id
+      : true;
+  });
 
   filtered = filtered.filter(p =>
     p.price_Unic >= priceRange[0] && p.price_Unic <= priceRange[1] &&
@@ -54,7 +60,29 @@ let filtered = products.filter(p => {
     (!freeShippingOnly || p.freeShipping) &&
     (!badgeFilter || p.badge === badgeFilter)
   );
-  console.log("filtered", filtered);
+
+  const categoryBanners = (Array.isArray(selectedCategoryData?.banners)
+    ? selectedCategoryData.banners
+    : typeof selectedCategoryData?.banners === 'string'
+      ? selectedCategoryData.banners.split(';')
+      : [])
+    .map(banner => banner.trim())
+    .filter(Boolean)
+    .map(banner => banner.startsWith('/') || banner.startsWith('http') || banner.startsWith('data:')
+      ? banner
+      : `/Imagens/Categorias/${banner}`);
+
+  useEffect(() => {
+    setBannerIndex(0);
+  }, [selectedCategoryData?.id]);
+
+  useEffect(() => {
+    if (categoryBanners.length < 2) return;
+    const timer = window.setInterval(() => {
+      setBannerIndex(current => (current + 1) % categoryBanners.length);
+    }, 4500);
+    return () => window.clearInterval(timer);
+  }, [categoryBanners.length, selectedCategoryData?.id]);
 
   const sorted = [...filtered].sort((a, b) => {
     if (sort === 'menor-preco') return a.price_Unic - b.price_Unic;
@@ -71,9 +99,14 @@ let filtered = products.filter(p => {
   };
   const pageTitle = isSearch
     ? `Resultados para "${searchQuery}"`
-    : selectedCategory
-      ? `${categoryIcons[selectedCategory]} ${categoryLabels[selectedCategory]}`
+    : selectedCategoryData
+      ? selectedCategoryData.category
       : 'Todos os Produtos';
+
+  const openCategory = (category: string) => {
+    UseRouteStore.getState().navigatePages('category', null, category);
+    navigate(`/category/${category}`);
+  };
 
   return (
     <div className="min-h-screen bg-surface-50 pb-10">
@@ -89,6 +122,77 @@ let filtered = products.filter(p => {
               <p className="text-surface-400 font-body text-xs">{sorted.length} {sorted.length === 1 ? 'produto encontrado' : 'produtos encontrados'}</p>
             </div>
           </div>
+
+          {!isSearch && selectedCategoryData && (
+            <>
+              {/* Outras categorias */}
+              <div className={`flex gap-4 overflow-x-auto pb-2 -mx-4  px-4 snap-x snap-mandatory md:grid md:grid-cols-8 md:gap-3 md:overflow-visible md:mx-0 md:px-0 ${noScrollbar}`} style={noScrollbarStyle}>
+                {Category.filter(category => category.ativo === true && category.id != selectedCategoryData.id).map(category => {
+                  // tenta usar a imagem real da categoria vinda do backend; se não existir, cai no emoji como fallback visual
+                  const categoryImageUrl = category.imagem
+                    ? category.imagem.startsWith('/') || category.imagem.startsWith('http') || category.imagem.startsWith('data:')
+                      ? category.imagem
+                      : `/Imagens/Categorias/${category.imagem}`
+                    : '';
+
+                  return (
+                    <button
+                      key={category.id}
+                      onClick={() => { openCategory(category.category) }}
+                      className="flex shrink-0 mt-2 snap-start flex-col items-center gap-2 w-[74px] md:w-full group"
+                    >
+                      <div
+                        className="relative w-16 h-16 md:w-[72px] md:h-[72px] rounded-full overflow-hidden ring-2 ring-offset-2 ring-offset-[#f5f5f7] shadow-soft group-hover:scale-105 group-active:scale-95 transition-all duration-300"
+                        style={{ ['--tw-ring-color' as string]: category.color || colorConfig.hex, background: category.color || colorConfig.hex }}
+                      >
+                        {categoryImageUrl ? (
+                          <img src={categoryImageUrl} alt={category.category} className="h-full w-full object-cover" />
+                        ) : (
+                          <span className="flex h-full w-full items-center justify-center text-white"><ShoppingBag className="h-6 w-6" /></span>
+                        )}
+                      </div>
+                      <span className="text-[11px] font-display font-bold text-surface-700 text-center leading-tight line-clamp-2 group-hover:text-brand-600 transition-colors">
+                        {category.category}
+                      </span>
+                    </button>
+                  );
+                })}
+
+
+              </div>
+
+              {/* Banners da categoria */}
+              {categoryBanners.length > 0 && (
+                <div className="relative mb-5 aspect-[16/7] overflow-hidden rounded-2xl bg-surface-100 shadow-md sm:aspect-[16/5] sm:rounded-3xl">
+                  {categoryBanners.map((banner, index) => (
+                    <img
+                      key={`${banner}-${index}`}
+                      src={banner}
+                      alt={`Banner de ${selectedCategoryData.category} ${index + 1}`}
+                      className={`absolute inset-0 h-full w-full object-cover transition-opacity duration-700 ${index === bannerIndex ? 'opacity-100' : 'opacity-0'}`}
+                    />
+                  ))}
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/25 via-transparent to-transparent" />
+
+                  {categoryBanners.length > 1 && (
+                    <>
+                      <button aria-label="Banner anterior" onClick={() => setBannerIndex(current => (current - 1 + categoryBanners.length) % categoryBanners.length)} className="absolute left-2 top-1/2 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-full bg-black/25 text-white backdrop-blur-sm transition hover:bg-black/45 sm:h-10 sm:w-10">
+                        <ChevronLeft className="h-4 w-4 sm:h-5 sm:w-5" />
+                      </button>
+                      <button aria-label="Próximo banner" onClick={() => setBannerIndex(current => (current + 1) % categoryBanners.length)} className="absolute right-2 top-1/2 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-full bg-black/25 text-white backdrop-blur-sm transition hover:bg-black/45 sm:h-10 sm:w-10">
+                        <ChevronRight className="h-4 w-4 sm:h-5 sm:w-5" />
+                      </button>
+                      <div className="absolute bottom-3 left-1/2 flex -translate-x-1/2 gap-1.5">
+                        {categoryBanners.map((_, index) => (
+                          <button key={index} aria-label={`Mostrar banner ${index + 1}`} onClick={() => setBannerIndex(index)} className={`h-1.5 rounded-full transition-all ${index === bannerIndex ? 'w-7 bg-white' : 'w-2 bg-white/50'}`} />
+                        ))}
+                      </div>
+                    </>
+                  )}
+                </div>
+              )}
+            </>
+          )}
 
           {/* Sort + Filter bar */}
           <div className="flex items-center gap-2 overflow-x-auto pb-1">

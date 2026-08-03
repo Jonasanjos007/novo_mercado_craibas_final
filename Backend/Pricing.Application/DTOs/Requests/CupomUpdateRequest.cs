@@ -20,6 +20,7 @@ namespace Mercado.Craibas.Application.DTOs.Requests
         public double? Maximum_Discount { get; set; }
         public int? Quantity_Uses { get; set; }
         public int? Per_User_Limit { get; set; }
+        public bool Show_Flash_Offer { get; set; }
         public DateTime? Date_Start { get; set; }
         public DateTime? Date_End { get; set; }
         public bool First_Order_Only { get; set; }

@@ -20,14 +20,15 @@ type CategoryControllerReturn = {
 
 export const useCategoryController = (): CategoryControllerReturn => {
     const { loadProducts, products } = UseProductStore();
-    const { LoadCategory } = UseOrderStore();
+    const { LoadCategory, Category } = UseOrderStore();
     const notify = useNotification();
     const [Loading, SetLoading] = useState(false);
     useEffect(() => {
 
         const load = async () => {
             SetLoading(true);
-            if (!products) await GetListProducts();
+            if (!products.length) await GetListProducts();
+            if (!Category.length) await LoadCategory();
             SetLoading(false);
         };
         load();

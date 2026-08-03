@@ -41,11 +41,11 @@ export default function ProductCard({ product, compact = false }: ProductCardPro
           {product.badge && <span className={`${badgeColors[product.badge]} text-white text-[10px] font-display font-bold px-2 py-0.5 rounded-full`}>{badgeLabels[product.badge]}</span>}
           {discount > 0 && <span className="bg-rose-500 text-white text-[10px] font-display font-bold px-2 py-0.5 rounded-full">-{discount}%</span>}
         </div>
-        {product.freeShipping && (
+        {/* {product.freeShipping && (
           <div className="absolute bottom-2 left-2">
             <span className="bg-green-500/90 backdrop-blur-sm text-white text-[9px] font-body font-semibold px-2 py-0.5 rounded-full">🚚 Frete Grátis</span>
           </div>
-        )}
+        )} */}
         {/* Quick actions */}
         <div className="absolute bottom-2 right-2 flex gap-1.5 opacity-0 group-hover:opacity-100 transition-all duration-200">
           <button onClick={handleWishlist} className={`w-7 h-7 rounded-xl flex items-center justify-center shadow-medium transition-all ${wishlisted ? 'bg-red-500 text-white' : 'bg-white text-surface-400 hover:text-red-500'}`}>

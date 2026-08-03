@@ -61,14 +61,12 @@ export default function AdminPage() {
   const navigate = useNavigate();
 
   const Controller = useAdminController();
-  const { ordersAdmin, logs, Category } = UseOrderAdminStore();
+  const { ordersAdmin, logs, Category, LoadLogsAdmin } = UseOrderAdminStore();
   const { user, logout } = UseUserStore();
   const { products } = UseProductAdminStore();
   const { orders } = UseOrderStore();
   const { navigatePages, navigateTo } = UseRouteStore();
   const { cupom } = UseCupomAdminStore();
-  console.log("Category", Category)
-  console.log("products", products)
 
   const [tab, setTab] = useState<AdminTab>('dashboard');
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -79,7 +77,7 @@ export default function AdminPage() {
   const [logTypeFilter, setLogTypeFilter] = useState('all');
   const [logLevelFilter, setLogLevelFilter] = useState('all');
   const [logPeriodFilter, setLogPeriodFilter] = useState<'all' | 'today' | '7days' | '30days'>('all');
-
+  const [expandedLogId, setExpandedLogId] = useState<number | null>(null);
   const [ProductCategoryFilter, setProductCategoryFilter] = useState('all');
   const [quickViewOrder, setQuickViewOrder] = useState<Order | null>(null);
   const [applicationScope, setApplicationScope] = useState<'store' | 'categories' | 'products'>('store');
@@ -236,7 +234,7 @@ export default function AdminPage() {
   const [categorySearch, setCategorySearch] = useState('');
   const [categoryStatusFilter, setCategoryStatusFilter] = useState<'all' | 'active' | 'inactive' | 'empty'>('all');
   const [categoryChipFilter, setCategoryChipFilter] = useState('all');
-
+  const [syncingLogs, setSyncingLogs] = useState(false);
 
 
 
@@ -3889,7 +3887,38 @@ export default function AdminPage() {
                     <option value="7days">Últimos 7 dias</option>
                     <option value="30days">Últimos 30 dias</option>
                   </select>
-                  <button onClick={() => { setLogSearch(''); setLogTypeFilter('all'); setLogLevelFilter('all'); setLogPeriodFilter('all'); }} className={`h-11 rounded-xl border px-4 text-xs font-bold transition-all ${bord} ${txt2} ${rowH}`}>Limpar filtros</button>
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => {
+                        setLogSearch('');
+                        setLogTypeFilter('all');
+                        setLogLevelFilter('all');
+                        setLogPeriodFilter('all');
+                      }}
+                      className={`h-11 rounded-xl border px-4 text-xs font-bold transition-all ${bord} ${txt2} ${rowH}`}
+                    >
+                      Limpar filtros
+                    </button>
+
+                    <button
+                      onClick={async () => {
+                        try {
+                          setSyncingLogs(true);
+                          await LoadLogsAdmin();
+                        } finally {
+                          setSyncingLogs(false);
+                        }
+                      }}
+                      disabled={syncingLogs}
+                      title="Sincronizar logs"
+                      className={`h-11 w-11 rounded-xl border flex items-center justify-center transition-all ${bord} ${txt2} ${rowH} ${syncingLogs ? 'opacity-70 cursor-not-allowed' : 'hover:scale-105'
+                        }`}
+                    >
+                      <RefreshCw
+                        className={`w-4 h-4 ${syncingLogs ? 'animate-spin' : ''}`}
+                      />
+                    </button>
+                  </div>
                 </div>
                 <p className={`mt-3 text-[10px] ${sub}`}>{filteredLogs.length} de {logs.length} registros encontrados</p>
               </div>
@@ -3897,26 +3926,56 @@ export default function AdminPage() {
               <div className="space-y-3">
                 {filteredLogs.map(item => {
                   const level = item.nivel?.toUpperCase() || 'SISTEMA';
-
-                  const levelConfig = level === 'ADMIN'
-                    ? { text: 'text-amber-400', bg: 'bg-amber-500/10', border: 'border-amber-500/20', bar: 'bg-amber-500', icon: ShieldAlert, label: 'Ação administrativa' }
-                    : level === 'CLIENTE'
-                      ? { text: 'text-blue-400', bg: 'bg-blue-500/10', border: 'border-blue-500/20', bar: 'bg-blue-500', icon: User, label: 'Ação de cliente' }
-                      : { text: 'text-violet-400', bg: 'bg-violet-500/10', border: 'border-violet-500/20', bar: 'bg-violet-500', icon: Activity, label: 'Evento de sistema' };
+                  const levelConfig =
+                    level === 'ADMIN'
+                      ? {
+                        text: 'text-amber-400',
+                        bg: 'bg-amber-500/10',
+                        border: 'border-amber-500/20',
+                        bar: 'bg-amber-500',
+                        icon: ShieldAlert,
+                        label: 'Ação administrativa',
+                      }
+                      : level === 'CLIENTE'
+                        ? {
+                          text: 'text-blue-400',
+                          bg: 'bg-blue-500/10',
+                          border: 'border-blue-500/20',
+                          bar: 'bg-blue-500',
+                          icon: User,
+                          label: 'Ação de cliente',
+                        }
+                        : {
+                          text: 'text-violet-400',
+                          bg: 'bg-violet-500/10',
+                          border: 'border-violet-500/20',
+                          bar: 'bg-violet-500',
+                          icon: Activity,
+                          label: 'Evento de sistema',
+                        };
 
                   const date = new Date(item.insertDate);
                   const hasDate = !Number.isNaN(date.getTime());
 
+                  const isExpanded = expandedLogId === item.id;
+
                   const relativeTime = (() => {
                     if (!hasDate) return null;
+
                     const diffMs = Date.now() - date.getTime();
                     const diffMin = Math.floor(diffMs / 60000);
+
                     if (diffMin < 1) return 'agora mesmo';
                     if (diffMin < 60) return `há ${diffMin} min`;
+
                     const diffH = Math.floor(diffMin / 60);
+
                     if (diffH < 24) return `há ${diffH}h`;
+
                     const diffD = Math.floor(diffH / 24);
+
                     if (diffD < 7) return `há ${diffD}d`;
+
                     return date.toLocaleDateString('pt-BR');
                   })();
 
@@ -3925,54 +3984,118 @@ export default function AdminPage() {
                       key={item.id}
                       className={`group relative flex overflow-hidden rounded-2xl border transition-all hover:-translate-y-0.5 hover:shadow-lg ${card}`}
                     >
-                      {/* Barra de cor lateral — identifica o nível à distância, sem precisar ler nada */}
                       <div className={`w-1 shrink-0 ${levelConfig.bar}`} />
 
                       <div className="flex flex-1 flex-col gap-4 p-4 md:flex-row md:items-start md:p-5">
-                        {/* Ícone do nível */}
-                        <div className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border ${levelConfig.border} ${levelConfig.bg} ${levelConfig.text}`}>
+                        <div
+                          className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border ${levelConfig.border} ${levelConfig.bg} ${levelConfig.text}`}
+                        >
                           <levelConfig.icon className="h-5 w-5" />
                         </div>
 
-                        {/* Conteúdo principal */}
                         <div className="min-w-0 flex-1">
-                          {/* Linha 1: contexto do evento (nível + tipo + quando) — o que é e quando aconteceu, de imediato */}
                           <div className="flex flex-wrap items-center justify-between gap-2">
                             <div className="flex flex-wrap items-center gap-2">
-                              <span className={`rounded-full border px-2.5 py-1 text-[9px] font-black uppercase tracking-wider ${levelConfig.border} ${levelConfig.bg} ${levelConfig.text}`}>
+                              <span
+                                className={`rounded-full border px-2.5 py-1 text-[9px] font-black uppercase tracking-wider ${levelConfig.border} ${levelConfig.bg} ${levelConfig.text}`}
+                              >
                                 {levelConfig.label}
                               </span>
+
                               {item.tipo && (
-                                <span className={`rounded-full border px-2.5 py-1 text-[9px] font-bold ${bord} ${txt2}`}>
+                                <span
+                                  className={`rounded-full border px-2.5 py-1 text-[9px] font-bold ${bord} ${txt2}`}
+                                >
                                   {item.tipo}
                                 </span>
                               )}
                             </div>
+
                             {relativeTime && (
-                              <span className={`shrink-0 text-[10px] font-bold ${sub}`}>{relativeTime}</span>
+                              <span className={`shrink-0 text-[10px] font-bold ${sub}`}>
+                                {relativeTime}
+                              </span>
                             )}
                           </div>
 
-                          {/* Linha 2: título da ação — a informação mais importante, com mais peso visual */}
                           <h3 className={`mt-2.5 text-sm font-bold leading-5 ${txt}`}>
                             {item.acao || item.log || 'Movimentação registrada'}
                           </h3>
 
-                          {/* Linha 3: detalhes, só aparece se houver algo além do título */}
                           {item.info && (
-                            <p className={`mt-1.5 text-xs leading-5 ${txt2}`}>{item.info}</p>
+                            <p className={`mt-1.5 text-xs leading-5 ${txt2}`}>
+                              {item.info}
+                            </p>
                           )}
 
-                          {/* Rodapé: metadados secundários, agrupados e discretos */}
-                          <div className={`mt-3 flex flex-wrap items-center gap-x-4 gap-y-1 border-t pt-2.5 text-[10px] ${bord} ${sub}`}>
-                            <span>Registro <span className={`font-bold ${txt2}`}>#{item.id}</span></span>
-                            <span>Usuário <span className={`font-bold ${txt2}`}>#{item.id_User_Customer}</span></span>
+                          <div
+                            className={`mt-3 flex flex-wrap items-center gap-x-4 gap-y-1 border-t pt-2.5 text-[10px] ${bord} ${sub}`}
+                          >
+                            <span>
+                              Registro{' '}
+                              <span className={`font-bold ${txt2}`}>#{item.id}</span>
+                            </span>
+
+                            <span>
+                              Usuário{' '}
+                              <span className={`font-bold ${txt2}`}>
+                                #{item.id_User_Customer}
+                              </span>
+                            </span>
+
                             {hasDate && (
                               <span>
-                                <span className={`font-bold ${txt2}`}>{date.toLocaleDateString('pt-BR')}</span> às{' '}
-                                <span className={`font-bold ${txt2}`}>{date.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}</span>
+                                <span className={`font-bold ${txt2}`}>
+                                  {date.toLocaleDateString('pt-BR')}
+                                </span>{' '}
+                                às{' '}
+                                <span className={`font-bold ${txt2}`}>
+                                  {date.toLocaleTimeString('pt-BR', {
+                                    hour: '2-digit',
+                                    minute: '2-digit',
+                                  })}
+                                </span>
                               </span>
                             )}
+                          </div>
+
+                          <button
+                            type="button"
+                            onClick={() =>
+                              setExpandedLogId(current =>
+                                current === item.id ? null : item.id
+                              )
+                            }
+                            className={`mt-3 flex items-center gap-1.5 text-xs font-bold transition-colors ${levelConfig.text}`}
+                          >
+                            {isExpanded ? 'Ver menos' : 'Ver mais'}
+
+                            <ChevronDown
+                              className={`h-4 w-4 transition-transform duration-300 ${isExpanded ? 'rotate-180' : ''
+                                }`}
+                            />
+                          </button>
+
+                          <div
+                            className={`grid transition-all duration-300 ease-in-out ${isExpanded
+                              ? 'mt-3 grid-rows-[1fr] opacity-100'
+                              : 'grid-rows-[0fr] opacity-0'
+                              }`}
+                          >
+                            <div className="overflow-hidden">
+                              <div
+                                className={`rounded-xl border p-3 text-xs leading-5 ${bord} ${dk ? 'bg-black/20 text-white/70' : 'bg-surface-50 text-surface-600'
+                                  }`}
+                              >
+                                <p className={`mb-1 text-[10px] font-black uppercase tracking-wider ${sub}`}>
+                                  Log completo
+                                </p>
+
+                                <pre className="whitespace-pre-wrap break-words font-mono text-[11px]">
+                                  {item.log || 'Nenhuma informação detalhada registrada.'}
+                                </pre>
+                              </div>
+                            </div>
                           </div>
                         </div>
                       </div>
@@ -4407,14 +4530,14 @@ export default function AdminPage() {
                   {Controller?.result.newProduct.featured ? <ToggleRight className="w-8 h-8 text-brand-500" /> : <ToggleLeft className="w-8 h-8 text-surface-300" />}
                 </button>
               </div>
-              <div className="flex items-center justify-between">
+              {/* <div className="flex items-center justify-between">
                 <span className={`text-sm ${txt2}`}>
                   Frete Grátis?
                 </span>
                 <button onClick={() => Controller?.action.setNewProduct(p => ({ ...p, freeShipping: !p.freeShipping }))}>
                   {Controller?.result.newProduct.freeShipping ? <ToggleRight className="w-8 h-8 text-green-500" /> : <ToggleLeft className="w-8 h-8 text-surface-300" />}
                 </button>
-              </div>
+              </div> */}
               <div className="flex items-center justify-between">
                 <span className={`text-sm ${txt2}`}>
                   Ativo?
@@ -4889,14 +5012,29 @@ export default function AdminPage() {
                       </p>
                     )}
                   </div>
-                  <div className="col-span-2">
+                  <div className="col-span-2 grid grid-cols-2 gap-3">
                     <label className={`flex items-center gap-3 p-3 rounded-xl cursor-pointer border ${Controller?.result.newCoupon?.first_Order_Only ? (dk ? 'bg-brand-500/15 border-brand-500/30' : 'bg-brand-50 border-brand-200') : (dk ? 'bg-white/[0.03] border-white/[0.06]' : 'bg-surface-50 border-surface-100')}`}>
                       <input
                         type="checkbox"
                         checked={Controller?.result.newCoupon?.first_Order_Only ?? false}
                         onChange={e => Controller?.action.setNewCoupon(p => ({ ...p, first_Order_Only: e.target.checked }))}
-                        className="accent-brand-500 w-4 h-4" />
-                      <span className={`text-sm font-medium ${txt}`}>Válido apenas na primeira compra</span>
+                        className="accent-brand-500 w-4 h-4"
+                      />
+                      <span className={`text-sm font-medium ${txt}`}>
+                        Válido apenas na primeira compra
+                      </span>
+                    </label>
+
+                    <label className={`flex items-center gap-3 p-3 rounded-xl cursor-pointer border ${Controller?.result.newCoupon?.show_Flash_Offer ? (dk ? 'bg-brand-500/15 border-brand-500/30' : 'bg-brand-50 border-brand-200') : (dk ? 'bg-white/[0.03] border-white/[0.06]' : 'bg-surface-50 border-surface-100')}`}>
+                      <input
+                        type="checkbox"
+                        checked={Controller?.result.newCoupon?.show_Flash_Offer ?? false}
+                        onChange={e => Controller?.action.setNewCoupon(p => ({ ...p, show_Flash_Offer: e.target.checked }))}
+                        className="accent-brand-500 w-4 h-4"
+                      />
+                      <span className={`text-sm font-medium ${txt}`}>
+                        Mostrar como oferta relâmpago na tela
+                      </span>
                     </label>
                   </div>
                   <button

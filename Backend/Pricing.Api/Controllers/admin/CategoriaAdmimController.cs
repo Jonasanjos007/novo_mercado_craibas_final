@@ -21,7 +21,9 @@ namespace Mercado.Api.Controllers.admin
         [HttpPost("PostSaveCategory")]
         public async Task<IActionResult> PostSaveCategory([FromForm] CategoryRequest category)
         {
-            var result = await _service.PostSaveCategory(category);
+            var Id_User = User.GetUserId();
+
+            var result = await _service.PostSaveCategory(category,Id_User);
 
             return result.ToActionResult();
         }
@@ -53,8 +55,9 @@ namespace Mercado.Api.Controllers.admin
                 Banners = Banners,
                 ExistingBanners = ExistingBanners
             };
+            var Id_User = User.GetUserId();
 
-            var result = await _service.UpdateCategory(request);
+            var result = await _service.UpdateCategory(request,Id_User);
 
             return result.ToActionResult();
         }
@@ -63,7 +66,9 @@ namespace Mercado.Api.Controllers.admin
         [HttpPost("DeleteCategory")]
         public async Task<IActionResult> DeleteCategory([FromBody] DeleteCategoryRequest request)
         {
-            var result = await _service.DeleteCategory(request);
+            var Id_User = User.GetUserId();
+
+            var result = await _service.DeleteCategory(request, Id_User);
 
             return result.ToActionResult();
         }

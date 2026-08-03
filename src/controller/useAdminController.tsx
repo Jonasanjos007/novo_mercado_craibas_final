@@ -741,7 +741,7 @@ export const useAdminController = (): AdminControllerReturn => {
         formData.append("Tags", newProduct.tags ?? "");
         formData.append("Installments", String(newProduct.installments ?? 1));
         formData.append("Featured", String(newProduct.featured ?? false));
-        formData.append("FreeShipping", String(newProduct.freeShipping ?? false));
+        // formData.append("FreeShipping", String(newProduct.freeShipping ?? false));
         formData.append("Ativo", String(newProduct.ativo ?? false));
         formData.append("ShowBanner", String(newProduct.showBanner ?? false));
 

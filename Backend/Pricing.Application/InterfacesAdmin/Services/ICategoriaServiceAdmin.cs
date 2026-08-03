@@ -10,8 +10,8 @@ namespace Mercado.Craibas.Application.InterfacesAdmin.Services
 {
     public interface ICategoriaServiceAdmin
     {
-        Task<Result<bool>> PostSaveCategory(CategoryRequest category);
-        Task<Result<bool>> UpdateCategory(CategoryRequest category);
-        Task<Result<bool>> DeleteCategory(DeleteCategoryRequest request);
+        Task<Result<bool>> PostSaveCategory(CategoryRequest category , int IdUser);
+        Task<Result<bool>> UpdateCategory(CategoryRequest category, int IdUser);
+        Task<Result<bool>> DeleteCategory(DeleteCategoryRequest request,int IdUser);
     }
 }

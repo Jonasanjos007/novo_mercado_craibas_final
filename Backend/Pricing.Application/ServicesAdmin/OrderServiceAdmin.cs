@@ -107,7 +107,7 @@ namespace Mercado.Craibas.Application.ServicesAdmin
            return Result<List<Product_Category>>.Success(Categorys);
        }
 
-        public async Task<Result<bool>> PostUpdateStatusOrder(int Id_Order,string NewStatus)
+        public async Task<Result<bool>> PostUpdateStatusOrder(int Id_Order,string NewStatus,int IdUser)
         {
             var Update_StatusOrder = await _unitOfWorkAdmin.UpdateFieldsAsyncEntity<Orders>(filters: new Dictionary<string, object>
                         {
@@ -124,7 +124,20 @@ namespace Mercado.Craibas.Application.ServicesAdmin
             {
                 return Result<bool>.Failure(Error.Failure("Status", "Erro ao atualizar status!"));
             }
+            var Order = await _unitOfWorkAdmin.GetClassAsyncWhere<Orders>(x => x.Id == Id_Order);
 
+            var User = await _unitOfWorkAdmin.GetClassAsyncWhere<User_Admin>(x => x.Id == IdUser);
+
+            await _unitOfWorkAdmin.InsertAsyncReturnObjeto<Logs>(new Logs
+            {
+                Id_User = IdUser,
+                Log = "Atualizou status dp pedido" + " " + Order.Number_Order,
+                Tipo = "Atualizar status",
+                Nivel = "Admin",
+                Acao = User.Name + " " + User.Role + " " + $"Atualizar o status do pedido",
+                Info = User.Name + " " + User.Role + " " + $"Atualizar o status do pedido em {DateTime.Now:dd/MM/yyyy HH:mm:ss}",
+                InsertDate = DateTime.Now
+            });
             return Result<bool>.Success(true);
         }
     }
