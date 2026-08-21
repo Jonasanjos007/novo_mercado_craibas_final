@@ -2,7 +2,7 @@ import { api } from "../config/api";
 import { CartItensProduct } from "../models/CartItensProduct";
 import { Cupom } from "../models/Cupom";
 import { Logs } from "../models/Logs";
-import { OrderSave, Order } from "../models/OrderSave";
+import { OrderSave, Order, SendMessageViaWhatsAppResponse } from "../models/OrderSave";
 import { Category, Product } from "../models/Product";
 import { makeResult, Result } from "../utils/Result";
 
@@ -145,6 +145,22 @@ export const OrderServiceAdmin = {
             console.log(err.response);
             console.log(err.response?.data);
             return makeResult(false, false, err.response?.data);
+        }
+    },
+    PostMensegeViaWhatsApp: async (Id_Order: number): Promise<Result<SendMessageViaWhatsAppResponse>> => {
+        try {
+            const response = await api.post(`/admin/orders/PostUpdateNotifyViaWhatsApp?Id_Order=${Id_Order}`);
+            const { success, data, error } = response.data;
+            if (!success) {
+                return makeResult(false, {} as SendMessageViaWhatsAppResponse, error || "Erro ao atualizar status!");
+            }
+
+            return makeResult(true, data || {} as SendMessageViaWhatsAppResponse, error);
+        } catch (err: any) {
+            console.log(err)
+            console.log(err.response);
+            console.log(err.response?.data);
+            return makeResult(false, {} as SendMessageViaWhatsAppResponse, err.response?.data);
         }
     },
 

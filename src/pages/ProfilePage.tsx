@@ -75,7 +75,7 @@ export default function ProfilePage() {
   const [form, setForm] = useState({
     name: user?.name || '',
     email: user?.email || '',
-    phone: user?.phone || '',
+    phone: user?.phone || 0,
     // bio: user?.bio || '',
   });
 

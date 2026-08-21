@@ -24,6 +24,7 @@ import { AdminLayout } from './routes/AdminLayout';
 import { ProtectedRoute } from './routes/ProtectedRoute';
 import { useSessionStore } from './store/SessionStore';
 import { ProductPage } from './pages/ProductPage';
+import NotificationsPage from './pages/NotificationsPage';
 
 
 export default function App() {
@@ -57,6 +58,7 @@ export default function App() {
           <Route path="/orders" element={<OrdersPage />} />
 
           <Route element={<MainLayout />}>
+            <Route path="/notifications" element={<NotificationsPage />} />
             <Route path="/wishlist" element={<WishlistPage />} />
             <Route path="/flash-sale" element={<FlashSalePage />} />
             <Route path="/brands" element={<BrandsPage />} />

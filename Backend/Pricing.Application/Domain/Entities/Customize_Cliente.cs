@@ -8,7 +8,8 @@ namespace Baldan.Pricing.Application.Domain.Entities
 {
     public class Customize_Cliente : EntityBase
     {
-        public string Global_Site_Color { get; set; }
+        public string? Global_Site_Color { get; set; }
+        public bool? Dark { get; set; }
         public int Id_User_Customer {  get; set; }
         public User_Customer User_Customer { get; set; }
 

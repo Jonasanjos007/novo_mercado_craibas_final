@@ -11,12 +11,13 @@ export interface User {
     role: string;
     CartUser?: CartUser;
     address?: Address[];
-    phone?: string;
+    phone?: number;
     customize?: Customize;
     //bio?: string;
     // vehicle?: string;
     //region?: string;
     insert_Date?: string;
+    updateDate?: string;
     // preferences?: UserPreferences;
 }
 // export interface Address {
@@ -34,3 +35,11 @@ export interface UserPreferences {
     darkMode: boolean;
     language: string;
 }
+export type AdminProfileData = {
+    name: string;
+    email: string;
+    phone: string | number;
+    avatar: string;
+    avatarFile?: File | null;
+    tema: boolean;
+};

@@ -259,7 +259,6 @@ namespace Mercado.Craibas.Infrastructure.Migrations
                         .HasColumnType("bit");
 
                     b.Property<string>("Global_Site_Color")
-                        .IsRequired()
                         .HasMaxLength(20)
                         .HasColumnType("nvarchar(20)");
 
@@ -290,6 +289,9 @@ namespace Mercado.Craibas.Infrastructure.Migrations
                         .HasColumnType("int");
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<bool?>("Dark")
+                        .HasColumnType("bit");
 
                     b.Property<string>("Global_Site_Color")
                         .IsRequired()
@@ -455,6 +457,11 @@ namespace Mercado.Craibas.Infrastructure.Migrations
 
                     b.Property<bool?>("Isdelete")
                         .HasColumnType("bit");
+
+                    b.Property<bool>("NotifyViaWhatsApp")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(false);
 
                     b.Property<string>("Number_Order")
                         .IsRequired()
@@ -1070,6 +1077,101 @@ namespace Mercado.Craibas.Infrastructure.Migrations
                     b.ToTable("Logs");
                 });
 
+            modelBuilder.Entity("Mercado.Craibas.Application.Domain.Entities.Notification", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("ActionUrl")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<string>("Description")
+                        .IsRequired()
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
+
+                    b.Property<string>("Icone")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<DateTime>("InsertDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<bool?>("Isdelete")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("Kind")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<int?>("ReferenceId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("ReferenceType")
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<DateTime?>("UpdateDate")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("Notifications", (string)null);
+                });
+
+            modelBuilder.Entity("Mercado.Craibas.Application.Domain.Entities.NotificationUser", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("InsertDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<bool>("IsRead")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(false);
+
+                    b.Property<bool?>("Isdelete")
+                        .HasColumnType("bit");
+
+                    b.Property<int>("NotificationId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime?>("ReadDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Role")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<DateTime?>("UpdateDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("UserId")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("NotificationId", "UserId")
+                        .IsUnique();
+
+                    b.ToTable("NotificationUsers", (string)null);
+                });
+
             modelBuilder.Entity("Baldan.Pricing.Application.Domain.Entities.Address", b =>
                 {
                     b.HasOne("Baldan.Pricing.Application.Domain.Entities.User_Customer", "User_Customer")
@@ -1315,6 +1417,17 @@ namespace Mercado.Craibas.Infrastructure.Migrations
                     b.Navigation("User_Customer");
                 });
 
+            modelBuilder.Entity("Mercado.Craibas.Application.Domain.Entities.NotificationUser", b =>
+                {
+                    b.HasOne("Mercado.Craibas.Application.Domain.Entities.Notification", "Notification")
+                        .WithMany("NotificationUsers")
+                        .HasForeignKey("NotificationId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Notification");
+                });
+
             modelBuilder.Entity("Baldan.Pricing.Application.Domain.Entities.Address", b =>
                 {
                     b.Navigation("Orders");
@@ -1395,6 +1508,11 @@ namespace Mercado.Craibas.Infrastructure.Migrations
             modelBuilder.Entity("Baldan.Pricing.Application.Domain.Entities.Variante_Products", b =>
                 {
                     b.Navigation("Cart_Items");
+                });
+
+            modelBuilder.Entity("Mercado.Craibas.Application.Domain.Entities.Notification", b =>
+                {
+                    b.Navigation("NotificationUsers");
                 });
 #pragma warning restore 612, 618
         }

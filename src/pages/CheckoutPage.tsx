@@ -843,17 +843,12 @@ export default function CheckoutPage() {
               <h3 className="font-display font-bold text-surface-900 text-base mb-4">Resumo</h3>
               <div className="space-y-2 text-sm font-body">
 
-                {cart.couponApplied && cart.shippingCost != 0 && (<div className="flex justify-between text-red-500">
+                {cart.couponApplied && cart.shippingCost != 0 && !cart.erroCupom && (<div className="flex justify-between text-red-500">
                   <span>Subtotal  ({cart.cartItensProduct.reduce((s, i) => s + i.quantity, 0)} itens)</span>
                   <span className="font-semibold text-red-500">{formatPrice(cart.total ?? 0)}</span>
                 </div>)}
-                <div className="flex justify-between text-surface-500">
-                  <span>Frete</span>
-                  <span className={cart.shippingCost === 0 ? 'text-green-600 font-semibold' : 'font-semibold text-surface-800'}>
-                    {cart.shippingCost === 0 ? 'Grátis' : formatPrice(cart.shippingCost || 0)}
-                  </span>
-                </div>
-                {cart.couponApplied && (
+
+                {cart.couponApplied && !cart.erroCupom && (
                   <div className={`flex justify-between ${cart.couponApplied ? `text-green-500` : `text-surface-500`}`}>
                     <span>Disconto Cupom</span>
                     <span className={`font-semibold  ${cart.couponApplied ? `text-green-500` : `text-surface-800`}`}>  {cart.discount_Type === "Percentage"
@@ -863,9 +858,15 @@ export default function CheckoutPage() {
                         : "Frete Grátis"}</span>
                   </div>
                 )}
-                <div className={`flex justify-between ${cart.couponApplied && cart.shippingCost != 0 ? `text-green-500` : `text-surface-500`}`}>
-                  <span>{`Subtotal ${cart.couponApplied && cart.shippingCost != 0 ? ("Cupom aplicado") : ""} `}({cart.cartItensProduct.reduce((s, i) => s + i.quantity, 0)} itens)</span>
-                  <span className={`font-semibold  ${cart.couponApplied && cart.shippingCost != 0 ? `text-green-500` : `text-surface-800`}`}>{(formatPrice((cart.subTotal ?? 0) - (cart.shippingCost ?? 0)))}</span>
+                <div className={`flex justify-between ${cart.couponApplied && cart.shippingCost != 0 && !cart.erroCupom ? `text-green-500` : `text-surface-500`}`}>
+                  <span>{`Subtotal ${cart.couponApplied && cart.shippingCost != 0 && !cart.erroCupom ? ("Cupom aplicado") : ""} `}({cart.cartItensProduct.reduce((s, i) => s + i.quantity, 0)} itens)</span>
+                  <span className={`font-semibold  ${cart.couponApplied && cart.shippingCost != 0 && !cart.erroCupom ? `text-green-500` : `text-surface-800`}`}>{(formatPrice((cart.subTotal ?? 0) - (cart.shippingCost ?? 0)))}</span>
+                </div>
+                <div className="flex justify-between text-surface-500">
+                  <span>Frete</span>
+                  <span className={cart.shippingCost === 0 ? 'text-green-600 font-semibold' : 'font-semibold text-surface-800'}>
+                    {cart.shippingCost === 0 && !cart.erroCupom ? 'Grátis' : formatPrice(cart.shippingCost || 0)}
+                  </span>
                 </div>
                 {/* {Controller?.result.paymentDiscount > 0 && Controller?.result.step === 'Pagamento' && (
                   <div className="flex justify-between text-green-600">
@@ -901,7 +902,7 @@ export default function CheckoutPage() {
                     </p>
 
                     <button
-                      // onClick={handleRemoveCoupon}
+                      onClick={() => setopenCouponConfirm(true)}
                       className="mt-4 h-11 px-5 rounded-2xl bg-red-600 hover:bg-red-700 text-white text-sm font-semibold transition-all"
                     >
                       Remover cupom
@@ -910,32 +911,39 @@ export default function CheckoutPage() {
                 </div>
               </div>
             )}
-            {cart.couponApplied && (
+            {cart.couponApplied && !cart.erroCupom && (
               <div className="bg-white rounded-3xl p-4 shadow-soft border border-green-100 animate-fade-in">
-                <div className="flex items-start justify-between gap-3">
+                <div className="flex flex-row justify-between items-start gap-3 md:flex-col">
                   <div className="flex items-center gap-3">
                     <div className="w-10 h-10 rounded-full bg-green-100 flex items-center justify-center shrink-0">
                       <Ticket className="w-5 h-5 text-green-600" />
                     </div>
+
                     <div>
-                      <p className="text-xs font-body text-surface-500">Cupom aplicado</p>
+                      <p className="text-xs font-body text-surface-500">
+                        Cupom aplicado
+                      </p>
+
                       <h3 className="font-display font-bold text-green-700 text-lg leading-tight">
                         {cupomSelecionado?.cod_Cupom}
                       </h3>
                     </div>
                   </div>
 
-                  <button
-                    onClick={() => {
-                      setopenCouponConfirm(true);
-                      setloadingRemove(true);
-                    }}
-                    className="px-4 py-2 text-sm font-display font-semibold text-red-500 border border-red-500 rounded-lg hover:bg-red-500 hover:text-white active:scale-95 transition-all duration-200"
-                  >
-                    {loadingRemove ? <div className="w-5 h-5 border-2 border-red-300 border-t-red-600 rounded-full animate-spin" /> : <>Remover</>}
-
-
-                  </button>
+                  <div className="md:w-full md:flex md:justify-end">
+                    <button
+                      type="button"
+                      onClick={() => setopenCouponConfirm(true)}
+                      disabled={loadingRemove}
+                      className="h-8 min-w-[100px] flex items-center justify-center rounded-xl border border-red-500 px-5 text-sm font-display font-semibold text-red-500 transition-all duration-200 hover:bg-red-500 hover:text-white active:scale-95 disabled:opacity-60 disabled:cursor-not-allowed"
+                    >
+                      {loadingRemove ? (
+                        <div className="w-5 h-5 border-2 border-red-300 border-t-red-600 rounded-full animate-spin" />
+                      ) : (
+                        "Remover"
+                      )}
+                    </button>
+                  </div>
                 </div>
 
                 <div className="mt-4 pt-3 border-t border-surface-100 space-y-1.5 text-sm font-body">
@@ -1021,6 +1029,9 @@ export default function CheckoutPage() {
                   </div>)}
 
                 </div>
+
+
+                {/* Aviso */}
                 {cart.discount_Type != 'FreeShipping' && (<div className="mt-4 rounded-2xl border border-amber-200 bg-amber-50 p-3">
                   <div className="flex items-start gap-2">
                     <Info className="w-4 h-4 text-amber-600 mt-0.5 shrink-0" />
@@ -1043,6 +1054,7 @@ export default function CheckoutPage() {
                     </div>
                   </div>
                 </div>)}
+
 
               </div>
             )}

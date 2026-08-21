@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react';
-import { ShoppingCart, Search, User, Menu, X, ChevronDown, Package, LayoutDashboard, Truck, LogOut, Heart, Moon, Sun } from 'lucide-react';
+import { useEffect, useMemo, useState } from 'react';
+import { ShoppingCart, Search, User, Menu, X, ChevronDown, Package, LayoutDashboard, Truck, LogOut, Heart, Moon, Sun, Bell } from 'lucide-react';
 import { useStore } from '../context/store';
 import { categoryLabels, categoryIcons } from '../utils';
 import { Await, useNavigate } from 'react-router-dom';
@@ -11,10 +11,14 @@ import { getColorConfig } from '../types/Colors';
 import { UseUserStore } from '../store/UseUserStore';
 import { UseOrderStore } from '../store/UseOrderStore';
 import { useNotification } from '../utils/NotificationCard';
+import { buildClientNotifications } from '../models/ClientNotification';
+import { UseClientNotificationStore } from '../store/UseClientNotificationStore';
+import { UseNotificationAdmin } from '../storeAdmin/UseNotificationAdmin';
 export default function Header() {
   const navigate = useNavigate();
   const { searchQuery, setSearchQuery, wishlist } = useStore();
-  const { LoadCategory } = UseOrderStore();
+  const { LoadCategory, LoadOrders, orders } = UseOrderStore();
+  const { Notification } = UseNotificationAdmin();
 
   const { setCartOpen } = UseCartStore();
   const { Category } = UseOrderStore();
@@ -26,6 +30,8 @@ export default function Header() {
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const count = cartCount();
   const notify = useNotification();
+  const { readByUser } = UseClientNotificationStore();
+  const unreadNotifications = Notification.filter(item => item.isRead === false).length;
 
   const wishCount = wishlist.length;
   const handleSearch = (e: React.FormEvent) => { e.preventDefault(); if (searchQuery.trim()) navigate('/search/search'); };
@@ -33,10 +39,10 @@ export default function Header() {
   useEffect(() => {
     const load = async () => {
       await GetListCategory();
-
+      if (user?.role === 'CLIENTE') await LoadOrders();
     };
     load();
-  }, []);
+  }, [user?.id, user?.role]);
   const GetListCategory = async () => {
     const result = await LoadCategory();
     // SetLoading(false);
@@ -91,6 +97,12 @@ export default function Header() {
             <Heart className="w-5 h-5" />
             {wishCount > 0 && <span className="absolute -top-0.5 -right-0.5 w-4 h-4 bg-red-500 text-white text-[9px] font-bold rounded-full flex items-center justify-center">{wishCount}</span>}
           </button> */}
+          {user?.role === 'CLIENTE' && (
+            <button onClick={() => navigate('/notifications')} aria-label="Abrir notificações" title="Notificações" className="relative rounded-xl p-2.5 text-surface-400 transition-all hover:bg-surface-800 hover:text-white">
+              <Bell className="h-5 w-5" />
+              {unreadNotifications > 0 && <span className={`absolute -right-0.5 -top-0.5 flex h-5 min-w-5 items-center justify-center rounded-full px-1 text-[10px] font-bold text-white ${ColorGlobalTema}`}>{unreadNotifications > 99 ? '99+' : unreadNotifications}</span>}
+            </button>
+          )}
           {/* Cart */}
           <button onClick={() => setCartOpen(true)} className="relative p-2.5 rounded-xl text-surface-400 hover:text-white hover:bg-surface-800 transition-all">
             <ShoppingCart className="w-5 h-5" />
@@ -117,6 +129,7 @@ export default function Header() {
                     {user.role === 'CLIENTE' && <>
                       <MenuItem icon={<User className="w-4 h-4" />} label="Meu Perfil" onClick={() => { navigate('/profile'); setUserMenuOpen(false); }} />
                       <MenuItem icon={<Package className="w-4 h-4" />} label="Meus Pedidos" onClick={() => { navigate('/orders'); setUserMenuOpen(false); }} />
+                      <MenuItem icon={<Bell className="w-4 h-4" />} label="Notificações" onClick={() => { navigate('/notifications'); setUserMenuOpen(false); }} />
                       <MenuItem icon={<Heart className="w-4 h-4" />} label="Favoritos" onClick={() => { navigate('/wishlist'); setUserMenuOpen(false); }} />
                     </>}
                     {user.role === 'ADMIN' && <MenuItem icon={<LayoutDashboard className="w-4 h-4" />} label="Painel Admin" onClick={() => { navigate('/admin'); setUserMenuOpen(false); }} />}

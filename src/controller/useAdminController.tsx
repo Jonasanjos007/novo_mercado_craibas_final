@@ -13,6 +13,11 @@ import { UseProductAdminStore } from "../storeAdmin/UseProductAdminStore";
 import { Imagens_Products, Product, ProductAdmin, ProductVariation, Category } from "../models/Product";
 import { Cupom, CupomAdmin, DiscountType, UpdateCouponRequest } from "../models/Cupom";
 import { UseCupomAdminStore } from "../storeAdmin/UseCupomAdminStore";
+import { AdminProfileData } from "../models/User";
+import { UserServiceAdmin } from "../adminService/UserServiceAdmin";
+import { UseUserAdminStore } from "../storeAdmin/UseUserAdminStore";
+import { getMensagemWhatsApp } from "../utils";
+import { UseNotificationAdmin } from "../storeAdmin/UseNotificationAdmin";
 
 type AdminControllerReturn = {
     result: {
@@ -52,6 +57,8 @@ type AdminControllerReturn = {
         productsCategories: Product[];
         categories: Category[];
         categoryToDelete: CategoryAdmin | null;
+        profileForm: AdminProfileData;
+        editingProfile: boolean;
     };
     action: {
         //States
@@ -62,6 +69,10 @@ type AdminControllerReturn = {
         setSaveEditeLoading: React.Dispatch<React.SetStateAction<boolean>>;
         setshowDeleteModalCupom: React.Dispatch<React.SetStateAction<boolean>>;
         setShowCouponModalActive: React.Dispatch<React.SetStateAction<boolean>>;
+        setEditingProfile: React.Dispatch<React.SetStateAction<boolean>>;
+        SetLoadingPageAll: React.Dispatch<React.SetStateAction<boolean>>;
+
+
         setShowCategoryModal: React.Dispatch<React.SetStateAction<boolean>>;
         setEditingCategory: React.Dispatch<React.SetStateAction<Category | null>>;
         setNewCategory: React.Dispatch<React.SetStateAction<Partial<Category>>>;
@@ -76,6 +87,8 @@ type AdminControllerReturn = {
         setProductsCategories: React.Dispatch<React.SetStateAction<Product[]>>;
         setCategories: React.Dispatch<React.SetStateAction<Category[]>>;
         setCategoryToDelete: React.Dispatch<React.SetStateAction<CategoryAdmin | null>>;
+        setProfileForm: React.Dispatch<React.SetStateAction<AdminProfileData>>;
+
 
 
 
@@ -121,6 +134,8 @@ type AdminControllerReturn = {
         handleNext: () => void;
         handleSaveCategory: () => void;
         handleDeleteCategory: (category: CategoryAdmin) => void;
+        handleSaveProfile: (updates: AdminProfileData) => Promise<void>;
+        handleShareMensagemWhatsApp: (IdOrder: number) => void;
 
 
     }
@@ -139,6 +154,7 @@ type CategoryAdmin = Category & {
     count_Sold: number;
     revenue: number;
 };
+
 export interface Imagens_ProductsInterface {
     id: number;
     id_Product: number;
@@ -150,8 +166,10 @@ export const useAdminController = (): AdminControllerReturn => {
     const { LoadOrdersAdmin, LoadLogsAdmin, LoadCategoryAdmin, UpdateNewStatusOrder, PostSaveCategoryAdmin, PostUpdateCategoryAdmin, PostDeleteCategoryAdmin } = UseOrderAdminStore();
     const { loadProductsAdmin, products, PostSaveProductAdmin, PostEditeProductAdmin, DeleteProductId } = UseProductAdminStore();
     const { PostSaveCupomStore, LoadcuponsAdmin, PostUpdateCupomStore, DeleteCupomStore, PostUpdateActiveCupomStore, cupom } = UseCupomAdminStore();
-    console.log("Cupons", cupom)
-    const { ordersAdmin, logs, Category } = UseOrderAdminStore();
+    const { PostEditeUserAdmin } = UseUserAdminStore();
+    const { LoadNotificationAll, Notification } = UseNotificationAdmin();
+
+    const { ordersAdmin, logs, Category, PostMensegeViaWhatsApp } = UseOrderAdminStore();
     const { user } = UseUserStore();
     const { LoadOrders } = UseOrderStore();
     const notify = useNotification();
@@ -162,6 +180,15 @@ export const useAdminController = (): AdminControllerReturn => {
     const [DescriptionConfirm, SetDescriptionConfirm] = useState<string>('');
     const [ButtonConfirm, SetButtonConfirm] = useState<string>('');
 
+
+    const [profileForm, setProfileForm] = useState<AdminProfileData>({
+        name: user?.name || '',
+        email: user?.email || '',
+        phone: user?.phone || 0,
+        avatar: user?.avatar || '',
+        tema: user?.customize?.tema || false
+    });
+    const [editingProfile, setEditingProfile] = useState(false);
 
 
     const [newProduct, setNewProduct] = useState<Partial<ProductAdmin>>({});
@@ -200,11 +227,6 @@ export const useAdminController = (): AdminControllerReturn => {
     const [categories, setCategories] = useState<Category[]>(Category);
     const [categoryToDelete, setCategoryToDelete] = useState<CategoryAdmin | null>(null);
 
-
-
-    console.log("newCategory", newCategory)
-    console.log("editingCategory", editingCategory)
-
     const [categoryErrors, setCategoryErrors] = useState<Partial<Record<keyof Category, string>>>({});
     const [categoryImagePreview, setCategoryImagePreview] = useState<string | null>(null);
     const [categoryBannerPreviews, setCategoryBannerPreviews] = useState<string[]>([]);
@@ -212,7 +234,6 @@ export const useAdminController = (): AdminControllerReturn => {
     const [categoryImageFile, setCategoryImageFile] = useState<File | null>(null);
     const [categoryBannerFiles, setCategoryBannerFiles] = useState<File[]>([]);
 
-    console.log("controller", editingCoupon)
     const emptyCoupon: Partial<CupomAdmin> = {
         name_Cupom: '',
         cod_Cupom: '',
@@ -241,17 +262,36 @@ export const useAdminController = (): AdminControllerReturn => {
     useEffect(() => {
         const load = async () => {
             SetLoadingPageAll(true);
-            await GetListProducts();
-            await GetListOrders();
-            await GetListLogs();
-            await GetListCategory();
-            await GetListCupons();
+            if (products.length == 0) {
+                await GetListProducts();
+            }
+            if (ordersAdmin.length == 0) {
+                await GetListOrders();
+            }
+            if (Notification.length == 0) {
+                await GetListNotification();
+            }
+            if (logs.length == 0) {
+                await GetListLogs();
+            }
+            if (Category.length == 0) {
+                await GetListCategory();
+            }
+            if (cupom.length == 0) {
+                await GetListCupons();
+            }
             SetLoadingPageAll(false);
         };
         load();
     }, []);
-    console.log("newCoupon", newCoupon);
 
+    const GetListNotification = async () => {
+        const result = await LoadNotificationAll();
+        // SetLoading(false);
+        if (!result?.success) {
+            notify.error(result?.error?.error.message || "Erro ao carregar Notificação", "error");
+        }
+    };
     const GetListProducts = async () => {
         const result = await loadProductsAdmin();
         // SetLoading(false);
@@ -994,17 +1034,21 @@ export const useAdminController = (): AdminControllerReturn => {
     };
 
     const UpdateStatusOrder = async (id: number, status: string) => {
-        SetLoading(true);
-        const result = await UpdateNewStatusOrder(id, status);
+        try {
+            SetLoading(true);
+            const result = await UpdateNewStatusOrder(id, status);
 
-        if (!result.success) {
-            notify.error((result?.error?.error?.code ?? "error"), (result.error?.error.message || "Erro ao atualizar status"));
-            return;
+            if (!result.success) {
+                notify.error((result?.error?.error?.code ?? "error"), (result.error?.error.message || "Erro ao atualizar status"));
+                return;
+            }
+            notify.success("Status atualizado com sucesso!", "success");
+        } finally {
+            SetLoading(false);
         }
-        SetLoading(false);
-        notify.success("Status atualizado com sucesso!", "success");
 
-    }
+
+    };
     const validateCoupon = (
         coupon: Partial<CupomAdmin>
     ): Record<string, string> => {
@@ -1327,6 +1371,160 @@ export const useAdminController = (): AdminControllerReturn => {
             SetLoading(false);
         }
     };
+    const handleSaveProfile = async (updates: AdminProfileData) => {
+        if (updates.name.trim() === "") {
+            notify.error("Nome", "O nome é obrigatório.");
+            return;
+        }
+        if (updates.email.trim() === "") {
+            notify.error("Email", "O email é obrigatório.");
+            return;
+        }
+        if (updates.phone.toString().trim() === "") {
+            notify.error("Telefone", "O telefone é obrigatório.");
+            return;
+        }
+        if (updates.email.trim() !== "" && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(updates.email)) {
+            notify.error("Email", "O email não é válido.");
+            return;
+        }
+        if (updates.phone.toString().replace(/\D/g, '').length < 10) {
+            notify.error("Telefone", "O telefone não é válido.");
+            return;
+        }
+
+        const formData = new FormData();
+
+        formData.append("Name", updates.name.trim());
+        formData.append("Email", updates.email.trim().toLowerCase());
+
+        // Remove (), -, espaços e qualquer outro caractere
+        // deixando somente números.
+        formData.append(
+            "Telefone",
+            updates.phone.toString().replace(/\D/g, '')
+        );
+
+        formData.append("Tema", String(updates.tema));
+
+        if (updates.avatarFile) {
+            formData.append("Avatar", updates.avatarFile);
+        }
+
+        try {
+            SetLoading(true);
+
+            console.log("formData", [...formData.entries()]);
+
+            const result = await PostEditeUserAdmin(formData);
+
+            if (!result.success) {
+                notify.error(
+                    result.error?.error?.code ?? "profile-save-error",
+                    result.error?.error?.message ??
+                    "Não foi possível atualizar o perfil."
+                );
+                return;
+            }
+
+            setEditingProfile(false);
+            notify.success(
+                "success",
+                "Perfil atualizado com sucesso."
+            );
+        } finally {
+            SetLoading(false);
+        }
+    };
+    const formatPhoneWhatsApp = (phone: string | number) => {
+        let numero = String(phone).replace(/\D/g, '');
+        // Se não tiver código do Brasil, adiciona 55
+        if (!numero.startsWith('55')) {
+            numero = `55${numero}`;
+        }
+
+        return numero;
+    };
+    const handleShareMensagemWhatsApp = async (IdOrder: number) => {
+        try {
+            SetLoading(true);
+
+            if (!IdOrder || IdOrder <= 0) {
+                notify.error(
+                    "error",
+                    "Id do pedido inválido."
+                );
+                return;
+            }
+
+            const result = await PostMensegeViaWhatsApp(IdOrder);
+
+            if (!result.success) {
+                notify.error(
+                    result.error?.error?.code ?? "whatsapp-share-error",
+                    result.error?.error?.message ??
+                    "Não foi possível compartilhar a mensagem no WhatsApp."
+                );
+                return;
+            }
+
+            const responseData = result.data;
+
+            if (!responseData) {
+                notify.error(
+                    "error",
+                    "Dados do pedido não encontrados."
+                );
+                return;
+            }
+
+            if (
+                responseData.telefone == null ||
+                String(responseData.telefone).trim() === ""
+            ) {
+                notify.error(
+                    "Telefone",
+                    "O cliente não possui telefone cadastrado."
+                );
+                return;
+            }
+
+            const mensagem = getMensagemWhatsApp(
+                responseData.status,
+                responseData.number_Order,
+                responseData.nome_Cliente
+            );
+
+            const numeroWhatsApp = formatPhoneWhatsApp(
+                responseData.telefone
+            );
+
+            const mensagemEncoded = encodeURIComponent(
+                mensagem
+            );
+
+            const whatsappUrl =
+                `https://wa.me/${numeroWhatsApp}?text=${mensagemEncoded}`;
+
+            // Abre na MESMA aba
+            window.location.href = whatsappUrl;
+
+        } catch (error) {
+
+            console.error(
+                "Erro ao abrir WhatsApp:",
+                error
+            );
+
+            notify.error(
+                "error",
+                "Não foi possível abrir o WhatsApp."
+            );
+
+        } finally {
+            SetLoading(false);
+        }
+    };
     return {
         result: {
             Loading,
@@ -1364,7 +1562,9 @@ export const useAdminController = (): AdminControllerReturn => {
             reassignCategoryId,
             productsCategories,
             categories,
-            categoryToDelete
+            categoryToDelete,
+            profileForm,
+            editingProfile
         },
         action: {
             generateMonthlyRevenue,
@@ -1423,7 +1623,12 @@ export const useAdminController = (): AdminControllerReturn => {
             setProductsCategories,
             setCategories,
             setCategoryToDelete,
-            handleDeleteCategory
+            handleDeleteCategory,
+            setProfileForm,
+            handleSaveProfile,
+            setEditingProfile,
+            handleShareMensagemWhatsApp,
+            SetLoadingPageAll
         }
     }
 }

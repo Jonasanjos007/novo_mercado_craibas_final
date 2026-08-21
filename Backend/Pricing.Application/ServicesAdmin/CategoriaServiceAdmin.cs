@@ -6,6 +6,7 @@ using Mercado.Craibas.Application.DTOs.Requests;
 using Mercado.Craibas.Application.InterfacesAdmin;
 using Mercado.Craibas.Application.InterfacesAdmin.Services;
 using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.Configuration;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -19,9 +20,40 @@ namespace Mercado.Craibas.Application.ServicesAdmin
     public class CategoriaServiceAdmin : ICategoriaServiceAdmin
     {
         private readonly IUnitOfWorkAdmin _unitOfWorkAdmin;
-        public CategoriaServiceAdmin(IUnitOfWorkAdmin unitOfWorkAdmin)
+        private readonly IConfiguration _configuration;
+        public CategoriaServiceAdmin(IUnitOfWorkAdmin unitOfWorkAdmin, IConfiguration configuration)
         {
             _unitOfWorkAdmin = unitOfWorkAdmin;
+            _configuration = configuration;
+        }
+        private string GetImagesFolder(string subPasta)
+        {
+            var pastaBase = _configuration["Storage:ImagesPath"];
+
+            if (string.IsNullOrWhiteSpace(pastaBase))
+            {
+                throw new Exception(
+                    "O caminho Storage:ImagesPath não foi configurado."
+                );
+            }
+
+            if (string.IsNullOrWhiteSpace(subPasta))
+            {
+                throw new Exception(
+                    "A subpasta da imagem não foi informada."
+                );
+            }
+
+            var nomeSeguro = Path.GetFileName(subPasta);
+
+            var pastaDestino = Path.Combine(
+                pastaBase,
+                nomeSeguro
+            );
+
+            Directory.CreateDirectory(pastaDestino);
+
+            return pastaDestino;
         }
         public async Task<Result<bool>> PostSaveCategory(CategoryRequest category, int IdUser)
         {
@@ -54,18 +86,8 @@ namespace Mercado.Craibas.Application.ServicesAdmin
             try
             {
                 var OneCategory = new Product_Category();
-      
-                var raizProjeto = Directory.GetCurrentDirectory();
 
-                // sobe duas pastas (Mercado.Api -> Backend -> novo_mercado_craibas_final)
-                var raiz = Directory.GetParent(raizProjeto)!.Parent!.FullName;
-
-                var pastaDestino = Path.Combine(raiz, "Imagens", "Categorias");
-
-                if (!Directory.Exists(pastaDestino))
-                {
-                    Directory.CreateDirectory(pastaDestino);
-                }
+                var pastaDestino = GetImagesFolder("Categorias");
 
                 var nomesBanners = new List<string>();
 
@@ -234,11 +256,7 @@ namespace Mercado.Craibas.Application.ServicesAdmin
                     return Result<bool>.Failure(Error.Failure("Categoria não encontrada","Não foi possível localizar a categoria informada."));
                 }
 
-                var raizProjeto = Directory.GetCurrentDirectory();
-
-                var raiz = Directory.GetParent(raizProjeto)!.Parent!.FullName;
-
-                var pastaDestino = Path.Combine(raiz,"Imagens","Categorias");
+                var pastaDestino = GetImagesFolder("Categorias");
 
                 Directory.CreateDirectory(pastaDestino);
 

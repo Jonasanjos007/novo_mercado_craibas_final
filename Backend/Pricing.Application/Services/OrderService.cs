@@ -7,7 +7,9 @@ using Baldan.Pricing.Application.Models.Enums;
 using Mercado.Craibas.Application.Domain.Entities;
 using Mercado.Craibas.Application.DTOs.Requests;
 using Mercado.Craibas.Application.DTOs.Responses;
+using Mercado.Craibas.Application.Interfaces;
 using Mercado.Craibas.Application.Interfaces.Repositories;
+using Mercado.Craibas.Application.Interfaces.Services;
 using Microsoft.EntityFrameworkCore;
 using Pricing.Api.DTOs.Requests;
 using Pricing.Api.DTOs.Responses;
@@ -16,10 +18,15 @@ namespace Mercado.Craibas.Application.Services;
 public class OrderService : IOrderService
 {
     private readonly IUnitOfWork _unitOfWork;
+    private readonly IEmailService _email;
+    private readonly INotificationService _notification;
 
-    public OrderService(IUnitOfWork unitOfWork)
+  
+    public OrderService(IUnitOfWork unitOfWork, IEmailService email, INotificationService notification)
     {
         _unitOfWork = unitOfWork;
+        _email = email;
+        _notification = notification;
     }
     public async Task<Result<bool>> PostSaveOrder(int userId, OrderSaveRequest Order)
     {
@@ -216,7 +223,44 @@ public class OrderService : IOrderService
                                  { "Id_Cupom", null  }
                    });
             }
-                     
+            var User = await _unitOfWork.GetClassAsyncWhere<User_Customer>(x => x.Id == userId);
+            var UserAdminNotify = await _unitOfWork.GetClassListAsyncWhere<User_Admin>(x => x.Isdelete != true);
+
+            var users = UserAdminNotify.Select(x => new NotificationUserRequest
+            {
+                UserId = x.Id
+            }).ToList();
+
+            var InsertNotificacao = await _notification.SendNotification(new NotificationRequest
+            {
+                Kind = "Novo Pedido",
+                Title = "Novo pedido recebido",
+                Description = $"Novo pedido Nº {InsertOrderId.Number_Order} realizado por {User.Name}. Verifique os produtos e acompanhe a confirmação do pagamento.",
+                Icone = "ShoppingBag",
+                ActionUrl = "/admin",
+                ReferenceId = InsertOrderId.Id,
+                ReferenceType = "ORDER",
+                Role = "ADMIN"
+            },users);
+
+            var InsertNotificacaoClient = await _notification.SendNotification(new NotificationRequest
+            {
+                Kind = "Pedido Pendente",
+                Title = "Pedido com pagamento pendente",
+                Description = $"Seu pedido Nº {InsertOrderId.Number_Order} foi realizado com sucesso e está aguardando a confirmação do pagamento. Assim que o pagamento for confirmado, você receberá uma nova atualização.",
+                Icone = "Clock",
+                ActionUrl = "/orders",
+                ReferenceId = InsertOrderId.Id,
+                ReferenceType = "PAYMENT",
+                Role = "CLIENTE"
+            }, new List<NotificationUserRequest>
+     {
+        new NotificationUserRequest
+        {
+            UserId = userId
+        }
+     });
+
             return Result<bool>.Success(true);
         }
         catch (Exception ex)
@@ -370,4 +414,5 @@ public class OrderService : IOrderService
         return Result<List<OrderResponse>>.Success(orderResponseList);
 
     }
+   
 }

@@ -2,9 +2,11 @@
 using Baldan.Pricing.Application.Domain.Entities;
 using Baldan.Pricing.Application.Interfaces;
 using Mercado.Craibas.Application.Domain.Entities;
-using Mercado.Craibas.Application.DTOs.Responses;
 using Mercado.Craibas.Application.DTOs.Requests;
+using Mercado.Craibas.Application.DTOs.Responses;
+using Mercado.Craibas.Application.Interfaces;
 using Mercado.Craibas.Application.Interfaces.Repositories;
+using Mercado.Craibas.Application.Interfaces.Services;
 using Mercado.Craibas.Application.InterfacesAdmin;
 using Mercado.Craibas.Application.InterfacesAdmin.Services;
 using Microsoft.EntityFrameworkCore;
@@ -13,17 +15,23 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
-using System.Threading.Tasks;
 using System.Text.Json;
+using System.Threading.Tasks;
 
 namespace Mercado.Craibas.Application.ServicesAdmin
 {
     public class OrderServiceAdmin : IOrderAdminService
     {
         private readonly IUnitOfWorkAdmin _unitOfWorkAdmin;
-        public OrderServiceAdmin(IUnitOfWorkAdmin unitOfWorkAdmin)
+        private readonly IEmailService _email;
+        private readonly INotificationService _notification;
+
+
+        public OrderServiceAdmin(IUnitOfWorkAdmin unitOfWorkAdmin,IEmailService email, INotificationService notification)
         {
             _unitOfWorkAdmin = unitOfWorkAdmin;
+            _email = email;
+            _notification = notification;
         }
 
         public async Task<Result<List<OrderResponse>>> GetOrderAllListAdmin()
@@ -41,6 +49,7 @@ namespace Mercado.Craibas.Application.ServicesAdmin
              Order_Status = x.Order_Status,
              Payment_terms = x.Payment_terms,
              InsertDate = x.InsertDate,
+             NotifyViaWhatsApp = x.NotifyViaWhatsApp,
              Estimated_Delivery_Date = x.Estimated_Delivery_Date,
              Discont = x.Discont,
              Quantity = x.OrderLineItens.Sum(i => i.Quantity),
@@ -109,6 +118,13 @@ namespace Mercado.Craibas.Application.ServicesAdmin
 
         public async Task<Result<bool>> PostUpdateStatusOrder(int Id_Order,string NewStatus,int IdUser)
         {
+
+            var Order = await _unitOfWorkAdmin.GetClassAsyncWhere<Orders>(x => x.Id == Id_Order);
+
+            var User = await _unitOfWorkAdmin.GetClassAsyncWhere<User_Admin>(x => x.Id == IdUser);
+
+            var UserConsumer = await _unitOfWorkAdmin.GetClassAsyncWhere<User_Customer>(x => x.Id == Order.Id_User_Customer);
+
             var Update_StatusOrder = await _unitOfWorkAdmin.UpdateFieldsAsyncEntity<Orders>(filters: new Dictionary<string, object>
                         {
                                 { "Id", Id_Order }
@@ -116,7 +132,9 @@ namespace Mercado.Craibas.Application.ServicesAdmin
 
                       fieldsToUpdate: new Dictionary<string, object>
                       {
-                             {"Order_Status",NewStatus }
+                             {"Order_Status",NewStatus },
+                             {"NotifyViaWhatsApp",true },
+                             {"UpdateDate",DateTime.Now }
                          
                        });
 
@@ -124,9 +142,8 @@ namespace Mercado.Craibas.Application.ServicesAdmin
             {
                 return Result<bool>.Failure(Error.Failure("Status", "Erro ao atualizar status!"));
             }
-            var Order = await _unitOfWorkAdmin.GetClassAsyncWhere<Orders>(x => x.Id == Id_Order);
+          
 
-            var User = await _unitOfWorkAdmin.GetClassAsyncWhere<User_Admin>(x => x.Id == IdUser);
 
             await _unitOfWorkAdmin.InsertAsyncReturnObjeto<Logs>(new Logs
             {
@@ -138,7 +155,127 @@ namespace Mercado.Craibas.Application.ServicesAdmin
                 Info = User.Name + " " + User.Role + " " + $"Atualizar o status do pedido em {DateTime.Now:dd/MM/yyyy HH:mm:ss}",
                 InsertDate = DateTime.Now
             });
+
+
+            var layoutEmail = _email.EmailPedidoLayout(titulo: "Atualização do seu pedido", subtitulo: "Temos novidades sobre sua compra.", status: NewStatus,
+                  conteudoHtml: $@"
+                      <p style='margin:0;'>
+                          Olá, <strong>{UserConsumer.Name}</strong>!
+                      </p>
+                      <p style='margin:14px 0 0 0;'>Pedido<strong style='color:#f97316;'>#{Order.Id}</strong></p>
+                     <p style='margin:8px 0 0 0;'>Total:<strong>R$ {Order.Total_Value_Order.ToString("N2", new System.Globalization.CultureInfo("pt-BR"))}</strong></p>
+                  ",
+                   textoBotao: "Acompanhar pedido",
+                   linkBotao: $"https://mavihstudio.com.br/pedidos/orders");
+
+            var enviado = await _email.EnviarEmailAsync(UserConsumer.Email, "Mercado Craibas", layoutEmail);
+
+            string mensagemNotificacao = NewStatus switch
+            {
+                "CONFIRMADO" =>
+                    $"Seu pedido Nº {Order.Number_Order} foi confirmado e já está sendo processado.",
+
+                "PREPARANDO" =>
+                    $"Seu pedido Nº {Order.Number_Order} está sendo preparado. Em breve teremos novas atualizações!",
+
+                "SAIU_PARA_ENTREGA" =>
+                    $"Seu pedido Nº {Order.Number_Order} saiu para entrega e está a caminho do endereço informado.",
+
+                "ENTREGUE" =>
+                    $"Seu pedido Nº {Order.Number_Order} foi entregue. Esperamos que você aproveite sua compra!",
+
+                "CANCELADO" =>
+                    $"Seu pedido Nº {Order.Number_Order} foi cancelado. Consulte os detalhes do pedido para mais informações.",
+
+                _ =>
+                    $"O status do seu pedido Nº {Order.Number_Order} foi atualizado."
+            };
+
+
+            string iconeNotificacao = NewStatus.ToString() switch
+            {
+                "CONFIRMADO" => "CircleCheck",
+                "PREPARANDO" => "Package",
+                "SAIU_PARA_ENTREGA" => "Truck",
+                "ENTREGUE" => "PackageCheck",
+                "CANCELADO" => "CircleX",
+                _ => "Bell"
+            };
+
+            var InsertNotificacao = await _notification.SendNotification(
+     new NotificationRequest
+     {
+         Kind = "Novo status",
+         Title = NewStatus == "ENTREGUE" ? "Pedido Entregue" : "Pedido atualizado",
+         Description = mensagemNotificacao,
+         Icone = iconeNotificacao,
+         ActionUrl = "/orders",
+         ReferenceId = Order.Id,
+         ReferenceType = NewStatus == "ENTREGUE" ? "DELIVERY" : "ORDER",
+         Role = "CLIENTE"
+     },
+     new List<NotificationUserRequest>
+     {
+        new NotificationUserRequest
+        {
+            UserId = UserConsumer.Id
+        }
+     }
+ );
+
+            //if (!enviado)
+            //{
+            //    return Result<bool>.Failure(Error.Failure("Enviar Email", "Não foi possível enviar o e-mail ao cliente. Verifique se o endereço de e-mail informado está correto e tente novamente!"));
+            //}
+
+
             return Result<bool>.Success(true);
+        }
+        public async Task<Result<SendMessageViaWhatsAppResponse>> NotifyViaWhatsAppUpdateEnviado(int IdOrders,int Id_User)
+        {
+            var order = await _unitOfWorkAdmin.GetClassAsyncWhere<Orders>(x => x.Id == IdOrders && x.Isdelete != true);
+            var User = await _unitOfWorkAdmin.GetClassAsyncWhere<User_Admin>(x => x.Id == Id_User && x.Isdelete != true);
+            var UserConsumer = await _unitOfWorkAdmin.GetClassAsyncWhere<User_Customer>(x => x.Id == order.Id_User_Customer && x.Isdelete != true);
+
+
+            if (!order.NotifyViaWhatsApp)
+            {
+                return Result<SendMessageViaWhatsAppResponse>.Failure(Error.Failure("Envio Via WhatsApp", "Não tem nenhum status pendente a ser avisado!"));
+            }
+            var UpdateNotifyViaWhatsApp = await _unitOfWorkAdmin.UpdateFieldsAsyncEntity<Orders>(filters: new Dictionary<string, object>
+                      {
+                              { "Id", order.Id }
+                      },
+
+                        fieldsToUpdate: new Dictionary<string, object>
+                        {
+                                 { "NotifyViaWhatsApp", false  },
+                                 {"UpdateDate",DateTime.Now }
+
+                        });
+            await _unitOfWorkAdmin.InsertAsyncReturnObjeto<Logs>(new Logs
+            {
+                Id_User = Id_User,
+                Log = "Avisou o cliente sobre o novo status do pedido" + " " + order.Number_Order + "Status:" + order.Order_Status + "Para o Cliente:" + UserConsumer.Phone,
+                Tipo = "Avisou o Cliente Via WhatsApp",
+                Nivel = "Admin",
+                Acao = User.Name + " " + User.Role + " " + $"Avisou o Cliente Via WhatsApp",
+                Info = User.Name + " " + User.Role + " " + $"Avisou o Cliente Via WhatsApp em {DateTime.Now:dd/MM/yyyy HH:mm:ss}",
+                InsertDate = DateTime.Now
+            });
+
+            if (!UpdateNotifyViaWhatsApp)
+            {
+                return Result<SendMessageViaWhatsAppResponse>.Failure(Error.Failure("Pedido", "Pedido Não Econtrado!"));
+            }
+            return Result<SendMessageViaWhatsAppResponse>.Success(new SendMessageViaWhatsAppResponse
+            {
+                IdOrder = order.Id,
+                Status = order.Order_Status,
+                Number_Order = order.Number_Order,
+                Telefone = UserConsumer.Phone,
+                NomeCliente = UserConsumer.Name
+            });
         }
     }
 }

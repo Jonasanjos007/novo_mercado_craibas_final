@@ -61,5 +61,15 @@ namespace Mercado.Api.Controllers.Admin
             var result = await _service.PostUpdateStatusOrder(Id_Order, NewStatus,Id_User);
             return result.ToActionResult();
         }
+
+        [Authorize]
+        [HttpPost("PostUpdateNotifyViaWhatsApp")]
+        public async Task<IActionResult> PostUpdateNotifyViaWhatsApp(int Id_Order)
+        {
+            var Id_User = User.GetUserId();
+
+            var result = await _service.NotifyViaWhatsAppUpdateEnviado(Id_Order, Id_User);
+            return result.ToActionResult();
+        }
     }
 }

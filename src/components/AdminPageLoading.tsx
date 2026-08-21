@@ -1,174 +1,104 @@
 interface LoadingProps {
-    loading: boolean;
-    message?: string;
-    subMessage?: string;
+  loading: boolean;
+  darkMode?: boolean;
+  message?: string;
+  subMessage?: string;
 }
 
 export default function AdminPageLoading({
-    loading,
-    message = "Carregando...",
-    subMessage = "Aguarde um momento",
+  loading,
+  darkMode = false,
+  message = 'Carregando...',
+  subMessage = 'Aguarde um momento',
 }: LoadingProps) {
-    if (!loading) return null;
+  if (!loading) return null;
 
-    return (
-        <div className="fixed inset-0 z-[999] bg-[#f5f5f7] animate-pulse overflow-y-auto">
-            <div className="min-h-screen flex">
+  const page = darkMode ? 'bg-[#09090e]' : 'bg-[#f5f5f7]';
+  const panel = darkMode ? 'bg-[#0d0d14]' : 'bg-white';
+  const border = darkMode ? 'border-white/[0.07]' : 'border-slate-200';
+  const skeleton = darkMode ? 'bg-white/[0.09]' : 'bg-slate-200';
+  const skeletonSoft = darkMode ? 'bg-white/[0.045]' : 'bg-slate-100';
+  const title = darkMode ? 'text-white/80' : 'text-slate-700';
+  const subtitle = darkMode ? 'text-white/35' : 'text-slate-500';
 
-                {/* Sidebar */}
-                <aside className="hidden md:flex w-60 flex-col border-r bg-white border-slate-200">
-                    <div className="p-5 border-b">
-                        <div className="h-10 w-40 rounded-xl bg-slate-200" />
-                    </div>
+  return (
+    <div className={`fixed inset-0 z-[999] overflow-y-auto ${page}`} role="status" aria-live="polite" aria-label={message}>
+      <div className="flex min-h-screen animate-pulse">
+        <aside className={`hidden w-60 flex-col border-r md:flex ${panel} ${border}`}>
+          <div className={`border-b p-5 ${border}`}>
+            <div className={`h-10 w-40 rounded-xl ${skeleton}`} />
+          </div>
+          <div className="flex-1 space-y-3 p-4">
+            {Array.from({ length: 8 }).map((_, index) => <div key={index} className={`h-11 rounded-xl ${index === 0 ? 'bg-brand-500/35' : skeleton}`} />)}
+          </div>
+        </aside>
 
-                    <div className="flex-1 p-4 space-y-3">
-                        {Array.from({ length: 8 }).map((_, i) => (
-                            <div key={i} className="h-11 rounded-xl bg-slate-200" />
-                        ))}
-                    </div>
-                </aside>
-
-                <div className="flex-1 flex flex-col">
-
-                    {/* Header */}
-                    <header className="border-b bg-white px-4 md:px-6 py-4">
-                        <div className="flex items-center justify-between">
-
-                            <div className="space-y-2">
-                                <div className="h-6 w-40 md:w-56 rounded bg-slate-200" />
-                                <div className="h-3 w-24 md:w-36 rounded bg-slate-100" />
-                            </div>
-
-                            <div className="flex gap-2">
-                                <div className="w-10 h-10 rounded-xl bg-slate-200" />
-                                <div className="w-10 h-10 rounded-xl bg-slate-200" />
-                            </div>
-
-                        </div>
-                    </header>
-
-                    <main className="p-4 md:p-6 space-y-5">
-
-                        {/* Texto */}
-                        <div className="text-center">
-                            <h2 className="text-base md:text-lg font-bold text-slate-700">
-                                {message}
-                            </h2>
-
-                            <p className="text-xs md:text-sm text-slate-500 mt-1">
-                                {subMessage}
-                            </p>
-                        </div>
-
-                        {/* Cards */}
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                            {Array.from({ length: 4 }).map((_, i) => (
-                                <div
-                                    key={i}
-                                    className="rounded-3xl border bg-white p-5"
-                                >
-                                    <div className="flex justify-between mb-5">
-                                        <div className="w-11 h-11 rounded-2xl bg-slate-200" />
-                                        <div className="h-4 w-16 rounded bg-slate-200" />
-                                    </div>
-
-                                    <div className="h-8 w-32 rounded bg-slate-200 mb-3" />
-                                    <div className="h-4 w-24 rounded bg-slate-100 mb-5" />
-
-                                    <div className="h-24 rounded-2xl bg-slate-100" />
-                                </div>
-                            ))}
-                        </div>
-
-                        {/* Gráficos */}
-                        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-
-                            <div className="lg:col-span-2 rounded-3xl border bg-white p-5">
-                                <div className="h-5 w-40 rounded bg-slate-200 mb-5" />
-
-                                <div className="h-48 md:h-72 rounded-2xl bg-slate-100" />
-                            </div>
-
-                            <div className="rounded-3xl border bg-white p-5">
-                                <div className="h-5 w-32 rounded bg-slate-200 mb-5" />
-
-                                <div className="flex justify-center">
-                                    <div className="w-28 h-28 md:w-36 md:h-36 rounded-full bg-slate-100" />
-                                </div>
-
-                                <div className="space-y-3 mt-6">
-                                    {Array.from({ length: 3 }).map((_, i) => (
-                                        <div key={i} className="h-4 rounded bg-slate-200" />
-                                    ))}
-                                </div>
-                            </div>
-
-                        </div>
-
-                        {/* Desktop */}
-                        <div className="hidden lg:block rounded-3xl border bg-white overflow-hidden">
-
-                            <div className="h-16 border-b bg-slate-50" />
-
-                            <div className="divide-y">
-                                {Array.from({ length: 6 }).map((_, i) => (
-                                    <div
-                                        key={i}
-                                        className="flex items-center gap-5 p-5"
-                                    >
-                                        <div className="w-12 h-12 rounded-2xl bg-slate-200" />
-
-                                        <div className="flex-1">
-                                            <div className="h-4 w-56 rounded bg-slate-200 mb-2" />
-                                            <div className="h-3 w-28 rounded bg-slate-100" />
-                                        </div>
-
-                                        <div className="w-24 h-4 rounded bg-slate-200" />
-                                        <div className="w-32 h-10 rounded-xl bg-slate-100" />
-                                    </div>
-                                ))}
-                            </div>
-                        </div>
-
-                        {/* Mobile */}
-                        <div className="lg:hidden space-y-4">
-
-                            {Array.from({ length: 5 }).map((_, i) => (
-                                <div
-                                    key={i}
-                                    className="rounded-3xl border bg-white p-4"
-                                >
-                                    <div className="flex gap-3">
-
-                                        <div className="w-14 h-14 rounded-2xl bg-slate-200" />
-
-                                        <div className="flex-1 space-y-2">
-                                            <div className="h-4 w-40 rounded bg-slate-200" />
-                                            <div className="h-3 w-24 rounded bg-slate-100" />
-                                        </div>
-
-                                    </div>
-
-                                    <div className="mt-4 grid grid-cols-3 gap-3">
-
-                                        <div className="h-10 rounded-xl bg-slate-100" />
-                                        <div className="h-10 rounded-xl bg-slate-100" />
-                                        <div className="h-10 rounded-xl bg-slate-100" />
-
-                                    </div>
-
-                                    <div className="mt-4 h-11 rounded-xl bg-slate-100" />
-
-                                </div>
-                            ))}
-
-                        </div>
-
-                    </main>
-
-                </div>
-
+        <div className="flex min-w-0 flex-1 flex-col">
+          <header className={`border-b px-4 py-4 md:px-6 ${panel} ${border}`}>
+            <div className="flex items-center justify-between">
+              <div className="space-y-2">
+                <div className={`h-6 w-40 rounded md:w-56 ${skeleton}`} />
+                <div className={`h-3 w-24 rounded md:w-36 ${skeletonSoft}`} />
+              </div>
+              <div className="flex gap-2">
+                <div className={`h-10 w-10 rounded-xl ${skeleton}`} />
+                <div className={`h-10 w-10 rounded-xl ${skeleton}`} />
+              </div>
             </div>
+          </header>
+
+          <main className="space-y-5 p-4 md:p-6">
+            <div className="py-1 text-center">
+              <div className="mb-3 flex justify-center gap-1.5"><span className="h-2 w-2 rounded-full bg-brand-400" /><span className="h-2 w-2 rounded-full bg-brand-500 [animation-delay:150ms]" /><span className="h-2 w-2 rounded-full bg-brand-600 [animation-delay:300ms]" /></div>
+              <h2 className={`text-base font-bold md:text-lg ${title}`}>{message}</h2>
+              <p className={`mt-1 text-xs md:text-sm ${subtitle}`}>{subMessage}</p>
+            </div>
+
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              {Array.from({ length: 4 }).map((_, index) => (
+                <div key={index} className={`rounded-3xl border p-5 ${panel} ${border}`}>
+                  <div className="mb-5 flex justify-between"><div className={`h-11 w-11 rounded-2xl ${skeleton}`} /><div className={`h-4 w-16 rounded ${skeleton}`} /></div>
+                  <div className={`mb-3 h-8 w-32 rounded ${skeleton}`} />
+                  <div className={`mb-5 h-4 w-24 rounded ${skeletonSoft}`} />
+                  <div className={`h-24 rounded-2xl ${skeletonSoft}`} />
+                </div>
+              ))}
+            </div>
+
+            <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
+              <div className={`rounded-3xl border p-5 lg:col-span-2 ${panel} ${border}`}><div className={`mb-5 h-5 w-40 rounded ${skeleton}`} /><div className={`h-48 rounded-2xl md:h-72 ${skeletonSoft}`} /></div>
+              <div className={`rounded-3xl border p-5 ${panel} ${border}`}>
+                <div className={`mb-5 h-5 w-32 rounded ${skeleton}`} />
+                <div className="flex justify-center"><div className={`h-28 w-28 rounded-full border-[14px] bg-transparent md:h-36 md:w-36 ${darkMode ? 'border-white/[0.07]' : 'border-slate-100'}`} /></div>
+                <div className="mt-6 space-y-3">{Array.from({ length: 3 }).map((_, index) => <div key={index} className={`h-4 rounded ${skeleton}`} />)}</div>
+              </div>
+            </div>
+
+            <div className={`hidden overflow-hidden rounded-3xl border lg:block ${panel} ${border}`}>
+              <div className={`h-16 border-b ${skeletonSoft} ${border}`} />
+              <div className={darkMode ? 'divide-y divide-white/[0.06]' : 'divide-y divide-slate-100'}>
+                {Array.from({ length: 6 }).map((_, index) => (
+                  <div key={index} className="flex items-center gap-5 p-5">
+                    <div className={`h-12 w-12 rounded-2xl ${skeleton}`} />
+                    <div className="flex-1"><div className={`mb-2 h-4 w-56 rounded ${skeleton}`} /><div className={`h-3 w-28 rounded ${skeletonSoft}`} /></div>
+                    <div className={`h-4 w-24 rounded ${skeleton}`} /><div className={`h-10 w-32 rounded-xl ${skeletonSoft}`} />
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="space-y-4 lg:hidden">
+              {Array.from({ length: 5 }).map((_, index) => (
+                <div key={index} className={`rounded-3xl border p-4 ${panel} ${border}`}>
+                  <div className="flex gap-3"><div className={`h-14 w-14 rounded-2xl ${skeleton}`} /><div className="flex-1 space-y-2"><div className={`h-4 w-40 max-w-full rounded ${skeleton}`} /><div className={`h-3 w-24 rounded ${skeletonSoft}`} /></div></div>
+                  <div className="mt-4 grid grid-cols-3 gap-3">{Array.from({ length: 3 }).map((_, item) => <div key={item} className={`h-10 rounded-xl ${skeletonSoft}`} />)}</div>
+                  <div className={`mt-4 h-11 rounded-xl ${skeletonSoft}`} />
+                </div>
+              ))}
+            </div>
+          </main>
         </div>
-    );
+      </div>
+    </div>
+  );
 }

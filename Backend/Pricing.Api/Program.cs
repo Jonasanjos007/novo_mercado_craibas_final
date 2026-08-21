@@ -5,6 +5,7 @@ using Baldan.Pricing.Application;
 using Baldan.Pricing.Application.Interfaces;
 using Baldan.Pricing.Application.Interfaces.Repositories;
 using Baldan.Pricing.Application.Services;
+using Mercado.Craibas.Application.Interfaces;
 using Mercado.Craibas.Application.Interfaces.Repositories;
 using Mercado.Craibas.Application.Interfaces.Services;
 using Mercado.Craibas.Application.InterfacesAdmin;
@@ -90,6 +91,7 @@ namespace Pricing.Api
 
             // DI
             builder.Services.AddScoped<IUnitOfWork, UnitOfWorkRepository>();
+            builder.Services.AddScoped<IEmailService, EmailService>();
             builder.Services.AddScoped<IUnitOfWorkAdmin, IUnitOfWorkAdminRepository>();
             builder.Services.AddScoped<IProductServiceAdmin, ProductServiceAdmin>();
             builder.Services.AddScoped<IOrderAdminService, OrderServiceAdmin>();
@@ -98,6 +100,7 @@ namespace Pricing.Api
             builder.Services.AddScoped<IProductRepository, ProductRepository>();
             builder.Services.AddScoped<IOrderService, OrderService>();
             builder.Services.AddScoped<IAuthService, AuthService>();
+            builder.Services.AddScoped<INotificationService, NotificationService>();
             //builder.Services.AddScoped<ICheckoutService, CheckoutService>();
             builder.Services.AddScoped<IAuthRepository, AuthRepository>();
             builder.Services.AddScoped<IUserRepository, UserRepository>();
@@ -105,6 +108,7 @@ namespace Pricing.Api
             builder.Services.AddScoped<ITokenService, TokenService>();
             builder.Services.AddScoped<ICupomService, CupomService>();
             builder.Services.AddScoped<ICategoriaServiceAdmin, CategoriaServiceAdmin>();
+            builder.Services.AddScoped<IUserServiceAdmin, UserServiceAdmin>();
             //builder.Services.AddScoped<IProfileRepository, ProfileRepository>();
             //builder.Services.AddScoped<IDashboardRepository, DashboardRepository>();
             //builder.Services.AddScoped<IDashboardService, DashboardService>();

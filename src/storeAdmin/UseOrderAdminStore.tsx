@@ -1,7 +1,7 @@
 import { create } from "zustand";
 import { makeResult, Result } from "../utils/Result";
 import { OrderServiceAdmin } from "../adminService/OrderServiceAdmin";
-import { Order } from "../models/OrderSave";
+import { Order, SendMessageViaWhatsAppResponse } from "../models/OrderSave";
 import { Logs } from "../models/Logs";
 import { Category } from "../models/Product";
 
@@ -18,7 +18,7 @@ interface OrderState {
     PostUpdateCategoryAdmin: (formData: FormData) => Promise<Result<boolean>>;
     PostDeleteCategoryAdmin: (request: { id: number; action: 'move' | 'delete'; replacementCategoryId?: number; }) => Promise<Result<boolean>>;
     UpdateNewStatusOrder: (Id_Order: number, New_Status: string) => Promise<Result<boolean>>;
-
+    PostMensegeViaWhatsApp: (Id_Order: number) => Promise<Result<SendMessageViaWhatsAppResponse>>;
 }
 
 export const UseOrderAdminStore = create<OrderState>((set, get) => ({
@@ -93,5 +93,13 @@ export const UseOrderAdminStore = create<OrderState>((set, get) => ({
         }
         await get().LoadOrdersAdmin();
         return makeResult(true, true);
+    },
+    PostMensegeViaWhatsApp: async (Id_Order: number): Promise<Result<SendMessageViaWhatsAppResponse>> => {
+        const result = await OrderServiceAdmin.PostMensegeViaWhatsApp(Id_Order);
+        if (!result.success) {
+            return makeResult(false, {} as SendMessageViaWhatsAppResponse, result.error);
+        }
+        await get().LoadOrdersAdmin();
+        return makeResult(true, result.data || {} as SendMessageViaWhatsAppResponse);
     },
 }));

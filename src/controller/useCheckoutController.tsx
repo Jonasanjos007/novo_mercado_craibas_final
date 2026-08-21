@@ -12,6 +12,7 @@ import { Cupom } from "../models/Cupom";
 import { Status_Pay } from "../models/OrderSave";
 import { OrderSave } from "../models/OrderSave";
 import { UseCupomStore } from "../store/UseCupomStore";
+import { UseNotificationAdmin } from "../storeAdmin/UseNotificationAdmin";
 
 type CheckoutControllerReturn = {
     result: {
@@ -44,6 +45,7 @@ type Step = 'Endereço' | 'Pagamento' | 'Checkout' | 'success';
 
 export const useCheckoutController = (): CheckoutControllerReturn => {
     const { LoadCartUser, clearCart } = UseCartStore();
+    const { LoadNotificationAll } = UseNotificationAdmin();
     const { loadProducts } = UseProductStore();
     const { LoadCupons, Cupons, SaveOrderUser } = UseOrderStore();
     const { cart } = UseCartStore();
@@ -149,6 +151,7 @@ export const useCheckoutController = (): CheckoutControllerReturn => {
             setLoading(false);
             return;
         }
+        await LoadNotificationAll();
         notify.success("Pedido realizado com sucesso!", "success");
         clearCart();
         // const payLabel = payment === 'pix' ? 'PIX' : payment === 'credit' ? `Cartão •••• ${cardData.number.slice(-4) || '4242'}` : 'Boleto Bancário';

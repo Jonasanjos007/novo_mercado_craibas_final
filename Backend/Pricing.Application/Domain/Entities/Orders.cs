@@ -27,6 +27,8 @@ namespace Baldan.Pricing.Application.Domain.Entities
         public int Id_Address { get; set; }
         public Address Address { get; set; }
         public int? Id_User_Delivery { get; set; }
+        public bool NotifyViaWhatsApp { get; set; } = false;
+        //public string? StatusNotifyViaWhatsApp { get; set; }
         public string? Discount_Type { get; set; }
         public User_Delivery User_Delivery { get; set; }
         public double? Delivery_Commission { get; set; }

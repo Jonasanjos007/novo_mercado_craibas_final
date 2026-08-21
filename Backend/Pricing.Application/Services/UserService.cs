@@ -76,6 +76,7 @@ public class UserService : IUserService
 
             case "ADMIN":
                 user = await _userRepository.GetByIdAsync<User_Admin>(userid, "Id");
+                Customize = await _unitOfWork.GetClassById<Customize_Admin>(userid, "Id_User_Admin");
                 break;
 
             case "DELIVERY":
@@ -102,31 +103,15 @@ public class UserService : IUserService
             Role = user.Role,
             Phone = user.Phone,
             Insert_Date = user.InsertDate,
-
-            //Cart_User = cart_User == null
-            // ? null
-            // : new CartResponse
-            // {
-            //     Id = cart_User.Id,
-            //     Id_User_Customer = cart_User.Id_User_Customer
-            // },
-
-            //Address = andrees_User?.Select(x => new AddressResponse
-            //{
-            //    Id = x.Id,
-            //    Road = x.Road,
-            //    Name = x.Name,
-            //    Phone = x.Phone,
-            //    Neighborhood = x.Neighborhood,
-            //    City = x.City,
-            //    Number = x.Number,
-            //    State = x.State,
-            //    Id_User_Customer = x.Id_User_Customer,
-            //    ReferencePoint = x.ReferencePoint,
-            //    Supplement = x.Supplement,
-            //    Standard = x.Standard,
-            //}).ToList(),
-            Customize = Customize
+            Ativo = user.Ativo,
+            UpdateDate = user.UpdateDate,
+            Customize = new Customize_ClienteResponse{ 
+                Id = Customize.Id,
+                Global_Site_Color = Customize.Global_Site_Color,
+                Tema = Customize.Dark,
+                InsertDate = Customize.InsertDate,
+                UpdateDate = Customize.UpdateDate
+            }
         });
     }
     public async Task<Result<bool>> PostSaveAddressUserService(AddressRequest NewAnddress)

@@ -17,10 +17,13 @@ import {
   CheckCircle,
   PauseCircle,
   LucideIcon,
-  FolderTree, Activity, ListFilter, CalendarDays, ShieldAlert
+  FolderTree, Activity, ListFilter, CalendarDays, ShieldAlert,
+  Palette,
+  MessageCircle,
+  CircleX
 } from 'lucide-react';
 import { useStore } from '../context/store';
-import { formatPrice, orderStatusLabels, orderStatusColors, categoryLabels, badgeLabels, badgeLabel, cupomStatusLabels } from '../utils';
+import { formatPrice, orderStatusLabels, orderStatusLabelsAtualize, orderStatusColors, categoryLabels, badgeLabels, badgeLabel, cupomStatusLabels } from '../utils';
 import { useAdminController } from '../controller/useAdminController';
 import { UseOrderStore } from '../store/UseOrderStore';
 import { UseOrderAdminStore } from '../storeAdmin/UseOrderAdminStore';
@@ -38,12 +41,16 @@ import ConfirmAdminPopup from '../components/ConfirmAdminPopup';
 import { UseRouteStore } from '../store/UseRouteStore';
 import { useNavigate } from 'react-router-dom';
 import OrderQuickView from '../components/OrderQuickView';
-import { Order } from '../models/OrderSave';
+import { AdminTab, Order } from '../models/OrderSave';
 import { ProductQuickView } from '../components/ProductQuickView';
 import { Cupom, CupomAdmin, DiscountType } from '../models/Cupom';
 import { UseCupomAdminStore } from '../storeAdmin/UseCupomAdminStore';
+import { AdminProfileData } from '../models/User';
+import AdminProfileEditor from '../components/AdminProfileEditor';
+import { UseUserAdminStore } from '../storeAdmin/UseUserAdminStore';
+import AdminNotificationsPage, { AdminNotificationItem } from '../components/AdminNotificationsPage';
+import { UseNotificationAdmin } from '../storeAdmin/UseNotificationAdmin';
 
-type AdminTab = 'dashboard' | 'products' | 'categories' | 'orders' | 'promotions' | 'movements' | 'profile' | 'settings' | 'cartegories';
 
 
 type ApplicationScope = "store" | "categories" | "products";
@@ -53,22 +60,31 @@ type ApplicationScope = "store" | "categories" | "products";
 
 export default function AdminPage() {
 
-  const {
-    darkMode, toggleDarkMode,
-    deleteProduct, addProduct, updateProduct,
-    applyPromoToProduct, showNotification
-  } = useStore();
+  // const {
+  //   darkMode, toggleDarkMode,
+  //   deleteProduct, addProduct, updateProduct,
+  //   applyPromoToProduct, showNotification
+  // } = useStore();
   const navigate = useNavigate();
-
+  const { Notification } = UseNotificationAdmin();
   const Controller = useAdminController();
   const { ordersAdmin, logs, Category, LoadLogsAdmin } = UseOrderAdminStore();
-  const { user, logout } = UseUserStore();
+  const { PostEditeTemaAdmin } = UseUserAdminStore();
+  const { user, logout, updateUser } = UseUserStore();
+  console.log("User", user);
   const { products } = UseProductAdminStore();
   const { orders } = UseOrderStore();
   const { navigatePages, navigateTo } = UseRouteStore();
   const { cupom } = UseCupomAdminStore();
 
   const [tab, setTab] = useState<AdminTab>('dashboard');
+  const [readNotificationIds, setReadNotificationIds] = useState<string[]>(() => {
+    try {
+      return JSON.parse(localStorage.getItem('@admin:read-notifications') || '[]');
+    } catch {
+      return [];
+    }
+  });
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [productSearch, setProductSearch] = useState('');
   const [orderSearch, setOrderSearch] = useState('');
@@ -82,20 +98,33 @@ export default function AdminPage() {
   const [quickViewOrder, setQuickViewOrder] = useState<Order | null>(null);
   const [applicationScope, setApplicationScope] = useState<'store' | 'categories' | 'products'>('store');
   // const [editingCoupon, setEditingCoupon] = useState<Cupom | null>(null);
-  const [editingProfile, setEditingProfile] = useState(false);
   const [selectedCoupon, setSelectedCoupon] = useState<CupomAdmin | null>(null);
   const [cupomSearch, setCupomSearch] = useState("");
   const [cupomFilter, setCupomFilter] = useState<"active" | "all" | "paused" | "expired">("active");
   //popap delete cupom confirm
   const [idCupom, setIdCupom] = useState(Number);
-
-
-
+  const [showAvatar, setShowAvatar] = useState(false);
+  const [showWhatsAppBubble, setShowWhatsAppBubble] = useState<number | null>(null);
   // categories: assumido já existente no componente (ex: veio de fetch, igual "products").
   // Caso não exista ainda, declarar algo como:
   // const [categories, setCategories] = useState<{ id: number; name: string }[]>([]);
 
+  const topScrollRef = useRef<HTMLDivElement>(null);
+  const tableScrollRef = useRef<HTMLDivElement>(null);
 
+  const syncTopScroll = () => {
+    if (topScrollRef.current && tableScrollRef.current) {
+      tableScrollRef.current.scrollLeft =
+        topScrollRef.current.scrollLeft;
+    }
+  };
+
+  const syncTableScroll = () => {
+    if (topScrollRef.current && tableScrollRef.current) {
+      topScrollRef.current.scrollLeft =
+        tableScrollRef.current.scrollLeft;
+    }
+  };
   // ─── estado (perto dos outros estados do componente) ───
   useEffect(() => {
     if (!Controller?.result.editingCoupon) return;
@@ -120,6 +149,14 @@ export default function AdminPage() {
   }, [
     Controller?.result.editingCoupon,
   ]);
+
+  const defaultProfileForm: AdminProfileData = {
+    name: user?.name || '',
+    email: user?.email || '',
+    phone: user?.phone || 0,
+    avatar: user?.avatar || '',
+    tema: user?.customize?.tema || false,
+  };
   // ─── computed: produtos filtrados pelo cupom selecionado ───
   const filteredPromotionProducts = useMemo(() => {
 
@@ -184,37 +221,29 @@ export default function AdminPage() {
 
   }, [selectedCoupon, cupom, products]);
 
+  const orderStatusOrder = [
+    "CONFIRMADO",
+    "PREPARANDO",
+    "SAIU_PARA_ENTREGA",
+    "ENTREGUE",
+    "CANCELADO"
+  ];
 
   const [quickViewProduct, setQuickViewProduct] = useState<ProductAdmin | null>(null);
   const [editingStatus, setEditingStatus] = useState<Record<number, string>>({});
   const [loadingOrderId, setLoadingOrderId] = useState<number | null>(null);
-  const [profileForm, setProfileForm] = useState({ name: user?.name || '', email: user?.email || '', phone: user?.phone || '', bio: user?.name || '' });
+
   const [settingsForm, setSettingsForm] = useState({
     storeName: 'Mercado Craibas', slogan: 'O melhor marketplace de Craibas',
     primaryColor: '#2d14be', freeShippingAbove: '299', baseShipping: '19.90', deliveryDays: '3-5',
     twoFactor: false, sessionTimeout: '30',
   });
-
-
-
   type CategoryAdmin = Category & {
     product_Count: number;
     total_Stock: number;
     count_Sold: number;
     revenue: number;
   };
-
-  // interface MockProduct {
-  //   id: number;
-  //   name: string;
-  //   id_category: number;
-  //   price_Unic: number;
-  //   origin_Price?: number;
-  //   total_Stock: number;
-  //   count_Sold: number;
-  //   ativo: boolean;
-  //   imagens?: { url_Imagem: string }[];
-  // }
 
   const formatPrice = (v: number) =>
     new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(v || 0);
@@ -230,6 +259,12 @@ export default function AdminPage() {
   useEffect(() => {
     Controller?.action.setProductsCategories(products ?? []);
   }, [products]);
+
+  useEffect(() => {
+    if (!user || Controller?.result.editingProfile) return;
+    Controller?.action.setProfileForm({ name: user.name || '', email: user.email || '', phone: user.phone || 0, avatar: user.avatar || '', tema: user.customize?.tema || false });
+  }, [user, Controller?.result.editingProfile]);
+
 
   const [categorySearch, setCategorySearch] = useState('');
   const [categoryStatusFilter, setCategoryStatusFilter] = useState<'all' | 'active' | 'inactive' | 'empty'>('all');
@@ -295,7 +330,7 @@ export default function AdminPage() {
     Controller?.action.setCategoryErrors({});
     Controller?.action.setShowCategoryModal(true);
   };
-
+  const AllnotificationReadnot = Notification.filter(item => item.isRead === false).length;
   const getCategoryBanners = (banners?: string | string[] | null): string[] =>
     (Array.isArray(banners) ? banners : typeof banners === 'string' ? banners.split(';') : [])
       .map(banner => banner.trim())
@@ -404,6 +439,13 @@ export default function AdminPage() {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const pendingOrders = orders.filter(o => ['confirmado', 'preparando', 'saiu_entrega'].includes(o.order_Status)).length;
+  const hoje = new Date();
+
+  const anoAtual = hoje.getFullYear();
+  const mesAtual = String(hoje.getMonth() + 1).padStart(2, '0');
+
+  const LogsUsuarios = Controller?.action.generateMonthlyLogs()?.map(x => x.total) ?? []
+
   const deliveredOrders = orders.filter(o => o.order_Status === 'ENTREGUE').length;
   const cancelledOrdersPerDay = orders.reduce((acc, order) => {
     if (order.order_Status !== 'CANCELADO') return acc;
@@ -598,6 +640,7 @@ export default function AdminPage() {
   }).length;
 
 
+
   // const handleSavePromo = () => {
   //   const promo: Promotion = {
   //     ...blankPromo, ...newPromo,
@@ -612,7 +655,7 @@ export default function AdminPage() {
   // const openEditProduct = (p: Product) => { Controller?.action.setEditingProduct(p); Controller?.action.setNewProduct({ ...p }); Controller?.action.setShowProductModal(true); };
   // const openEditPromo = (pr: Promotion) => { setEditingCoupon(pr); setNewPromo({ ...pr }); Controller?.action.setShowCouponModal(true); };
 
-  const dk = darkMode;
+  const dk = user?.customize?.tema ?? false;
   const bg = dk ? 'bg-[#0a0a0f]' : 'bg-[#f0f0f5]';
   const sidebar = dk ? 'bg-[#0d0d14] border-white/[0.06]' : 'bg-white border-surface-200';
   const card = dk ? 'bg-[#0d0d14] border-white/[0.06]' : 'bg-white border-surface-200';
@@ -721,7 +764,7 @@ export default function AdminPage() {
       </nav>
 
       <div className={`p-3 border-t ${bord} space-y-1 flex-shrink-0`}>
-        <button onClick={toggleDarkMode} className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all ${txt2} ${dk ? 'hover:bg-white/[0.06]' : 'hover:bg-surface-50'}`}>
+        <button onClick={() => PostEditeTemaAdmin()} className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all ${txt2} ${dk ? 'hover:bg-white/[0.06]' : 'hover:bg-surface-50'}`}>
           {dk ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
           {dk ? 'Modo Claro' : 'Modo Escuro'}
         </button>
@@ -781,7 +824,7 @@ export default function AdminPage() {
     },
     {
       label: "Movimentação do Sistema Mês Atual",
-      value: `${logs.filter(l => l.tipo == "Acesso" && l.nivel == "CLIENTE").length} Usuários`,
+      value: `${LogsUsuarios[5]} Usuários`,
       icon: <Package className="w-5 h-5" />,
       color: "#a855f7",
       change: Controller?.action.generateMonthlyLogs()?.slice(-1)[0]?.percentage ? `${Controller?.action.generateMonthlyLogs()?.slice(-1)[0]?.percentage > 0 ? '+' : ''}${Controller?.action.generateMonthlyLogs()?.slice(-1)[0]?.percentage?.toFixed(1)}%` : '+0%',
@@ -840,11 +883,15 @@ export default function AdminPage() {
             </p>
           </div>
 
-          <button className={`relative p-2 rounded-xl transition-all ${txt2} ${dk ? 'hover:bg-white/[0.06]' : 'hover:bg-surface-50'}`}>
+          <button onClick={() => setTab('notifications')} aria-label="Abrir notificações" className={`relative p-2 rounded-xl transition-all ${tab === 'notifications' ? 'bg-orange-500 text-white hover:bg-orange-600 md:bg-brand-500 md:hover:bg-brand-600' : `${txt2} ${dk ? 'hover:bg-white/[0.06]' : 'hover:bg-surface-50'}`}`}>
             <Bell className="w-5 h-5" />
-            <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full" />
+            {AllnotificationReadnot > 0 && (
+              <span className="absolute -right-1 -top-1 flex h-5 min-w-5 items-center justify-center rounded-full border-2 border-white bg-red-500 px-1 text-[9px] font-black text-white">
+                {AllnotificationReadnot > 99 ? '99+' : AllnotificationReadnot}
+              </span>
+            )}
           </button>
-          <button onClick={toggleDarkMode} className={`p-2 rounded-xl transition-all ${txt2} ${dk ? 'hover:bg-white/[0.06]' : 'hover:bg-surface-50'}`}>
+          <button onClick={() => PostEditeTemaAdmin()} className={`p-2 rounded-xl transition-all ${txt2} ${dk ? 'hover:bg-white/[0.06]' : 'hover:bg-surface-50'}`}>
             {dk ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
           </button>
         </header>
@@ -1345,6 +1392,14 @@ export default function AdminPage() {
           )}
 
           {/* ─── PRODUCTS ─── */}
+          {tab === 'notifications' && (
+            <AdminNotificationsPage
+              darkMode={dk}
+              notifications={Notification}
+              onNavigate={target => setTab(target)}
+            />
+          )}
+
           {tab === 'products' && (
             <>
               {/* topo */}
@@ -2736,6 +2791,12 @@ export default function AdminPage() {
                         n: ordersAdmin.filter(o => o.order_Status === 'ENTREGUE').length,
                         icon: BadgeCheck,
                       },
+                      {
+                        v: 'CANCELADO',
+                        l: 'Cancelados',
+                        n: ordersAdmin.filter(o => o.order_Status === 'CANCELADO').length,
+                        icon: CircleX,
+                      },
                     ].map(s => {
                       const active = orderStatusFilter === s.v;
                       const Icon = s.icon;
@@ -2772,203 +2833,339 @@ export default function AdminPage() {
               </div>
 
               {/* DESKTOP TABLE */}
-              <div className={`hidden lg:block rounded-[30px] border overflow-hidden backdrop-blur-2xl shadow-[0_10px_40px_rgba(0,0,0,0.08)] ${card}`}>
-                <div className="overflow-x-auto">
-                  <table className="w-full table-fixed">
-                    <colgroup>
-                      <col className="w-[15%]" />
-                      <col className="w-[27%]" />
-                      <col className="w-[10%]" />
-                      <col className="w-[14%]" />
-                      <col className="w-[13%]" />
-                      <col className="w-[14%]" />
-                      <col className="w-[7%]" />
-                    </colgroup>
+              <div className={` hidden lg:block w-full rounded-[30px] border backdrop-blur-2xl shadow-[0_10px_40px_rgba(0,0,0,0.08)] ${card}`} >
+                {/* SCROLL SUPERIOR */}
+                <div
+                  ref={topScrollRef}
+                  onScroll={syncTopScroll}
+                  className="w-full overflow-x-auto overflow-y-hidden"
+                >
+                  <div
+                    style={{
+                      width: tableScrollRef.current?.scrollWidth || '100%',
+                      height: '1px'
+                    }}
+                  />
+                </div>
 
+                {/* TABELA */}
+                <div
+                  ref={tableScrollRef}
+                  onScroll={syncTableScroll}
+                  className="w-full overflow-x-auto overflow-y-visible rounded-[30px]"
+                >
+                  <table className="w-max min-w-full border-collapse">
+
+                    {/* =========================CABEÇALHO========================== */}
                     <thead>
-                      <tr className={`border-b last:border-0 ${bord} ${rowH} transition-colors`}>
-                        {['Pedido', 'Itens', 'Valor', 'Status', 'Data', 'Atualizar', 'Visualizar'].map(h => (
-                          <th key={h} className={`px-4 xl:px-6 py-5 text-left text-[10px] xl:text-[11px] font-black uppercase tracking-[0.14em] xl:tracking-[0.18em] ${sub}`}>
+                      <tr
+                        className={` border-b ${bord} ${rowH} transition-colors`}
+                      >
+                        {['Pedido', 'Itens', 'Valor', 'Status', 'Data', 'Aviso', 'Atualizar', 'Visualizar'
+                        ].map((h) => (
+                          <th
+                            key={h}
+                            className={` px-4 xl:px-6 py-5 text-left text-[10px] xl:text-[11px] font-black uppercase tracking-[0.14em] xl:tracking-[0.18em] whitespace-nowrap ${sub}`}
+                          >
                             {h}
                           </th>
                         ))}
                       </tr>
                     </thead>
 
+                    {/* =========================CORPO========================== */}
                     <tbody>
                       {filteredOrders.map((o, index) => (
-                        <tr key={`${o.id_Order}-${index}`} className={`border-b last:border-none ${bord} transition-all duration-300 hover:bg-brand-500/[0.03]`}>
 
-                          {/* PEDIDO */}
-                          <td className="px-4 xl:px-6 py-5">
-                            <div className="flex items-center gap-3 min-w-0">
-                              <div className="w-10 h-10 xl:w-11 xl:h-11 rounded-2xl bg-brand-500/10 border border-brand-500/20 flex items-center justify-center flex-shrink-0">
+                        <tr
+                          key={`${o.id_Order}-${index}`}
+                          className={` border-b last:border-none ${bord} transition-all duration-300 hover:bg-brand-500/[0.03]`}
+                        >
+                          {/* =====================PEDIDO====================== */}
+                          <td className="min-w-[180px] px-4 xl:px-6 py-5">
+                            <div className="flex items-center gap-3">
+                              <div className=" w-10 h-10 xl:w-11 xl:h-11 rounded-2xl bg-brand-500/10 border border-brand-500/20 flex items-center justify-center flex-shrink-0">
                                 <ShoppingBag className="w-4 h-4 text-brand-400" />
                               </div>
-                              <div className="min-w-0">
-                                <p className={`font-black text-sm truncate ${txt}`}>#{o.number_Order}</p>
-                                <p className={`text-[11px] mt-1 truncate ${sub}`}>
-                                  {o.products.reduce((s, i) => s + i.quantity, 0)} itens
+                              <div className="min-w-[90px]">
+
+                                <p className={` font-black text-sm whitespace-nowrap ${txt}`}>
+                                  #{o.number_Order}
+                                </p>
+                                <p className={` text-[11px] mt-1 whitespace-nowrap ${sub}`} >
+                                  {o.products.reduce(
+                                    (s, i) => s + i.quantity,
+                                    0
+                                  )}{' '}
+                                  itens
                                 </p>
                               </div>
                             </div>
                           </td>
-
-                          {/* ITENS — resumo compacto */}
-                          <td className="px-4 xl:px-6 py-5">
-                            <div className="flex items-center gap-3 min-w-0">
+                          {/* =====================ITENS====================== */}
+                          <td className="min-w-[320px] px-4 xl:px-6 py-5">
+                            <div className="flex items-center gap-4">
+                              {/* IMAGENS */}
                               <div className="flex items-center -space-x-2 flex-shrink-0">
                                 {o.products.slice(0, 3).map((item, i) => (
+
                                   <img
                                     key={i}
-                                    src={item.imagens?.length ? `/Imagens/Produtos/${item?.imagens[0]?.url_Imagem}` : "/Imagens/sem-imagem.png"}
+                                    src={item.imagens?.length ? `/Imagens/Produtos/${item?.imagens[0]?.url_Imagem}` : '/Imagens/sem-imagem.png'
+                                    }
                                     alt={item.name}
-                                    className={`w-9 h-9 xl:w-10 xl:h-10 rounded-xl object-cover border-2 shadow-lg ${dk ? 'border-[#111]' : 'border-white'}`}
-                                  />
+                                    className={` w-9 h-9 xl:w-10 xl:h-10 rounded-xl object-cover border-2 shadow-lg${dk ? 'border-[#111]' : 'border-white'}`} />
+
                                 ))}
+
+                                {/* + quantidade */}
                                 {o.products.length > 3 && (
-                                  <div className={`w-9 h-9 xl:w-10 xl:h-10 rounded-xl border-2 flex items-center justify-center text-[10px] font-black flex-shrink-0 ${dk ? 'border-[#111] bg-white/10 text-white/70' : 'border-white bg-surface-100 text-surface-600'}`}>
+
+                                  <div
+                                    className={` w-9 h-9 xl:w-10 xl:h-10 rounded-xl border-2 flex items-center justify-center text-[10px] font-black flex-shrink-0
+                                      ${dk ? 'border-[#111] bg-white/10 text-white/70' : 'border-white bg-surface-100 text-surface-600'} `}
+                                  >
                                     +{o.products.length - 3}
                                   </div>
+
                                 )}
+
                               </div>
-                              <p className={`text-xs font-medium truncate ${dk ? 'text-white/70' : 'text-slate-600'}`}>
+
+                              {/* NOME */}
+                              <p className={` min-w-[150px] max-w-[260px] text-xs font-medium truncate ${dk ? 'text-white/70' : 'text-slate-600'}`}>
                                 {o.products[0]?.name}
-                                {o.products.length > 1 && <span className={sub}> e mais {o.products.length - 1}</span>}
+                                {o.products.length > 1 && (
+                                  <span className={sub}>
+                                    {' '}
+                                    e mais {o.products.length - 1}
+                                  </span>
+                                )}
                               </p>
                             </div>
                           </td>
 
-                          {/* VALOR */}
-                          <td className="px-4 xl:px-6 py-5">
-                            <p className="text-brand-400 font-black text-sm whitespace-nowrap">
+                          {/* =====================VALOR====================== */}
+                          <td className="min-w-[150px] px-4 xl:px-6 py-5">
+
+                            <p className=" text-brand-400 font-black text-sm whitespace-nowrap ">
                               {formatPrice(o.total_Value_Order)}
                             </p>
+
                           </td>
 
-                          {/* STATUS */}
-                          <td className="px-4 xl:px-6 py-5">
-                            <span className={`inline-flex items-center text-[10px] xl:text-[11px] font-black px-2.5 xl:px-3 py-1.5 rounded-full border whitespace-nowrap ${orderStatusColors[o.order_Status]}`}>
+                          {/* =====================STATUS====================== */}
+                          <td className="min-w-[190px] px-4 xl:px-6 py-5">
+
+                            <span
+                              className={` inline-flex items-center text-[10px] xl:text-[11px] font-black px-2.5 xl:px-3 py-1.5 rounded-full border whitespace-nowrap
+
+                  ${orderStatusColors[o.order_Status]}`}>
                               {orderStatusLabels[o.order_Status]}
                             </span>
                           </td>
-
-                          {/* DATA */}
-                          <td className={`px-4 xl:px-6 py-5 text-xs font-medium ${sub}`}>
-                            {new Date(o.insertDate).toLocaleString('pt-BR', {
-                              day: '2-digit',
-                              month: '2-digit',
-                              hour: '2-digit',
-                              minute: '2-digit',
-                            })}
+                          {/* =====================DATA====================== */}
+                          <td className={` min-w-[140px] px-4 xl:px-6 py-5 text-xs font-medium whitespace-nowrap ${sub}`} >
+                            {new Date(o.insertDate).toLocaleString(
+                              'pt-BR',
+                              {
+                                day: '2-digit',
+                                month: '2-digit',
+                                hour: '2-digit',
+                                minute: '2-digit'
+                              }
+                            )}
                           </td>
 
-                          {/* UPDATE */}
-                          <td className="px-4 xl:px-6 py-5">
-                            <div className="space-y-2">
+                          {/* =====================AVISO WHATSAPP====================== */}
+                          <td className="min-w-[130px] px-4 xl:px-6 py-5">
+                            {o.notifyViaWhatsApp && (
 
+                              <div className="relative flex items-center justify-center">
+                                <button
+                                  type="button"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
 
+                                    setShowWhatsAppBubble(prev =>
+                                      prev === o.id_Order
+                                        ? null
+                                        : o.id_Order
+                                    );
+                                  }}
 
-
-
-                              {loadingOrderId === o.id_Order ? (
-                                <div
-                                  className={`w-full h-10 xl:h-8 px-5 xl:px-4 rounded-2xl border flex items-center justify-center ${inp}`}
+                                  className={` relative flex h-10 w-10 items-center justify-center rounded-2xl border transition-all duration-300
+                                  ${dk
+                                      ? ` bg-green-500/10 border-green-500/30 text-green-400 hover:bg-green-500/20` : ` bg-green-50 border-green-200 text-green-600 hover:bg-green-100`}`}
                                 >
+                                  <MessageCircle className="h-5 w-5" />
+                                  {/* INDICADOR */}
+                                  <span className="absolute -right-1 -top-1 flex h-3 w-3">
+
+                                    <span
+                                      className=" absolute inline-flex h-full w-full animate-ping rounded-full bg-green-400 opacity-75 "
+                                    />
+
+                                    <span className=" relative inline-flex h-3 w-3 rounded-full bg-green-500" />
+                                  </span>
+                                </button>
+                                {/* TOOLTIP */}
+                                {showWhatsAppBubble === o.id_Order && (
+                                  <div
+                                    className=" absolute bottom-[calc(100%+10px)] left-1/2 z-[100] ml-4 -translate-x-1/2 whitespace-nowrap">
+                                    <div
+                                      className={` relative rounded-xl border px-3 py-2 text-center text-[10px] font-bold shadow-xl
+                                      ${dk ? 'bg-[#111827] border-green-500/20 text-green-300' : 'bg-white border-green-200 text-green-700'}`}>
+                                      {/* TEXTO */}
+                                      <div>
+                                        Avisar cliente via WhatsApp
+                                      </div>
+
+                                      {/* CONFIRMAR */}
+                                      <button
+                                        type="button"
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          Controller?.action.handleShareMensagemWhatsApp(o.id_Order);
+                                        }}
+                                        className=" mt-1.5 inline-flex h-6 items-center justify-center gap-1 rounded-lg bg-green-500 px-2.5 text-[9px] font-bold text-white transition-all hover:bg-green-600 active:scale-95">
+
+                                        {Controller?.result.Loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <><Check className="h-3 w-3" />Confirmar</>}
+                                      </button>
+
+                                      {/* SETINHA */}
+                                      <span
+                                        className={` absolute left-1/2 top-full h-2 w-2 -translate-x-1/2 -translate-y-1 rotate-45 border-b border-r
+                                     ${dk ? 'bg-[#111827] border-green-500/20' : 'bg-white border-green-200'}`} />
+                                    </div>
+                                  </div>
+                                )}
+                              </div>
+                            )}
+                          </td>
+                          {/* =====================ATUALIZAR STATUS====================== */}
+                          <td className="min-w-[210px] px-4 xl:px-6 py-5">
+                            <div className="space-y-2">
+                              {loadingOrderId === o.id_Order ? (
+                                <div className={` w-full h-10 xl:h-8 px-5 xl:px-4 rounded-2xl border flex items-center justify-center ${inp}`}>
                                   <Loader2 className="w-4 h-4 animate-spin" />
                                 </div>
+
                               ) : (
-                                <select
-                                  value={editingStatus[o.id_Order] ?? o.order_Status}
-                                  onChange={(e) =>
-                                    setEditingStatus((prev) => ({
-                                      ...prev,
-                                      [o.id_Order]: e.target.value,
-                                    }))
-                                  }
-                                  className={`w-full h-10 xl:h-8 px-5 xl:px-4 rounded-2xl border text-[11px] xl:text-xs font-bold outline-none transition-all ${inp}`}
-                                >
-                                  {Object.entries(orderStatusLabels).map(([k, v]) => (
-                                    <option key={k} value={k}>
-                                      {v}
-                                    </option>
-                                  ))}
-                                </select>
-                              )}
-                              {(editingStatus[o.id_Order] ?? o.order_Status) !== o.order_Status && (
-                                <>
-                                  <div
-                                    className={`rounded-xl border p-3 ${dk
-                                      ? "bg-amber-500/10 border-amber-500/20"
-                                      : "bg-amber-50 border-amber-200"
-                                      }`}
-                                  >
-                                    <p
-                                      className={`text-xs ${dk ? "text-amber-300" : "text-amber-700"
-                                        }`}
-                                    >
-                                      O cliente será notificado automaticamente sobre essa alteração de
-                                      status.
-                                    </p>
-                                  </div>
 
-                                  <div className="flex gap-2">
-
-                                    <button
-                                      onClick={() =>
-                                        setEditingStatus((prev) => {
-                                          const copy = { ...prev };
-                                          delete copy[o.id_Order];
-                                          return copy;
-                                        })
+                                <div className="w-full">
+                                  {(o.order_Status !== "PENDENTE" && o.order_Status !== "ENTREGUE" && o.order_Status !== "CANCELADO") && (
+                                    <select
+                                      value={editingStatus[o.id_Order] ?? o.order_Status}
+                                      onChange={(e) =>
+                                        setEditingStatus((prev) => ({
+                                          ...prev,
+                                          [o.id_Order]: e.target.value
+                                        }))
                                       }
-                                      className={`flex-1 h-9 rounded-xl text-xs font-bold ${dk
-                                        ? "bg-white/5 hover:bg-white/10 text-white"
-                                        : "bg-surface-100 hover:bg-surface-200 text-surface-700"
-                                        }`}
+                                      className={`w-full min-w-[170px] h-10 xl:h-8 px-4 rounded-2xl border text-[11px] xl:text-xs font-bold outline-none transition-all ${inp}`}
                                     >
-                                      Cancelar
-                                    </button>
+                                      {Object.entries(orderStatusLabelsAtualize)
+                                        .filter(([k]) => {
+                                          const currentStatus =
+                                            editingStatus[o.id_Order] ?? o.order_Status;
 
-                                    <button
-                                      onClick={async () => {
-                                        setLoadingOrderId(o.id_Order);
+                                          const currentIndex =
+                                            orderStatusOrder.indexOf(currentStatus);
 
-                                        try {
-                                          await Controller?.action.UpdateStatusOrder(
-                                            o.id_Order,
-                                            editingStatus[o.id_Order]
-                                          );
+                                          const optionIndex =
+                                            orderStatusOrder.indexOf(k);
 
+                                          return optionIndex >= currentIndex;
+                                        })
+                                        .map(([k, v]) => (
+                                          <option key={k} value={k}>
+                                            {v}
+                                          </option>
+                                        ))}
+                                    </select>
+                                  )}
+
+                                  {o.order_Status === "PENDENTE" && (
+                                    <p className="mt-1 text-[10px] text-amber-600 font-medium">
+                                      Pedido aguardando pagamento
+                                    </p>
+                                  )}
+                                  {o.order_Status === "ENTREGUE" && (
+                                    <p className="mt-1 text-[10px] text-green-600 font-medium">
+                                      Pedido entregue com sucesso
+                                    </p>
+                                  )}
+                                  {o.order_Status === "CANCELADO" && (
+                                    <p className="mt-1 text-[10px] text-red-500 font-medium">
+                                      Pedido cancelado
+                                    </p>
+                                  )}
+                                </div>
+                              )}
+                              {/* STATUS ALTERADO */}
+                              {(editingStatus[o.id_Order] ??
+                                o.order_Status) !== o.order_Status && (
+                                  <>
+                                    {/* AVISO */}
+                                    <div className={` min-w-[230px] rounded-xl border p-3 ${dk ? `bg-amber-500/10 border-amber-500/20` : `bg-amber-50 border-amber-200`}`}>
+                                      <p className={`text-xs leading-relaxed ${dk ? 'text-amber-300' : 'text-amber-700'}`}>
+                                        O cliente será notificado automaticamente sobre essa alteração de status.
+                                      </p>
+                                    </div>
+                                    {/* BOTÕES */}
+                                    <div className="flex gap-2 min-w-[230px]">
+                                      <button
+                                        type="button"
+                                        onClick={() =>
                                           setEditingStatus((prev) => {
                                             const copy = { ...prev };
                                             delete copy[o.id_Order];
                                             return copy;
-                                          });
-                                        } finally {
-                                          setLoadingOrderId(null);
+                                          })
                                         }
-                                      }}
-                                      className="flex-1 h-9 rounded-xl bg-brand-500 hover:bg-brand-600 text-white text-xs font-bold"
-                                    >
-                                      Confirmar
-                                    </button>
+                                        className={` flex-1 h-9 rounded-xl text-xs font-bold transition-colors ${dk ? ` bg-white/5 hover:bg-white/10 text-white` : `bg-surface-100 hover:bg-surface-200 text-surface-700`}`}>
+                                        Cancelar
+                                      </button>
+                                      <button
+                                        type="button"
+                                        onClick={async () => {
+                                          setLoadingOrderId(o.id_Order);
+                                          try {
+                                            await Controller?.action.UpdateStatusOrder(
+                                              o.id_Order,
+                                              editingStatus[o.id_Order]
+                                            );
+                                            setEditingStatus((prev) => {
+                                              const copy = { ...prev };
+                                              delete copy[o.id_Order];
+                                              return copy;
+                                            });
 
-                                  </div>
-                                </>
-                              )}
-
+                                          } finally {
+                                            setLoadingOrderId(null);
+                                          }
+                                        }}
+                                        className=" flex-1 h-9 rounded-xl bg-brand-500 hover:bg-brand-600 text-white text-xs font-bold transition-colors"
+                                      >
+                                        Confirmar
+                                      </button>
+                                    </div>
+                                  </>
+                                )}
                             </div>
                           </td>
-
-                          {/* AÇÕES */}
-                          <td className="px-2 xl:px-4 py-5">
-                            <button
-                              onClick={() => setQuickViewOrder(o)}
-                              className={`p-2 rounded-xl transition-all ${txt2} hover:text-blue-400 ${dk ? 'hover:bg-blue-500/10' : 'hover:bg-blue-50'}`}
-                            >
-                              <Eye className="w-4 h-4" />
-                            </button>
+                          {/* =====================VISUALIZAR====================== */}
+                          <td className="min-w-[100px] px-4 xl:px-6 py-5">
+                            <div className="flex items-center justify-center">
+                              <button
+                                type="button"
+                                onClick={() => setQuickViewOrder(o)}
+                                title="Visualizar pedido"
+                                className={` p-2 rounded-xl transition-all ${txt2} hover:text-blue-400${dk ? 'hover:bg-blue-500/10' : 'hover:bg-blue-50'}`}>
+                                <Eye className="w-4 h-4" />
+                              </button>
+                            </div>
                           </td>
                         </tr>
                       ))}
@@ -3137,168 +3334,190 @@ export default function AdminPage() {
 
                       {/* DELIVERY INFO */}
                       <div
-                        className={`
-        mt-5 rounded-3xl border p-4
-        ${dk
-                            ? 'border-white/10 bg-white/[0.03]'
-                            : 'border-surface-200 bg-surface-50'
-                          }
-      `}
-                      >
-
+                        className={`mt-5 rounded-3xl border p-4 ${dk ? 'border-white/10 bg-white/[0.03]' : 'border-surface-200 bg-surface-50'}`}>
                         <div className="flex items-start gap-3">
-
                           <div className="w-10 h-10 rounded-2xl bg-brand-500/10 border border-brand-500/20 flex items-center justify-center flex-shrink-0">
                             <MapPin className="w-4 h-4 text-brand-400" />
                           </div>
-
                           <div className="min-w-0 flex-1">
-
                             <h4 className={`text-xs font-black ${txt}`}>
                               Endereço de entrega
                             </h4>
-
                             <p className={`text-[11px] mt-2 leading-relaxed ${sub}`}>
                               {o.address.road}, {o.address.number}
                               {o.address.supplement && ` • ${o.address.supplement}`}
                               <br />
                               {o.address.neighborhood} — {o.address.city}
                             </p>
-
                           </div>
-
                         </div>
-
                       </div>
 
                       {/* PAYMENT + TRACK */}
                       <div className="grid grid-cols-2 gap-3 mt-4">
 
                         <div
-                          className={`
-          rounded-3xl border p-4
-          ${dk
-                              ? 'border-white/10 bg-white/[0.03]'
-                              : 'border-surface-200 bg-surface-50'
-                            }
-        `}
-                        >
-
+                          className={`rounded-3xl border p-4 ${dk ? 'border-white/10 bg-white/[0.03]' : 'border-surface-200 bg-surface-50'}`}>
                           <p className={`text-[10px] font-bold uppercase tracking-wider ${sub}`}>
                             Pagamento
                           </p>
-
                           <p className={`text-xs font-black mt-2 ${txt}`}>
                             {o.payment_terms}
                           </p>
-
                         </div>
-
-                        <div
-                          className={`
-          rounded-3xl border p-4
-          ${dk
-                              ? 'border-white/10 bg-white/[0.03]'
-                              : 'border-surface-200 bg-surface-50'
-                            }
-        `}
-                        >
-
+                        <div className={`rounded-3xl border p-4 ${dk ? 'border-white/10 bg-white/[0.03]' : 'border-surface-200 bg-surface-50'}`}>
                           <p className={`text-[10px] font-bold uppercase tracking-wider ${sub}`}>
                             Rastreamento
                           </p>
-
                           <p className={`text-xs font-black mt-2 truncate ${txt}`}>
                             {o.number_Order}
                           </p>
-
                         </div>
-
                       </div>
 
-                      {/* SELECT */}
                       {/* STATUS */}
                       <div className="mt-5 space-y-3">
-
                         <div className="flex items-center gap-3">
-
+                          {/* =========================VISUALIZAR PEDIDO========================== */}
                           <button
+                            type="button"
                             onClick={() => setQuickViewOrder(o)}
-                            className={`
-        h-13 w-13 rounded-3xl
-        flex items-center justify-center
-        transition-all flex-shrink-0
-        ${dk
-                                ? "bg-white/[0.05] border border-white/10 hover:bg-white/[0.08]"
-                                : "bg-surface-100 border border-surface-200 hover:bg-surface-200"
-                              }
-      `}
+                            title="Visualizar pedido"
+                            className={` h-13 w-13 rounded-3xl flex items-center justify-center transition-all flex-shrink-0 ${dk ? "bg-white/[0.05] border border-white/10 hover:bg-white/[0.08]" : "bg-surface-100 border border-surface-200 hover:bg-surface-200"}`}
                           >
                             <Eye className="w-5 h-5 text-blue-400" />
                           </button>
 
+                          {/* =========================AVISO WHATSAPP========================== */}
+                          {o.notifyViaWhatsApp && (
+                            <div className="relative flex-shrink-0">
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+
+                                  setShowWhatsAppBubble(prev =>
+                                    prev === o.id_Order
+                                      ? null
+                                      : o.id_Order
+                                  );
+
+                                }}
+
+                                title="Avisar cliente via WhatsApp"
+                                className={` relative h-13 w-13 rounded-3xl flex items-center justify-center border transition-all duration-300
+                                ${dk ? ` bg-green-500/10 border-green-500/30 text-green-400 hover:bg-green-500/20` : `  bg-green-50  border-green-200  text-green-600  hover:bg-green-100`}`}>
+                                <MessageCircle className="w-5 h-5" />
+                                {/* =====================BOLINHA PULSANDO====================== */}
+                                <span className=" absolute -right-1 -top-1 flex h-3 w-3">
+                                  <span className=" absolute inline-flex h-full w-full animate-ping rounded-full bg-green-400 opacity-75" />
+                                  <span className="  relative  inline-flex  h-3  w-3  rounded-full  bg-green-500" />
+                                </span>
+                              </button>
+                              {/* =========================MENSAGEM FLUTUANTE========================== */}
+                              {showWhatsAppBubble === o.id_Order && (
+                                <div
+                                  className=" absolute bottom-[calc(100%+10px)] left-1/2 z-[100] ml-4 -translate-x-1/2 whitespace-nowrap">
+                                  <div
+                                    className={` relative rounded-xl border px-3 py-2 text-center text-[10px] font-bold shadow-xl
+                                      ${dk ? 'bg-[#111827] border-green-500/20 text-green-300' : 'bg-white border-green-200 text-green-700'}`}>
+                                    {/* TEXTO */}
+                                    <div>
+                                      Avisar cliente via WhatsApp
+                                    </div>
+
+                                    {/* CONFIRMAR */}
+                                    <button
+                                      type="button"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        Controller?.action.handleShareMensagemWhatsApp(o.id_Order);
+
+                                      }}
+                                      className=" mt-1.5 inline-flex h-6 items-center justify-center gap-1 rounded-lg bg-green-500 px-2.5 text-[9px] font-bold text-white transition-all hover:bg-green-600 active:scale-95">
+                                      {Controller?.result.Loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <><Check className="h-3 w-3" />Confirmar</>}
+                                    </button>
+
+                                    {/* SETINHA */}
+                                    <span
+                                      className={` absolute left-1/2 top-full h-2 w-2 -translate-x-1/2 -translate-y-1 rotate-45 border-b border-r
+                                     ${dk ? 'bg-[#111827] border-green-500/20' : 'bg-white border-green-200'}`} />
+                                  </div>
+                                </div>
+                              )}
+                            </div>
+                          )}
+
+                          {/* =========================ALTERAR STATUS========================== */}
                           {loadingOrderId === o.id_Order ? (
-                            <div
-                              className={`w-full h-10 xl:h-8 px-5 xl:px-4 rounded-2xl border flex items-center justify-center ${inp}`}
-                            >
+                            <div className={` flex-1 h-13 px-5 rounded-3xl border flex items-center justify-center ${inp}`}>
                               <Loader2 className="w-4 h-4 animate-spin" />
                             </div>
                           ) : (
-                            <select
-                              value={editingStatus[o.id_Order] ?? o.order_Status}
-                              onChange={(e) =>
-                                setEditingStatus(prev => ({
-                                  ...prev,
-                                  [o.id_Order]: e.target.value,
-                                }))
-                              }
-                              className={` flex-1 h-13 rounded-3xl px-5 border text-sm font-black outline-none transition-all ${inp}`}
-                            >
-                              {Object.entries(orderStatusLabels).map(([k, v]) => (
-                                <option key={k} value={k}>
-                                  {v}
-                                </option>
-                              ))}
-                            </select>
-                          )}
+                            <div className="w-full">
+                              {!["PENDENTE", "ENTREGUE", "CANCELADO"].includes(o.order_Status) && (
+                                <select
+                                  value={editingStatus[o.id_Order] ?? o.order_Status}
+                                  onChange={(e) => setEditingStatus(prev => ({ ...prev, [o.id_Order]: e.target.value, }))}
+                                  className={`flex-1 w-full min-w-0 h-13 rounded-3xl px-4 border text-sm font-black outline-none transition-all ${inp}`}
+                                >
+                                  {Object.entries(orderStatusLabels)
+                                    .filter(([k]) => {
+                                      const currentStatus = editingStatus[o.id_Order] ?? o.order_Status;
 
+                                      // Cancelamento continua disponível
+                                      if (k === "CANCELADO") {
+                                        return currentStatus !== "ENTREGUE";
+                                      }
+
+                                      const currentIndex = orderStatusOrder.indexOf(currentStatus);
+
+                                      const optionIndex = orderStatusOrder.indexOf(k);
+
+                                      return optionIndex >= currentIndex;
+                                    })
+                                    .map(([k, v]) => (
+                                      <option key={k} value={k}>
+                                        {v}
+                                      </option>
+                                    ))}
+                                </select>
+                              )}
+                              {o.order_Status === "PENDENTE" && (
+                                <p className="mt-1 text-xs text-amber-600 font-medium">
+                                  Pedido aguardando pagamento
+                                </p>
+                              )}
+                              {o.order_Status === "ENTREGUE" && (
+                                <p className="mt-1 text-xs text-green-600 font-medium">
+                                  Pedido entregue com sucesso
+                                </p>
+                              )}
+                              {o.order_Status === "CANCELADO" && (
+                                <p className="mt-1 text-xs text-red-500 font-medium">
+                                  Pedido cancelado
+                                </p>
+                              )}
+                            </div>
+                          )}
                         </div>
                         {(editingStatus[o.id_Order] ?? o.order_Status) !== o.order_Status && (
                           <>
-                            <div
-                              className={`rounded-3xl border p-4 ${dk
-                                ? "bg-amber-500/10 border-amber-500/20"
-                                : "bg-amber-50 border-amber-200"
-                                }`}
-                            >
+                            <div className={`rounded-3xl border p-4 ${dk ? "bg-amber-500/10 border-amber-500/20" : "bg-amber-50 border-amber-200"}`} >
                               <div className="flex items-start gap-3">
-
                                 <div className="w-10 h-10 rounded-2xl bg-amber-500/15 border border-amber-500/20 flex items-center justify-center flex-shrink-0">
                                   <Bell className="w-5 h-5 text-amber-400" />
                                 </div>
-
                                 <div>
-                                  <p
-                                    className={`text-sm font-bold ${dk ? "text-amber-300" : "text-amber-700"
-                                      }`}
-                                  >
+                                  <p className={`text-sm font-bold ${dk ? "text-amber-300" : "text-amber-700"}`}>
                                     Confirmar alteração
                                   </p>
-
-                                  <p
-                                    className={`text-xs mt-1 ${dk ? "text-amber-200/80" : "text-amber-700"
-                                      }`}
-                                  >
-                                    O cliente será notificado automaticamente sobre a alteração do
-                                    status do pedido.
-                                  </p>
+                                  <p className={`text-xs mt-1 ${dk ? "text-amber-200/80" : "text-amber-700"}`} > O cliente será notificado automaticamente sobre a alteração do status do pedido. </p>
                                 </div>
 
                               </div>
                             </div>
-
                             <div className="grid grid-cols-2 gap-3">
-
                               <button
                                 onClick={() =>
                                   setEditingStatus(prev => {
@@ -3307,27 +3526,17 @@ export default function AdminPage() {
                                     return copy;
                                   })
                                 }
-                                className={`
-            h-12 rounded-2xl font-bold transition-all
-            ${dk
-                                    ? "bg-white/[0.05] hover:bg-white/[0.08] text-white border border-white/10"
-                                    : "bg-surface-100 hover:bg-surface-200 text-surface-700 border border-surface-200"
-                                  }
-          `}
-                              >
+                                className={`h-12 rounded-2xl font-bold transition-all ${dk ? "bg-white/[0.05] hover:bg-white/[0.08] text-white border border-white/10" : "bg-surface-100 hover:bg-surface-200 text-surface-700 border border-surface-200"} `}>
                                 Cancelar
                               </button>
-
                               <button
                                 onClick={async () => {
                                   setLoadingOrderId(o.id_Order);
-
                                   try {
                                     await Controller?.action.UpdateStatusOrder(
                                       o.id_Order,
                                       editingStatus[o.id_Order]
                                     );
-
                                     setEditingStatus((prev) => {
                                       const copy = { ...prev };
                                       delete copy[o.id_Order];
@@ -3341,16 +3550,11 @@ export default function AdminPage() {
                               >
                                 Confirmar
                               </button>
-
-
                             </div>
                           </>
                         )}
                         {/* AÇÕES */}
-                        {/* AÇÕES */}
-
                       </div>
-
                     </div>
                   </div>
                 ))}
@@ -4117,57 +4321,357 @@ export default function AdminPage() {
 
           {/* ─── PROFILE ─── */}
           {tab === 'profile' && (
-            <div className="max-w-2xl space-y-5">
-              <div className={`rounded-2xl border overflow-hidden ${card}`}>
-                <div className="h-24 bg-gradient-to-r from-brand-600 via-brand-500 to-amber-500 relative">
-                  <div className="absolute inset-0 opacity-15" style={{ backgroundImage: 'radial-gradient(circle, white 1px, transparent 1px)', backgroundSize: '28px 28px' }} />
+            <div className="w-full max-w-5xl mx-auto space-y-4 sm:space-y-5 px-0 sm:px-2">
+
+              {/* CARD PERFIL */}
+              <div className={`rounded-2xl sm:rounded-3xl border overflow-hidden ${card}`}>
+
+                {/* BANNER */}
+                <div className="h-20 sm:h-28 bg-gradient-to-r from-brand-700 via-brand-500 to-amber-500 relative">
+                  <div
+                    className="absolute inset-0 opacity-15"
+                    style={{
+                      backgroundImage:
+                        'radial-gradient(circle, white 1px, transparent 1px)',
+                      backgroundSize: '28px 28px'
+                    }}
+                  />
                 </div>
-                <div className="px-6 pb-6">
-                  <div className="flex items-end gap-4 -mt-10 mb-5 flex-wrap">
-                    <div className="relative">
-                      <div className={`w-20 h-20 rounded-2xl bg-gradient-to-br from-brand-400 to-brand-700 flex items-center justify-center border-4 shadow-xl ${dk ? 'border-[#0d0d14]' : 'border-white'}`}>
-                        <span className="text-white font-display font-bold text-3xl">{user?.name?.[0] || 'A'}</span>
-                      </div>
-                      <button className="absolute -bottom-1 -right-1 w-7 h-7 bg-brand-500 hover:bg-brand-600 rounded-xl flex items-center justify-center shadow"><Camera className="w-3.5 h-3.5 text-white" /></button>
-                    </div>
-                    <div className="mb-1 flex-1 min-w-0">
-                      <h2 className={`font-display font-bold text-xl ${txt}`}>{user?.name || 'Admin Master'}</h2>
-                      <p className="text-brand-400 text-sm font-semibold">Administrador</p>
-                    </div>
-                    {/* <button onClick={() => editingProfile ? (updateUser({ name: profileForm.name, email: profileForm.email, phone: profileForm.phone, bio: profileForm.bio }), setEditingProfile(false), showNotification('Perfil atualizado!', 'success')) : setEditingProfile(true)}
-                      className="flex items-center gap-2 px-4 py-2 bg-brand-500 hover:bg-brand-600 text-white text-sm font-bold rounded-xl transition-all mb-1">
-                      {editingProfile ? <><Check className="w-4 h-4" /> Salvar</> : <><Edit3 className="w-4 h-4" /> Editar</>}
-                    </button> */}
-                  </div>
-                  <div className="grid grid-cols-3 gap-3 mb-5">
-                    {[{ l: 'Pedidos', v: orders.length }, { l: 'Produtos', v: products.length }, { l: 'Promoções', v: cupom.filter(p => p.active).length }].map((s, i) => (
-                      <div key={i} className={`rounded-xl p-3 text-center ${dk ? 'bg-white/[0.04]' : 'bg-surface-50'}`}>
-                        <p className={`font-bold text-lg leading-none ${txt}`}>{s.v}</p>
-                        <p className={`text-[10px] mt-1 ${sub}`}>{s.l}</p>
-                      </div>
-                    ))}
-                  </div>
-                  <div className="grid grid-cols-2 gap-3">
-                    {[
-                      { icon: <User className="w-4 h-4" />, label: 'Nome', key: 'name', val: user?.name || '' },
-                      { icon: <Mail className="w-4 h-4" />, label: 'Email', key: 'email', val: user?.email || '' },
-                      { icon: <Phone className="w-4 h-4" />, label: 'Telefone', key: 'phone', val: user?.phone || '' },
-                      { icon: <MapPin className="w-4 h-4" />, label: 'Localização', key: '_loc', val: 'Craibas, AL' },
-                    ].map(f => (
-                      <div key={f.key} className={`rounded-xl p-3.5 flex items-center gap-3 ${dk ? 'bg-white/[0.04]' : 'bg-surface-50'}`}>
-                        <div className="w-8 h-8 rounded-lg bg-brand-500/10 flex items-center justify-center text-brand-400 flex-shrink-0">{f.icon}</div>
-                        <div className="min-w-0 flex-1">
-                          <p className={`text-[10px] uppercase tracking-wider font-bold ${sub} mb-0.5`}>{f.label}</p>
-                          {editingProfile && !f.key.startsWith('_') ? (
-                            <input value={(profileForm as any)[f.key] || f.val} onChange={e => setProfileForm(p => ({ ...p, [f.key]: e.target.value }))}
-                              className={`w-full text-xs py-1 px-2 rounded-lg border focus:outline-none focus:border-brand-400 transition-colors ${inp}`} />
-                          ) : (
-                            <p className={`text-sm font-medium truncate ${txt}`}>{f.key.startsWith('_') ? f.val : (profileForm as any)[f.key] || f.val || '—'}</p>
-                          )}
+
+                <div className="px-4 sm:px-7 pb-5 sm:pb-7">
+
+                  {/* PERFIL */}
+                  <div
+                    className=" flex flex-col sm:flex-row sm:items-end gap-3 sm:gap-4 -mt-9 sm:-mt-11 mb-5 sm:mb-6"
+                  >
+                    {/* AVATAR */}
+                    <div className="relative w-fit shrink-0">
+                      <div
+                        onClick={() => {
+                          if (Controller?.result.profileForm.avatar) {
+                            setShowAvatar(true);
+                          }
+                        }}
+                        className={`
+    w-20 h-20
+    sm:w-24 sm:h-24
+    rounded-2xl
+    bg-gradient-to-br
+    from-brand-400 to-brand-700
+    flex items-center justify-center
+    border-4 shadow-xl
+    overflow-hidden
+    ${Controller?.result.profileForm.avatar ? 'cursor-pointer' : ''}
+    ${dk ? 'border-[#0d0d14]' : 'border-white'}
+  `}
+                      >
+                        {Controller?.result.profileForm.avatar ? (
+                          <img
+                            src={`/Imagens/Usuarios/${user?.avatar}`}
+                            alt="Foto do administrador"
+                            className="h-full w-full object-cover transition-transform duration-200 hover:scale-105"
+                          />
+                        ) : (
+                          <span className="text-white font-display font-bold text-2xl sm:text-3xl">
+                            {Controller?.result.profileForm.name?.[0]?.toUpperCase() || 'A'}
+                          </span>
+                        )}
+                      </div>{showAvatar && Controller?.result.profileForm.avatar && (
+                        <div
+                          className="
+      fixed inset-0 z-[9999]
+      flex items-center justify-center
+      bg-black/80
+      backdrop-blur-sm
+      p-4
+    "
+                          onClick={() => setShowAvatar(false)}
+                        >
+                          {/* Fechar */}
+                          <button
+                            type="button"
+                            onClick={() => setShowAvatar(false)}
+                            className="
+        absolute right-4 top-4
+        sm:right-6 sm:top-6
+        flex h-10 w-10
+        items-center justify-center
+        rounded-full
+        bg-white/10
+        text-white
+        transition
+        hover:bg-white/20
+      "
+                          >
+                            <X className="h-5 w-5" />
+                          </button>
+
+                          {/* Imagem */}
+                          <img
+                            src={`../Imagens/Usuarios/${user?.avatar}`}
+                            alt="Foto do administrador ampliada"
+                            onClick={(e) => e.stopPropagation()}
+                            className=" max-h-[85vh] max-w-[90vw] rounded-2xl object-contain shadow-2xl"
+                          />
                         </div>
+                      )}
+                    </div>
+                    {/* NOME */}
+                    <div className="flex-1 min-w-0 sm:mb-1">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <h2
+                          className={` font-display font-bold text-lg sm:text-xl break-words ${txt}`}
+                        >
+                          {Controller?.result.profileForm.name || 'Administrador'}
+                        </h2>
+
+                        <span
+                          className=" inline-flex items-center gap-1 rounded-full bg-green-500/10 px-2 py-1 text-[9px] sm:text-[10px] font-bold uppercase tracking-wide text-green-500"
+                        >
+                          <BadgeCheck className="w-3 h-3" />
+                          Conta ativa
+                        </span>
                       </div>
-                    ))}
+
+                      <p className="text-brand-400 text-xs sm:text-sm font-semibold mt-0.5">
+                        Administrador do sistema
+                      </p>
+                    </div>
+
+                    {/* BOTÃO */}
+                    <button
+                      onClick={() => Controller?.action.setEditingProfile(true)}
+                      className=" w-full sm:w-auto sm:mb-1 flex items-center justify-center gap-2 rounded-xl bg-brand-500 px-4 py-2.5 text-sm font-bold text-white hover:bg-brand-600 transition-colors"
+                      title="Alterar Perfil"
+                    >
+
+                      <Edit3 className="w-4 h-4" />
+                      Editar perfil
+                    </button>
                   </div>
+
+
+
+                  {/* INFORMAÇÕES */}
+                  <div className="grid grid-cols-1 lg:grid-cols-[1.4fr_1fr] gap-5">
+
+                    {/* DADOS DA CONTA */}
+                    <section className="min-w-0">
+                      <h3
+                        className={` text-sm font-bold mb-3 flex items-center gap-2 ${txt}`}
+                      >
+                        <User className="w-4 h-4 text-brand-400" />
+                        Dados da conta
+                      </h3>
+
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        {[
+                          {
+                            icon: <User className="w-4 h-4" />,
+                            label: 'Nome completo',
+                            key: 'name'
+                          },
+                          {
+                            icon: <Mail className="w-4 h-4" />,
+                            label: 'E-mail de acesso',
+                            key: 'email'
+                          },
+                          {
+                            icon: <Palette className="w-4 h-4" />,
+                            label: 'Tema',
+                            key: 'tema'
+                          },
+                          {
+                            icon: <Phone className="w-4 h-4" />,
+                            label: 'Telefone',
+                            key: 'phone'
+                          }
+                        ].map(f => (
+                          <div
+                            key={f.key}
+                            className={` rounded-xl p-3 sm:p-3.5 flex items-center gap-3 min-w-0 ${dk ? 'bg-white/[0.04]' : 'bg-surface-50'} ${f.key === 'name' ? 'sm:col-span-2' : ''}`}
+                          >
+                            <div
+                              className=" w-8 h-8 rounded-lg bg-brand-500/10 flex items-center justify-center text-brand-400 shrink-0"
+                            >
+                              {f.icon}
+                            </div>
+
+                            <div className="min-w-0 flex-1">
+                              <p
+                                className={` text-[9px] sm:text-[10px] uppercase tracking-wider font-bold ${sub} mb-1`}
+                              >
+                                {f.label}
+                              </p>
+
+                              <p className={`text-xs sm:text-sm font-medium truncate ${txt}`}>
+                                {f.key === 'tema'
+                                  ? Controller?.result?.profileForm?.tema
+                                    ? 'Escuro'
+                                    : 'Claro'
+
+                                  : f.key === 'phone'
+                                    ? (() => {
+                                      const phone = String(Controller?.result?.profileForm?.phone ?? '').replace(/\D/g, '');
+
+                                      if (phone.length === 10) {
+                                        return phone.replace(/^(\d{2})(\d{4})(\d{4})$/, '($1) $2-$3');
+                                      }
+
+                                      if (phone.length === 11) {
+                                        return phone.replace(/^(\d{2})(\d{5})(\d{4})$/, '($1) $2-$3');
+                                      }
+                                      return phone || 'Não informado';
+                                    })() : String(
+                                      Controller?.result?.profileForm?.[
+                                      f.key as keyof AdminProfileData
+                                      ] ?? 'Não informado'
+                                    )
+                                }
+                              </p>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </section>
+
+                    {/* ACESSO */}
+                    <section className="min-w-0">
+                      <h3
+                        className={` text-sm font-bold mb-3 flex items-center gap-2 ${txt}`}
+                      >
+                        <Shield className="w-4 h-4 text-brand-400" />
+                        Acesso administrativo
+                      </h3>
+
+                      <div
+                        className={` rounded-xl divide-y overflow-hidden ${div_} ${dk ? 'bg-white/[0.04]' : 'bg-surface-50'}`}
+                      >
+                        {[
+                          {
+                            label: 'Perfil',
+                            value: 'Administrador',
+                            icon: <Shield className="w-4 h-4" />
+                          },
+                          {
+                            label: 'ID do usuário',
+                            value: user?.id
+                              ? `#${user.id}`
+                              : 'Não disponível',
+                            icon: <BadgeCheck className="w-4 h-4" />
+                          },
+                          {
+                            label: 'Cadastrado Desde',
+                            value: user?.insert_Date
+                              ? new Date(user.insert_Date).toLocaleDateString('pt-BR')
+                              : 'Não disponível',
+                            icon: <CalendarDays className="w-4 h-4" />
+                          },
+
+                          ...(user?.updateDate
+                            ? [
+                              {
+                                label: 'Última atualização',
+                                value: new Date(user.updateDate).toLocaleDateString('pt-BR'),
+                                icon: <RefreshCw className="w-4 h-4" />
+                              }
+                            ]
+                            : []),
+                          {
+                            label: 'Permissões',
+                            value: 'Acesso total',
+                            icon: <CheckCircle2 className="w-4 h-4" />
+                          }
+                        ].map(item => (
+                          <div
+                            key={item.label}
+                            className="flex items-center gap-3 p-3 sm:p-3.5 min-w-0"
+                          >
+                            <span className="text-brand-400 shrink-0">
+                              {item.icon}
+                            </span>
+
+                            <div className="min-w-0 flex-1">
+                              <p
+                                className={` text-[9px] sm:text-[10px] uppercase tracking-wide font-bold ${sub}`}
+                              >
+                                {item.label}
+                              </p>
+
+                              <p
+                                className={` text-xs sm:text-sm font-semibold truncate ${txt}`}
+                              >
+                                {item.value}
+                              </p>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </section>
+                  </div>
+                </div>
+              </div>
+
+              {/* ATALHOS */}
+              <div
+                className={` rounded-2xl border p-4 sm:p-5 ${card} `}
+              >
+                <div className="flex items-center justify-between gap-3 mb-4">
+                  <div className="min-w-0">
+                    <h3 className={`font-bold text-sm sm:text-base ${txt}`}>
+                      Atalhos de gestão
+                    </h3>
+
+                    <p className={`text-[11px] sm:text-xs mt-0.5 ${sub}`}>
+                      Acesse rapidamente as áreas mais usadas.
+                    </p>
+                  </div>
+
+                  <Zap className="w-5 h-5 text-amber-400 shrink-0" />
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-3">
+                  {[
+                    {
+                      id: 'orders',
+                      label: 'Gerenciar pedidos',
+                      icon: ShoppingBag,
+                      title: 'Acompanhar e gerenciar pedidos de clientes'
+                    },
+                    {
+                      id: 'products',
+                      label: 'Gerenciar produtos',
+                      icon: Package,
+                      title: 'Adicionar, editar e remover produtos do catálogo'
+                    },
+                    {
+                      id: 'promotions',
+                      label: 'Cupons e ofertas',
+                      icon: Tag,
+                      title: 'Criar e gerenciar cupons de desconto e promoções'
+                    },
+                    {
+                      id: 'movements',
+                      label: 'Auditoria e logs',
+                      icon: Activity,
+                      title: 'Visualizar registros de movimentações e eventos do sistema'
+                    }
+                  ].map(action => (
+                    <button
+                      key={action.id}
+                      onClick={() => setTab(action.id as AdminTab)}
+                      className={` w-full flex items-center gap-2 rounded-xl border p-3 text-left text-xs sm:text-sm font-semibold transition-all ${card} ${cardH} ${txt} `}
+                      title={action.title}
+                    >
+                      <action.icon className="w-4 h-4 text-brand-400 shrink-0" />
+
+                      <span className="truncate">
+                        {action.label}
+                      </span>
+
+                      <ChevronRight className="w-4 h-4 ml-auto opacity-40 shrink-0" />
+                    </button>
+                  ))}
                 </div>
               </div>
             </div>
@@ -4195,7 +4699,7 @@ export default function AdminPage() {
                   </div>
                   <div className="flex items-center justify-between">
                     <div><p className={`text-sm font-medium ${txt}`}>Modo Escuro</p><p className={`text-xs ${sub}`}>Ativar tema escuro global</p></div>
-                    <button onClick={toggleDarkMode}>{darkMode ? <ToggleRight className="w-9 h-9 text-brand-500" /> : <ToggleLeft className="w-9 h-9 text-surface-300" />}</button>
+                    <button onClick={() => PostEditeTemaAdmin()}>{user?.customize?.tema ? <ToggleRight className="w-9 h-9 text-brand-500" /> : <ToggleLeft className="w-9 h-9 text-surface-300" />}</button>
                   </div>
                 </div>
               </div>
@@ -4227,7 +4731,7 @@ export default function AdminPage() {
                   </div>
                 </div>
               </div>
-              <button onClick={() => showNotification('Configurações salvas!', 'success')}
+              <button onClick={() => true}
                 className="px-6 py-2.5 bg-brand-500 hover:bg-brand-600 text-white text-sm font-bold rounded-xl transition-all flex items-center gap-2 shadow-brand">
                 <Check className="w-4 h-4" /> Salvar Configurações
               </button>
@@ -5393,7 +5897,8 @@ export default function AdminPage() {
       }
 
       <AdminPageLoading
-        loading={Controller?.result.LoadingPageAll || false && user?.role === 'ADMIN'}
+        loading={(Controller?.result.LoadingPageAll || false) && user?.role === 'ADMIN'}
+        darkMode={dk}
         message="Carregando painel"
         subMessage="Buscando pedidos, produtos e estatísticas..."
       />
@@ -5438,6 +5943,16 @@ export default function AdminPage() {
         onCancel={() => {
           Controller?.action.setShowCouponModalActive(false)
         }}
+      />
+
+      <AdminProfileEditor
+        open={Controller?.result.editingProfile ?? false}
+        darkMode={dk}
+        user={user}
+        initialData={Controller?.result.profileForm ?? defaultProfileForm}
+        onClose={() => Controller?.action.setEditingProfile(false)}
+        onSave={(updates) => Controller?.action.handleSaveProfile(updates)}
+        loading={Controller?.result.Loading}
       />
 
       {quickViewProduct && (

@@ -11,6 +11,7 @@ import { UserService } from "../service/UserService";
 import { makeResult, Result } from "../utils/Result";
 import { getColorConfig } from "../types/Colors";
 import { UseRouteStore } from "./UseRouteStore";
+import { UseUserAdminStore } from "../storeAdmin/UseUserAdminStore";
 
 
 interface UserState {
@@ -25,6 +26,8 @@ interface UserState {
     updateUser: (updates: Partial<User>) => void;
     logout: () => void;
     SaveColorGlobal: (NameColorGlobal: string, UserId: number) => Promise<Result<boolean>>;
+    setUser: (User: User) => void;
+
 }
 export const UseUserStore = create<UserState>()(persist((set, get) => ({
     user: null,
@@ -46,7 +49,6 @@ export const UseUserStore = create<UserState>()(persist((set, get) => ({
         //   address: { street: '', number: '', neighborhood: '', city: 'Craibas', state: 'AL', zipCode: '' },
         // };
         const colorConfig = getColorConfig(User.customize?.global_Site_Color);
-
         set({ user: User });
         set({ NameColorGlobal: User.customize?.global_Site_Color })
         set({ ColorGlobalTema: colorConfig.class });
@@ -87,6 +89,7 @@ export const UseUserStore = create<UserState>()(persist((set, get) => ({
         }
         return makeResult(true, true);
     },
+    setUser: (User: User) => set({ user: User }),
 
 }), {
     name: '@user-storage',

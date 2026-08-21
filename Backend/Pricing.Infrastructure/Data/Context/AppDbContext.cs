@@ -31,6 +31,8 @@ public class AppDbContext : DbContext
     public DbSet<Coupon_Category> Coupon_Category => Set<Coupon_Category>();
     public DbSet<Coupon_Product> Coupon_Product => Set<Coupon_Product>();
     public DbSet<Coupon_Use> Coupon_Use => Set<Coupon_Use>();
+    public DbSet<Notification> Notification => Set<Notification>();
+    public DbSet<NotificationUser> NotificationUser => Set<NotificationUser>();
 
 
    

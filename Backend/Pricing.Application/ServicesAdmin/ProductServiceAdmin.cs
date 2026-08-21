@@ -6,6 +6,9 @@ using Mercado.Craibas.Application.DTOs.Requests;
 using Mercado.Craibas.Application.Interfaces.Repositories;
 using Mercado.Craibas.Application.InterfacesAdmin;
 using Mercado.Craibas.Application.InterfacesAdmin.Services;
+using Microsoft.AspNetCore.Hosting;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Hosting;
 using Pricing.Api.DTOs.Responses;
 using System;
 using System.Collections.Generic;
@@ -18,14 +21,63 @@ namespace Mercado.Craibas.Application.ServicesAdmin
 {
     public class ProductServiceAdmin : IProductServiceAdmin
     {
-
         private readonly IUnitOfWorkAdmin _unitOfWorkAdmin;
-        public ProductServiceAdmin(IUnitOfWorkAdmin unitOfWorkAdmin)
+        private readonly IConfiguration _configuration;
+
+        public ProductServiceAdmin(
+            IUnitOfWorkAdmin unitOfWorkAdmin,
+            IConfiguration configuration)
         {
             _unitOfWorkAdmin = unitOfWorkAdmin;
+            _configuration = configuration;
         }
+        //prod
+        private string GetImagesFolder(string subPasta)
+        {
+            var pastaBase = _configuration["Storage:ImagesPath"];
 
+            if (string.IsNullOrWhiteSpace(pastaBase))
+            {
+                throw new Exception(
+                    "O caminho Storage:ImagesPath não foi configurado."
+                );
+            }
 
+            if (string.IsNullOrWhiteSpace(subPasta))
+            {
+                throw new Exception(
+                    "A subpasta da imagem não foi informada."
+                );
+            }
+
+            var nomeSeguro = Path.GetFileName(subPasta);
+
+            var pastaDestino = Path.Combine(
+                pastaBase,
+                nomeSeguro
+            );
+
+            Directory.CreateDirectory(pastaDestino);
+
+            return pastaDestino;
+        }
+        // local
+        //public string GetImagesFolder(string subPasta)
+        //{
+        //    if (string.IsNullOrWhiteSpace(subPasta))
+        //        throw new Exception("A subpasta da imagem não foi informada.");
+
+        //    var pastaDestino = Path.Combine(
+        //        "..",
+        //        "..",
+        //        "Imagens",
+        //        Path.GetFileName(subPasta)
+        //    );
+
+        //    Directory.CreateDirectory(pastaDestino);
+
+        //    return pastaDestino;
+        //}
         public async Task<Result<List<ProductResponse>>> GetProductListAdmin()
         {
             var Products = await _unitOfWorkAdmin.GetClassListAsyncWhere<Product>(x => x.Isdelete != true);
@@ -149,17 +201,7 @@ namespace Mercado.Craibas.Application.ServicesAdmin
                 {
                     return Result<bool>.Failure(Error.Failure("Pedido", "Erro ao salvar o pedido. Entre em contato com suporte!"));
                 }
-                var raizProjeto = Directory.GetCurrentDirectory();
-
-                // sobe duas pastas (Mercado.Api -> Backend -> novo_mercado_craibas_final)
-                var raiz = Directory.GetParent(raizProjeto)!.Parent!.FullName;
-
-                var pastaDestino = Path.Combine(raiz, "Imagens", "Produtos");
-
-                if (!Directory.Exists(pastaDestino))
-                {
-                    Directory.CreateDirectory(pastaDestino);
-                }
+                var pastaDestino = GetImagesFolder("Produtos");
 
                 foreach (var imagem in product.Imagens)
                 {
@@ -243,15 +285,7 @@ namespace Mercado.Craibas.Application.ServicesAdmin
                 }
                 if (product.RemovedImages?.Any() == true)
                 {
-                    var raizCaminhoProjeto = Directory.GetCurrentDirectory();
-
-                    var raizCaminho = Directory.GetParent(raizCaminhoProjeto)!.Parent!.FullName;
-
-                    var pastaDestinoImage = Path.Combine(
-                        raizCaminho,
-                        "Imagens",
-                        "Produtos"
-                    );
+                    var pastaDestinoImage = GetImagesFolder("Produtos");
 
                     foreach (var imagemDeleteId in product.RemovedImages)
                     {
@@ -330,41 +364,45 @@ namespace Mercado.Craibas.Application.ServicesAdmin
                          });
 
 
-                if(Update_Product)
+                if (Update_Product)
                 {
-                    if(product.Imagens != null) 
+                    if (product.Imagens?.Any() == true)
                     {
-                        var raizCaminhoProjeto = Directory.GetCurrentDirectory();
-
-                        // sobe duas pastas (Mercado.Api -> Backend -> novo_mercado_craibas_final)
-                        var raizCaminho = Directory.GetParent(raizCaminhoProjeto)!.Parent!.FullName;
-
-                        var pastaDestinoImage = Path.Combine(raizCaminho, "Imagens", "Produtos");
-
-                        if (!Directory.Exists(pastaDestinoImage))
-                        {
-                            Directory.CreateDirectory(pastaDestinoImage);
-                        }
+                        var pastaDestinoImage = GetImagesFolder("Produtos");
 
                         foreach (var imagem in product.Imagens)
                         {
+                            if (imagem.Length == 0)
+                            {
+                                continue;
+                            }
+
                             var extensao = Path.GetExtension(imagem.FileName);
                             var nomeArquivo = $"{Guid.NewGuid()}{extensao}";
 
-                            var caminhoCompleto = Path.Combine(pastaDestinoImage, nomeArquivo);
+                            var caminhoCompleto = Path.Combine(
+                                pastaDestinoImage,
+                                nomeArquivo
+                            );
 
-                            using var stream = new FileStream(caminhoCompleto, FileMode.Create);
+                            await using var stream = new FileStream(
+                                caminhoCompleto,
+                                FileMode.Create
+                            );
+
                             await imagem.CopyToAsync(stream);
 
-                            await _unitOfWorkAdmin.InsertAsyncReturnObjeto(new Imagens_Products
-                            {
-                                Id_Product = product.Id ?? 0,
-                                Url_Imagem = nomeArquivo
-                            });
+                            await _unitOfWorkAdmin.InsertAsyncReturnObjeto(
+                                new Imagens_Products
+                                {
+                                    Id_Product = product.Id ?? 0,
+                                    Url_Imagem = nomeArquivo
+                                }
+                            );
                         }
                     }
                 }
-                if(product.Variants != null)
+                if (product.Variants != null)
                 {
                     foreach (var Variante in product.Variants)
                     {

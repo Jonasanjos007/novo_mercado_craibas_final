@@ -66,6 +66,10 @@ namespace Mercado.Craibas.Infrastructure.Configurations
                .HasForeignKey(x => x.Id_Order)
                .OnDelete(DeleteBehavior.Cascade);
 
+            builder.Property(x => x.NotifyViaWhatsApp)
+               .IsRequired()
+               .HasDefaultValue(false);
+
 
         }
     }

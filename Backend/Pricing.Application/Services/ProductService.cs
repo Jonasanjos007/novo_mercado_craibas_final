@@ -231,6 +231,7 @@ namespace Mercado.Craibas.Application.Services
             string? DiscountTypeValue = null;
             bool CouponApplied = false;
             string? WhereApplyCoupon = null;
+            bool? ErroShippingCost = false;
 
             var getCupom = await _unitOfWork.GetClassAsyncWhere<Cupom>(x => x.Id == Cart.Id_Cupom && x.Isdelete != true);
 
@@ -286,7 +287,7 @@ namespace Mercado.Craibas.Application.Services
                         cupomValido = false;
                     }
                 }
-                var usos = await _unitOfWork.GetClassListById<Coupon_Use>(Id_Customer, "Id_User");
+                var usos = await _unitOfWork.GetClassListAsyncWhere<Coupon_Use>(x => x.Id_User == Id_Customer && x.Isdelete != true && x.Id_Cupom == getCupom.Id);
                 if (cupomValido && usos.Count() >= getCupom.Per_User_Limit)
                 {
                     ErroCupom = true;
@@ -305,7 +306,121 @@ namespace Mercado.Craibas.Application.Services
 
                 var Coupon_Category = await _unitOfWork.GetClassListAsyncWhere<Coupon_Category>(x => x.Id_Cupom == getCupom.Id && x.Isdelete != true);
 
-            
+                if (cupomValido)
+                {
+                    var productIds = Coupon_Product
+                        .Select(x => x.Id_Product)
+                        .ToHashSet();
+
+                    var categoryIds = Coupon_Category
+                        .Select(x => x.Id_Category)
+                        .ToHashSet();
+
+                    var possuiProdutoElegivel = CartProductList.Any(item =>
+                        productIds.Contains(item.Product.Id) ||
+                        categoryIds.Contains(item.Product.Id_category)
+                    );
+
+                    if (!possuiProdutoElegivel)
+                    {
+                        if(getCupom.Discount_Type == DiscountType.FreeShipping)
+                        {
+                            ErroShippingCost = true;
+                        }
+
+                        ErroCupom = true;
+                        message = "Nenhum produto do carrinho está vinculado a este cupom.";
+                        cupomValido = false;
+                    }
+                }
+
+                // Tipo porcentagem
+                if (cupomValido && getCupom.Discount_Type == DiscountType.Percentage)
+                {
+                    DiscountTypeValue = "Percentage";
+
+                    if (Coupon_Product.Count > 0)
+                    {
+                        WhereApplyCoupon = "Products";
+
+                        var productIds = Coupon_Product
+                            .Select(x => x.Id_Product)
+                            .ToHashSet();
+
+                        subtotal = CartProductList.Sum(x =>
+                        {
+                            var valor = x.Quantity * x.Product.Price_Unic;
+
+                            if (productIds.Contains(x.Product.Id))
+                            {
+                                var descontoProduto =
+                                    valor * (getCupom.Discount / 100.0);
+
+                                x.Product.ValorDicont = descontoProduto;
+                                valor -= descontoProduto;
+                            }
+                            else
+                            {
+                                x.Product.ValorDicont = 0;
+                            }
+
+                            return valor;
+                        });
+
+                        CouponApplied = true;
+                    }
+                    else if (Coupon_Category.Count > 0)
+                    {
+                        WhereApplyCoupon = "Categories";
+
+                        var categoryIds = Coupon_Category
+                            .Select(x => x.Id_Category)
+                            .ToHashSet();
+
+                        subtotal = CartProductList.Sum(x =>
+                        {
+                            var valor = x.Quantity * x.Product.Price_Unic;
+
+                            if (categoryIds.Contains(x.Product.Id_category))
+                            {
+                                var descontoProduto =
+                                    valor * (getCupom.Discount / 100.0);
+
+                                x.Product.ValorDicont = descontoProduto;
+                                valor -= descontoProduto;
+                            }
+                            else
+                            {
+                                x.Product.ValorDicont = 0;
+                            }
+
+                            return valor;
+                        });
+
+                        CouponApplied = true;
+                    }
+
+                    if (CouponApplied)
+                    {
+                        discount = getCupom.Discount;
+                        subtotal += fees?.ShippingCost ?? 0;
+                    }
+                }
+
+                if (!cupomValido)
+                {
+                    subtotal = CartProductList.Sum(x =>
+                        x.Quantity * x.Product.Price_Unic
+                    );
+
+                    subtotal += fees?.ShippingCost ?? 0;
+
+                    CouponApplied = false;
+                    DiscountTypeValue = null;
+                    WhereApplyCoupon = null;
+                    discount = 0;
+                }
+
                 // tipo porcentagem
                 if (getCupom.Discount_Type == DiscountType.Percentage)
                 {
@@ -402,7 +517,7 @@ namespace Mercado.Craibas.Application.Services
                     Id_Cupom = IdCupom,
                     ErroCupom = ErroCupom,
                     Menssege = message,
-                    ShippingCost = DiscountTypeValue == "FreeShipping" ? 0 : fees.ShippingCost ?? 0,
+                    ShippingCost = (DiscountTypeValue == "FreeShipping" && (!ErroShippingCost ?? true)) ? 0 : fees.ShippingCost ?? 0,
                     Discount_Type = DiscountTypeValue,
                     CouponApplied = CouponApplied,
                     WhereApplyCoupon = WhereApplyCoupon

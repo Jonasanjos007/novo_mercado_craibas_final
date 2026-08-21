@@ -5,6 +5,7 @@ using Mercado.Craibas.Application.DTOs.Requests;
 using Mercado.Craibas.Application.InterfacesAdmin;
 using Mercado.Craibas.Infrastructure.Data.Context;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -17,10 +18,11 @@ namespace Mercado.Craibas.Infrastructure.RepositoriesAdmin
     public class IUnitOfWorkAdminRepository : IUnitOfWorkAdmin
     {
         private readonly AppDbContext _context;
-
-        public IUnitOfWorkAdminRepository(AppDbContext context)
+        private readonly IConfiguration _configuration;
+        public IUnitOfWorkAdminRepository(AppDbContext context, IConfiguration configuration)
         {
             _context = context;
+            _configuration = configuration;
         }
         public async Task<List<T>> GetClassListAsyncWhere<T>(Expression<Func<T, bool>>? predicate = null) where T : class
         {
@@ -144,5 +146,52 @@ namespace Mercado.Craibas.Infrastructure.RepositoriesAdmin
 
             return Result<bool>.Success(true);
         }
+        //public string GetImagesFolder(string subPasta)
+        //{
+        //    if (string.IsNullOrWhiteSpace(subPasta))
+        //        throw new Exception("A subpasta da imagem não foi informada.");
+
+        //    var pastaDestino = Path.Combine(
+        //        "..",
+        //        "..",
+        //        "Imagens",
+        //        Path.GetFileName(subPasta)
+        //    );
+
+        //    Directory.CreateDirectory(pastaDestino);
+
+        //    return pastaDestino;
+        //}
+        public string GetImagesFolder(string subPasta)
+        {
+            var pastaBase = _configuration["Storage:ImagesPath"];
+
+            if (string.IsNullOrWhiteSpace(pastaBase))
+            {
+                throw new Exception(
+                    "O caminho Storage:ImagesPath não foi configurado."
+                );
+            }
+
+            if (string.IsNullOrWhiteSpace(subPasta))
+            {
+                throw new Exception(
+                    "A subpasta da imagem não foi informada."
+                );
+            }
+
+            var nomeSeguro = Path.GetFileName(subPasta);
+
+            var pastaDestino = Path.Combine(
+                pastaBase,
+                nomeSeguro
+            );
+
+            Directory.CreateDirectory(pastaDestino);
+
+            return pastaDestino;
+        }
     }
+
+
 }

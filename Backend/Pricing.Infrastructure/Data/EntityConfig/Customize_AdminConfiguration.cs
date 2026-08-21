@@ -14,8 +14,7 @@ namespace Mercado.Craibas.Infrastructure.Configurations
             builder.HasKey(x => x.Id);
 
             builder.Property(x => x.Global_Site_Color)
-                .HasMaxLength(20)
-                .IsRequired();
+                .HasMaxLength(20);
 
             builder.Property(x => x.Dark)
                 .IsRequired();

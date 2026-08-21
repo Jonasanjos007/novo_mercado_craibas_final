@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { SlidersHorizontal, X, ArrowLeft, Search, ChevronLeft, ChevronRight, ShoppingBag } from 'lucide-react';
+import { SlidersHorizontal, X, ArrowLeft, Search, ChevronLeft, ChevronRight, ShoppingBag, ArrowUp } from 'lucide-react';
 import { useStore } from '../context/store';
 import ProductCard from '../components/ProductCard';
 import { useNavigate, useParams } from 'react-router-dom';
@@ -36,6 +36,8 @@ export default function CategoryPage() {
   const [ratingFilter, setRatingFilter] = useState(0);
   const [freeShippingOnly, setFreeShippingOnly] = useState(false);
   const [badgeFilter, setBadgeFilter] = useState<string>('');
+  const [showScrollTop, setShowScrollTop] = useState(false);
+
   const navigate = useNavigate();
   const isSearch = !id && search === 'search';
   const query = searchQuery.toLowerCase();
@@ -77,6 +79,11 @@ export default function CategoryPage() {
   }, [selectedCategoryData?.id]);
 
   useEffect(() => {
+    const onScroll = () => setShowScrollTop(window.scrollY > 700);
+    window.addEventListener('scroll', onScroll, { passive: true });
+    return () => window.removeEventListener('scroll', onScroll);
+  }, []);
+  useEffect(() => {
     if (categoryBanners.length < 2) return;
     const timer = window.setInterval(() => {
       setBannerIndex(current => (current + 1) % categoryBanners.length);
@@ -99,8 +106,9 @@ export default function CategoryPage() {
   };
   const pageTitle = isSearch
     ? `Resultados para "${searchQuery}"`
-    : selectedCategoryData
-      ? selectedCategoryData.category
+    : selectedCategoryData?.category
+      ? selectedCategoryData.category.charAt(0).toUpperCase() +
+      selectedCategoryData.category.slice(1)
       : 'Todos os Produtos';
 
   const openCategory = (category: string) => {
@@ -152,7 +160,7 @@ export default function CategoryPage() {
                         )}
                       </div>
                       <span className="text-[11px] font-display font-bold text-surface-700 text-center leading-tight line-clamp-2 group-hover:text-brand-600 transition-colors">
-                        {category.category}
+                        {category.category.charAt(0).toUpperCase() + category.category.slice(1)}
                       </span>
                     </button>
                   );
@@ -325,6 +333,15 @@ export default function CategoryPage() {
             </div>
           )}
         </div>
+        {showScrollTop && (
+          <button
+            onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+            aria-label="Voltar ao topo"
+            className={`fixed bottom-6 right-5 z-30 flex h-11 w-11 items-center justify-center rounded-2xl text-white shadow-strong transition-all hover:-translate-y-0.5 ${ColorGlobalTema}`}
+          >
+            <ArrowUp className="h-5 w-5" />
+          </button>
+        )}
       </div>
       <Loading
         loading={Controller?.result?.Loading || false}

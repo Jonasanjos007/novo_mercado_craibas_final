@@ -20,6 +20,7 @@ namespace Mercado.Craibas.Application.DTOs.Responses
         public string Category { get; set; }
         public string Status_Pay { get; set; }
         public int Quantity { get; set; }
+        public bool NotifyViaWhatsApp { get; set; }
         public double? ShippingCost { get; set; }
         public string? Discount_Type { get; set; }
         public DateTime? Estimated_Delivery_Date { get; set; }

@@ -162,37 +162,39 @@ export default function HomePage() {
   return (
 
     <div className="min-h-screen bg-[#f5f5f7]">
-      {Show_Flash_Offer.length > 0 && (
-        <div
-          className={`bg-gradient-to-r ${ColorGlobalTema} px-3 py-2 overflow-hidden relative`}
-        >
+      {flashOffer?.date_Start && flashOffer?.date_end &&
+        Date.now() >= new Date(flashOffer.date_Start).getTime() &&
+        Date.now() <= new Date(flashOffer.date_end).getTime() && (
           <div
-            className="flex flex-wrap md:flex-nowrap items-center justify-center gap-x-2 gap-y-1 text-[10px] sm:text-xs text-center text-white font-body font-semibold tracking-wide animate-pulse-soft"
+            className={`bg-gradient-to-r ${ColorGlobalTema} px-3 py-2 overflow-hidden relative`}
           >
-            <span className="w-full md:w-auto">
-              🔥 {Show_Flash_Offer[0]?.description || 'OFERTA RELÂMPAGO'} — USE:{' '}
-              <strong>{Show_Flash_Offer[0]?.cod_Cupom}</strong>
-            </span>
+            <div
+              className="flex flex-wrap md:flex-nowrap items-center justify-center gap-x-2 gap-y-1 text-[10px] sm:text-xs text-center text-white font-body font-semibold tracking-wide animate-pulse-soft"
+            >
+              <span className="w-full md:w-auto">
+                🔥 {Show_Flash_Offer[0]?.description || 'OFERTA RELÂMPAGO'} — USE:{' '}
+                <strong>{Show_Flash_Offer[0]?.cod_Cupom}</strong>
+              </span>
 
-            <span className="hidden md:block">·</span>
+              <span className="hidden md:block">·</span>
 
-            <span className="whitespace-nowrap">
-              Pode usar acima de R${' '}
-              {Number(
-                Show_Flash_Offer[0]?.minimum_Value ?? 0
-              ).toFixed(2)}
-            </span>
+              <span className="whitespace-nowrap">
+                Pode usar acima de R${' '}
+                {Number(
+                  Show_Flash_Offer[0]?.minimum_Value ?? 0
+                ).toFixed(2)}
+              </span>
 
-            <span className="hidden md:block">·</span>
+              <span className="hidden md:block">·</span>
 
-            <span className="whitespace-nowrap">
-              {(Show_Flash_Offer[0]?.quantity_Uses ?? 0) -
-                (Show_Flash_Offer[0]?.quantity_Used ?? 0)}{' '}
-              cupons disponíveis
-            </span>
+              <span className="whitespace-nowrap">
+                {(Show_Flash_Offer[0]?.quantity_Uses ?? 0) -
+                  (Show_Flash_Offer[0]?.quantity_Used ?? 0)}{' '}
+                cupons disponíveis
+              </span>
+            </div>
           </div>
-        </div>
-      )}
+        )}
       <section className="relative h-[380px] md:h-[480px] bg-[#09090b] overflow-hidden">
         {BANNER_SLIDE.map((slide, i) => (
           <div
@@ -279,37 +281,40 @@ export default function HomePage() {
       </section>
 
       {/* ── FLASH SALE BANNER ── */}
-
-      <section className="bg-gradient-to-r from-[#09090b] to-[#18181b] border-b border-white/5">
-        <div className="max-w-7xl mx-auto px-4 py-4 flex items-center gap-4 flex-wrap justify-between">
-          <div className="flex items-center gap-3">
-            <div style={{ background: `${colorConfig.hex}22` }} className={`w-10 h-10 rounded-xl ${ColorGlobalTema}/20 flex items-center justify-center`}>
-              <Zap style={{ fill: `${colorConfig.hex}` }} className={`w-5 h-5 ${ColorGlobalText}`} />
+      {flashOffer?.date_Start && flashOffer?.date_end &&
+        Date.now() >= new Date(flashOffer.date_Start).getTime() &&
+        Date.now() <= new Date(flashOffer.date_end).getTime() && (
+          <section className="bg-gradient-to-r from-[#09090b] to-[#18181b] border-b border-white/5">
+            <div className="max-w-7xl mx-auto px-4 py-4 flex items-center gap-4 flex-wrap justify-between">
+              <div className="flex items-center gap-3">
+                <div style={{ background: `${colorConfig.hex}22` }} className={`w-10 h-10 rounded-xl ${ColorGlobalTema}/20 flex items-center justify-center`}>
+                  <Zap style={{ fill: `${colorConfig.hex}` }} className={`w-5 h-5 ${ColorGlobalText}`} />
+                </div>
+                <div>
+                  <p className="font-display font-bold text-white text-sm">Oferta Relâmpago</p>
+                  <p className="text-white/40 text-xs">Preços por tempo limitado</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="text-white/40 text-xs font-body">Termina em:</span>
+                {[countdown.h, countdown.m, countdown.s].map((v, i) => (
+                  <span key={i} className="flex items-center gap-1">
+                    <span className={`${ColorGlobalTema} text-white font-display font-bold text-sm px-2.5 py-1.5 rounded-xl min-w-[36px] text-center`}>
+                      {v}
+                    </span>
+                    {i < 2 && <span className={`${ColorGlobalText} font-bold`}>:</span>}
+                  </span>
+                ))}
+              </div>
+              <button onClick={() => navigate('/flash-sale')} className={`flex items-center gap-2 px-5 py-2 ${ColorGlobalTema} ${ColorGlobalHover} text-white font-display font-bold text-sm rounded-xl transition-all `} style={{ boxShadow: `0 4px 12px  ${colorConfig.hex}` }}>
+                Ver Todas <ArrowRight className="w-3.5 h-3.5" />
+              </button>
             </div>
-            <div>
-              <p className="font-display font-bold text-white text-sm">Oferta Relâmpago</p>
-              <p className="text-white/40 text-xs">Preços por tempo limitado</p>
-            </div>
-          </div>
-          <div className="flex items-center gap-2">
-            <span className="text-white/40 text-xs font-body">Termina em:</span>
-            {[countdown.h, countdown.m, countdown.s].map((v, i) => (
-              <span key={i} className="flex items-center gap-1">
-                <span className={`${ColorGlobalTema} text-white font-display font-bold text-sm px-2.5 py-1.5 rounded-xl min-w-[36px] text-center`}>
-                  {v}
-                </span>
-                {i < 2 && <span className={`${ColorGlobalText} font-bold`}>:</span>}
-              </span>
-            ))}
-          </div>
-          <button onClick={() => navigate('/flash-sale')} className={`flex items-center gap-2 px-5 py-2 ${ColorGlobalTema} ${ColorGlobalHover} text-white font-display font-bold text-sm rounded-xl transition-all `} style={{ boxShadow: `0 4px 12px  ${colorConfig.hex}` }}>
-            Ver Todas <ArrowRight className="w-3.5 h-3.5" />
-          </button>
-        </div>
-      </section>
+          </section>
+        )}
 
       {/* ── TRUST BAR ── */}
-      <section className="bg-white border-b border-surface-100 shadow-soft">
+      {/* <section className="bg-white border-b border-surface-100 shadow-soft">
         <div className="max-w-7xl mx-auto px-4 grid grid-cols-2 md:grid-cols-4">
           {[
             { icon: <Truck className="w-5 h-5 text-blue-500" />, title: 'Frete Grátis', sub: 'Acima de R$299', bg: 'bg-blue-50' },
@@ -328,7 +333,7 @@ export default function HomePage() {
             </div>
           ))}
         </div>
-      </section>
+      </section> */}
 
       <div className="max-w-7xl mx-auto px-4">
 
@@ -384,20 +389,24 @@ export default function HomePage() {
             CUPONS — em formato de ticket, com cópia
             de código com um toque e feedback visual
         ══════════════════════════════════════════════ */}
-        {Show_Flash_Offer.length > 0 && (
-          <section className="py-6">
-            <div className="flex items-center gap-2.5 mb-4">
-              <div className="w-8 h-8 rounded-xl bg-red-500/10 flex items-center justify-center">
-                <Ticket className="w-4 h-4 text-red-500" />
-              </div>
-              <div>
-                <h2 className="font-display font-bold text-surface-900 text-lg tracking-tight">Cupom Ralâmpago Para Você</h2>
-                <p className="text-surface-400 text-[11px] font-body">Toque para copiar o código</p>
-              </div>
-            </div>
+        {flashOffer?.date_Start && flashOffer?.date_end &&
+          Date.now() >= new Date(flashOffer.date_Start).getTime() &&
+          Date.now() <= new Date(flashOffer.date_end).getTime() && (
+            // Oferta relâmpago
 
-            {flashOffer && (
-              <div className="w-full">
+
+            <section className="py-6">
+              <div className="flex items-center gap-2.5 mb-4">
+                <div className="w-8 h-8 rounded-xl bg-red-500/10 flex items-center justify-center">
+                  <Ticket className="w-4 h-4 text-red-500" />
+                </div>
+                <div>
+                  <h2 className="font-display font-bold text-surface-900 text-lg tracking-tight">Cupom Ralâmpago Para Você</h2>
+                  <p className="text-surface-400 text-[11px] font-body">Toque para copiar o código</p>
+                </div>
+              </div>
+
+              <div className="w-full md:max-w-3xl md:mx-auto">
                 <button
                   onClick={() => handleCopyCoupon(flashOffer.cod_Cupom ?? '')}
                   className="relative flex w-full overflow-hidden rounded-2xl text-left group hover:-translate-y-0.5 transition-all"
@@ -453,9 +462,8 @@ export default function HomePage() {
                   </div>
                 </button>
               </div>
-            )}
-          </section>
-        )}
+            </section>
+          )}
 
 
         {/* ══════════════════════════════════════════════
@@ -568,40 +576,7 @@ export default function HomePage() {
         </section>
 
         {/* ── BIG BANNER (marcas/flash-sale) ── */}
-        <section className="my-10">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {/* Flash Sale */}
-            <div
-              onClick={() => navigate('/flash-sale')}
-              className="relative overflow-hidden rounded-3xl p-7 cursor-pointer group hover:scale-[1.01] transition-all"
-              style={{ background: 'linear-gradient(135deg, #09090b 0%, #18181b 60%)' }}
-            >
-              <div className="absolute top-0 right-0 w-48 h-48 opacity-10"
-                style={{ background: 'radial-gradient(circle, #f97316, transparent)' }} />
-              <Zap className="w-10 h-10 text-brand-400 fill-brand-400 mb-4 animate-float" />
-              <h3 className="font-display font-bold text-white text-2xl mb-2">Oferta Relâmpago</h3>
-              <p className="text-white/50 text-sm font-body mb-4">Descontos de até 50% por tempo limitado</p>
-              <div className="flex items-center gap-2 text-brand-400 font-display font-bold text-sm group-hover:gap-3 transition-all">
-                Aproveitar agora <ArrowRight className="w-4 h-4" />
-              </div>
-            </div>
-            {/* Brands */}
-            <div
-              onClick={() => navigate('/brands')}
-              className="relative overflow-hidden rounded-3xl p-7 cursor-pointer group hover:scale-[1.01] transition-all"
-              style={{ background: 'linear-gradient(135deg, #0c1a4e 0%, #1e3a8a 100%)' }}
-            >
-              <div className="absolute top-0 right-0 w-48 h-48 opacity-10"
-                style={{ background: 'radial-gradient(circle, #818cf8, transparent)' }} />
-              <Star className="w-10 h-10 text-indigo-300 fill-indigo-300/30 mb-4" />
-              <h3 className="font-display font-bold text-white text-2xl mb-2">Marcas Premium</h3>
-              <p className="text-white/50 text-sm font-body mb-4">Apple, Samsung, Stanley e muito mais</p>
-              <div className="flex items-center gap-2 text-indigo-300 font-display font-bold text-sm group-hover:gap-3 transition-all">
-                Explorar marcas <ArrowRight className="w-4 h-4" />
-              </div>
-            </div>
-          </div>
-        </section>
+
 
         {/* ── OFFERS ── */}
         <section className="mb-10">
@@ -696,7 +671,159 @@ export default function HomePage() {
 
           {hasMore && <div className="mt-6 flex justify-center"><button onClick={() => setVisibleCount(value => value + PAGE_SIZE)} className={`rounded-2xl border border-surface-200 bg-white px-8 py-3 text-sm font-bold text-surface-700 transition-all hover:border-brand-300 hover:shadow-medium ${ColorGlobalHoverText}`}>Carregar Mais Produtos</button></div>}
         </section>
+        <section className="my-10">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 [perspective:1200px]">
 
+            {/* Flash Sale */}
+            <div
+              onClick={() => navigate('/flash-sale')}
+              className="
+        relative overflow-hidden rounded-3xl p-7 cursor-pointer group
+        border border-white/10
+        shadow-[0_20px_50px_rgba(0,0,0,0.35)]
+        transition-all duration-500 ease-out
+        [transform-style:preserve-3d]
+        hover:[transform:rotateX(5deg)_rotateY(-5deg)_translateY(-8px)_scale(1.02)]
+        hover:shadow-[20px_30px_70px_rgba(249,115,22,0.20)]
+      "
+              style={{
+                background:
+                  'linear-gradient(135deg, #09090b 0%, #18181b 55%, #27272a 100%)',
+              }}
+            >
+              {/* Glow */}
+              <div
+                className="
+          absolute -top-20 -right-20 w-64 h-64 opacity-20
+          group-hover:opacity-40 group-hover:scale-125
+          transition-all duration-700
+        "
+                style={{
+                  background:
+                    'radial-gradient(circle, #f97316 0%, transparent 65%)',
+                }}
+              />
+
+              {/* Reflexo */}
+              <div
+                className="
+          absolute inset-0 opacity-0 group-hover:opacity-100
+          transition-opacity duration-500 pointer-events-none
+        "
+                style={{
+                  background:
+                    'linear-gradient(115deg, transparent 20%, rgba(255,255,255,0.08) 45%, transparent 70%)',
+                }}
+              />
+
+              {/* Ícone 3D */}
+              <div
+                className="
+          relative w-14 h-14 rounded-2xl
+          flex items-center justify-center mb-5
+          bg-orange-500/10 border border-orange-400/20
+          shadow-[0_10px_30px_rgba(249,115,22,0.20)]
+          transition-transform duration-500
+          [transform:translateZ(40px)]
+          group-hover:[transform:translateZ(60px)_rotate(-8deg)_scale(1.1)]
+        "
+              >
+                <Zap className="w-8 h-8 text-brand-400 fill-brand-400" />
+              </div>
+
+              <div
+                className="
+          relative
+          [transform:translateZ(30px)]
+          transition-transform duration-500
+          group-hover:[transform:translateZ(50px)]
+        "
+              >
+                <h3 className="font-display font-bold text-white text-2xl mb-2">
+                  Oferta Relâmpago
+                </h3>
+
+                <p className="text-white/50 text-sm font-body mb-5">
+                  Descontos de até 50% por tempo limitado
+                </p>
+
+                <div className="flex items-center gap-2 text-brand-400 font-display font-bold text-sm group-hover:gap-4 transition-all">
+                  Aproveitar agora
+                  <ArrowRight className="w-4 h-4" />
+                </div>
+              </div>
+
+              {/* Linha inferior */}
+              <div
+                className="
+          absolute bottom-0 left-1/2 -translate-x-1/2
+          w-0 h-[2px]
+          bg-gradient-to-r from-transparent via-orange-400 to-transparent
+          group-hover:w-3/4
+          transition-all duration-500
+        "
+              />
+            </div>
+
+            {/* Brands */}
+            <div
+              onClick={() => navigate('/brands')}
+              className=" relative overflow-hidden rounded-3xl p-7 cursor-pointer group border border-indigo-400/10 shadow-[0_20px_50px_rgba(0,0,0,0.25)] transition-all duration-500 ease-out [transform-style:preserve-3d] hover:[transform:rotateX(5deg)_rotateY(5deg)_translateY(-8px)_scale(1.02)] hover:shadow-[-20px_30px_70px_rgba(99,102,241,0.25)]"
+              style={{
+                background:
+                  'linear-gradient(135deg, #0c1a4e 0%, #1e3a8a 60%, #312e81 100%)',
+              }}
+            >
+              {/* Glow */}
+              <div
+                className=" absolute -top-20 -right-20 w-64 h-64 opacity-20 group-hover:opacity-40 group-hover:scale-125 transition-all duration-700"
+                style={{
+                  background:
+                    'radial-gradient(circle, #818cf8 0%, transparent 65%)',
+                }}
+              />
+
+              {/* Reflexo */}
+              <div
+                className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none"
+                style={{
+                  background:
+                    'linear-gradient(115deg, transparent 20%, rgba(255,255,255,0.10) 45%, transparent 70%)',
+                }}
+              />
+
+              {/* Ícone 3D */}
+              <div
+                className=" relative w-14 h-14 rounded-2xl flex items-center justify-center mb-5 bg-indigo-400/10 border border-indigo-300/20 shadow-[0_10px_30px_rgba(99,102,241,0.30)] transition-transform duration-500 [transform:translateZ(40px)] group-hover:[transform:translateZ(60px)_rotate(8deg)_scale(1.1)]"
+              >
+                <Star className="w-8 h-8 text-indigo-300 fill-indigo-300/30" />
+              </div>
+
+              <div
+                className=" relative [transform:translateZ(30px)] transition-transform duration-500 group-hover:[transform:translateZ(50px)]"
+              >
+                <h3 className="font-display font-bold text-white text-2xl mb-2">
+                  Marcas Premium
+                </h3>
+
+                <p className="text-white/50 text-sm font-body mb-5">
+                  Apple, Samsung, Stanley e muito mais
+                </p>
+
+                <div className="flex items-center gap-2 text-indigo-300 font-display font-bold text-sm group-hover:gap-4 transition-all">
+                  Explorar marcas
+                  <ArrowRight className="w-4 h-4" />
+                </div>
+              </div>
+
+              {/* Linha inferior */}
+              <div
+                className=" absolute bottom-0 left-1/2 -translate-x-1/2 w-0 h-[2px] bg-gradient-to-r from-transparent via-indigo-300 to-transparent group-hover:w-3/4 transition-all duration-500"
+              />
+            </div>
+
+          </div>
+        </section>s
         {/* ── BRANDS SHOWCASE ── */}
         <section className="mb-10">
           <h2 className="font-display font-bold text-surface-900 text-xl tracking-tight mb-5 text-center">

@@ -20,6 +20,7 @@ export enum Status_Pay {
     CONFIRMADO = "CONFIRMADO",
     PENDENTE = "PENDENTE"
 }
+export type AdminTab = 'dashboard' | 'notifications' | 'products' | 'categories' | 'orders' | 'promotions' | 'movements' | 'profile' | 'settings' | 'cartegories';
 
 export interface Order {
     id_Order: number;
@@ -40,4 +41,12 @@ export interface Order {
     discount_Type?: string;
     shippingCost?: number;
     total_Value_OrderCupom?: number;
+    notifyViaWhatsApp?: boolean;
+}
+export interface SendMessageViaWhatsAppResponse {
+    idOrder: number;
+    status: string;
+    telefone: number;
+    number_Order: string;
+    nome_Cliente: string;
 }
