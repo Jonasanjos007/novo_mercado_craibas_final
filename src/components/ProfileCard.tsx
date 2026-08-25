@@ -47,7 +47,7 @@ export default function ProfileCard({ user, userOrders = [], wishlist = [], tota
                             onClick={() => setShowPhoto(true)}
                         >
                             <img
-                                src={`/avatar/${avatarUrl}`}
+                                src={`/Imagens/Usuarios/${avatarUrl}`}
                                 alt={name}
                                 className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-110"
                             />
@@ -62,7 +62,7 @@ export default function ProfileCard({ user, userOrders = [], wishlist = [], tota
                                 onClick={() => setShowPhoto(false)}
                             >
                                 <img
-                                    src={`/avatar/${avatarUrl}`}
+                                    src={`/Imagens/Usuarios/${avatarUrl}`}
                                     alt={name}
                                     className="max-w-full max-h-[90vh] object-contain rounded-2xl"
                                     onClick={(e) => e.stopPropagation()}

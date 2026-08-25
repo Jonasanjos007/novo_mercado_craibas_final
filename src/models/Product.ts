@@ -1,3 +1,5 @@
+import { UserRanting } from "./User";
+
 export interface Product {
     id?: number;
     name: string;
@@ -6,7 +8,6 @@ export interface Product {
     origin_Price?: number;
     imagens: Imagens_Products[];
     id_category: number;
-    count_Rating: number;
     review_Count: number;
     count_Sold: number;
     variations: ProductVariation[];
@@ -20,6 +21,8 @@ export interface Product {
     ativo?: boolean;
     showBanner?: boolean;
     valorDicont?: number;
+    rating: number;
+
 }
 
 export interface ProductAdmin {
@@ -30,7 +33,7 @@ export interface ProductAdmin {
     origin_Price?: number;
     imagens: Imagens_Products[];
     id_category: number;
-    count_Rating: number;
+    rating: number;
     review_Count: number;
     count_Sold: number;
     variations: ProductVariation[];
@@ -61,6 +64,7 @@ export interface ProductSaveOrder {
     variations: ProductVariation | null;
     id_category?: number;
     valorDicont?: number;
+    evaluated?: boolean
 
 }
 export interface ProductVariation {
@@ -93,4 +97,17 @@ export interface Category {
     ativo: boolean;
     insertDate?: Date;
 
+}
+export interface RantingAllProduct {
+    id: number;
+    id_Product: number;
+    id_User_Customer: number;
+    ranting: number;
+    comment: string;
+    media: string;
+    recomend: Boolean;
+    insertDate: Date;
+    updateDate: Date;
+    isDelete: boolean;
+    user: UserRanting;
 }

@@ -63,7 +63,7 @@ export default function ProductCard({ product, compact = false }: ProductCardPro
         </h3>
         <div className="flex items-center gap-1 mb-2">
           <div className="flex items-center gap-0.5">
-            {[1, 2, 3, 4, 5].map(star => <Star key={star} className={`w-3 h-3 ${star <= Math.floor(product.count_Rating!) ? 'text-amber-400 fill-amber-400' : 'text-surface-200 fill-surface-200'}`} />)}
+            {[1, 2, 3, 4, 5].map(star => <Star key={star} className={`w-3 h-3 ${star <= Math.floor(product.review_Count!) ? 'text-amber-400 fill-amber-400' : 'text-surface-200 fill-surface-200'}`} />)}
           </div>
           <span className="text-[10px] text-surface-400 font-body">({product.review_Count?.toLocaleString('pt-BR')})</span>
           {product.count_Sold! > 1000 && <span className="text-[10px] text-surface-400 font-body ml-auto">{(product.count_Sold! / 1000).toFixed(1)}k vendidos</span>}

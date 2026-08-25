@@ -38,6 +38,10 @@ namespace Mercado.Craibas.Infrastructure.Configurations
             builder.Property(x => x.Price_Unit)
                 .IsRequired();
 
+            builder.Property(x => x.Evaluated)
+               .IsRequired()
+               .HasDefaultValue(false);
+
             builder.Property(x => x.Id_Variante_Product)
                            .IsRequired();
 

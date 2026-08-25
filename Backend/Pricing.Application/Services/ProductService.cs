@@ -97,7 +97,7 @@ namespace Mercado.Craibas.Application.Services
                     Origin_Price = Product.Origin_Price,
                     Imagens = Imagens_Product,
                     Id_category = CategoryName.Id,
-                    Count_Rating = Product.Rating,
+                    Rating = Product.Rating,
                     Review_Count = Product.ReviewCount,
                     Count_Sold = Product.CountSold,
                     variations = variants,
@@ -109,7 +109,7 @@ namespace Mercado.Craibas.Application.Services
                     Featured = Product.Featured,
                     InsertDate = Product.InsertDate,
                     Ativo = Product.Ativo,
-                    ShowBanner = Product.ShowBanner
+                    ShowBanner = Product.ShowBanner,
                     
 
                 });
@@ -534,6 +534,56 @@ namespace Mercado.Craibas.Application.Services
             return Result<bool>.Success(true);
         }
 
+        public async Task<Result<List<RatingAllProducts>>> GetAssessmentAllProduct(int IdProduct)
+        {
+            try
+            {
+                if (IdProduct <= 0)
+                {
+                    return Result<List<RatingAllProducts>>.Failure(Error.Failure("Id", "Id do produto inválido"));
+                }
 
+                var reviews = await _unitOfWork.GetClassListAsyncWhere<Rating>(x => x.Id_Product == IdProduct && x.Isdelete != true);
+
+                var ratings = new List<RatingAllProducts>();
+
+                foreach (var review in reviews)
+                {
+
+                    var user = await _unitOfWork.GetClassAsyncWhere<User_Customer>(x => x.Id == review.Id_User_Customer && x.Isdelete != true);
+
+                    if (user == null)
+                    {
+                        continue;
+                    }
+                    ratings.Add(new RatingAllProducts
+                    {
+                        Id = review.Id,
+                        Id_Product = review.Id_Product,
+                        Id_User_Customer = review.Id_User_Customer,
+                        Ranting = review.Ranting,
+                        Comment = review.Comment,
+                        Media = review.Media,
+                        Recommend = review.Recommend,
+                        InsertDate = review.InsertDate,
+                        UpdateDate = review.UpdateDate,
+                        User = new UserRantingresponse
+                        {
+                        Name = user.Name,
+                        Avatar = user.Avatar,
+                        Role = user.Role
+                    }
+                    });
+                }
+
+                return Result<List<RatingAllProducts>>.Success(ratings);
+            }
+            catch (Exception ex)
+            {
+                return Result<List<RatingAllProducts>>.Failure(
+                    Error.Failure("Avaliação", ex.Message)
+                );
+            }
+        }
     }
 }

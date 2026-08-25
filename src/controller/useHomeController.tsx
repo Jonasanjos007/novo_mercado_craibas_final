@@ -17,17 +17,13 @@ export const useHomeController = () => {
     useEffect(() => {
         const load = async () => {
             SetLoading(true);
-            if (!products.length) {
-                await GetListProducts();
-            }
+            await GetListProducts();
             if (user) {
                 if (cart) {
                     await GetCartUser();
                 }
             }
-            if (!Cupons.length) {
-                await GetLoadCupons();
-            }
+            await GetLoadCupons();
             SetLoading(false);
         };
         load();

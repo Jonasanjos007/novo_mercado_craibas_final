@@ -11,20 +11,14 @@ namespace Mercado.Craibas.Application.DTOs.Responses
     {
         public int IdNotification { get; set; }
         public int IdNotificationUser { get; set; }
-
         public string Kind { get; set; }
         public string Title { get; set; }
         public string Description { get; set; }
-
         public string? Icone { get; set; }
-
         public string Role { get; set; }
         public bool IsRead { get; set; }
-
         public DateTime? ReadDate { get; set; }
-
         public string? ActionUrl { get; set; }
-
         public int? ReferenceId { get; set; }
 
         public string? ReferenceType { get; set; }

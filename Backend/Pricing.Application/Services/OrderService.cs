@@ -10,9 +10,12 @@ using Mercado.Craibas.Application.DTOs.Responses;
 using Mercado.Craibas.Application.Interfaces;
 using Mercado.Craibas.Application.Interfaces.Repositories;
 using Mercado.Craibas.Application.Interfaces.Services;
+using Mercado.Craibas.Application.InterfacesAdmin;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
 using Pricing.Api.DTOs.Requests;
 using Pricing.Api.DTOs.Responses;
+using System;
 namespace Mercado.Craibas.Application.Services;
 
 public class OrderService : IOrderService
@@ -20,13 +23,45 @@ public class OrderService : IOrderService
     private readonly IUnitOfWork _unitOfWork;
     private readonly IEmailService _email;
     private readonly INotificationService _notification;
+    private readonly IConfiguration _configuration;
 
-  
-    public OrderService(IUnitOfWork unitOfWork, IEmailService email, INotificationService notification)
+
+
+    public OrderService(IUnitOfWork unitOfWork, IEmailService email, INotificationService notification, IConfiguration configuration)
     {
         _unitOfWork = unitOfWork;
         _email = email;
         _notification = notification;
+        _configuration = configuration;
+    }
+    private string GetImagesFolder(string subPasta)
+    {
+        var pastaBase = _configuration["Storage:ImagesPath"];
+
+        if (string.IsNullOrWhiteSpace(pastaBase))
+        {
+            throw new Exception(
+                "O caminho Storage:ImagesPath não foi configurado."
+            );
+        }
+
+        if (string.IsNullOrWhiteSpace(subPasta))
+        {
+            throw new Exception(
+                "A subpasta da imagem não foi informada."
+            );
+        }
+
+        var nomeSeguro = Path.GetFileName(subPasta);
+
+        var pastaDestino = Path.Combine(
+            pastaBase,
+            nomeSeguro
+        );
+
+        Directory.CreateDirectory(pastaDestino);
+
+        return pastaDestino;
     }
     public async Task<Result<bool>> PostSaveOrder(int userId, OrderSaveRequest Order)
     {
@@ -161,6 +196,7 @@ public class OrderService : IOrderService
                     Total_Price = (OrderLine.Price_Unic * Order.Discont),
                     Origin_Price = OrderLine.Origin_Price,
                     Price_Unit = OrderLine.Price_Unic,
+                    Evaluated = false,
                     Discont = (OrderLine.Origin_Price - OrderLine.Price_Unic) * OrderLine.Quantity,
                     Isdelete = false
                 };
@@ -224,7 +260,7 @@ public class OrderService : IOrderService
                    });
             }
             var User = await _unitOfWork.GetClassAsyncWhere<User_Customer>(x => x.Id == userId);
-            var UserAdminNotify = await _unitOfWork.GetClassListAsyncWhere<User_Admin>(x => x.Isdelete != true);
+            var UserAdminNotify = await _unitOfWork.GetClassListAsyncWhere<User_Admin>(x => x.Isdelete != true && x.Ativo == true);
 
             var users = UserAdminNotify.Select(x => new NotificationUserRequest
             {
@@ -331,7 +367,7 @@ public class OrderService : IOrderService
                         Installments = i.Product.installments,
                         Tags = i.Product.Tags,
                         Featured = i.Product.Featured,
-
+                        Evaluated = i.Evaluated,
                         Imagens = i.Product.Imagens_Products
                             .Where(img => img.Isdelete != true)
                             .ToList(),
@@ -414,5 +450,222 @@ public class OrderService : IOrderService
         return Result<List<OrderResponse>>.Success(orderResponseList);
 
     }
-   
+
+    public async Task<Result<bool>> PostUpdateAssessment(int userId,ProductReviewrequest review)
+    {
+        try
+        {
+            if (userId <= 0)
+            {
+                return Result<bool>.Failure(Error.Failure("Avaliação", "Usuário inválido."));
+            }
+
+            if (review == null)
+            {
+                return Result<bool>.Failure(Error.Failure("Avaliação", "Avaliação inválida."));
+            }
+
+            if (review.Rating < 1 || review.Rating > 5)
+            {
+                return Result<bool>.Failure(Error.Failure("Avaliação","A avaliação deve ser entre 1 e 5."));
+            }
+
+            var order = await _unitOfWork.Query<Orders>().FirstOrDefaultAsync(x =>x.Id == review.OrderId && x.Id_User_Customer == userId && x.Isdelete != true);
+
+            if (order == null)
+            {
+                return Result<bool>.Failure(Error.Failure("Avaliação","Pedido não encontrado."));
+            }
+
+            var orderItem = await _unitOfWork.Query<OrderLineItens>().FirstOrDefaultAsync(x =>x.Id_Order == review.OrderId &&x.Id_Product == review.ProductId &&x.Isdelete != true);
+
+            if (orderItem == null)
+            {
+                return Result<bool>.Failure(Error.Failure("Avaliação","Produto não encontrado neste pedido."));
+            }
+
+            if (orderItem.Evaluated)
+            {
+                return Result<bool>.Failure(Error.Failure("Avaliação","Este produto já foi avaliado."));
+            }
+
+            var nomesArquivos = new List<string>();
+
+            if (review.Media != null && review.Media.Any())
+            {
+                var pastaDestino = GetImagesFolder("Avaliacoes");
+
+                var extensoesPermitidas = new[]
+                { ".jpg", ".jpeg", ".png", ".webp", ".mp4", ".mov", ".webm"};
+
+                foreach (var arquivo in review.Media)
+                {
+                    if (arquivo == null || arquivo.Length == 0)
+                        continue;
+
+                    var extensao = Path.GetExtension(arquivo.FileName).ToLowerInvariant();
+
+                    if (!extensoesPermitidas.Contains(extensao))
+                    {
+                        return Result<bool>.Failure(Error.Failure("Avaliação",$"Formato {extensao} não permitido."));
+                    }
+
+                    var nomeArquivo = $"{Guid.NewGuid()}{extensao}";
+
+                    var caminhoCompleto = Path.Combine(pastaDestino,nomeArquivo);
+
+                    using var stream = new FileStream(caminhoCompleto,FileMode.Create);
+
+                    await arquivo.CopyToAsync(stream);
+
+                    nomesArquivos.Add(nomeArquivo);
+                }
+            }
+
+            // Salva somente os nomes separados por ;
+            var mediaBanco = nomesArquivos.Any()? string.Join(";", nomesArquivos): null;
+
+            var rating = new Rating
+            {
+                Id_Product = review.ProductId,
+                Id_Order = review.OrderId,
+                Id_User_Customer = userId, 
+                Ranting = review.Rating,
+                Comment = review.Comment,
+                Media = mediaBanco,
+                Recommend = review.Recommend,
+                InsertDate = DateTime.Now,
+                Isdelete = false
+            };
+
+            var ratingInsert =await _unitOfWork.InsertAsyncReturnId(rating);
+
+            if (ratingInsert == null || ratingInsert.Id <= 0)
+            {
+                return Result<bool>.Failure(Error.Failure("Avaliação","Erro ao salvar avaliação."));
+            }
+
+            await _unitOfWork.UpdateFieldsAsync<OrderLineItens>(
+                filters: new Dictionary<string, object>
+                {
+                { "Id_Order", review.OrderId },
+                { "Id_Product", review.ProductId }
+                },
+                fieldsToUpdate: new Dictionary<string, object>
+                {
+                { "Evaluated", true }
+                }
+            );
+            var user = await _unitOfWork.GetClassAsyncWhere<User_Customer>(x => x.Id == userId && x.Isdelete != true && x.Ativo == true);
+            var userAdmin = await _unitOfWork.GetClassListAsyncWhere<User_Admin>(x => x.Isdelete != true && x.Ativo == true);
+
+            var Product = await _unitOfWork.GetClassAsyncWhere<Product>(x => x.Id == review.ProductId && x.Isdelete != true);
+
+            var ProductRanting = await _unitOfWork.GetClassListAsyncWhere<Rating>(x => x.Id_Product == review.ProductId && x.Isdelete != true);
+            var Countranting = ProductRanting.Count > 0 ? (double)ProductRanting.Sum(x => x.Ranting) / ProductRanting.Count : 5;
+
+            await _unitOfWork.UpdateFieldsAsync<Product>(
+               filters: new Dictionary<string, object>
+               {
+                { "Id", Product.Id },
+               },
+               fieldsToUpdate: new Dictionary<string, object>
+               {
+                { "ReviewCount", Product.ReviewCount += 1 },
+                { "Rating", Countranting }
+
+               }
+           );
+            await _unitOfWork.InsertAsyncReturnId<Logs>(new Logs
+            {
+                Id_User = userId,
+                Log = $"{user.Name} Avaliou Produto Comentario:{review.Comment}",
+                Tipo = "Avaliação Produto",
+                Nivel = "CLIENTE",
+                Acao = $"O Cliente {user.Name} Avaliou o Produto {Product.Name} com {review.Rating} Estrelas.",
+                Info = $"{user.Name} avaliou Produto {Product.Name} em {DateTime.Now:dd/MM/yyyy HH:mm:ss}",
+                InsertDate = DateTime.Now
+            });
+
+
+
+            await _notification.SendNotification(
+                new NotificationRequest
+                {
+                    Kind = "Avaliação Produto",
+                    Title = "Obrigado pela sua avaliação!",
+                    Description = $"Obrigado por avaliar {Product.Name}! Sua opinião ajuda outros clientes e nos ajuda a melhorar cada vez mais.",
+                    Icone = "Star",
+                    ActionUrl = "/orders",
+                    ReferenceId = review.ProductId,
+                    ReferenceType = "ASSESSMENT",
+                    Role = "CLIENTE"
+                },
+                new List<NotificationUserRequest>
+                {
+                   new NotificationUserRequest
+                   {
+                       UserId = userId
+                   }
+                           });
+
+            var users = userAdmin.Select(x => new NotificationUserRequest
+            {
+                UserId = x.Id
+            }).ToList();
+
+            await _notification.SendNotification(new NotificationRequest
+         {
+             Kind = "Nova Avaliação",
+             Title = "Nova avaliação de produto",
+             Description = $"{user.Name} avaliou o produto {Product.Name} do pedido Nº {order.Number_Order}. Confira a avaliação e verifique se ela está de acordo com as regras da plataforma.",
+             Icone = "Star",
+             ActionUrl = "/admin",
+             ReferenceId = Product.Id,
+             ReferenceType = "ASSESSMENT",
+             Role = "ADMIN"
+         },users);
+
+            return Result<bool>.Success(true);
+        }
+        catch (Exception ex)
+        {
+            return Result<bool>.Failure(Error.Failure("Avaliação",ex.Message));
+        }
+    }
+    public async Task<Result<RatingResponse>> GetAssessment(int userId, int IdProduct,int IdOrder)
+    {
+        try
+        {
+            if (IdProduct <= 0)
+            {
+                return Result<RatingResponse>.Failure(Error.Failure("Id", "Id do produto inválido"));
+            }
+
+            if (IdOrder == null || IdOrder == 0)
+            {
+                return Result<RatingResponse>.Failure(Error.Failure("Id", "Id do pedido inválido"));
+            }
+
+            var Review = await _unitOfWork.GetClassAsyncWhere<Rating>(x => x.Id_Product == IdProduct && x.Id_Order == IdOrder && x.Id_User_Customer == userId);
+
+            return Result<RatingResponse>.Success(new RatingResponse{
+                Id = Review.Id,
+                Id_Product = Review.Id_Product,
+                Id_User_Customer = userId,
+                Id_Order = Review.Id_Order,
+                Ranting = Review.Ranting,
+                Comment = Review.Comment,
+                Media = Review.Media,
+                Recommend = Review.Recommend,
+                InsertDate = Review.InsertDate,
+                UpdateDate = Review.UpdateDate
+            });
+        }
+        catch (Exception ex)
+        {
+            return Result<RatingResponse>.Failure(Error.Failure("Avaliação", ex.Message));
+        }
+    }
+
 }

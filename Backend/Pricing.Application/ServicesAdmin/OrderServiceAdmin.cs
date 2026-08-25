@@ -223,10 +223,10 @@ namespace Mercado.Craibas.Application.ServicesAdmin
      }
  );
 
-            //if (!enviado)
-            //{
-            //    return Result<bool>.Failure(Error.Failure("Enviar Email", "Não foi possível enviar o e-mail ao cliente. Verifique se o endereço de e-mail informado está correto e tente novamente!"));
-            //}
+            if (!enviado)
+            {
+                return Result<bool>.Failure(Error.Failure("Enviar Email", "Não foi possível enviar o e-mail ao cliente. Verifique se o endereço de e-mail informado está correto e tente novamente!"));
+            }
 
 
             return Result<bool>.Success(true);

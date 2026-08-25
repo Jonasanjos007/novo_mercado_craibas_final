@@ -20,6 +20,7 @@ namespace Baldan.Pricing.Application.Domain.Entities
         public int Quantity { get; set; }
         public double Total_Price { get; set; }
         public double Origin_Price { get; set; }
+        public bool Evaluated { get; set; }
         public double Price_Unit { get; set; }
         public double? Discont { get; set; }
     }

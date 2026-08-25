@@ -22,9 +22,11 @@ public class ProductResponse
     public string? Badge { get; set; }
     public bool? FreeShipping { get; set; }
     public double? Installments { get; set; }
+    public double? Rating { get; set; }
     public string? Tags { get; set; }
     public bool? Featured { get; set; }
     public bool? Ativo { get; set; }
    public DateTime? InsertDate { get; set; }
    public double? ValorDicont { get; set; }
+   public bool? Evaluated { get; set; }
 }

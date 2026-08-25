@@ -58,7 +58,7 @@ export default function CategoryPage() {
 
   filtered = filtered.filter(p =>
     p.price_Unic >= priceRange[0] && p.price_Unic <= priceRange[1] &&
-    p.count_Rating >= ratingFilter &&
+    p.review_Count >= ratingFilter &&
     (!freeShippingOnly || p.freeShipping) &&
     (!badgeFilter || p.badge === badgeFilter)
   );
@@ -94,7 +94,7 @@ export default function CategoryPage() {
   const sorted = [...filtered].sort((a, b) => {
     if (sort === 'menor-preco') return a.price_Unic - b.price_Unic;
     if (sort === 'maior-preco') return b.price_Unic - a.price_Unic;
-    if (sort === 'avaliacao') return b.count_Rating - a.count_Rating;
+    if (sort === 'avaliacao') return b.review_Count - a.review_Count;
     if (sort === 'mais-vendidos') return b.count_Sold - a.count_Sold;
     return 0;
   });

@@ -14,6 +14,7 @@ import {
   CheckIcon,
   BadgePercent,
   ShoppingCart,
+  TicketPercent,
 
 } from 'lucide-react';
 import { Calendar, Hash } from 'lucide-react';
@@ -34,6 +35,8 @@ import { colors, getColorConfig } from '../types/Colors';
 import Headerpages from '../components/Headerpages';
 import { UseOrderStore } from '../store/UseOrderStore';
 import { Order } from '../models/OrderSave';
+import { ProductSaveOrder } from '../models/Product';
+import ProductReviewModal from '../components/ProductReviewModal';
 type ProfileTab = 'overview' | 'orders' | 'wishlist' | 'addresses' | 'security' | 'preferences' | 'settings';
 
 
@@ -41,13 +44,13 @@ type ProfileTab = 'overview' | 'orders' | 'wishlist' | 'addresses' | 'security' 
 export default function ProfilePage() {
   const Controller = userProfileController();
   const { orders } = UseOrderStore();
-  console.log(orders, 'orders');
   const navigate = useNavigate();
   const { wishlist } = useStore();
   const { navigateTo } = UseRouteStore();
   // const address = UseAddressStore((state) => state.address);
   const { address } = UseAddressStore();
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
+  const [reviewTarget, setReviewTarget] = useState<{ product: ProductSaveOrder; order: Order } | null>(null);
   const { updateUser, user, logout, NameColorGlobal, ColorGlobalTema, ColorGlobalHover, ColorGlobalText, ColorGlobalHoverText } = UseUserStore();
   const [tab, setTab] = useState<ProfileTab>('overview');
   const [editing, setEditing] = useState(false);
@@ -55,8 +58,9 @@ export default function ProfilePage() {
   const notify = useNotification();
   const formRef = useRef<HTMLDivElement>(null);
   const [statusFilter, setStatusFilter] = useState("TODOS");
-
+  console.log("User", user)
   const filteredOrders = statusFilter === "TODOS" ? orders : orders.filter(o => o.order_Status === statusFilter);
+  const AddresStadand = address.filter(item => item.standard === true)[0];
   const filters = [
     { label: "Todos", value: "TODOS" },
     { label: "Pendente", value: "PENDENTE" },
@@ -225,6 +229,8 @@ export default function ProfilePage() {
               totalSpent={totalSpent}
             />
 
+
+
             {/* Navigation */}
             <div className="bg-white rounded-2xl border border-surface-100 p-2 shadow-soft space-y-0.5">
               {navTabs.map(t => (
@@ -261,7 +267,7 @@ export default function ProfilePage() {
                     onClick={() => setShowPhoto(true)}
                   >
                     <img
-                      src={`/avatar/${user?.avatar}`}
+                      src={`/Imagens/Usuarios/${user?.avatar}`}
                       alt="Foto de perfil"
                       className="w-full h-full object-cover object-center transition-transform duration-300 hover:scale-105"
                     />
@@ -292,7 +298,7 @@ export default function ProfilePage() {
                       </button>
 
                       <img
-                        src={`/avatar/${user?.avatar}`}
+                        src={`/Imagens/Usuarios/${user?.avatar}`}
                         alt="Foto de perfil"
                         className="max-w-full max-h-[90vh] object-contain rounded-2xl"
                         onClick={(e) => e.stopPropagation()}
@@ -343,10 +349,10 @@ export default function ProfilePage() {
                   {/* Info strip */}
                   <div className="border-t border-surface-100 grid grid-cols-2 md:grid-cols-4 divide-x divide-surface-100">
                     {[
-                      { icon: <MapPin className="w-4 h-4 text-surface-300" />, label: 'Localização', value: 'Não informado' },
-                      { icon: <Clock className="w-4 h-4 text-surface-300" />, label: 'Membro desde', value: 'jan. 2023' },
-                      { icon: <Clock className="w-4 h-4 text-surface-300" />, label: 'Último acesso', value: '2 dias atrás' },
-                      { icon: <Star className="w-4 h-4 text-surface-300" />, label: 'Nível atual', value: 'Gold → Diamond' },
+                      { icon: <MapPin className="w-4 h-4 text-surface-300" />, label: 'Localização', value: AddresStadand ? `${AddresStadand.road ?? ''}${AddresStadand.number ? ` N°${AddresStadand.number}` : ''}` : 'Não informado' },
+                      { icon: <Clock className="w-4 h-4 text-surface-300" />, label: 'Membro desde', value: user?.insert_Date ? new Date(user.insert_Date).toLocaleDateString('pt-BR', { month: 'short', year: 'numeric', }) : '-' },
+                      { icon: <Star className="w-4 h-4 text-surface-300" />, label: 'Avaliações', value: 0 },
+                      { icon: <TicketPercent className="w-4 h-4 text-surface-300" />, label: 'Cupons utilizados', value: `${orders?.filter(item => item.id_Cupom != null || 0).length ?? 0} Cupons` }
                     ].map((item, i) => (
                       <div key={i} className="flex items-center gap-2.5 px-4 py-3">
                         {item.icon}
@@ -520,6 +526,11 @@ export default function ProfilePage() {
                             <ChevronRight className="w-4 h-4" />
                           </button>
                         </div>
+                        {order.order_Status === 'ENTREGUE' && order.products[0] && (
+                          <button onClick={() => setReviewTarget({ product: order.products[0], order })} className={`mt-3 flex w-full items-center justify-center gap-2 rounded-xl border border-surface-200 bg-surface-50 py-2.5 text-xs font-bold ${colorConfig.class_text} hover:bg-surface-100`}>
+                            <Star className="h-4 w-4" /> Avaliar produtos deste pedido
+                          </button>
+                        )}
                       </div>
                     );
                   })}
@@ -1485,6 +1496,7 @@ export default function ProfilePage() {
         description={Controller?.result.LoadingMessage}
         onClose={() => Controller?.action.setOpenAlert(false)}
       />
+
     </div>
   );
 }

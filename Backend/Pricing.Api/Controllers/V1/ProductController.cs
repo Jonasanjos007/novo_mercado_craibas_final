@@ -76,6 +76,13 @@ namespace Mercado.Api.Controllers.V1
 
             return result.ToActionResult();
         }
+        [HttpGet("GetAllRantingProduct/{Id_Product}")]
+        public async Task<IActionResult> GetAllRantingProduct([FromRoute] int Id_Product)
+        {
+            var result = await _service.GetAssessmentAllProduct(Id_Product);
+
+            return result.ToActionResult();
+        }
 
     }
 }

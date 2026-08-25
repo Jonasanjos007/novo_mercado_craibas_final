@@ -13,13 +13,11 @@ export default function SessionExpiredModal({ open }: Props) {
     if (!open) return null;
 
     const handleLogin = () => {
-        localStorage.removeItem("@app:tokens");
         close();
         navigate("/login", { replace: true });
     };
 
     const handleHome = () => {
-        localStorage.removeItem("@app:tokens");
         close();
         navigate("/", { replace: true });
     };

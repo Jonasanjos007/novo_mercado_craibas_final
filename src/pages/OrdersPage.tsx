@@ -1,4 +1,4 @@
-import { Package, MapPin, ChevronRight, ArrowLeft, Hash, Calendar, CreditCard, BadgePercent, ShoppingCart, X, Ticket, TicketPercent, ShoppingBag } from 'lucide-react';
+import { Package, MapPin, ChevronRight, ArrowLeft, Hash, Calendar, CreditCard, BadgePercent, ShoppingCart, X, Ticket, TicketPercent, ShoppingBag, Star, Loader2 } from 'lucide-react';
 import { useStore } from '../context/store';
 import { formatPrice, orderStatusLabels, orderStatusColors, orderStatusSteps } from '../utils';
 import { useNavigate } from 'react-router-dom';
@@ -11,16 +11,20 @@ import { useState } from 'react';
 import { Order } from '../models/OrderSave';
 import { Cupom } from '../models/Cupom';
 import Loading from '../components/Loading';
+import ProductReviewModal from '../components/ProductReviewModal';
+import ProductReviewDetailsModal from '../components/ProductReviewDetailsModal';
+import { ProductSaveOrder } from '../models/Product';
 
 export default function OrdersPage() {
   const Controller = useOrdersController();
-
+  console.log("testeteste", Controller?.result.assessmentResponse);
   const navigate = useNavigate();
   const { orders } = UseOrderStore();
   const { Cupons } = UseOrderStore();
 
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [selectedCupom, setSelectedCupom] = useState<Cupom | null>(null);
+  const [reviewTarget, setReviewTarget] = useState<{ product: ProductSaveOrder; order: Order } | null>(null);
 
   const [expandedOrder, setExpandedOrder] = useState<number | null>(null);
   const { NameColorGlobal, ColorGlobalHoverText, ColorGlobalTema } = UseUserStore();
@@ -236,7 +240,7 @@ export default function OrdersPage() {
 
                               <div
                                 className={`w-7 h-7 rounded-full border-2 flex items-center justify-center text-[10px] font-bold
-                    ${done
+                                 ${done
                                     ? "bg-green-600 border-green-600 text-white"
                                     : "bg-white border-surface-300 text-surface-300"
                                   }`}
@@ -246,7 +250,7 @@ export default function OrdersPage() {
 
                               <span
                                 className={`mt-1 text-[9px] text-center max-w-[55px]
-                    ${done
+                                 ${done
                                     ? "text-green-600"
                                     : "text-surface-400"
                                   }`}
@@ -288,33 +292,102 @@ export default function OrdersPage() {
                     </button>
 
                     {expandedOrder === order.id_Order && (
-                      <div className="mt-4 space-y-3 animate-in slide-in-from-top-2 duration-300">
+                      <div className="mt-4 space-y-2 animate-in slide-in-from-top-2 duration-300">
                         {order.products.map((item, i) => (
                           <div
                             key={i}
-                            onClick={() => navigate(`/product/${item.id}`)}
-                            className="group/item flex items-center gap-3 rounded-xl p-2 cursor-pointer hover:bg-surface-50 transition-all"
+                            className=" group/item rounded-xl p-2 transition-all hover:bg-surface-50"
                           >
-                            <img
-                              src={`/Imagens/Produtos/${item.imagens?.[0]?.url_Imagem}`}
-                              className="w-12 h-12 rounded-xl object-cover"
-                            />
+                            {/* Linha principal */}
+                            <div className="flex items-center gap-3">
+                              <img
+                                src={`/Imagens/Produtos/${item.imagens?.[0]?.url_Imagem}`}
+                                className=" h-11 w-11 shrink-0 rounded-xl object-cover sm:h-12 sm:w-12"
+                                alt={item.name}
+                              />
 
-                            <div className="flex-1 min-w-0">
-                              <p
-                                className={`text-sm font-semibold line-clamp-1 transition-colors ${colorConfig.class_group_hover_text}`}
-                              >
-                                {item.name}
-                              </p>
+                              {/* Informações */}
+                              <div className="min-w-0 flex-1">
+                                <p
+                                  className={` truncate text-xs font-semibold transition-colors sm:text-sm ${colorConfig.class_group_hover_text}`}
+                                >
+                                  {item.name}
+                                </p>
 
-                              <p className="text-xs text-surface-400">
-                                Qtd: {item.quantity} • {formatPrice(item.price_Unic)}
-                              </p>
+                                <p className="mt-0.5 text-[10px] leading-4 text-surface-400 sm:text-xs">
+                                  Qtd: {item.quantity}
+                                </p>
+
+                                <p className="text-[10px] font-medium text-surface-400 sm:text-xs">
+                                  {formatPrice(item.price_Unic)}
+                                </p>
+                              </div>
+
+                              {/* Comprar novamente */}
+                              <div className="relative shrink-0 group/comprar">
+                                <button
+                                  onClick={() => navigate(`/product/${item.id}`)}
+                                  aria-label={`Comprar novamente ${item.name}`}
+                                  className=" flex h-8 w-8 items-center justify-center rounded-lg transition-all duration-200 hover:bg-surface-100 sm:h-9 sm:w-9"
+                                >
+                                  <ChevronRight
+                                    className={` h-4 w-4 text-surface-300 transition-all duration-200 group-hover/comprar:translate-x-0.5 ${colorConfig.class_group_hover_text}`}
+                                  />
+                                </button>
+
+                                {/* Tooltip apenas desktop */}
+                                <div
+                                  className=" pointer-events-none absolute bottom-full right-0 z-50 mb-2 min-w-max max-w-[250px] translate-y-1 rounded-lg bg-surface-900 px-3 py-2 text-[11px] text-white opacity-0 shadow-lg transition-all duration-200 group-hover/comprar:translate-y-0 group-hover/comprar:opacity-100"
+                                >
+                                  <p className="font-bold">
+                                    Comprar novamente
+                                  </p>
+
+                                  <p className="mt-0.5 max-w-[220px] truncate text-white/70">
+                                    {item.name}
+                                  </p>
+
+                                  <div
+                                    className=" absolute right-3 top-full h-0 w-0 border-x-[5px] border-x-transparent border-t-[5px] border-t-surface-900"
+                                  />
+                                </div>
+                              </div>
                             </div>
 
-                            <ChevronRight
-                              className={`w-4 h-4 text-surface-300 transition-colors ${colorConfig.class_group_hover_text}`}
-                            />
+                            {/* Ações */}
+                            {order.order_Status === 'ENTREGUE' && (
+                              <div className="mt-2 flex justify-end pl-14 sm:mt-0 sm:pl-0">
+                                {!item.evaluated ? (
+                                  <button
+                                    onClick={() => setReviewTarget({ product: item, order })}
+                                    className={` flex items-center justify-center gap-1 rounded-lg bg-surface-100 px-3 py-1.5 text-[11px] font-bold transition-colors hover:bg-surface-200 sm:px-3 sm:py-2 sm:text-xs ${colorConfig.class_text}`}
+                                  >
+                                    <Star className="h-3.5 w-3.5" />
+                                    Avaliar
+                                  </button>
+                                ) : (
+                                  <button
+                                    onClick={() => Controller?.action.handleGetAssents(order.id_Order, item.id)}
+                                    className=" flex items-center justify-center gap-1 rounded-lg bg-green-50 px-2.5 py-1.5 text-[10px] font-bold text-green-600 transition-colors hover:bg-green-100 sm:px-3 sm:py-2 sm:text-xs"
+                                  >{Controller?.result.Loading ? (
+                                    <Loader2 className="w-4 h-4 animate-spin" />
+                                  ) : (
+                                    <>
+                                      <Star className="h-3.5 w-3.5 fill-current" />
+
+                                      <span className="sm:hidden">
+                                        Avaliado, obrigado!
+                                      </span>
+
+                                      <span className="hidden sm:inline">
+                                        Avaliado, obrigado!
+                                      </span>
+                                    </>
+                                  )}
+                                  </button>
+                                )}
+                              </div>
+                            )}
                           </div>
                         ))}
                       </div>
@@ -704,6 +777,19 @@ export default function OrdersPage() {
             </div>
           </div>
         )}
+        <ProductReviewModal
+          open={!!reviewTarget}
+          onClose={() => setReviewTarget(null)}
+          product={reviewTarget?.product || null}
+          orderId={reviewTarget?.order.id_Order || 0}
+          orderNumber={reviewTarget?.order.number_Order}
+          themeClass={`${ColorGlobalTema} hover:opacity-90`} />
+
+        <ProductReviewDetailsModal
+          open={!!Controller?.result.reviewDetailsTarget}
+          onClose={() => Controller?.action.setReviewDetailsTarget(false)}
+          assessment={Controller?.result.assessmentResponse}
+        />
       </div>
 
     </div >

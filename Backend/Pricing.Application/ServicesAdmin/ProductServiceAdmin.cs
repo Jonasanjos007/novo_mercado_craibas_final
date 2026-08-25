@@ -191,7 +191,8 @@ namespace Mercado.Craibas.Application.ServicesAdmin
                     Ativo = product.Ativo,
                     InsertDate = DateTime.Now,
                     Isdelete = false,
-                    ShowBanner = product.ShowBanner
+                    ShowBanner = product.ShowBanner,
+                    ReviewCount = 0
                 };
 
 

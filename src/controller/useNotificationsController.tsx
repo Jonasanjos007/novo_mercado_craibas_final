@@ -14,9 +14,7 @@ export const useNotificationsController = (): useNotificationsControllerReturn =
 
     useEffect(() => {
         const load = async () => {
-            if (Notification.length == 0) {
-                await GetLoadNotification();
-            }
+            await GetLoadNotification();
         };
         load();
     }, []);

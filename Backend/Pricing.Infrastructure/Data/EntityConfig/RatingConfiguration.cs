@@ -4,8 +4,7 @@ using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
 namespace Mercado.Craibas.Infrastructure.Configurations
 {
-    public class RatingConfiguration
-        : IEntityTypeConfiguration<Rating>
+    public class RatingConfiguration : IEntityTypeConfiguration<Rating>
     {
         public void Configure(EntityTypeBuilder<Rating> builder)
         {
@@ -13,11 +12,28 @@ namespace Mercado.Craibas.Infrastructure.Configurations
 
             builder.HasKey(x => x.Id);
 
+            builder.Property(x => x.Id_Product)
+                .IsRequired();
+
+            builder.Property(x => x.Id_Order)
+                .IsRequired();
+
+            builder.Property(x => x.Id_User_Customer)
+                .IsRequired();
+
             builder.Property(x => x.Ranting)
                 .IsRequired();
 
             builder.Property(x => x.Comment)
-                .HasMaxLength(1000);
+                .HasMaxLength(1000)
+                .IsRequired(false);
+
+            builder.Property(x => x.Media)
+                .HasMaxLength(2000)
+                .IsRequired(false);
+
+            builder.Property(x => x.Recommend)
+                .IsRequired();
 
             builder.HasOne(x => x.Product)
                 .WithMany(x => x.Ratings)

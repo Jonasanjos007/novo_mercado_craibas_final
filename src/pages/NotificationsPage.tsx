@@ -2,7 +2,6 @@ import { useMemo, useState } from 'react';
 import { Bell, CalendarDays, Check, CheckCheck, ChevronRight, CircleCheck, CircleX, Clock, Clock3, CreditCard, History, Package, PackageCheck, Search, ShoppingCart, Truck } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { buildClientNotifications, ClientNotificationKind } from '../models/ClientNotification';
-import { UseClientNotificationStore } from '../store/UseClientNotificationStore';
 import { UseOrderStore } from '../store/UseOrderStore';
 import { UseUserStore } from '../store/UseUserStore';
 import { getColorConfig } from '../types/Colors';
@@ -138,6 +137,7 @@ export default function NotificationsPage() {
   const unreadOrder = Notification.filter(item => item.isRead === false && item.referenceType === "ORDER" && matchesSelectedPeriod(item.insertDate)).length;
   const unreadPayment = Notification.filter(item => item.isRead === false && item.referenceType === "PAYMENT" && matchesSelectedPeriod(item.insertDate)).length;
   const unreadDelivery = Notification.filter(item => item.isRead === false && item.referenceType === "DELIVERY" && matchesSelectedPeriod(item.insertDate)).length;
+  const unreadAssessment = Notification.filter(item => item.isRead === false && item.referenceType === "ASSESSMENT" && matchesSelectedPeriod(item.insertDate)).length;
   const unreadAllRead = notifications.filter(item => item.isRead === true && matchesSelectedPeriod(item.insertDate)).length;
   // const unreadOrder = Notification.filter(item => item.isRead === false && item.referenceType === "ORDER" && (dateKey(new Date(item.insertDate)) === selectedDay || (dateKey(new Date(item.insertDate)) === historyDate))).length;
   // const unreadPayment = Notification.filter(item => item.isRead === false && item.referenceType === "PAYMENT" && (dateKey(new Date(item.insertDate)) === selectedDay || (dateKey(new Date(item.insertDate)) === historyDate))).length;
@@ -177,21 +177,7 @@ export default function NotificationsPage() {
             <button
               onClick={() => UpdateReadNotifyAll()}
               disabled={!unread}
-              className={`
-    flex items-center gap-2
-    border-l border-surface-200
-    rounded-r-lg
-    pl-3 pr-2 py-1.5
-    text-xs font-bold
-    transition-all duration-200
-    hover:bg-surface-300
-    hover:scale-[1.03]
-    active:scale-95
-    disabled:opacity-40
-    disabled:hover:bg-transparent
-    disabled:hover:scale-100
-    ${color.class_text}
-  `}
+              className={` flex items-center gap-2 border-l border-surface-200 rounded-r-lg pl-3 pr-2 py-1.5 text-xs font-bold transition-all duration-200 hover:bg-surface-300 hover:scale-[1.03] active:scale-95 disabled:opacity-40 disabled:hover:bg-transparent disabled:hover:scale-100 ${color.class_text}`}
             >
               <CheckCheck className="h-4 w-4" />
               Marcar todas
@@ -275,6 +261,7 @@ export default function NotificationsPage() {
             { id: 'unread', label: `Não lidas (${unread})` },
             { id: 'ORDER', label: `Pedidos(${unreadOrder})` },
             { id: 'DELIVERY', label: `Entregas(${unreadDelivery})` },
+            { id: 'ASSESSMENT', label: `Avaliação(${unreadAssessment})` },
             { id: 'PAYMENT', label: `Pagamentos(${unreadPayment})` },
             { id: 'READ', label: `Lidas(${unreadAllRead})` },] as const).map(item =>
               <button
@@ -356,7 +343,7 @@ export default function NotificationsPage() {
                         )}
 
                         <time className="text-[11px] text-surface-400">
-                          {relativeTime(new Date(item.readDate))}
+                          {relativeTime(new Date(item.insertDate))}
                         </time>
                       </div>
                     </div>

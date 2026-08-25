@@ -1,7 +1,7 @@
 import { api } from "../config/api";
 import { CartItensProduct } from "../models/CartItensProduct";
 import { Cupom } from "../models/Cupom";
-import { OrderSave, Order } from "../models/OrderSave";
+import { OrderSave, Order, RatingResponse } from "../models/OrderSave";
 import { Product } from "../models/Product";
 import { makeResult, Result } from "../utils/Result";
 
@@ -55,5 +55,28 @@ export const OrderService = {
             console.log(err.response?.data);
             return makeResult(false, null, err.response?.data);
         }
-    }
+    }, PostSaveAssessment: async (formData: FormData): Promise<Result<unknown>> => {
+        try {
+            const response = await api.post('/v1/order/PostSaveAssessment', formData, {
+                headers: { 'Content-Type': 'multipart/form-data' },
+            });
+            const { success, data, error } = response.data;
+
+            return makeResult(success, data, error);
+        } catch (err: any) {
+            return makeResult(false, undefined, err.response?.data || 'Falha ao enviar avaliação.');
+        }
+    },
+    GetAssessment: async (IdProduct: number, IdOrder: number): Promise<Result<RatingResponse>> => {
+        try {
+            const response = await api.post(`/v1/order/GetAssessment?IdProduct=${IdProduct}&IdOrder=${IdOrder}`
+            );
+            const { success, data, error } = response.data;
+
+            return makeResult(success, data, error);
+        } catch (err: any) {
+            return makeResult(false, {} as RatingResponse, err.response?.data || 'Falha ao buscar avaliação.');
+        }
+    },
+
 };

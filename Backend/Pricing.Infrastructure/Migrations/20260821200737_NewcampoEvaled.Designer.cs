@@ -4,6 +4,7 @@ using Mercado.Craibas.Infrastructure.Data.Context;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace Mercado.Craibas.Infrastructure.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260821200737_NewcampoEvaled")]
+    partial class NewcampoEvaled
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -661,9 +664,6 @@ namespace Mercado.Craibas.Infrastructure.Migrations
                         .HasMaxLength(1000)
                         .HasColumnType("nvarchar(1000)");
 
-                    b.Property<int>("Id_Order")
-                        .HasColumnType("int");
-
                     b.Property<int>("Id_Product")
                         .HasColumnType("int");
 
@@ -676,18 +676,8 @@ namespace Mercado.Craibas.Infrastructure.Migrations
                     b.Property<bool?>("Isdelete")
                         .HasColumnType("bit");
 
-                    b.Property<string>("Media")
-                        .HasMaxLength(2000)
-                        .HasColumnType("nvarchar(2000)");
-
-                    b.Property<int?>("OrderId")
-                        .HasColumnType("int");
-
                     b.Property<int>("Ranting")
                         .HasColumnType("int");
-
-                    b.Property<bool>("Recommend")
-                        .HasColumnType("bit");
 
                     b.Property<DateTime?>("UpdateDate")
                         .HasColumnType("datetime2");
@@ -697,8 +687,6 @@ namespace Mercado.Craibas.Infrastructure.Migrations
                     b.HasIndex("Id_Product");
 
                     b.HasIndex("Id_User_Customer");
-
-                    b.HasIndex("OrderId");
 
                     b.ToTable("Rating", (string)null);
                 });
@@ -1359,12 +1347,6 @@ namespace Mercado.Craibas.Infrastructure.Migrations
                         .HasForeignKey("Id_User_Customer")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
-
-                    b.HasOne("Baldan.Pricing.Application.Domain.Entities.Orders", "Order")
-                        .WithMany()
-                        .HasForeignKey("OrderId");
-
-                    b.Navigation("Order");
 
                     b.Navigation("Product");
 

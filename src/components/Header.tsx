@@ -12,7 +12,6 @@ import { UseUserStore } from '../store/UseUserStore';
 import { UseOrderStore } from '../store/UseOrderStore';
 import { useNotification } from '../utils/NotificationCard';
 import { buildClientNotifications } from '../models/ClientNotification';
-import { UseClientNotificationStore } from '../store/UseClientNotificationStore';
 import { UseNotificationAdmin } from '../storeAdmin/UseNotificationAdmin';
 export default function Header() {
   const navigate = useNavigate();
@@ -30,7 +29,6 @@ export default function Header() {
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const count = cartCount();
   const notify = useNotification();
-  const { readByUser } = UseClientNotificationStore();
   const unreadNotifications = Notification.filter(item => item.isRead === false).length;
 
   const wishCount = wishlist.length;

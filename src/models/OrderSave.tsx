@@ -50,3 +50,18 @@ export interface SendMessageViaWhatsAppResponse {
     number_Order: string;
     nome_Cliente: string;
 }
+export interface RatingResponse {
+    id: number;
+    id_Product: number;
+    id_Order: number;
+    id_user_Customer: number;
+    ranting: number;
+    comment: string;
+    media: string;
+    recommend: boolean;
+    insertDate?: Date;
+    updateDate?: Date;
+    isDelete: boolean;
+    product: Product;
+    numberOrder: string;
+}

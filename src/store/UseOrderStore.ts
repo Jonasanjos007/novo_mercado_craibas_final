@@ -5,11 +5,12 @@ import { User } from "../models/User";
 import { Category, Product } from "../models/Product";
 import { OrderService } from "../service/OrderService";
 import { Cupom } from "../models/Cupom";
-import { Order, OrderSave } from "../models/OrderSave";
+import { Order, OrderSave, RatingResponse } from "../models/OrderSave";
 import { UseUserStore } from "./UseUserStore";
 import { CartItensProduct } from "../models/CartItensProduct";
 import { UseCartStore } from "./UseCartStore";
 import { OrderServiceAdmin } from "../adminService/OrderServiceAdmin";
+import { UseProductStore } from "./UseProductStore";
 
 interface OrderState {
     LoadCupons: () => Promise<Result<boolean>>;
@@ -19,6 +20,10 @@ interface OrderState {
     SaveOrderUser: (Order: OrderSave) => Promise<Result<CartItensProduct | null>>;
     LoadOrders: () => Promise<Result<boolean>>;
     LoadCategory: () => Promise<Result<boolean>>;
+    PostRating: (formData: FormData) => Promise<Result<boolean>>;
+    GetRating: (IdProduct: number, IdOrder: number) => Promise<Result<RatingResponse>>;
+
+
 }
 
 export const UseOrderStore = create<OrderState>((set, get) => ({
@@ -78,6 +83,24 @@ export const UseOrderStore = create<OrderState>((set, get) => ({
         }
         set({ Category: result.data || [] as Category[] });
         return makeResult(true, true);
+    },
+    PostRating: async (formData: FormData): Promise<Result<boolean>> => {
+        const result = await OrderService.PostSaveAssessment(formData);
+        if (!result.success) {
+            return makeResult(false, false, result.error);
+        }
+        get().LoadOrders();
+        UseProductStore.getState().loadProducts();
+        return makeResult(true, true);
+    },
+    GetRating: async (IdProduct: number, IdOrder: number): Promise<Result<RatingResponse>> => {
+        const result = await OrderService.GetAssessment(IdProduct, IdOrder);
+        if (!result.success) {
+            return makeResult(false, {} as RatingResponse, result.error);
+        }
+        get().LoadOrders();
+
+        return makeResult(true, result.data);
     },
 
 }));

@@ -2,6 +2,7 @@ using backend.services.interfaces;
 using Backend.Services.Interfaces;
 using Baldan.Pricing.Application.Commons;
 using Mercado.Craibas.Application.DTOs.Requests;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Pricing.Api.Extensions;
 using System.Security.Claims;
@@ -37,6 +38,25 @@ public class OrderController : ControllerBase
 
         return result.ToActionResult();
     }
+    [Authorize]
+    [HttpPost("PostSaveAssessment")]
+    public async Task<IActionResult> PostSaveAssessment ([FromForm] ProductReviewrequest ProductReview)
+    {
+        var Id_User = User.GetUserId();
+        var result = await _service.PostUpdateAssessment(Id_User,ProductReview);
 
+        return result.ToActionResult();
+    }
+    [Authorize]
+    [HttpPost("GetAssessment")]
+    public async Task<IActionResult> GetAssessment(
+    [FromQuery] int IdProduct,
+    [FromQuery] int IdOrder)
+    {
+        var Id_User = User.GetUserId();
+        var result = await _service.GetAssessment(Id_User, IdProduct, IdOrder);
+
+        return result.ToActionResult();
+    }
 
 }

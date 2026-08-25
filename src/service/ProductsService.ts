@@ -1,6 +1,6 @@
 import { api } from "../config/api";
 import { CartItensProduct } from "../models/CartItensProduct";
-import { Product } from "../models/Product";
+import { Product, RantingAllProduct } from "../models/Product";
 import { makeResult, Result } from "../utils/Result";
 
 export const ProductsService = {
@@ -70,4 +70,16 @@ export const ProductsService = {
             return makeResult(false, { success: false, error: "Falha na comunicação" }, err.response?.data);
         }
     },
+    GetAssessmentAllProduct: async (IdProduct: number): Promise<Result<RantingAllProduct[]>> => {
+        try {
+            const response = await api.get(`/v1/product/GetAllRantingProduct/${IdProduct}`);
+
+            const { success, data, error } = response.data;
+
+            return makeResult(success, data, error);
+        } catch (err: any) {
+            return makeResult(false, [] as RantingAllProduct[], err.response?.data || 'Falha ao buscar avaliação.');
+        }
+    },
+
 }

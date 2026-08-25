@@ -9,6 +9,7 @@ import { UseCartStore } from '../store/UseCartStore';
 import { UseProductStore } from '../store/UseProductStore';
 import { UseRouteStore } from '../store/UseRouteStore';
 import { UseOrderStore } from '../store/UseOrderStore';
+import { RantingAllProduct } from '../models/Product';
 
 type ProductControllerReturn = {
     result: {
@@ -18,16 +19,21 @@ type ProductControllerReturn = {
         variationTypes: any[];
         related: any[];
         variationError?: boolean;
+        tab: string;
+        RantingAllProduct: RantingAllProduct[];
     };
     action: {
         handleAddToCart: (quantity: number, selectedVariations: Record<string, string>) => void;
         handleFinishbuy: (quantity: number, selectedVariations: Record<string, string>) => void;
+        SearchProductReviews: (Id_Product: number) => void;
+        setTab: React.Dispatch<React.SetStateAction<'desc' | 'reviews'>>;
+
     }
 } | null;
 export const useProductController = (): ProductControllerReturn => {
     const { setCartOpen } = UseCartStore();
     const { selectedProductId, ShowProduct } = UseRouteStore();
-    const { loadProducts } = UseProductStore();
+    const { loadProducts, GetRantingAllProduct } = UseProductStore();
     const { addToCart, LoadCartUser } = UseCartStore();
     const { LoadCategory } = UseOrderStore();
     const { user } = UseUserStore();
@@ -36,7 +42,9 @@ export const useProductController = (): ProductControllerReturn => {
     const notify = useNotification();
     const { products } = UseProductStore();
     const [variationError, setVariationError] = useState(false);
-
+    const [RantingAllProduct, setRantingAllProducte] = useState<RantingAllProduct[]>([]);
+    const [tab, setTab] = useState<'desc' | 'reviews'>('desc');
+    console.log('RantingAllProduct', RantingAllProduct)
     useEffect(() => {
         const Response = async () => {
             const result = await loadProducts();
@@ -132,6 +140,17 @@ export const useProductController = (): ProductControllerReturn => {
         setCartOpen(true);
         return true;
     };
+    const SearchProductReviews = async (Id_Product: number) => {
+
+        const result = await GetRantingAllProduct(Id_Product);
+
+        if (!result.success) {
+            notify.error(result.error?.error.code || "Erro", result.error?.error.message || "Não foi possível buscar as Avaliações do produto.");
+            return false;
+        }
+        setRantingAllProducte(result.data ?? []);
+        return true;
+    };
 
     const fakeReviews = [
         { name: 'Ana Lima', rating: 5, date: '12/03/2026', text: 'Produto incrível! Chegou rápido e é exatamente como descrito. Super recomendo!' },
@@ -144,13 +163,17 @@ export const useProductController = (): ProductControllerReturn => {
             discount: discount,
             variationTypes: variationTypes,
             related: related,
-            variationError: variationError
+            variationError: variationError,
+            tab,
+            RantingAllProduct
 
 
         },
         action: {
             handleAddToCart,
-            handleFinishbuy
+            handleFinishbuy,
+            setTab,
+            SearchProductReviews
         }
     }
 };

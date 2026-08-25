@@ -131,7 +131,7 @@ export const ProductQuickView = ({ product, onClose, onViewFull }: ProductQuickV
                     <Star key={s} className={`w-3.5 h-3.5 ${s <= Math.floor(5) ? 'text-amber-400 fill-amber-400' : `${dk ? 'text-white/10 fill-white/10' : 'text-surface-200 fill-surface-200'}`}`} />
                   ))}
                 </div>
-                <span className={`font-display font-bold text-sm ${txt}`}>{product.count_Rating ?? 4.5}</span>
+                <span className={`font-display font-bold text-sm ${txt}`}>{product.rating ?? 4.5}</span>
                 <span className={`font-body text-xs ${sub}`}>({100})</span>
               </div>
             </div>
@@ -223,7 +223,7 @@ export const ProductQuickView = ({ product, onClose, onViewFull }: ProductQuickV
               {[
                 { label: 'Categoria', value: Category.find(c => c.id === product.id_category)?.category || "Sem categoria" },
                 { label: 'Estoque', value: `${product.total_Stock} unidades` },
-                { label: 'Avaliação', value: `${product.count_Rating}/5.0` },
+                { label: 'Avaliação', value: `${product.review_Count}/5.0` },
                 { label: 'Vendidos', value: product.count_Sold.toLocaleString() },
               ].map(info => (
                 <div key={info.label} className={`p-3 rounded-xl ${dk ? 'bg-white/[0.04]' : 'bg-white'}`}>

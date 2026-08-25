@@ -17,5 +17,7 @@ namespace Mercado.Craibas.Application.Interfaces.Services
         Task<Result<CartUserResponse>> GetProductCartList(int Id_Customer);
         Task<Result<bool>> PostCartItensUpdate(int Id, int Quantity, string Soma_Sub);
         Task<Result<bool>> DeleteProductCartList(int Id_Customer);
+        Task<Result<List<RatingAllProducts>>> GetAssessmentAllProduct(int IdProduct);
+
     }
 }

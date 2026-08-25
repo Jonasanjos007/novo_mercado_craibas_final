@@ -1,6 +1,6 @@
 import { Order } from './OrderSave';
 
-export type ClientNotificationKind = 'ORDER' | 'DELIVERY' | 'PAYMENT' | 'READ';
+export type ClientNotificationKind = 'ORDER' | 'DELIVERY' | 'PAYMENT' | 'READ' | 'ASSESSMENT';
 
 export type ClientNotificationItem = {
   id: string;

@@ -20,7 +20,10 @@ import {
   FolderTree, Activity, ListFilter, CalendarDays, ShieldAlert,
   Palette,
   MessageCircle,
-  CircleX
+  CircleX,
+  LogIn,
+  TicketCheck,
+  RefreshCcw, Star, Pencil, TicketX, PlusCircle
 } from 'lucide-react';
 import { useStore } from '../context/store';
 import { formatPrice, orderStatusLabels, orderStatusLabelsAtualize, orderStatusColors, categoryLabels, badgeLabels, badgeLabel, cupomStatusLabels } from '../utils';
@@ -4129,35 +4132,108 @@ export default function AdminPage() {
 
               <div className="space-y-3">
                 {filteredLogs.map(item => {
-                  const level = item.nivel?.toUpperCase() || 'SISTEMA';
-                  const levelConfig =
-                    level === 'ADMIN'
-                      ? {
-                        text: 'text-amber-400',
-                        bg: 'bg-amber-500/10',
-                        border: 'border-amber-500/20',
-                        bar: 'bg-amber-500',
-                        icon: ShieldAlert,
-                        label: 'Ação administrativa',
-                      }
-                      : level === 'CLIENTE'
-                        ? {
-                          text: 'text-blue-400',
-                          bg: 'bg-blue-500/10',
-                          border: 'border-blue-500/20',
-                          bar: 'bg-blue-500',
-                          icon: User,
-                          label: 'Ação de cliente',
-                        }
-                        : {
-                          text: 'text-violet-400',
-                          bg: 'bg-violet-500/10',
-                          border: 'border-violet-500/20',
-                          bar: 'bg-violet-500',
-                          icon: Activity,
-                          label: 'Evento de sistema',
-                        };
+                  const level = item.tipo?.toUpperCase() || 'SISTEMA';
 
+                  const configs: Record<string, {
+                    text: string;
+                    bg: string;
+                    border: string;
+                    bar: string;
+                    icon: React.ElementType;
+                    label: string;
+                  }> = {
+                    "ACESSO": {
+                      text: "text-blue-400",
+                      bg: "bg-blue-500/10",
+                      border: "border-blue-500/20",
+                      bar: "bg-blue-500",
+                      icon: LogIn,
+                      label: "Acesso ao sistema",
+                    },
+
+                    "ATIVAÇÃO CUPOM": {
+                      text: "text-emerald-400",
+                      bg: "bg-emerald-500/10",
+                      border: "border-emerald-500/20",
+                      bar: "bg-emerald-500",
+                      icon: TicketCheck,
+                      label: "Ativação de cupom",
+                    },
+
+                    "ATUALIZAR STATUS": {
+                      text: "text-cyan-400",
+                      bg: "bg-cyan-500/10",
+                      border: "border-cyan-500/20",
+                      bar: "bg-cyan-500",
+                      icon: RefreshCcw,
+                      label: "Atualização de status",
+                    },
+
+                    "AVALIAÇÃO PRODUTO": {
+                      text: "text-yellow-400",
+                      bg: "bg-yellow-500/10",
+                      border: "border-yellow-500/20",
+                      bar: "bg-yellow-500",
+                      icon: Star,
+                      label: "Avaliação de produto",
+                    },
+
+                    "AVISOU O CLIENTE VIA WHATSAPP": {
+                      text: "text-green-400",
+                      bg: "bg-green-500/10",
+                      border: "border-green-500/20",
+                      bar: "bg-green-500",
+                      icon: MessageCircle,
+                      label: "Aviso via WhatsApp",
+                    },
+
+                    "EDIÇÃO": {
+                      text: "text-amber-400",
+                      bg: "bg-amber-500/10",
+                      border: "border-amber-500/20",
+                      bar: "bg-amber-500",
+                      icon: Pencil,
+                      label: "Edição de registro",
+                    },
+
+                    "EXCLUSÃO": {
+                      text: "text-red-400",
+                      bg: "bg-red-500/10",
+                      border: "border-red-500/20",
+                      bar: "bg-red-500",
+                      icon: Trash2,
+                      label: "Exclusão de registro",
+                    },
+
+                    "EXCLUSÃO CUPOM": {
+                      text: "text-rose-400",
+                      bg: "bg-rose-500/10",
+                      border: "border-rose-500/20",
+                      bar: "bg-rose-500",
+                      icon: TicketX,
+                      label: "Exclusão de cupom",
+                    },
+
+                    "NOVO": {
+                      text: "text-violet-400",
+                      bg: "bg-violet-500/10",
+                      border: "border-violet-500/20",
+                      bar: "bg-violet-500",
+                      icon: PlusCircle,
+                      label: "Novo registro",
+                    },
+
+                    "SISTEMA": {
+                      text: "text-zinc-400",
+                      bg: "bg-zinc-500/10",
+                      border: "border-zinc-500/20",
+                      bar: "bg-zinc-500",
+                      icon: Activity,
+                      label: "Evento do sistema",
+                    },
+                  };
+
+                  const levelConfig = configs[level] ?? configs["SISTEMA"];
                   const date = new Date(item.insertDate);
                   const hasDate = !Number.isNaN(date.getTime());
 

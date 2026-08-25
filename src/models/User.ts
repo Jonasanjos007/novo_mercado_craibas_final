@@ -43,3 +43,8 @@ export type AdminProfileData = {
     avatarFile?: File | null;
     tema: boolean;
 };
+export interface UserRanting {
+    name: string;
+    avatar: string;
+    role: string;
+};
