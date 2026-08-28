@@ -32,9 +32,7 @@ public class AuthService : IAuthService
 
     public async Task<Result<LoginResponse>> LoginAsync(LoginRequest request)
     {
-        var passwordHash = BCrypt.Net.BCrypt.HashPassword(request.Password);
-
-        var User = new UserResponse();
+        var User = null as UserResponse;
 
         var User_Costumer = await _authRepository.GetByEmailAsyncCustomer(request.Email);
 
@@ -139,7 +137,7 @@ public class AuthService : IAuthService
         var refreshTokenExpiresAt = DateTime.UtcNow.AddDays(20);
 
         var userId = User.Id;
-        await _authRepository.UpdateRefreshTokenAsync(userId, refreshToken, refreshTokenExpiresAt);
+        await _authRepository.UpdateRefreshTokenAsync(userId, User.Role, refreshToken, refreshTokenExpiresAt);
 
         await _unitOfWork.CommitAsync();
 
@@ -147,12 +145,18 @@ public class AuthService : IAuthService
         {
             AccessToken = accessToken,
             RefreshToken = refreshToken,
+            RefreshTokenExpiresAt = refreshTokenExpiresAt,
             Role = User.Role
         });
     }
 
     public async Task<Result<LoginResponse>> RefreshAsync(string refreshToken)
     {
+        if (string.IsNullOrWhiteSpace(refreshToken))
+        {
+            return Result<LoginResponse>.Failure(AuthErrors.InvalidRefreshToken);
+        }
+
         var user = await _authRepository.GetByRefreshTokenAsync(refreshToken);
 
         if (user == null)
@@ -161,7 +165,7 @@ public class AuthService : IAuthService
         }
 
         // Verifica se o Refresh Token expirou
-        if (user.RefreshTokenExpiresAt <= DateTime.UtcNow)
+        if (!user.RefreshTokenExpiresAt.HasValue || user.RefreshTokenExpiresAt.Value <= DateTime.UtcNow)
         {
             return Result<LoginResponse>.Failure(AuthErrors.InvalidRefreshToken);
         }
@@ -173,10 +177,11 @@ public class AuthService : IAuthService
 
         var newRefreshToken = _tokenService.GenerateRefreshToken();
 
-        var newExpiresAt = DateTime.UtcNow.AddMinutes(60);
+        var newExpiresAt = DateTime.UtcNow.AddDays(20);
 
         await _authRepository.UpdateRefreshTokenAsync(
             user.Id,
+            user.Role,
             newRefreshToken,
             newExpiresAt);
 
@@ -186,8 +191,20 @@ public class AuthService : IAuthService
         {
             AccessToken = accessToken,
             RefreshToken = newRefreshToken,
+            RefreshTokenExpiresAt = newExpiresAt,
             Role = user.Role
         });
+    }
+
+    public async Task<Result> LogoutAsync(string refreshToken)
+    {
+        if (!string.IsNullOrWhiteSpace(refreshToken))
+        {
+            await _authRepository.ClearRefreshTokenAsync(refreshToken);
+            await _unitOfWork.CommitAsync();
+        }
+
+        return Result.Success();
     }
 }
 

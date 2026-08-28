@@ -1,65 +1,129 @@
 import { create } from 'zustand';
-import { persist } from 'zustand/middleware';
-import { Tokens } from '../models/Tokens';
-import { api } from '../config/api';
+import { api, refreshAccessToken } from '../config/api';
+import {
+  clearBrowserUserData,
+  clearStoredTokens,
+  getStoredAccessToken,
+  setStoredAccessToken,
+} from '../config/authStorage';
+import { UseUserStore } from '../store/UseUserStore';
 
 interface AuthState {
-  tokens: Tokens | null;
+  accessToken: string | null;
   isAuthenticated: boolean;
   isReady: boolean;
 
-  setTokens: (tokens: Tokens) => void;
-  logout: () => void;
-  init: () => void;
+  setAccessToken: (token: string) => void;
+  clearAccessToken: () => void;
+  init: () => Promise<void>;
+  logout: () => Promise<void>;
 }
 
-export const useAuthStore = create<AuthState>()(
-  persist(
-    (set, get) => ({
-      tokens: null,
+export const useAuthStore = create<AuthState>((set) => ({
+  accessToken: null,
+  isAuthenticated: false,
+  isReady: false,
+
+  setAccessToken: (token: string) => {
+    setStoredAccessToken(token);
+
+    api.defaults.headers.common.Authorization =
+      `Bearer ${token}`;
+
+    set({
+      accessToken: token,
+      isAuthenticated: true,
+    });
+  },
+
+  clearAccessToken: () => {
+    clearStoredTokens();
+    delete api.defaults.headers.common.Authorization;
+
+    set({
+      accessToken: null,
       isAuthenticated: false,
-      isReady: false,
+    });
+  },
 
-      init: () => {
-        const tokens = get().tokens;
+  init: async () => {
+    const storedAccessToken = getStoredAccessToken();
 
-        if (tokens?.accessToken) {
-          api.defaults.headers.common.Authorization =
-            `Bearer ${tokens.accessToken}`;
-        }
+    if (storedAccessToken) {
+      api.defaults.headers.common.Authorization =
+        `Bearer ${storedAccessToken}`;
 
-        set({ isReady: true, isAuthenticated: !!tokens });
-      },
+      set({
+        accessToken: storedAccessToken,
+        isAuthenticated: true,
+        isReady: true,
+      });
 
-      setTokens: (tokens) => {
-        localStorage.setItem('@app:tokens', JSON.stringify(tokens));
-
-        api.defaults.headers.common.Authorization =
-          `Bearer ${tokens.accessToken}`;
-
-        set({
-          tokens,
-          isAuthenticated: true,
-        });
-      },
-
-      logout: () => {
-        localStorage.removeItem('@app:tokens');
-        localStorage.removeItem('@app:user');
-
-        delete api.defaults.headers.common.Authorization;
-
-        set({
-          tokens: null,
-          isAuthenticated: false,
-        });
-      },
-    }),
-    {
-      name: '@auth-storage',
-      partialize: (state) => ({
-        tokens: state.tokens,
-      }),
+      return;
     }
-  )
-);
+
+    try {
+      /**
+       * Se o accessToken local foi removido mas o cookie HttpOnly ainda existe,
+       * recupera um novo accessToken sem expor o refreshToken ao JavaScript.
+       */
+      const accessToken = await refreshAccessToken();
+
+      set({
+        accessToken,
+        isAuthenticated: true,
+        isReady: true,
+      });
+
+    } catch {
+      delete api.defaults.headers.common.Authorization;
+      UseUserStore.getState().logout();
+      clearBrowserUserData();
+
+      set({
+        accessToken: null,
+        isAuthenticated: false,
+        isReady: true,
+      });
+    }
+  },
+
+  logout: async () => {
+    delete api.defaults.headers.common.Authorization;
+    UseUserStore.getState().logout();
+    clearBrowserUserData();
+
+    set({
+      accessToken: null,
+      isAuthenticated: false,
+      isReady: true,
+    });
+
+    try {
+      /**
+       * Backend deve apagar/revogar
+       * o refreshToken HttpOnly.
+       */
+      await api.post(
+        '/v1/auth/logout',
+        {}
+      );
+    } catch (error) {
+      console.error(
+        'Erro ao realizar logout:',
+        error
+      );
+    } finally {
+
+      delete api.defaults.headers.common.Authorization;
+      UseUserStore.getState().logout();
+      clearBrowserUserData();
+
+      set({
+        accessToken: null,
+        isAuthenticated: false,
+        isReady: true,
+      });
+    }
+  },
+}));

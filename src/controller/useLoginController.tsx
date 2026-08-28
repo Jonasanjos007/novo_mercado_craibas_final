@@ -9,7 +9,7 @@ import { AuthService } from '../service/AuthService';
 import { UseUserStore } from '../store/UseUserStore';
 
 export const useLoginController = () => {
-    const { saveUser, logout } = UseUserStore();
+    const { saveUser } = UseUserStore();
     const userContext = useUser();
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
@@ -78,7 +78,7 @@ export const useLoginController = () => {
 
         const finalResult = await (await loginUser(email, password))
             .chain(async (tokens) => {
-                useAuthStore.getState().setTokens(tokens);
+                useAuthStore.getState().setAccessToken(tokens.accessToken || ' ');
                 return await getUser(tokens.role || ' ');
             });
         finalResult.fold(
@@ -106,7 +106,7 @@ export const useLoginController = () => {
         setLoading(false);
     };
     const cleanUserData = () => {
-        logout();
+        useAuthStore.getState().logout();
     };
     return {
         action: {

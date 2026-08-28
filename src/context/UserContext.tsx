@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState } from 'react';
 import { User } from '../models/User';
+import { clearBrowserUserData } from '../config/authStorage';
 
 interface UserContextData {
     user: User | null;
@@ -23,8 +24,7 @@ export const UserProvider = ({ children }: { children: React.ReactNode }) => {
     };
 
     const clearUser = () => {
-        localStorage.removeItem('@app:user');
-        localStorage.removeItem('@app:tokens');
+        clearBrowserUserData();
         setUser(null);
     };
 

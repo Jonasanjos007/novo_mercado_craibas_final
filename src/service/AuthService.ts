@@ -9,29 +9,37 @@ export const AuthService = {
     ): Promise<Result<TokenResponse>> => {
         try {
             const { data } = await api.post<Result<TokenResponse>>(
-                "/v1/auth/login", { email, password }
+                "/v1/auth/login",
+                {
+                    email,
+                    password
+                },
+                {
+                    withCredentials: true
+                }
             );
-            console.log("jonass", data);
-            if (!data.success) {
-                return makeResult(false, {} as TokenResponse, data.error);
+
+            if (!data.success || !data.data?.accessToken) {
+                return makeResult(
+                    false,
+                    {} as TokenResponse,
+                    data.error
+                );
             }
 
-            // Salva os tokens
-            localStorage.setItem(
-                "@app:tokens",
-                JSON.stringify({
-                    accessToken: data.data?.accessToken,
-                    refreshToken: data.data?.refreshToken,
-                })
+            return makeResult(
+                true,
+                data.data,
+                data.error
             );
 
-            return makeResult(data.success, data.data, data.error);
         } catch (err: any) {
-            console.log(err)
-            console.log(err.response);
-            console.log(err.response?.data);
+            console.error("Erro login:", err);
+
             return makeResult(
-                false, {} as TokenResponse, err.response?.data
+                false,
+                {} as TokenResponse,
+                err.response?.data
             );
         }
     },
