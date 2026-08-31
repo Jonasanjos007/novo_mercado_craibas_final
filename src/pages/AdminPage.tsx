@@ -53,6 +53,7 @@ import AdminProfileEditor from '../components/AdminProfileEditor';
 import { UseUserAdminStore } from '../storeAdmin/UseUserAdminStore';
 import AdminNotificationsPage, { AdminNotificationItem } from '../components/AdminNotificationsPage';
 import { UseNotificationAdmin } from '../storeAdmin/UseNotificationAdmin';
+import { useAuthStore } from '../context/AuthContext';
 
 
 
@@ -73,7 +74,8 @@ export default function AdminPage() {
   const Controller = useAdminController();
   const { ordersAdmin, logs, Category, LoadLogsAdmin } = UseOrderAdminStore();
   const { PostEditeTemaAdmin } = UseUserAdminStore();
-  const { user, logout, updateUser } = UseUserStore();
+  const { user, updateUser } = UseUserStore();
+  const logout = useAuthStore((state) => state.logout);
   console.log("User", user);
   const { products } = UseProductAdminStore();
   const { orders } = UseOrderStore();

@@ -8,8 +8,8 @@ export enum UserRole {
 }
 
 export const RoleRoutes = {
-    [UserRole.ADMIN]: { base: '/adm', home: '/dashboard' },
-    [UserRole.CLIENTE]: { base: '/cliente', home: '/dashboard' },
+    [UserRole.ADMIN]: { base: '/', home: '/' },
+    [UserRole.CLIENTE]: { base: '/', home: '/' },
     [UserRole.ENTREGADOR]: { base: '/entregador', home: '/coletas' },
 };
 

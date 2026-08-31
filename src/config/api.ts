@@ -1,31 +1,56 @@
-
-import axios from "axios";
-import { Tokens } from "../models/Tokens";
-import { makeResult, Result } from "../utils/Result";
-import { TokenResponse } from "../models/TokenResponse";
-import { UsuarioResponse } from "../models/UsuarioResponse";
-import { User } from "../models/User";
-import { Product } from "../models/Product";
-import { CartItensProduct } from "../models/CartItensProduct";
-import { Address } from "../models/Address";
+import axios, { AxiosError, InternalAxiosRequestConfig } from "axios";
 import { useSessionStore } from "../store/SessionStore";
 import { UseUserStore } from "../store/UseUserStore";
+import {
+    clearBrowserUserData,
+    getStoredAccessToken,
+    setStoredAccessToken,
+} from "./authStorage";
 
-const baseURL = "https://api.mavihstudio.com.br/api";
+const baseURL = "http://192.168.0.100:5022/api";
 
 export const api = axios.create({
     baseURL,
-    headers: { "Content-Type": "application/json" },
+    withCredentials: true,
+    headers: {
+        "Content-Type": "application/json",
+    },
 });
 
-let isRefreshing = false;
-let failedQueue: any[] = [];
+/**
+ * Axios separado exclusivamente para refresh.
+ *
+ * Isso evita que o interceptor principal interfira
+ * na própria requisição de refresh.
+ */
+const refreshApi = axios.create({
+    baseURL,
+    withCredentials: true,
+    headers: {
+        "Content-Type": "application/json",
+    },
+});
 
-const processQueue = (error: any, token: string | null = null) => {
+interface CustomAxiosRequestConfig extends InternalAxiosRequestConfig {
+    _retry?: boolean;
+}
+
+interface QueueItem {
+    resolve: (token: string) => void;
+    reject: (error: unknown) => void;
+}
+
+let isRefreshing = false;
+let failedQueue: QueueItem[] = [];
+
+const processQueue = (
+    error: unknown,
+    token: string | null = null
+) => {
     failedQueue.forEach((prom) => {
         if (error) {
             prom.reject(error);
-        } else {
+        } else if (token) {
             prom.resolve(token);
         }
     });
@@ -33,167 +58,159 @@ const processQueue = (error: any, token: string | null = null) => {
     failedQueue = [];
 };
 
-api.interceptors.request.use((config) => {
-    const stored = localStorage.getItem("@app:tokens");
+const logout = () => {
+    delete api.defaults.headers.common.Authorization;
+    useSessionStore.getState().setAccessToken(null);
 
-    if (stored) {
-        const tokens: Tokens = JSON.parse(stored);
+    UseUserStore.getState().logout();
+    clearBrowserUserData();
 
-        config.headers = config.headers ?? {};
-        config.headers.Authorization = `Bearer ${tokens.accessToken}`;
+    useSessionStore.getState().open();
+};
+
+export const refreshAccessToken = async (): Promise<string> => {
+    const response = await refreshApi.post(
+        "/v1/auth/refresh",
+        {}
+    );
+
+    const accessToken = response.data?.data?.accessToken;
+
+    if (!accessToken) {
+        throw new Error("Access token não retornado.");
     }
 
-    return config;
-});
+    setStoredAccessToken(accessToken);
+    useSessionStore.getState().setAccessToken(accessToken);
 
+    api.defaults.headers.common.Authorization =
+        `Bearer ${accessToken}`;
+
+    return accessToken;
+};
+
+/**
+ * REQUEST
+ */
+api.interceptors.request.use(
+    (config) => {
+        const accessToken = getStoredAccessToken();
+
+        if (!accessToken) {
+            delete config.headers.Authorization;
+            return config;
+        }
+
+        config.headers.Authorization =
+            `Bearer ${accessToken}`;
+
+        return config;
+    },
+    (error) => {
+        return Promise.reject(error);
+    }
+);
+
+/**
+ * RESPONSE
+ */
 api.interceptors.response.use(
     (response) => response,
-    async (error) => {
 
-        const originalRequest = error.config;
+    async (error: AxiosError) => {
 
-        if (originalRequest.url?.includes("/auth/refresh")) {
-            UseUserStore.getState().logout();
-            localStorage.removeItem("@app:tokens");
-            useSessionStore.getState().open();
+        const originalRequest =
+            error.config as CustomAxiosRequestConfig;
+
+        if (!originalRequest) {
             return Promise.reject(error);
         }
 
-        if (error.response?.status === 401 && !originalRequest._retry) {
-            originalRequest._retry = true;
+        const isRefreshRequest =
+            originalRequest.url?.includes("/v1/auth/refresh");
 
-            const stored = localStorage.getItem("@app:tokens");
-            if (!stored) return Promise.reject(error);
-
-            const tokens: Tokens = JSON.parse(stored);
-
-            if (isRefreshing) {
-                return new Promise((resolve, reject) => {
-                    failedQueue.push({
-                        resolve: (token: string) => {
-                            originalRequest.headers.Authorization = `Bearer ${token}`;
-                            resolve(api(originalRequest));
-                        },
-                        reject,
-                    });
-                });
-            }
-
-            isRefreshing = true;
-
-            try {
-                const response = await api.post("/v1/auth/refresh", {
-                    refreshToken: tokens.refreshToken,
-                });
-
-                const newTokens: Tokens = {
-                    accessToken: response.data.data.accessToken,
-                    refreshToken: response.data.data.refreshToken,
-                };
-
-                localStorage.setItem("@app:tokens", JSON.stringify(newTokens));
-
-                api.defaults.headers.common.Authorization =
-                    `Bearer ${newTokens.accessToken}`;
-
-                processQueue(null, newTokens.accessToken);
-
-                originalRequest.headers.Authorization =
-                    `Bearer ${newTokens.accessToken}`;
-
-                return api(originalRequest);
-            } catch (err) {
-                console.log("Erro ao atualizar token:", err);
-                processQueue(err, null);
-                localStorage.removeItem("@app:tokens");
-                useSessionStore.getState().open();
-                return Promise.reject(err);
-            } finally {
-                isRefreshing = false;
-            }
+        /**
+         * Só tenta refresh quando realmente for 401
+         */
+        if (
+            error.response?.status !== 401 ||
+            originalRequest._retry ||
+            isRefreshRequest
+        ) {
+            return Promise.reject(error);
         }
 
-        return Promise.reject(error);
-    },
+        originalRequest._retry = true;
+
+        /**
+         * Se já existe um refresh acontecendo,
+         * espera ele terminar.
+         */
+        if (isRefreshing) {
+
+            return new Promise<string>((resolve, reject) => {
+
+                failedQueue.push({
+                    resolve,
+                    reject,
+                });
+
+            }).then((newAccessToken) => {
+
+                originalRequest.headers.Authorization =
+                    `Bearer ${newAccessToken}`;
+
+                return api(originalRequest);
+            });
+        }
+
+        isRefreshing = true;
+
+        try {
+
+            const newAccessToken = await refreshAccessToken();
+
+            /**
+             * Libera todas as requisições
+             * que estavam esperando.
+             */
+            processQueue(
+                null,
+                newAccessToken
+            );
+
+            /**
+             * Atualiza requisição que causou
+             * originalmente o 401.
+             */
+            originalRequest.headers.Authorization =
+                `Bearer ${newAccessToken}`;
+
+            /**
+             * Refaz a requisição.
+             */
+            return api(originalRequest);
+
+        } catch (refreshError) {
+
+            console.error(
+                "Erro ao atualizar token:",
+                refreshError
+            );
+
+            processQueue(
+                refreshError,
+                null
+            );
+
+            logout();
+
+            return Promise.reject(refreshError);
+
+        } finally {
+
+            isRefreshing = false;
+
+        }
+    }
 );
-
-// export const ApiService = {
-//     //   getDashboardData: async (
-//     //     pageNumber: number,
-//     //     pageSize: number,
-//     //     filters: DashboardFilters
-//     //   ): Promise<Result<PagedResult<SurveyEntry>>> => {
-//     //     try {
-//     //       const payload = {
-//     //         periodStatus: filters.PeriodStatus ?? null,
-//     //         entryStatus: filters.EntryStatus ?? null,
-//     //         vertical: filters.vertical ?? null,
-//     //         period: filters.Period ?? null,
-//     //         search: filters.Search ?? null,
-//     //         pageSize,
-//     //         pageNumber
-//     //       };
-
-//     //       const { data } = await api.post("/dashboard", payload);
-
-//     //       if (data.success && data.data) {
-//     //         const mappedItems = data.data.items.map(
-//     //           (item: any) => new SurveyEntry(item)
-//     //         );
-
-//     //         const pagedResult: PagedResult<SurveyEntry> = {
-//     //           items: mappedItems,
-//     //           totalCount: data.data.totalCount,
-//     //           pageNumber: data.data.pageNumber,
-//     //           pageSize: data.data.pageSize
-//     //         };
-
-//     //         return makeResult(true, pagedResult);
-//     //       }
-
-//     //       return makeResult(false, undefined, data.error || "Erro ao carregar dashboard");
-
-//     //     } catch {
-//     //       return makeResult(false, undefined, "Erro de conexão");
-//     //     }
-//     //   },
-
-
-//     //   saveCollection: async (data: Partial<SurveyEntry>) => {
-//     //     if (data.id) {
-//     //       const res = await api.put(`/collections/${data.id}`, data);
-//     //       return res.data;
-//     //     }
-
-//     //     const res = await api.post("/collections", data);
-//     //     return res.data;
-//     //   },
-
-//     //   getCollectionByAssignmentId: async (assignmentId: string) => {
-//     //     const { data } = await api.get("/collections", {
-//     //       params: { assignmentId },
-//     //     });
-
-//     //     return data[0] || null;
-//     //   },
-
-//     //   getAssignmentById: async (id: string) => {
-//     //     const { data } = await api.get(`/collections/${id}`);
-//     //     return data;
-//     //   },
-
-
-
-
-
-
-
-
-
-
-
-//   refreshToken: async (refreshToken: string) => {
-//     const { data } = await api.post("/auth/refresh", { refreshToken });
-//     return data;
-//   },
-// };

@@ -40,9 +40,8 @@ import { UseOrderStore } from '../store/UseOrderStore';
 import { Order } from '../models/OrderSave';
 import { ProductSaveOrder } from '../models/Product';
 import ProductReviewModal from '../components/ProductReviewModal';
-import { UseProductStore } from '../store/UseProductStore';
-import ProductReviewDetailsModal from '../components/ProductReviewDetailsModal';
-type ProfileTab = 'overview' | 'orders' | 'wishlist' | 'addresses' | 'preferences' | 'settings';
+import { useAuthStore } from '../context/AuthContext';
+type ProfileTab = 'overview' | 'orders' | 'wishlist' | 'addresses' | 'security' | 'preferences' | 'settings';
 
 
 
@@ -57,7 +56,8 @@ export default function ProfilePage() {
   const { address } = UseAddressStore();
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [reviewTarget, setReviewTarget] = useState<{ product: ProductSaveOrder; order: Order } | null>(null);
-  const { updateProfile, user, logout, NameColorGlobal, ColorGlobalTema, ColorGlobalHover, ColorGlobalText, ColorGlobalHoverText } = UseUserStore();
+  const { updateUser, user, NameColorGlobal, ColorGlobalTema, ColorGlobalHover, ColorGlobalText, ColorGlobalHoverText } = UseUserStore();
+  const logout = useAuthStore((state) => state.logout);
   const [tab, setTab] = useState<ProfileTab>('overview');
   const [editing, setEditing] = useState(false);
   const [savingProfile, setSavingProfile] = useState(false);

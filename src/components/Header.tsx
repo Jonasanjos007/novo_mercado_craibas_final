@@ -13,6 +13,7 @@ import { UseOrderStore } from '../store/UseOrderStore';
 import { useNotification } from '../utils/NotificationCard';
 import { buildClientNotifications } from '../models/ClientNotification';
 import { UseNotificationAdmin } from '../storeAdmin/UseNotificationAdmin';
+import { useAuthStore } from '../context/AuthContext';
 export default function Header() {
   const navigate = useNavigate();
   const { searchQuery, setSearchQuery, wishlist } = useStore();
@@ -23,7 +24,8 @@ export default function Header() {
   const { Category } = UseOrderStore();
   const { navigatePages, Pages, selectedCategory } = UseRouteStore();
   const { cartCount } = UseCartStore();
-  const { user, logout, NameColorGlobal, ColorGlobalTema, ColorGlobalHover, ColorGlobalText, ColorGlobalHoverText } = UseUserStore();
+  const { user, NameColorGlobal, ColorGlobalTema, ColorGlobalHover, ColorGlobalText, ColorGlobalHoverText } = UseUserStore();
+  const logout = useAuthStore((state) => state.logout);
   const colorConfig = getColorConfig(NameColorGlobal);
   const [menuOpen, setMenuOpen] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);

@@ -1,5 +1,6 @@
 import { Routes, Route } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
+import { useEffect } from 'react';
 
 import HomePage from './pages/HomePage';
 import AuthPage from './pages/AuthPage';
@@ -25,11 +26,17 @@ import { ProtectedRoute } from './routes/ProtectedRoute';
 import { useSessionStore } from './store/SessionStore';
 import { ProductPage } from './pages/ProductPage';
 import NotificationsPage from './pages/NotificationsPage';
+import { useAuthStore } from './context/AuthContext';
 
 
 export default function App() {
 
   const { expired } = useSessionStore();
+  const initAuth = useAuthStore((state) => state.init);
+
+  useEffect(() => {
+    initAuth();
+  }, [initAuth]);
 
   return (
     <>

@@ -5,6 +5,7 @@ import { useStore } from '../context/store';
 import { useState } from 'react';
 import { UseUserStore } from '../store/UseUserStore';
 import { getColorConfig } from '../types/Colors';
+import { useAuthStore } from '../context/AuthContext';
 
 interface CheckoutHeaderProps {
     title?: string;
@@ -19,7 +20,8 @@ export default function Headerpages({
     onBack,
     showSecure = true,
 }: CheckoutHeaderProps) {
-    const { user, logout, ColorGlobalTema, NameColorGlobal, ColorGlobalHoverText } = UseUserStore();
+    const { user, ColorGlobalTema, NameColorGlobal, ColorGlobalHoverText } = UseUserStore();
+    const logout = useAuthStore((state) => state.logout);
     const navigate = useNavigate();
     const [userMenuOpen, setUserMenuOpen] = useState(false);
     const colorConfig = getColorConfig(NameColorGlobal);

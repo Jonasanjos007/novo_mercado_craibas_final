@@ -106,6 +106,7 @@ export const UseUserStore = create<UserState>()(persist((set, get) => ({
         set({ NameColorGlobal: "brand" })
         UseCartStore.getState().clearCart();
         UseRouteStore.getState().setPages("home");
+        clearBrowserUserData();
     },
     SaveColorGlobal: async (NameColorGlobal: string, UserId: number) => {
         if (!NameColorGlobal) {

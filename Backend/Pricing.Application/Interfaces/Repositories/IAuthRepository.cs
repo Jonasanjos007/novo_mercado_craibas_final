@@ -1,5 +1,6 @@
 ﻿using Baldan.Pricing.Application.Commons;
 using Baldan.Pricing.Application.Domain.Entities;
+using Baldan.Pricing.Application.Domain.Enums;
 using Pricing.Api.DTOs.Requests;
 using Pricing.Api.DTOs.Responses;
 using System;
@@ -19,8 +20,10 @@ namespace Baldan.Pricing.Application.Interfaces.Repositories
 
         Task<User_Delivery?> GetByEmailAsyncDelivery(string email);
 
-        Task<User_Customer?> GetByRefreshTokenAsync(string refreshToken);
+        Task<UserResponse?> GetByRefreshTokenAsync(string refreshToken);
 
-        Task UpdateRefreshTokenAsync(int userId,string refreshToken,DateTime expiresAt);
+        Task UpdateRefreshTokenAsync(int userId, ProfileEnum role, string refreshToken, DateTime expiresAt);
+
+        Task ClearRefreshTokenAsync(string refreshToken);
     }
 }
