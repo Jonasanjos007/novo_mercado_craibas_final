@@ -21,6 +21,7 @@ interface OrderState {
     LoadOrders: () => Promise<Result<boolean>>;
     LoadCategory: () => Promise<Result<boolean>>;
     PostRating: (formData: FormData) => Promise<Result<boolean>>;
+    PostEditeRating: (formData: FormData) => Promise<Result<boolean>>;
     GetRating: (IdProduct: number, IdOrder: number) => Promise<Result<RatingResponse>>;
 
 
@@ -86,6 +87,15 @@ export const UseOrderStore = create<OrderState>((set, get) => ({
     },
     PostRating: async (formData: FormData): Promise<Result<boolean>> => {
         const result = await OrderService.PostSaveAssessment(formData);
+        if (!result.success) {
+            return makeResult(false, false, result.error);
+        }
+        get().LoadOrders();
+        UseProductStore.getState().loadProducts();
+        return makeResult(true, true);
+    },
+    PostEditeRating: async (formData: FormData): Promise<Result<boolean>> => {
+        const result = await OrderService.PostEditeAssessment(formData);
         if (!result.success) {
             return makeResult(false, false, result.error);
         }

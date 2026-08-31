@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   User, Mail, Phone, MapPin, Edit3, Check, ArrowLeft, ShoppingBag,
   Heart, Star, Bell, Shield, CreditCard, Truck, Package, Globe,
@@ -13,13 +13,16 @@ import {
   X,
   CheckIcon,
   BadgePercent,
+  Sparkles,
+  Tag,
   ShoppingCart,
   TicketPercent,
+  Loader2,
 
 } from 'lucide-react';
 import { Calendar, Hash } from 'lucide-react';
 import { useStore } from '../context/store';
-import { formatPrice, orderStatusLabels, orderStatusColors, orderStatusSteps } from '../utils';
+import { badgeColors, badgeLabels, formatPrice, orderStatusLabels, orderStatusColors, orderStatusSteps } from '../utils';
 import { useNavigate } from 'react-router-dom';
 import ProfileCard from '../components/ProfileCard';
 import { Address } from '../models/Address';
@@ -37,26 +40,32 @@ import { UseOrderStore } from '../store/UseOrderStore';
 import { Order } from '../models/OrderSave';
 import { ProductSaveOrder } from '../models/Product';
 import ProductReviewModal from '../components/ProductReviewModal';
-type ProfileTab = 'overview' | 'orders' | 'wishlist' | 'addresses' | 'security' | 'preferences' | 'settings';
+import { UseProductStore } from '../store/UseProductStore';
+import ProductReviewDetailsModal from '../components/ProductReviewDetailsModal';
+type ProfileTab = 'overview' | 'orders' | 'wishlist' | 'addresses' | 'preferences' | 'settings';
 
 
 
 export default function ProfilePage() {
   const Controller = userProfileController();
-  const { orders } = UseOrderStore();
+  const { orders, Category, LoadCategory } = UseOrderStore();
   const navigate = useNavigate();
+  const { favorites, products, loadProducts, GetfavoriteAll, DeleteOneFavorite } = UseProductStore();
   const { wishlist } = useStore();
   const { navigateTo } = UseRouteStore();
   // const address = UseAddressStore((state) => state.address);
   const { address } = UseAddressStore();
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [reviewTarget, setReviewTarget] = useState<{ product: ProductSaveOrder; order: Order } | null>(null);
-  const { updateUser, user, logout, NameColorGlobal, ColorGlobalTema, ColorGlobalHover, ColorGlobalText, ColorGlobalHoverText } = UseUserStore();
+  const { updateProfile, user, logout, NameColorGlobal, ColorGlobalTema, ColorGlobalHover, ColorGlobalText, ColorGlobalHoverText } = UseUserStore();
   const [tab, setTab] = useState<ProfileTab>('overview');
   const [editing, setEditing] = useState(false);
+  const [savingProfile, setSavingProfile] = useState(false);
   const [showPhoto, setShowPhoto] = useState(false);
+  const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
   const notify = useNotification();
   const formRef = useRef<HTMLDivElement>(null);
+  const avatarInputRef = useRef<HTMLInputElement>(null);
   const [statusFilter, setStatusFilter] = useState("TODOS");
   console.log("User", user)
   const filteredOrders = statusFilter === "TODOS" ? orders : orders.filter(o => o.order_Status === statusFilter);
@@ -76,12 +85,8 @@ export default function ProfilePage() {
     newsletter: true,
     primaryColor: "#3b82f6",
   });
-  const [form, setForm] = useState({
-    name: user?.name || '',
-    email: user?.email || '',
-    phone: user?.phone || 0,
-    // bio: user?.bio || '',
-  });
+
+
 
   const [prefs, setPrefs] = useState({
     notifications: true,
@@ -91,13 +96,82 @@ export default function ProfilePage() {
 
   const userOrders = orders.filter(o => o.id_Order === user?.id || true).slice(0, 10);
   const totalSpent = userOrders.reduce((s, o) => s + o.total_Value_Order, 0);
-  const AVATAR_URL =
-    "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=800&h=280&fit=crop&crop=face,top";
 
-  const saveProfile = () => {
-    updateUser({ name: form.name, email: form.email, phone: form.phone });
+
+  const resetProfileForm = () => {
+    Controller?.action.setForm({ name: user?.name || '', email: user?.email || '', phone: user?.phone || 0 });
+    Controller?.action.setAvatarFile(null);
+    setAvatarPreview(null);
+  };
+
+  const cancelProfileEditing = () => {
+    resetProfileForm();
     setEditing(false);
   };
+
+  // const saveProfile = async () => {
+  //   const name = String(form.name).trim();
+  //   const email = String(form.email).trim().toLowerCase();
+  //   const phoneDigits = String(form.phone).replace(/\D/g, '');
+
+  //   if (name.length < 3) {
+  //     notify.warning('Nome inválido', 'Informe seu nome completo.');
+  //     return;
+  //   }
+  //   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+  //     notify.warning('E-mail inválido', 'Informe um endereço de e-mail válido.');
+  //     return;
+  //   }
+  //   if (phoneDigits && (phoneDigits.length < 10 || phoneDigits.length > 11)) {
+  //     notify.warning('Telefone inválido', 'Informe um telefone com DDD.');
+  //     return;
+  //   }
+
+  //   setSavingProfile(true);
+  //   const result = await updateProfile(
+  //     { name, email, phone: phoneDigits ? Number(phoneDigits) : 0 },
+  //     avatarFile
+  //   );
+  //   setSavingProfile(false);
+
+  //   if (!result.success) {
+  //     notify.error('Erro ao atualizar', result.error?.error?.message || 'Não foi possível salvar seus dados.');
+  //     return;
+  //   }
+
+  //   setForm({ name, email, phone: phoneDigits ? Number(phoneDigits) : 0 });
+  //   setAvatarFile(null);
+  //   setAvatarPreview(null);
+  //   setEditing(false);
+  //   notify.success('Perfil atualizado', 'Seus dados foram salvos com sucesso.');
+  // };
+
+  const selectProfilePhoto = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    event.target.value = '';
+    if (!file) return;
+
+    const allowedTypes = ['image/jpeg', 'image/png', 'image/webp'];
+    if (!allowedTypes.includes(file.type)) {
+      notify.warning('Formato não permitido', 'Escolha uma imagem JPG, PNG ou WEBP.');
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      notify.warning('Imagem muito grande', 'A foto deve ter no máximo 5 MB.');
+      return;
+    }
+
+    if (avatarPreview) URL.revokeObjectURL(avatarPreview);
+    Controller?.action.setAvatarFile(file);
+    setAvatarPreview(URL.createObjectURL(file));
+  };
+
+  // const removeFavorite = async (productId?: number) => {
+  //   if (!productId) return;
+  //   setRemovingFavoriteId(productId);
+  //   await DeleteOneFavorite(productId);
+  //   setRemovingFavoriteId(null);
+  // };
   const getTotalOriginalOrder = (idOrder: number) => {
     const order = orders.find(o => o.id_Order === idOrder);
 
@@ -119,7 +193,7 @@ export default function ProfilePage() {
     { id: 'orders', label: 'Minhas compras', icon: <ShoppingBag className="w-4 h-4" /> },
     { id: 'wishlist', label: 'Favoritos', icon: <Heart className="w-4 h-4" /> },
     { id: 'addresses', label: 'Endereços', icon: <MapPin className="w-4 h-4" /> },
-    { id: 'security', label: 'Segurança', icon: <Shield className="w-4 h-4" /> },
+    // { id: 'security', label: 'Segurança', icon: <Shield className="w-4 h-4" /> },
     { id: 'settings', label: 'Configuração', icon: <Settings className="w-4 h-4" /> },
     { id: 'preferences', label: 'Preferências', icon: <Bell className="w-4 h-4" /> },
   ];
@@ -207,10 +281,41 @@ export default function ProfilePage() {
   const currentColor =
     colorMap[settings.primaryColor as keyof typeof colorMap] || "#6366f1";
   const colorConfig = getColorConfig(NameColorGlobal);
+  const favoriteProducts = useMemo(() => products.filter(product =>
+    favorites.some(favorite => Number(favorite.id_Product) === Number(product.id))
+  ), [products, favorites]);
+  const favoriteCategories = useMemo(() => {
+    const sections = Category
+      .map(category => ({
+        id: category.id,
+        name: category.category,
+        products: favoriteProducts.filter(product => Number(product.id_category) === Number(category.id)),
+      }))
+      .filter(section => section.products.length > 0);
+
+    const categorizedIds = new Set(sections.flatMap(section => section.products.map(product => product.id)));
+    const uncategorized = favoriteProducts.filter(product => !categorizedIds.has(product.id));
+    if (uncategorized.length > 0) sections.push({ id: -1, name: 'Outros', products: uncategorized });
+    return sections;
+  }, [Category, favoriteProducts]);
 
   useEffect(() => {
     if (!user) navigate('/login');
   }, [user, navigate]);
+
+  useEffect(() => {
+    void GetfavoriteAll();
+    if (products.length === 0) void loadProducts();
+    if (Category.length === 0) void LoadCategory();
+  }, [Category.length, GetfavoriteAll, LoadCategory, loadProducts, products.length]);
+
+  useEffect(() => {
+    if (!editing) resetProfileForm();
+  }, [user?.name, user?.email, user?.phone]);
+
+  useEffect(() => () => {
+    if (avatarPreview) URL.revokeObjectURL(avatarPreview);
+  }, [avatarPreview]);
 
   return (
     <div className="min-h-screen bg-[#f5f5f7]">
@@ -225,8 +330,7 @@ export default function ProfilePage() {
             <ProfileCard
               user={user}
               userOrders={userOrders}
-              wishlist={wishlist}
-              totalSpent={totalSpent}
+              wishlist={favorites}
             />
 
 
@@ -261,29 +365,35 @@ export default function ProfilePage() {
                 {/* ── Personal Info Card ── */}
                 <div className="bg-white rounded-2xl border border-surface-100 shadow-soft overflow-hidden">
 
-                  {/* Profile photo banner */}
-                  <div
-                    className="relative overflow-hidden h-56 sm:h-72 md:h-80 lg:h-[420px] cursor-zoom-in"
-                    onClick={() => setShowPhoto(true)}
-                  >
-                    <img
-                      src={`/Imagens/Usuarios/${user?.avatar}`}
-                      alt="Foto de perfil"
-                      className="w-full h-full object-cover object-center transition-transform duration-300 hover:scale-105"
-                    />
-
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-black/10 to-transparent" />
-
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        // upload da foto
-                      }}
-                      className="absolute bottom-3 left-3 flex items-center gap-1.5 bg-black/40 border border-white/20 text-white text-[11px] font-semibold px-3 py-1.5 rounded-full backdrop-blur-sm"
+                  {/* Foto de perfil centralizada, sem recortar a imagem */}
+                  <div className="relative flex min-h-[260px] items-center justify-center overflow-hidden bg-gradient-to-b from-surface-50 to-white px-5 py-8 sm:min-h-[320px]">
+                    <div
+                      className={`group relative h-48 w-48 overflow-hidden rounded-full border-4 border-white bg-surface-100 shadow-[0_14px_40px_rgba(15,23,42,0.16)] sm:h-60 sm:w-60 ${editing ? 'cursor-pointer ring-4 ring-brand-100' : 'cursor-zoom-in'}`}
+                      onClick={() => editing ? avatarInputRef.current?.click() : setShowPhoto(true)}
                     >
-                      <Camera className="w-3 h-3" />
-                      Alterar foto
-                    </button>
+                      <img
+                        src={avatarPreview || `/Imagens/Usuarios/${user?.avatar}`}
+                        alt="Foto de perfil"
+                        className="h-full w-full object-contain object-center transition-transform duration-300 group-hover:scale-[1.02]"
+                      />
+
+                      {editing && (
+                        <div className="pointer-events-none absolute inset-0 flex items-end justify-center bg-black/10 pb-5 transition-colors group-hover:bg-black/20">
+                          <span className="flex items-center gap-2 rounded-full border border-white/30 bg-black/60 px-3 py-2 text-[11px] font-bold text-white backdrop-blur-sm">
+                            <Camera className="h-4 w-4" />
+                            {Controller?.result.avatarFile ? 'Trocar novamente' : 'Escolher foto'}
+                          </span>
+                        </div>
+                      )}
+                    </div>
+                    <input
+                      ref={avatarInputRef}
+                      type="file"
+                      accept="image/jpeg,image/png,image/webp"
+                      onClick={event => event.stopPropagation()}
+                      onChange={selectProfilePhoto}
+                      className="sr-only"
+                    />
                   </div>
                   {showPhoto && (
                     <div
@@ -298,7 +408,7 @@ export default function ProfilePage() {
                       </button>
 
                       <img
-                        src={`/Imagens/Usuarios/${user?.avatar}`}
+                        src={avatarPreview || `/Imagens/Usuarios/${user?.avatar}`}
                         alt="Foto de perfil"
                         className="max-w-full max-h-[90vh] object-contain rounded-2xl"
                         onClick={(e) => e.stopPropagation()}
@@ -308,50 +418,115 @@ export default function ProfilePage() {
                   {/* Header */}
                   <div className="flex items-center justify-between px-5 pt-4 pb-1">
                     <h2 className="font-display font-bold text-surface-900 text-lg">Informações Pessoais</h2>
-                    <button
-                      onClick={() => editing ? saveProfile() : setEditing(true)}
-                      className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold transition-all ${ColorGlobalTema} hover:bg-brand-600 text-white`}
-                    >
-                      {editing ? <><Check className="w-4 h-4" /> Salvar</> : <><Edit3 className="w-4 h-4" /> Editar</>}
-                    </button>
+                    <div className="flex items-center gap-2">
+                      {editing && (
+                        <button
+                          type="button"
+                          onClick={cancelProfileEditing}
+                          disabled={Controller?.result.LoadingProfile}
+                          className="flex items-center gap-2 rounded-xl border border-surface-200 px-3 py-2 text-sm font-bold text-surface-500 transition-all hover:bg-surface-50 disabled:opacity-50 sm:px-4"
+                        >
+                          <X className="h-4 w-4" /> <span className="hidden sm:inline">Cancelar</span>
+                        </button>
+                      )}
+                      <button
+                        type="button"
+                        onClick={() => editing ? Controller?.action.handleSaveProfile() : setEditing(true)}
+                        disabled={Controller?.result.LoadingProfile}
+                        className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold transition-all ${ColorGlobalTema} hover:bg-brand-600 text-white disabled:cursor-not-allowed disabled:opacity-60`}
+                      >
+                        {Controller?.result.LoadingProfile ? (
+                          <><span className="h-4 w-4 animate-spin rounded-full border-2 border-white/40 border-t-white" /> Salvando...</>
+                        ) : editing ? (
+                          <><Check className="w-4 h-4" /> Salvar</>
+                        ) : (
+                          <><Edit3 className="w-4 h-4" /> Editar</>
+                        )}
+                      </button>
+                    </div>
                   </div>
 
                   {/* Fields */}
                   <div className="px-5 pt-4 pb-4 space-y-4">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+
                       {[
-                        { label: 'Nome Completo', key: 'name', icon: <User className="w-4 h-4" />, placeholder: 'Seu nome' },
-                        { label: 'Telefone / WhatsApp', key: 'phone', icon: <Phone className="w-4 h-4" />, placeholder: '(82) 9xxxx-xxxx' },
-                        { label: 'Email', key: 'email', icon: <Mail className="w-4 h-4" />, placeholder: 'seu@email.com' },
-                      ].map(f => (
-                        <div key={f.key}>
-                          <label className="block text-xs font-bold text-surface-500 uppercase tracking-wider mb-2 flex items-center gap-1.5">
-                            {f.icon} {f.label}
-                          </label>
-                          {editing ? (
-                            <input
-                              value={(form as any)[f.key]}
-                              onChange={e => setForm(p => ({ ...p, [f.key]: e.target.value }))}
-                              placeholder={f.placeholder}
-                              className="w-full px-4 py-2.5 border-2 border-surface-200 rounded-xl text-sm font-body focus:border-brand-400 focus:outline-none transition-colors"
-                            />
-                          ) : (
-                            <div className="px-4 py-2.5 bg-surface-50 rounded-xl text-sm font-body text-surface-700">
-                              {(form as any)[f.key] || <span className="text-surface-300 italic">Não informado</span>}
-                            </div>
-                          )}
-                        </div>
-                      ))}
+                        {
+                          label: 'Nome Completo',
+                          key: 'name',
+                          icon: <User className="w-4 h-4" />,
+                          placeholder: 'Seu nome'
+                        },
+                        {
+                          label: 'Telefone / WhatsApp',
+                          key: 'phone',
+                          icon: <Phone className="w-4 h-4" />,
+                          placeholder: '(82) 9xxxx-xxxx'
+                        },
+                        {
+                          label: 'Email',
+                          key: 'email',
+                          icon: <Mail className="w-4 h-4" />,
+                          placeholder: 'seu@email.com'
+                        },
+                      ].map(f => {
+
+                        const error = Controller?.result.profileErrors?.[f.key as keyof typeof Controller.result.profileErrors];
+                        return (
+                          <div key={f.key}>
+
+                            <label className="block text-xs font-bold text-surface-500 uppercase tracking-wider mb-2 flex items-center gap-1.5">
+                              {f.icon}
+                              {f.label}
+                            </label>
+
+                            {editing ? (
+                              <>
+                                <input
+                                  value={(Controller?.result.form as any)[f.key] ?? ''}
+                                  onChange={e => Controller?.action.setForm(prev => ({ ...prev, [f.key]: e.target.value, }))}
+                                  type={f.key === 'email' ? 'email' : f.key === 'phone' ? 'tel' : 'text'}
+                                  maxLength={f.key === 'phone' ? 15 : undefined}
+                                  disabled={savingProfile}
+                                  placeholder={f.placeholder}
+                                  className={`w-full px-4 py-2.5 border-2 rounded-xl text-sm font-body focus:outline-none transition-colors ${error
+                                    ? 'border-red-400 focus:border-red-500'
+                                    : 'border-surface-200 focus:border-brand-400'
+                                    }`}
+                                />
+
+                                {/* ERRO DO CAMPO */}
+                                {error && (
+                                  <p className="mt-1.5 flex items-center gap-1 text-xs text-red-500">
+                                    ⚠ {error}
+                                  </p>
+                                )}
+                              </>
+                            ) : (
+                              <div className="px-4 py-2.5 bg-surface-50 rounded-xl text-sm font-body text-surface-700">
+
+                                {(Controller?.result.form as any)[f.key] || (
+                                  <span className="text-surface-300 italic">
+                                    Não informado
+                                  </span>
+                                )}
+
+                              </div>
+                            )}
+
+                          </div>
+                        );
+                      })}
 
                     </div>
                   </div>
 
                   {/* Info strip */}
-                  <div className="border-t border-surface-100 grid grid-cols-2 md:grid-cols-4 divide-x divide-surface-100">
+                  <div className="border-t border-surface-100 grid grid-cols-2 md:grid-cols-3 divide-x divide-surface-100">
                     {[
                       { icon: <MapPin className="w-4 h-4 text-surface-300" />, label: 'Localização', value: AddresStadand ? `${AddresStadand.road ?? ''}${AddresStadand.number ? ` N°${AddresStadand.number}` : ''}` : 'Não informado' },
                       { icon: <Clock className="w-4 h-4 text-surface-300" />, label: 'Membro desde', value: user?.insert_Date ? new Date(user.insert_Date).toLocaleDateString('pt-BR', { month: 'short', year: 'numeric', }) : '-' },
-                      { icon: <Star className="w-4 h-4 text-surface-300" />, label: 'Avaliações', value: 0 },
+                      // { icon: <Star className="w-4 h-4 text-surface-300" />, label: 'Avaliações', value: 0 },
                       { icon: <TicketPercent className="w-4 h-4 text-surface-300" />, label: 'Cupons utilizados', value: `${orders?.filter(item => item.id_Cupom != null || 0).length ?? 0} Cupons` }
                     ].map((item, i) => (
                       <div key={i} className="flex items-center gap-2.5 px-4 py-3">
@@ -366,7 +541,7 @@ export default function ProfilePage() {
                 </div>
 
                 {/* ── Quick Stats ── */}
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                {/* <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                   {[
                     { icon: <Package className="w-5 h-5 text-blue-600" />, label: 'Total Pedidos', value: orders.length, bg: 'bg-blue-50' },
                     { icon: <Truck className="w-5 h-5 text-green-600" />, label: 'Entregues', value: orders.filter(o => o.order_Status === 'ENTREGUE').length, bg: 'bg-green-50' },
@@ -381,7 +556,7 @@ export default function ProfilePage() {
                       </div>
                     </div>
                   ))}
-                </div>
+                </div> */}
 
                 {/* ── Last Order ── */}
                 {userOrders.length > 0 && (() => {
@@ -459,78 +634,192 @@ export default function ProfilePage() {
                   ))}
                 </div>
 
-                <div className="space-y-3 px-4 py-4 sm:px-5">
+                <div className="space-y-5 px-4 py-4 sm:px-5">
                   {filteredOrders.map(order => {
-                    const itemsCount = order.products.reduce((s, p) => s + p.quantity, 0);
+                    const itemsCount = order.products.reduce(
+                      (s, p) => s + p.quantity,
+                      0
+                    );
+
                     const isPending = order.status_Pay === "PENDENTE";
 
                     return (
                       <div
                         key={order.id_Order}
-                        className="group relative bg-white rounded-2xl border border-surface-100 hover:border-surface-200 hover:shadow-md transition-all px-4 py-4"
+                        className="group relative overflow-hidden rounded-2xl border-2 border-surface-200 bg-white shadow-sm transition-all duration-200 hover:border-surface-300 hover:shadow-md"
                       >
-                        <div className={`absolute left-0 top-0 bottom-0 w-1 ${colorConfig.class} scale-y-0 group-hover:scale-y-100 transition-transform rounded-r-full`} />
+                        {/* Barra lateral do pedido */}
+                        <div
+                          className={`absolute left-0 top-0 bottom-0 w-1 ${colorConfig.class}`}
+                        />
 
-                        {/* Topo: Pedido + Data + Status */}
-                        <div className="flex items-start justify-between gap-2 mb-3">
-                          <div className="min-w-0">
-                            <h3 className="font-bold text-surface-900 text-sm break-all">
-                              Pedido #{order.number_Order}
-                            </h3>
-                            <p className="text-xs text-surface-400 mt-1">
-                              {new Date(order.insertDate).toLocaleDateString("pt-BR")} •{" "}
-                              {itemsCount} {itemsCount === 1 ? "item" : "itens"}
+                        {/* CABEÇALHO DO PEDIDO */}
+                        <div className="border-b-2 border-surface-100 bg-surface-50/50 px-4 py-4 sm:px-5">
+                          <div className="flex items-start justify-between gap-3">
+
+                            <div className="min-w-0">
+                              <h3 className="font-bold text-surface-900 text-sm break-all">
+                                Pedido #{order.number_Order}
+                              </h3>
+
+                              <p className="mt-1 text-xs text-surface-400">
+                                {new Date(order.insertDate).toLocaleDateString("pt-BR")}
+                                {" • "}
+                                {itemsCount}{" "}
+                                {itemsCount === 1 ? "item" : "itens"}
+                              </p>
+                            </div>
+
+                            <p className="shrink-0 whitespace-nowrap font-bold text-lg text-surface-900">
+                              {formatPrice(order.total_Value_Order)}
                             </p>
+
                           </div>
 
-                          <p className="font-bold text-lg text-surface-900 whitespace-nowrap shrink-0">
-                            {formatPrice(order.total_Value_Order)}
-                          </p>
-                        </div>
+                          {/* STATUS */}
+                          <div className="mt-3 flex flex-wrap items-center gap-2">
 
-                        <div className="flex items-center gap-2 flex-wrap mb-3">
-                          {isPending && (
-                            <span className="inline-flex px-2 py-1 rounded-full bg-amber-50 text-amber-700 text-[10px] font-bold border border-amber-200">
-                              Pagamento pendente
-                            </span>
-                          )}
-                          <span
-                            className={`inline-flex px-3 py-1 rounded-full text-[11px] font-bold ${orderStatusColors[order.order_Status]}`}
-                          >
-                            {orderStatusLabels[order.order_Status]}
-                          </span>
-                        </div>
-
-                        {/* Embaixo: Foto + Ver detalhes */}
-                        <div className="flex items-center justify-between gap-3">
-                          <div className="flex -space-x-2 shrink-0">
-                            {order.products.slice(0, 3).map((item, i) => (
-                              <img
-                                key={i}
-                                src={`/Imagens/Produtos/${item.imagens?.[0]?.url_Imagem}`}
-                                className="w-14 h-14 rounded-xl border-2 border-white object-cover shadow"
-                              />
-                            ))}
-                            {order.products.length > 3 && (
-                              <div className="w-14 h-14 rounded-xl bg-surface-100 border-2 border-white flex items-center justify-center text-xs font-bold">
-                                +{order.products.length - 3}
-                              </div>
+                            {isPending && (
+                              <span className="inline-flex rounded-full border border-amber-200 bg-amber-50 px-2.5 py-1 text-[10px] font-bold text-amber-700">
+                                Pagamento pendente
+                              </span>
                             )}
+
+                            <span
+                              className={`inline-flex rounded-full px-3 py-1 text-[11px] font-bold ${orderStatusColors[order.order_Status]
+                                }`}
+                            >
+                              {orderStatusLabels[order.order_Status]}
+                            </span>
+
                           </div>
+                        </div>
+
+                        {/* PRODUTOS DO PEDIDO */}
+                        <div className="space-y-3 p-4 sm:p-5">
+
+                          {order.products.map((item, i) => {
+                            const subtotal = item.price_Unic * item.quantity;
+                            const isDelivered = order.order_Status === "ENTREGUE";
+                            const isEvaluated = item.evaluated;
+                            const isLoading = Controller?.result.Loading;
+
+                            return (
+                              <div
+                                key={item.id ?? i}
+                                className="rounded-xl border border-surface-200 bg-white p-3 transition-colors hover:bg-surface-50"
+                              >
+                                {/* PRODUTO */}
+                                <div className="flex items-center gap-3">
+                                  {/* IMAGEM */}
+                                  <img
+                                    src={`/Imagens/Produtos/${item.imagens?.[0]?.url_Imagem ?? ""
+                                      }`}
+                                    alt={item.name}
+                                    className="h-16 w-16 shrink-0 rounded-xl border border-surface-200 bg-surface-50 object-cover"
+                                  />
+
+                                  {/* INFORMAÇÕES */}
+                                  <div className="min-w-0 flex-1">
+                                    <p className="line-clamp-2 text-sm font-semibold leading-snug text-surface-800">
+                                      {item.name}
+                                    </p>
+
+                                    <div className="mt-1.5 flex flex-wrap gap-x-4 gap-y-1 text-xs text-surface-400">
+                                      <span>
+                                        Quantidade:{" "}
+                                        <strong className="text-surface-600">
+                                          {item.quantity}
+                                        </strong>
+                                      </span>
+
+                                      <span>
+                                        Unitário:{" "}
+                                        <strong className="text-surface-600">
+                                          {formatPrice(item.price_Unic)}
+                                        </strong>
+                                      </span>
+                                    </div>
+                                  </div>
+
+                                  {/* SUBTOTAL */}
+                                  <div className="shrink-0 text-right">
+                                    <p className="text-[9px] font-semibold uppercase tracking-wide text-surface-400">
+                                      Subtotal
+                                    </p>
+
+                                    <p className="mt-0.5 text-sm font-bold text-surface-900">
+                                      {formatPrice(subtotal)}
+                                    </p>
+                                  </div>
+                                </div>
+
+                                {/* AVALIAÇÃO */}
+                                {isDelivered && (
+                                  <div className="mt-3 flex justify-end border-t border-surface-100 pt-3">
+                                    {!isEvaluated ? (
+                                      <button
+                                        type="button"
+                                        onClick={() =>
+                                          setReviewTarget({
+                                            product: item,
+                                            order
+                                          })
+                                        }
+                                        className={`flex items-center justify-center gap-1.5 rounded-lg bg-surface-100 px-3 py-2 text-xs font-bold transition-colors hover:bg-surface-200 ${colorConfig.class_text}`}
+                                      >
+                                        <Star className="h-3.5 w-3.5" />
+                                        Avaliar produto
+                                      </button>
+                                    ) : (
+                                      <button
+                                        type="button"
+                                        onClick={() =>
+                                          Controller?.action.handleGetAssents(
+                                            order.id_Order,
+                                            item.id
+                                          )
+                                        }
+                                        disabled={isLoading}
+                                        className="flex items-center justify-center gap-1.5 rounded-lg bg-green-50 px-3 py-2 text-xs font-bold text-green-600 transition-colors hover:bg-green-100 disabled:cursor-not-allowed disabled:opacity-60"
+                                      >
+                                        {isLoading ? (
+                                          <Loader2 className="h-4 w-4 animate-spin" />
+                                        ) : (
+                                          <>
+                                            <Star className="h-3.5 w-3.5 fill-current" />
+                                            Avaliado, obrigado!
+                                          </>
+                                        )}
+                                      </button>
+                                    )}
+                                  </div>
+                                )}
+                              </div>
+                            );
+                          })}
+                        </div>
+
+                        {/* RODAPÉ DO PEDIDO */}
+                        <div className="flex items-center justify-between gap-3 border-t-2 border-surface-100 bg-surface-50/50 px-4 py-3 sm:px-5">
+
+                          <span className="text-xs text-surface-400">
+                            {order.products.length}{" "}
+                            {order.products.length === 1
+                              ? "produto"
+                              : "produtos"}
+                          </span>
 
                           <button
+                            type="button"
                             onClick={() => setSelectedOrder(order)}
-                            className={`${colorConfig.class_text} text-sm font-semibold flex items-center gap-1 shrink-0`}
+                            className={`${colorConfig.class_text} flex shrink-0 items-center gap-1 text-sm font-semibold transition-opacity hover:opacity-75`}
                           >
                             Ver detalhes
-                            <ChevronRight className="w-4 h-4" />
+                            <ChevronRight className="h-4 w-4" />
                           </button>
+
                         </div>
-                        {order.order_Status === 'ENTREGUE' && order.products[0] && (
-                          <button onClick={() => setReviewTarget({ product: order.products[0], order })} className={`mt-3 flex w-full items-center justify-center gap-2 rounded-xl border border-surface-200 bg-surface-50 py-2.5 text-xs font-bold ${colorConfig.class_text} hover:bg-surface-100`}>
-                            <Star className="h-4 w-4" /> Avaliar produtos deste pedido
-                          </button>
-                        )}
                       </div>
                     );
                   })}
@@ -810,29 +1099,185 @@ export default function ProfilePage() {
             )}
             {/* ── WISHLIST ── */}
             {tab === 'wishlist' && (
-              <div className="bg-white rounded-2xl border border-surface-100 shadow-soft">
-                <div className="p-5 border-b border-surface-50">
-                  <h2 className="font-display font-bold text-surface-900 text-lg">Meus Favoritos</h2>
-                </div>
-                {wishlist.length === 0 ? (
-                  <div className="py-16 text-center">
-                    <Heart className="w-10 h-10 text-surface-200 mx-auto mb-3" />
-                    <p className="text-surface-400 font-body">Nenhum favorito ainda</p>
+              <>
+                {favoriteProducts.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center rounded-2xl bg-white py-24 text-center shadow-soft">
+                    <div className="mb-5 flex h-20 w-20 items-center justify-center rounded-3xl bg-red-50">
+                      <Heart className="h-10 w-10 text-red-300" />
+                    </div>
+                    <h3 className="mb-2 font-display text-xl font-bold text-surface-700"
+                    >Sua lista está vazia
+                    </h3>
+                    <p className="mb-6 text-sm text-surface-400">
+                      Salve produtos que você gosta para comprar depois!
+                    </p>
+                    <button
+                      onClick={() => navigate('/')}
+                      className={`rounded-xl px-6 py-3 font-display text-sm font-bold text-white ${ColorGlobalTema} ${ColorGlobalHover}`}>
+                      Explorar Produtos
+                    </button>
                   </div>
                 ) : (
-                  <div className="p-4 grid grid-cols-2 md:grid-cols-3 gap-3">
-                    {wishlist.map(({ product }: any) => (
-                      <button key={product.id} onClick={() => navigateTo('product', product.id)} className="text-left group">
-                        <div className="aspect-square rounded-xl overflow-hidden bg-surface-50 mb-2">
-                          <img src={product.images[0]} alt="" className="w-full h-full object-cover group-hover:scale-105 transition-transform" />
+                  <div className="space-y-7 sm:space-y-10">
+                    {favoriteCategories.map(category => (
+                      <section key={category.id}>
+                        <div className="mb-3 flex items-center gap-2.5 sm:mb-4 sm:gap-3">
+                          <div className={`h-8 w-1.5 rounded-full ${ColorGlobalTema}`} />
+                          <div>
+                            <h2 className="font-display text-base font-bold text-surface-900 sm:text-lg">
+                              {category.name}
+                            </h2>
+                            <p className="text-xs text-surface-400">
+                              {category.products.length} {category.products.length === 1 ? 'produto favorito' : 'produtos favoritos'}
+                            </p>
+                          </div>
                         </div>
-                        <p className="text-surface-700 text-xs line-clamp-1 font-body">{product.name}</p>
-                        <p className="font-display font-bold text-surface-900 text-sm">{formatPrice(product.price)}</p>
-                      </button>
+
+                        <div className="-mx-4 flex snap-x snap-mandatory gap-3 overflow-x-auto px-4 pb-4 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden sm:mx-0 sm:grid sm:grid-cols-2 sm:gap-5 sm:overflow-visible sm:px-0 sm:pb-0 lg:grid-cols-3">
+                          {category.products.map(item => {
+                            const disc = item.origin_Price
+                              ? Math.round(
+                                ((item.origin_Price - item.price_Unic) /
+                                  item.origin_Price) *
+                                100
+                              )
+                              : 0;
+
+                            return (
+                              <article
+                                key={item.id}
+                                className="group relative w-[60vw] min-w-[180px] max-w-[260px] shrink-0 snap-start overflow-hidden rounded-[20px] border border-white bg-white shadow-[0_6px_22px_rgba(15,23,42,0.07)] transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_14px_32px_rgba(15,23,42,0.13)] sm:w-auto sm:max-w-none sm:min-w-0 sm:rounded-[24px]"
+                              >
+
+                                {/* IMAGEM */}
+                                <button
+                                  type="button"
+                                  onClick={() => navigate(`/product/${item.id}`)}
+                                  className="block w-full text-left"
+                                >
+                                  <div className="relative aspect-[1/1.03] overflow-hidden bg-gradient-to-br from-surface-50 via-white to-surface-100">
+
+                                    <img
+                                      src={`/Imagens/Produtos/${item.imagens?.[0]?.url_Imagem ?? ''}`}
+                                      alt={item.name}
+                                      className="h-full w-full object-cover transition-transform duration-700 ease-out group-hover:scale-[1.07]"
+                                      loading="lazy"
+                                    />
+
+                                    {/* BADGE */}
+                                    {item.badge && (
+                                      <span
+                                        className={`absolute left-3 top-3 flex max-w-[65%] items-center gap-1 truncate rounded-full px-2.5 py-1.5 text-[9px] font-extrabold uppercase tracking-wide text-white shadow-lg sm:text-[10px] ${badgeColors[item.badge]}`}
+                                      >
+                                        <Sparkles className="h-3 w-3 shrink-0" />
+                                        {badgeLabels[item.badge]}
+                                      </span>
+                                    )}
+
+                                    {/* DESCONTO */}
+                                    {disc > 0 && (
+                                      <span className="absolute right-3 top-3 rounded-full bg-gradient-to-r from-rose-500 to-red-500 px-2.5 py-1.5 text-[10px] font-extrabold text-white shadow-lg">
+                                        -{disc}%
+                                      </span>
+                                    )}
+                                  </div>
+
+                                  {/* INFORMAÇÕES */}
+                                  <div className="relative p-3.5 sm:p-5">
+
+                                    <div className="mb-2 flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-[0.12em] text-emerald-600">
+                                      <span className="flex h-4 w-4 items-center justify-center rounded-full bg-emerald-50">
+                                        <Check
+                                          className="h-2.5 w-2.5"
+                                          strokeWidth={3}
+                                        />
+                                      </span>
+
+                                      Disponível para compra
+                                    </div>
+
+                                    <p className="mb-3 min-h-[44px] line-clamp-2 font-display text-sm font-semibold leading-[1.45] text-surface-800 sm:text-[15px]">
+                                      {item.name}
+                                    </p>
+
+                                    {/* PREÇO */}
+                                    <div className="flex min-h-[46px] items-end justify-between gap-2">
+                                      <div>
+
+                                        {item.origin_Price && (
+                                          <p className="mb-0.5 text-[11px] text-surface-400 line-through">
+                                            {formatPrice(item.origin_Price)}
+                                          </p>
+                                        )}
+
+                                        <p className="font-display text-xl font-semibold leading-none tracking-tight text-surface-950 sm:text-2xl">
+                                          {formatPrice(item.price_Unic)}
+                                        </p>
+
+                                      </div>
+
+                                      {disc > 0 && (
+                                        <span className="flex shrink-0 items-center gap-1 rounded-lg bg-emerald-50 px-2 py-1 text-[10px] font-bold text-emerald-700">
+                                          <Tag className="h-3 w-3" />
+                                          Economize
+                                        </span>
+                                      )}
+                                    </div>
+
+                                  </div>
+                                </button>
+
+                                {/* BOTÕES */}
+                                <div className="flex gap-2 px-3 pb-3 sm:px-5 sm:pb-5">
+
+                                  {/* COMPRAR */}
+                                  <button
+                                    type="button"
+                                    onClick={() => navigate(`/product/${item.id}`)}
+                                    className={`flex min-w-0 flex-1 items-center justify-center gap-1.5 rounded-xl px-2 py-2.5 text-[11px] font-extrabold text-white transition-all active:scale-[0.98] sm:gap-2 sm:px-3 sm:py-3 sm:text-sm ${ColorGlobalTema} ${ColorGlobalHover}`}
+                                  >
+                                    <ShoppingCart className="h-3.5 w-3.5 shrink-0" />
+
+                                    Comprar
+                                  </button>
+
+                                  {/* REMOVER */}
+                                  <button
+                                    type="button"
+                                    onClick={() =>
+                                      Controller?.action.removeFavorite(item.id)
+                                    }
+                                    disabled={
+                                      Controller?.result.removingFavoriteId === item.id
+                                    }
+                                    className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-rose-100 bg-rose-50 text-rose-500 transition-all hover:border-rose-200 hover:bg-rose-100 disabled:opacity-60 sm:h-11 sm:w-11"
+                                    aria-label={`Remover ${item.name} dos favoritos`}
+                                  >
+                                    {Controller?.result.removingFavoriteId === item.id ? (
+                                      <span className="h-4 w-4 animate-spin rounded-full border-2 border-rose-200 border-t-rose-500" />
+                                    ) : (
+                                      <Trash2 className="h-4 w-4" />
+                                    )}
+                                  </button>
+
+                                </div>
+
+                                {/* RODAPÉ */}
+                                <div className="flex items-center justify-center gap-1.5 border-t border-surface-100 px-4 py-3 text-[10px] font-medium text-surface-400">
+                                  <Heart className="h-3 w-3 fill-rose-400 text-rose-400" />
+
+                                  Produto salvo na sua lista
+                                </div>
+
+                              </article>
+                            );
+                          })}
+                        </div>
+                      </section>
                     ))}
                   </div>
                 )}
-              </div>
+              </>
             )}
 
             {/* ── ADDRESSES ── */}
@@ -920,92 +1365,96 @@ export default function ProfilePage() {
                       </div>
                     ) : (
                       address.map((item, index) => (
-                        <div
+                        <article
                           key={item.id ?? index}
-                          className="bg-white border-b border-surface-200 px-5 py-5 hover:bg-surface-50 transition-colors"
+                          className={`group relative overflow-hidden rounded-2xl border bg-white shadow-[0_6px_22px_rgba(15,23,42,0.05)] transition-all hover:-translate-y-0.5 hover:shadow-medium ${item.standard ? 'border-transparent' : 'border-surface-200'}`}
+                          style={item.standard ? { boxShadow: `0 8px 28px ${colorConfig.hex}18`, borderColor: `${colorConfig.hex}35` } : undefined}
                         >
-                          {/* Cabeçalho */}
-                          <div className="flex flex-col sm:flex-row gap-4">
+                          {item.standard && <div className="absolute inset-y-0 left-0 w-1" style={{ backgroundColor: colorConfig.hex }} />}
+                          <div className="p-4 sm:p-5">
+                            {/* Cabeçalho */}
+                            <div className="flex flex-col sm:flex-row gap-4">
 
-                            {/* Ícone */}
-                            <div
-                              className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0"
-                              style={{ background: `${colorConfig.hex}12` }}
-                            >
-                              <MapPin
-                                className="w-5 h-5"
-                                style={{ color: colorConfig.hex }}
-                              />
-                            </div>
-
-                            {/* Conteúdo */}
-                            <div className="flex-1">
-
-                              {/* Nome + Telefone */}
-                              {/* Nome + Telefone */}
-                              <div className="flex items-center gap-1 sm:gap-2 overflow-hidden">
-
-                                <h3 className="text-sm sm:text-lg font-semibold text-surface-900 truncate">
-                                  {item.name ?? "Jonas José Dos Anjos"}
-                                </h3>
-
-                                <span className="text-surface-300 flex-shrink-0">|</span>
-
-                                <span className="text-xs sm:text-base text-surface-600 flex-shrink-0">
-                                  {item.phone ?? "(82) 99999-9999"}
-                                </span>
-
+                              {/* Ícone */}
+                              <div
+                                className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0"
+                                style={{ background: `${colorConfig.hex}12` }}
+                              >
+                                <MapPin
+                                  className="w-5 h-5"
+                                  style={{ color: colorConfig.hex }}
+                                />
                               </div>
 
-                              {/* Rua */}
-                              <p className="text-surface-700 mt-2">
-                                {item.road}, {item.number}
-                                {item.supplement && `, ${item.supplement}`}
-                                {item.neighborhood && `, ${item.neighborhood}`}
-                              </p>
+                              {/* Conteúdo */}
+                              <div className="flex-1">
 
-                              {/* Cidade */}
-                              <p className="text-surface-500 mt-1">
-                                {item.city}, {item.state}
-                              </p>
+                                {/* Nome + Telefone */}
+                                {/* Nome + Telefone */}
+                                <div className="flex items-center gap-1 sm:gap-2 overflow-hidden">
 
-                              {/* Referência */}
-                              {item.referencePoint && (
-                                <p className="text-surface-400 text-sm mt-1">
-                                  {item.referencePoint}
+                                  <h3 className="text-sm sm:text-lg font-semibold text-surface-900 truncate">
+                                    {item.name ?? "Jonas José Dos Anjos"}
+                                  </h3>
+
+                                  <span className="text-surface-300 flex-shrink-0">|</span>
+
+                                  <span className="text-xs sm:text-base text-surface-600 flex-shrink-0">
+                                    {item.phone ?? "(82) 99999-9999"}
+                                  </span>
+
+                                </div>
+
+                                {/* Rua */}
+                                <p className="text-surface-700 mt-2">
+                                  {item.road}, {item.number}
+                                  {item.supplement && `, ${item.supplement}`}
+                                  {item.neighborhood && `, ${item.neighborhood}`}
                                 </p>
-                              )}
 
-                              {/* Badge */}
-                              <div className="mt-4">
-                                {item.standard ? (
-                                  <span
-                                    className="inline-flex items-center gap-1 px-3 py-1 rounded border text-xs font-semibold"
-                                    style={{
-                                      color: colorConfig.hex,
-                                      borderColor: `${colorConfig.hex}55`,
-                                      background: `${colorConfig.hex}08`,
-                                    }}
-                                  >
-                                    <CheckCircle2
-                                      className="w-3 h-3"
-                                      fill={colorConfig.hex}
-                                    />
-                                    Padrão
-                                  </span>
-                                ) : (
-                                  <span className="inline-flex items-center px-3 py-1 rounded border border-surface-300 text-surface-500 text-xs">
-                                    Endereço de entrega
-                                  </span>
+                                {/* Cidade */}
+                                <p className="text-surface-500 mt-1">
+                                  {item.city}, {item.state}
+                                </p>
+
+                                {/* Referência */}
+                                {item.referencePoint && (
+                                  <p className="text-surface-400 text-sm mt-1">
+                                    {item.referencePoint}
+                                  </p>
                                 )}
+
+                                {/* Badge */}
+                                <div className="mt-4">
+                                  {item.standard ? (
+                                    <span
+                                      className="inline-flex items-center gap-1 px-3 py-1 rounded border text-xs font-semibold"
+                                      style={{
+                                        color: colorConfig.hex,
+                                        borderColor: `${colorConfig.hex}55`,
+                                        background: `${colorConfig.hex}08`,
+                                      }}
+                                    >
+                                      <CheckCircle2
+                                        className="w-3 h-3"
+                                        fill={colorConfig.hex}
+                                      />
+                                      Padrão
+                                    </span>
+                                  ) : (
+                                    <span className="inline-flex items-center px-3 py-1 rounded border border-surface-300 text-surface-500 text-xs">
+                                      Endereço de entrega
+                                    </span>
+                                  )}
+                                </div>
+
                               </div>
 
                             </div>
 
+                            {/* Botões */}
                           </div>
-
-                          {/* Botões */}
-                          <div className="mt-5 flex flex-wrap gap-2">
+                          <div className="flex border-t border-surface-100 bg-surface-50/50">
 
 
                             <button
@@ -1022,26 +1471,27 @@ export default function ProfilePage() {
                                 }, 100);
                               }}
 
-                              className="flex-1 min-w-[110px] flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl border border-surface-200 bg-surface-50 hover:bg-surface-100 text-surface-700 transition-colors"
+                              className="flex flex-1 items-center justify-center gap-2 px-4 py-3 text-xs font-bold text-surface-600 transition-colors hover:bg-white hover:text-surface-900"
                             >
-                              <Pencil className="w-4 h-4" />
+                              <Pencil className="h-3.5 w-3.5" />
                               Editar
                             </button>
 
+                            <div className="w-px bg-surface-100" />
                             <button
                               onClick={() => {
                                 Controller?.action.setAddrForm(item);
                                 Controller?.action.setOpenDelete(true);
                               }}
-                              className="flex-1 min-w-[110px] flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl border border-red-200 bg-red-50 hover:bg-red-100 text-red-600 transition-colors"
+                              className="flex flex-1 items-center justify-center gap-2 px-4 py-3 text-xs font-bold text-rose-500 transition-colors hover:bg-rose-50 hover:text-rose-600"
                             >
-                              <Trash2 className="w-4 h-4" />
+                              <Trash2 className="h-3.5 w-3.5" />
                               Excluir
                             </button>
 
                           </div>
 
-                        </div>
+                        </article>
                       ))
                     )}
                   </div>
@@ -1206,31 +1656,12 @@ export default function ProfilePage() {
             )}
 
             {/* ── SECURITY ── */}
-            {tab === 'security' && (
+            {/* {tab === 'security' && (
               <div className="space-y-4">
-                <div className="bg-white rounded-2xl border border-surface-100 p-6 shadow-soft">
-                  <h2 className="font-display font-bold text-surface-900 text-lg mb-5 flex items-center gap-2">
-                    <Lock className="w-5 h-5 text-brand-500" /> Alterar Senha
-                  </h2>
-                  <div className="space-y-4 max-w-md">
-                    {['Senha Atual', 'Nova Senha', 'Confirmar Nova Senha'].map(label => (
-                      <div key={label}>
-                        <label className="block text-xs font-bold text-surface-500 uppercase tracking-wider mb-2">{label}</label>
-                        <input
-                          type="password"
-                          placeholder="••••••••"
-                          className="w-full px-4 py-2.5 border-2 border-surface-200 rounded-xl text-sm font-body focus:border-brand-400 focus:outline-none transition-colors"
-                        />
-                      </div>
-                    ))}
-                    <button className="px-6 py-2.5 bg-brand-500 hover:bg-brand-600 text-white font-bold text-sm rounded-xl transition-all shadow-brand flex items-center gap-2">
-                      <Check className="w-4 h-4" /> Atualizar Senha
-                    </button>
-                  </div>
-                </div>
+
 
               </div>
-            )}
+            )} */}
             {tab === 'settings' && (
               <div className="space-y-4">
 
@@ -1394,8 +1825,105 @@ export default function ProfilePage() {
                         <button className="px-4 py-2 bg-red-50 hover:bg-red-100 text-red-500 text-xs font-bold rounded-xl transition-all">Revogar</button>
                       </div>
                     </div>
+                    <div className="bg-white rounded-2xl border border-surface-100 p-6 shadow-soft">
+                      <h2 className="font-display font-bold text-surface-900 text-lg mb-5 flex items-center gap-2">
+                        <Lock className="w-5 h-5 text-brand-500" /> Alterar Senha
+                      </h2>
+                      <div className="space-y-4 max-w-md">
 
+                        <div className="space-y-4 max-w-md">
+
+                          <div>
+                            <label className="block text-xs font-bold text-surface-500 uppercase tracking-wider mb-2">
+                              Senha Atual
+                            </label>
+
+                            <input
+                              type="password"
+                              autoComplete="current-password"
+                              value={Controller?.result.passwordForm.currentPassword}
+                              onChange={e =>
+                                Controller?.action.setPasswordForm(prev => ({
+                                  ...prev,
+                                  currentPassword: e.target.value
+                                }))
+                              }
+                              className="w-full px-4 py-2.5 border-2 border-surface-200 rounded-xl text-sm font-body focus:border-brand-400 focus:outline-none transition-colors"
+                            />
+                            {Controller?.result.passwordErrors.currentPassword && (
+                              <p className="mt-1 flex items-center gap-1 text-xs text-red-500">
+                                ⚠ {Controller?.result.passwordErrors.currentPassword}
+                              </p>
+                            )}
+                          </div>
+
+                          <div>
+                            <label className="block text-xs font-bold text-surface-500 uppercase tracking-wider mb-2">
+                              Nova Senha
+                            </label>
+
+                            <input
+                              type="password"
+                              autoComplete="new-password"
+                              value={Controller?.result.passwordForm.newPassword}
+                              onChange={e =>
+                                Controller?.action.setPasswordForm(prev => ({
+                                  ...prev,
+                                  newPassword: e.target.value
+                                }))
+                              }
+                              className="w-full px-4 py-2.5 border-2 border-surface-200 rounded-xl text-sm font-body focus:border-brand-400 focus:outline-none transition-colors"
+                            />
+                            {Controller?.result.passwordErrors.newPassword && (
+                              <p className="mt-1 flex items-center gap-1 text-xs text-red-500">
+                                ⚠ {Controller?.result.passwordErrors.newPassword}
+                              </p>
+                            )}
+                          </div>
+
+                          <div>
+                            <label className="block text-xs font-bold text-surface-500 uppercase tracking-wider mb-2">
+                              Confirmar Nova Senha
+                            </label>
+
+                            <input
+                              type="password"
+                              autoComplete="new-password"
+                              value={Controller?.result.passwordForm.confirmPassword}
+                              onChange={e =>
+                                Controller?.action.setPasswordForm(prev => ({
+                                  ...prev,
+                                  confirmPassword: e.target.value
+                                }))
+                              }
+                              className="w-full px-4 py-2.5 border-2 border-surface-200 rounded-xl text-sm font-body focus:border-brand-400 focus:outline-none transition-colors"
+                            />
+                            {Controller?.result.passwordErrors.confirmPassword && (
+                              <p className="mt-1 flex items-center gap-1 text-xs text-red-500">
+                                ⚠ {Controller?.result.passwordErrors.confirmPassword}
+                              </p>
+                            )}
+                          </div>
+
+                          <button
+                            type="button"
+                            onClick={() => { Controller?.action.handleChangePassword() }}
+                            disabled={Controller?.result.LoadingPassword}
+                            className="px-6 py-2.5 bg-brand-500 hover:bg-brand-600 disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold text-sm rounded-xl transition-all shadow-brand flex items-center gap-2"
+                          >
+                            <Check className="w-4 h-4" />
+
+                            {Controller?.result.LoadingPassword ? 'Atualizando...' : 'Atualizar Senha'}
+                          </button>
+
+                        </div>
+
+
+
+                      </div>
+                    </div>
                   </div>
+
                 </div>
 
               </div>
@@ -1496,7 +2024,23 @@ export default function ProfilePage() {
         description={Controller?.result.LoadingMessage}
         onClose={() => Controller?.action.setOpenAlert(false)}
       />
+      <ProductReviewModal
+        open={!!reviewTarget}
+        onClose={() => setReviewTarget(null)}
+        product={reviewTarget?.product || null}
+        orderId={reviewTarget?.order.id_Order || 0}
+        orderNumber={reviewTarget?.order.number_Order}
+        themeClass={`${ColorGlobalTema} hover:opacity-90`}
+      />
 
+      <ProductReviewDetailsModal
+        open={!!Controller?.result.reviewDetailsTarget}
+        onClose={() => Controller?.action.setReviewDetailsTarget(false)}
+        assessment={Controller?.result.assessmentResponse}
+        onCloseEdite={() => Controller?.action.setReviewDetailsTarget(false)}
+      />
     </div>
+
   );
+
 }

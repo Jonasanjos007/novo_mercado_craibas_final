@@ -12,6 +12,8 @@ import { makeResult, Result } from "../utils/Result";
 import { getColorConfig } from "../types/Colors";
 import { UseRouteStore } from "./UseRouteStore";
 import { UseUserAdminStore } from "../storeAdmin/UseUserAdminStore";
+import { AuthService } from "../service/AuthService";
+import { ChangePassword } from "../models/User";
 
 
 interface UserState {
@@ -23,10 +25,15 @@ interface UserState {
     ColorGlobalHover: string;
     ColorGlobalHoverText: string;
     saveUser: (user: User) => boolean;
+    LoadUser: () => void;
+
     updateUser: (updates: Partial<User>) => void;
+    updateProfile: (Formdata: FormData) => Promise<Result<boolean>>;
     logout: () => void;
     SaveColorGlobal: (NameColorGlobal: string, UserId: number) => Promise<Result<boolean>>;
     setUser: (User: User) => void;
+    SaveChangePassword: (ChangePassword: ChangePassword) => Promise<Result<boolean>>;
+
 
 }
 export const UseUserStore = create<UserState>()(persist((set, get) => ({
@@ -61,6 +68,36 @@ export const UseUserStore = create<UserState>()(persist((set, get) => ({
     },
 
     updateUser: (updates) => set(s => ({ user: s.user ? { ...s.user, ...updates } : null })),
+    updateProfile: async (Formdata: FormData) => {
+        // const formData = new FormData();
+        // formData.append('Name', updates.name);
+        // formData.append('Email', updates.email);
+        // formData.append('Phone', String(updates.phone || 0));
+
+        // if (avatarFile) formData.append('Avatar', avatarFile);
+        const result = await UserService.updateProfile(Formdata);
+        if (!result.success) return result;
+
+        const currentUser = get().user;
+        if (!currentUser) return makeResult(false, false);
+
+        const refreshedUser = await UserService.getUser(currentUser.role);
+        if (refreshedUser.success && refreshedUser.data) {
+            set({ user: refreshedUser.data });
+        }
+        return makeResult(true, true);
+    },
+    LoadUser: async () => {
+
+        const currentUser = get().user;
+        if (!currentUser) return makeResult(false, false);
+
+        const refreshedUser = await UserService.getUser(currentUser.role);
+        if (refreshedUser.success && refreshedUser.data) {
+            set({ user: refreshedUser.data });
+        }
+        return makeResult(true, true);
+    },
 
     currentPage: 'home',
 
@@ -90,7 +127,15 @@ export const UseUserStore = create<UserState>()(persist((set, get) => ({
         return makeResult(true, true);
     },
     setUser: (User: User) => set({ user: User }),
+    SaveChangePassword: async (ChangePassword: ChangePassword) => {
 
+        const responseTema = await AuthService.PostChangePassword(ChangePassword);
+
+        if (!responseTema.success) {
+            return makeResult(false, false, responseTema.error);
+        }
+        return makeResult(true, true);
+    },
 }), {
     name: '@user-storage',
     partialize: (state) => ({

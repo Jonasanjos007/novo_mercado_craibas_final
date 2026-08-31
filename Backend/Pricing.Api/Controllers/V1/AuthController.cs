@@ -1,5 +1,6 @@
 
 using Backend.Services.Interfaces;
+using Mercado.Craibas.Application.DTOs.Requests;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Pricing.Api.DTOs.Requests;
@@ -32,6 +33,17 @@ public class AuthController : ControllerBase
     public async Task<IActionResult> Refresh(RefreshTokenRequest request)
     {
         var result = await _service.RefreshAsync(request.RefreshToken);
+
+        return result.ToActionResult();
+    }
+
+    [Authorize]
+    [HttpPost("ChangePassword")]
+    public async Task<IActionResult> ChangePassword(ChangePasswordRequest request)
+    {
+        var userid = User.GetUserId();
+
+        var result = await _service.ChangePassword(userid, request);
 
         return result.ToActionResult();
     }

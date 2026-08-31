@@ -16,6 +16,7 @@ import {
   Sparkles,
   Tag,
   X,
+  Lock
 } from 'lucide-react';
 import { useAdminController } from '../controller/useAdminController';
 import { UseNotificationAdmin } from '../storeAdmin/UseNotificationAdmin';
@@ -23,7 +24,7 @@ import { useNotification } from '../utils/NotificationCard';
 import { NotificationModel } from '../models/NotificationModel';
 import { AdminTab } from '../models/OrderSave';
 
-export type AdminNotificationKind = 'ORDER' | 'stock' | 'promotion' | 'Read';;
+export type AdminNotificationKind = 'ORDER' | 'stock' | 'promotion' | 'Read' | 'PASSWORD_CHANGE';;
 
 export type AdminNotificationItem = {
   id: string;
@@ -43,10 +44,46 @@ type Props = {
 };
 
 const kindConfig = {
-  ORDER: { label: 'Pedidos', icon: ShoppingBag, color: 'text-blue-400', bg: 'bg-blue-500/20', ring: 'ring-blue-500/40' },
-  stock: { label: 'Estoque', icon: Package, color: 'text-rose-400', bg: 'bg-rose-500/20', ring: 'ring-rose-500/40' },
-  promotion: { label: 'Promoções', icon: Tag, color: 'text-violet-400', bg: 'bg-violet-500/20', ring: 'ring-violet-500/40' },
-  system: { label: 'Sistema', icon: ShieldCheck, color: 'text-emerald-400', bg: 'bg-emerald-500/20', ring: 'ring-emerald-500/40' },
+  ORDER: {
+    label: 'Pedidos',
+    icon: ShoppingBag,
+    color: 'text-blue-400',
+    bg: 'bg-blue-500/20',
+    ring: 'ring-blue-500/40'
+  },
+
+  stock: {
+    label: 'Estoque',
+    icon: Package,
+    color: 'text-rose-400',
+    bg: 'bg-rose-500/20',
+    ring: 'ring-rose-500/40'
+  },
+
+  promotion: {
+    label: 'Promoções',
+    icon: Tag,
+    color: 'text-violet-400',
+    bg: 'bg-violet-500/20',
+    ring: 'ring-violet-500/40'
+  },
+
+  system: {
+    label: 'Sistema',
+    icon: ShieldCheck,
+    color: 'text-emerald-400',
+    bg: 'bg-emerald-500/20',
+    ring: 'ring-emerald-500/40'
+  },
+
+  security: {
+    label: 'Segurança',
+    icon: Lock,
+    color: 'text-amber-400',
+    bg: 'bg-amber-500/20',
+    ring: 'ring-amber-500/40'
+  },
+
 } as const;
 function getNotificationKind(
   item: NotificationModel
@@ -177,6 +214,7 @@ export default function AdminNotificationsPage({ darkMode, notifications, onNavi
   };
   const unreadOrder = Notification.filter(item => item.isRead === false && item.referenceType === "ORDER" && matchesSelectedPeriod(item.insertDate)).length;
   const unreadAllRead = notifications.filter(item => item.isRead === true && matchesSelectedPeriod(item.insertDate)).length;
+  const unreadSegurancy = Notification.filter(item => item.isRead === false && item.referenceType === "PASSWORD_CHANGE" && matchesSelectedPeriod(item.insertDate)).length;
 
 
   const filters: Array<{ id: typeof filter; label: string }> = [
@@ -185,6 +223,7 @@ export default function AdminNotificationsPage({ darkMode, notifications, onNavi
     { id: 'ORDER', label: `Pedidos(${unreadOrder})` },
     { id: 'stock', label: `Estoque(Colocar)` },
     { id: 'promotion', label: 'Promoções(Colocar)' },
+    { id: 'PASSWORD_CHANGE', label: `Segurança(${unreadSegurancy})` },
     //  { id: 'system', label: 'Sistema(Colocar)' },
     { id: 'Read', label: `Lidas(${unreadAllRead})` },
 

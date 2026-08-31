@@ -33,6 +33,6 @@ namespace Baldan.Pricing.Application.Domain.Entities
         public ICollection<OrderLineItens> OrderLineItens { get; set; } = [];
         public ICollection<Coupon_Product> Coupon_Products { get; set; } = [];
         public ICollection<Rating> Ratings { get; set; } = [];
-
+        public ICollection<Favorite> Favorites { get; set; } = new List<Favorite>();
     }
 }

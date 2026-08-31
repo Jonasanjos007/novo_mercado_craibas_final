@@ -104,9 +104,9 @@ export const useCheckoutController = (): CheckoutControllerReturn => {
     };
     const GetCartUser = async () => {
         const result = await LoadCartUser(user);
-        if (!result?.success) {
-            notify.error(result.error?.error.code || "error", result?.error?.error.message || "Erro ao carregar Carrinho");
-        }
+        // if (!result?.success) {
+        //     notify.error(result.error?.error.code || "error", result?.error?.error.message || "Erro ao carregar Carrinho");
+        // }
     };
     const GetAddressUser = async () => {
         const result = await LoadAddressUser();

@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { Bell, CalendarDays, Check, CheckCheck, ChevronRight, CircleCheck, CircleX, Clock, Clock3, CreditCard, History, Package, PackageCheck, Search, ShoppingCart, Truck } from 'lucide-react';
+import { Bell, CalendarDays, Check, CheckCheck, ChevronRight, CircleCheck, CircleX, Clock, Clock3, CreditCard, History, Package, PackageCheck, Search, ShoppingCart, Truck, Lock } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { buildClientNotifications, ClientNotificationKind } from '../models/ClientNotification';
 import { UseOrderStore } from '../store/UseOrderStore';
@@ -64,7 +64,7 @@ export default function NotificationsPage() {
 
 
   const weekDays = useMemo(() => Array.from({ length: 7 }, (_, index) => { const date = new Date(); date.setHours(0, 0, 0, 0); date.setDate(date.getDate() - index); return date; }), []);
-  const notificationIcons = { CircleCheck, Package, Truck, PackageCheck, CircleX, Bell, ShoppingCart, Clock };
+  const notificationIcons = { CircleCheck, Package, Truck, PackageCheck, CircleX, Bell, ShoppingCart, Clock, Lock };
 
   const filtered = useMemo(() => notifications.filter(item => {
     const date = new Date(item.insertDate);
@@ -106,6 +106,7 @@ export default function NotificationsPage() {
   hoje.setHours(23, 59, 59, 999);
 
   const oitoDiasAtras = new Date(); oitoDiasAtras.setDate(oitoDiasAtras.getDate() - 7); oitoDiasAtras.setHours(0, 0, 0, 0);
+  const unreadNotifications = Notification.filter(item => item.isRead === false).length;
 
   const unread = Notification.filter(item => {
     if (item.isRead) return false;
@@ -137,6 +138,7 @@ export default function NotificationsPage() {
   const unreadOrder = Notification.filter(item => item.isRead === false && item.referenceType === "ORDER" && matchesSelectedPeriod(item.insertDate)).length;
   const unreadPayment = Notification.filter(item => item.isRead === false && item.referenceType === "PAYMENT" && matchesSelectedPeriod(item.insertDate)).length;
   const unreadDelivery = Notification.filter(item => item.isRead === false && item.referenceType === "DELIVERY" && matchesSelectedPeriod(item.insertDate)).length;
+  const unreadSegurancy = Notification.filter(item => item.isRead === false && item.referenceType === "PASSWORD_CHANGE" && matchesSelectedPeriod(item.insertDate)).length;
   const unreadAssessment = Notification.filter(item => item.isRead === false && item.referenceType === "ASSESSMENT" && matchesSelectedPeriod(item.insertDate)).length;
   const unreadAllRead = notifications.filter(item => item.isRead === true && matchesSelectedPeriod(item.insertDate)).length;
   // const unreadOrder = Notification.filter(item => item.isRead === false && item.referenceType === "ORDER" && (dateKey(new Date(item.insertDate)) === selectedDay || (dateKey(new Date(item.insertDate)) === historyDate))).length;
@@ -151,7 +153,7 @@ export default function NotificationsPage() {
           <div className="flex min-w-0 items-start gap-3 sm:gap-4">
             <div className={`relative flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl sm:h-12 sm:w-12 ${color.class}`}>
               <Bell className="h-5 w-5 text-white" />
-              {unread > 0 && <span className="absolute -right-1 -top-1 h-3 w-3 rounded-full border-2 border-white bg-red-500" />}
+              {unreadNotifications > 0 && <span className="absolute -right-1 -top-1 h-3 w-3 rounded-full border-2 border-white bg-red-500" />}
             </div>
             <div className="min-w-0">
               <p className={`text-[10px] font-bold uppercase tracking-[0.18em] ${color.class_text}`}>
@@ -168,7 +170,7 @@ export default function NotificationsPage() {
           <div className="flex items-center justify-between gap-3 rounded-2xl border border-surface-200 bg-surface-50 px-4 py-3 sm:justify-start">
             <div>
               <p className={`text-2xl font-black leading-none ${color.class_text}`}>
-                {unread}
+                {unreadNotifications}
               </p>
               <p className="mt-1 text-[10px] font-bold uppercase text-surface-400">
                 não lidas
@@ -176,7 +178,7 @@ export default function NotificationsPage() {
             </div>
             <button
               onClick={() => UpdateReadNotifyAll()}
-              disabled={!unread}
+              disabled={!unreadNotifications}
               className={` flex items-center gap-2 border-l border-surface-200 rounded-r-lg pl-3 pr-2 py-1.5 text-xs font-bold transition-all duration-200 hover:bg-surface-300 hover:scale-[1.03] active:scale-95 disabled:opacity-40 disabled:hover:bg-transparent disabled:hover:scale-100 ${color.class_text}`}
             >
               <CheckCheck className="h-4 w-4" />
@@ -262,6 +264,7 @@ export default function NotificationsPage() {
             { id: 'ORDER', label: `Pedidos(${unreadOrder})` },
             { id: 'DELIVERY', label: `Entregas(${unreadDelivery})` },
             { id: 'ASSESSMENT', label: `Avaliação(${unreadAssessment})` },
+            { id: 'PASSWORD_CHANGE', label: `Seguramça(${unreadSegurancy})` },
             { id: 'PAYMENT', label: `Pagamentos(${unreadPayment})` },
             { id: 'READ', label: `Lidas(${unreadAllRead})` },] as const).map(item =>
               <button
@@ -351,13 +354,14 @@ export default function NotificationsPage() {
                       {item.description}
                     </p>
                     <div className="mt-3 flex flex-wrap items-center gap-2">
-                      <span className={`rounded-lg px-2 py-1 text-[10px] font-bold ${config.bg} ${config.color}`}>{config.label}
-                      </span>
-                      <span className="text-[10px] font-semibold text-surface-400">
-                        Pedido #{orders.find(o => o.id_Order === item.referenceId)?.number_Order}
+                      {item.referenceType == 'ORDER' &&
+                        <span className={`rounded-lg px-2 py-1 text-[10px] font-bold ${config.bg} ${config.color}`}>{config.label}
+                        </span>}
+                      {item.referenceType == 'ORDER' &&
+                        <span className="text-[10px] font-semibold text-surface-400">
+                          Pedido #{orders.find(o => o.id_Order === item.referenceId)?.number_Order}
+                        </span>}
 
-
-                      </span>
                       <div className="ml-auto flex items-center gap-1.5">
                         {!isRead && (
                           <button

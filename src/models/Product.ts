@@ -61,7 +61,7 @@ export interface ProductSaveOrder {
     origin_Price?: number;
     badge?: string;
     Count_Rating?: number;
-    variations: ProductVariation | null;
+    variations?: ProductVariation | null;
     id_category?: number;
     valorDicont?: number;
     evaluated?: boolean

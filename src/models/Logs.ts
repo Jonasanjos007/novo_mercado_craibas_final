@@ -1,7 +1,7 @@
 
 export interface Logs {
     id: number;
-    id_User_Customer: number;
+    id_User: number;
     log: string;
     tipo: string;
     nivel: string;

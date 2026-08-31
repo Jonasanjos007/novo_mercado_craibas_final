@@ -664,20 +664,7 @@ export const ProductPage = () => {
                       onClick={() =>
                         setReviewPage(prev => Math.max(prev - 1, 0))
                       }
-                      className="
-          w-9
-          h-9
-          rounded-full
-          border
-          border-surface-200
-          flex
-          items-center
-          justify-center
-          hover:bg-surface-50
-          disabled:opacity-30
-          disabled:cursor-not-allowed
-          transition
-        "
+                      className=" w-9 h-9 rounded-full border border-surface-200 flex items-center justify-center hover:bg-surface-50 disabled:opacity-30 disabled:cursor-not-allowed transition"
                     >
                       <ChevronLeft className="w-4 h-4" />
                     </button>
@@ -704,20 +691,7 @@ export const ProductPage = () => {
                           Math.min(prev + 1, totalReviewPages - 1)
                         )
                       }
-                      className="
-          w-9
-          h-9
-          rounded-full
-          border
-          border-surface-200
-          flex
-          items-center
-          justify-center
-          hover:bg-surface-50
-          disabled:opacity-30
-          disabled:cursor-not-allowed
-          transition
-        "
+                      className=" w-9 h-9 rounded-full border border-surface-200 flex items-center justify-center hover:bg-surface-50 disabled:opacity-30 disabled:cursor-not-allowed transition"
                     >
                       <ChevronRight className="w-4 h-4" />
                     </button>

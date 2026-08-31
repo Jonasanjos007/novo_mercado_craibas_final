@@ -67,6 +67,18 @@ export const OrderService = {
             return makeResult(false, undefined, err.response?.data || 'Falha ao enviar avaliação.');
         }
     },
+    PostEditeAssessment: async (formData: FormData): Promise<Result<unknown>> => {
+        try {
+            const response = await api.post('/v1/order/PostEditeAssessment', formData, {
+                headers: { 'Content-Type': 'multipart/form-data' },
+            });
+            const { success, data, error } = response.data;
+
+            return makeResult(success, data, error);
+        } catch (err: any) {
+            return makeResult(false, undefined, err.response?.data || 'Falha ao enviar avaliação.');
+        }
+    },
     GetAssessment: async (IdProduct: number, IdOrder: number): Promise<Result<RatingResponse>> => {
         try {
             const response = await api.post(`/v1/order/GetAssessment?IdProduct=${IdProduct}&IdOrder=${IdOrder}`

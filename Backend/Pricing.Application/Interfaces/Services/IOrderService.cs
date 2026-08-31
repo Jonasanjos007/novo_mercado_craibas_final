@@ -11,5 +11,6 @@ public interface IOrderService
     Task<Result<List<OrderResponse>>> GetOrderAll(int userId);
     Task<Result<bool>> PostUpdateAssessment(int userId, ProductReviewrequest review);
     Task<Result<RatingResponse>> GetAssessment(int userId, int IdProduct, int IdOrder);
+    Task<Result<bool>> PostUpdateEditeAssessment(int userId, ProductReviewEditerequest review);
 
 }
