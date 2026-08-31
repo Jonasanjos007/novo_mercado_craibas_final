@@ -10,6 +10,7 @@ using Mercado.Craibas.Application.Domain.Entities;
 using Mercado.Craibas.Application.DTOs.Requests;
 using Mercado.Craibas.Application.DTOs.Responses;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
 using Pricing.Api.DTOs.Responses;
 using System;
 using System.Collections.Generic;
@@ -20,11 +21,13 @@ public class UserService : IUserService
     private readonly IUserRepository _userRepository;
     //private readonly IProfileRepository _profileRepository;
     private readonly IUnitOfWork _unitOfWork;
+    private readonly IConfiguration _configuration;
 
-    public UserService(IUserRepository userRepository, IUnitOfWork unitOfWork)
+    public UserService(IUserRepository userRepository, IUnitOfWork unitOfWork, IConfiguration configuration)
     {
         _userRepository = userRepository;
         _unitOfWork = unitOfWork;
+        _configuration = configuration;
     }
 
     //public async Task<Result<string>> CreateUser(CreateUserRequest request)
@@ -114,6 +117,96 @@ public class UserService : IUserService
             }
         });
     }
+    public async Task<Result<bool>> UpdateProfile(int userId, string role, UpdateProfileRequest request)
+    {
+        var name = request.Name?.Trim();
+        var email = request.Email?.Trim().ToLowerInvariant();
+
+        if (string.IsNullOrWhiteSpace(name) || name.Length < 3)
+            return Result<bool>.Failure(Error.Failure("Perfil", "Informe um nome válido."));
+
+        if (string.IsNullOrWhiteSpace(email) || !email.Contains('@'))
+            return Result<bool>.Failure(Error.Failure("Perfil", "Informe um e-mail válido."));
+
+        var fields = new Dictionary<string, object>
+        {
+            { "Name", name },
+            { "Email", email },
+            { "Phone", request.Phone ?? 0 },
+            { "UpdateDate", DateTime.Now }
+        };
+
+        string newAvatarName = null;
+        string oldAvatarName = null;
+        string avatarFolder = null;
+
+        if (request.Avatar != null && request.Avatar.Length > 0)
+        {
+            const long maxAvatarSize = 5 * 1024 * 1024;
+            var allowedExtensions = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+                { ".jpg", ".jpeg", ".png", ".webp" };
+            var extension = Path.GetExtension(request.Avatar.FileName);
+
+            if (request.Avatar.Length > maxAvatarSize)
+                return Result<bool>.Failure(Error.Failure("Foto", "A imagem deve ter no máximo 5 MB."));
+
+            if (!allowedExtensions.Contains(extension))
+                return Result<bool>.Failure(Error.Failure("Foto", "Use uma imagem JPG, PNG ou WEBP."));
+
+            var imagesPath = _configuration["Storage:ImagesPath"];
+            if (string.IsNullOrWhiteSpace(imagesPath))
+                return Result<bool>.Failure(Error.Failure("Foto", "O armazenamento de imagens não está configurado."));
+
+            avatarFolder = Path.Combine(imagesPath, "Usuarios");
+            Directory.CreateDirectory(avatarFolder);
+            newAvatarName = $"{Guid.NewGuid():N}{extension.ToLowerInvariant()}";
+
+            await using var stream = new FileStream(
+                Path.Combine(avatarFolder, newAvatarName), FileMode.CreateNew);
+            await request.Avatar.CopyToAsync(stream);
+            fields.Add("Avatar", newAvatarName);
+        }
+
+        switch (role.ToUpperInvariant())
+        {
+            case "CLIENTE":
+                oldAvatarName = (await _userRepository.GetByIdAsync<User_Customer>(userId, "Id"))?.Avatar;
+                break;
+            case "ADMIN":
+                oldAvatarName = (await _userRepository.GetByIdAsync<User_Admin>(userId, "Id"))?.Avatar;
+                break;
+            case "DELIVERY":
+                oldAvatarName = (await _userRepository.GetByIdAsync<User_Delivery>(userId, "Id"))?.Avatar;
+                break;
+        }
+
+        var updated = role.ToUpperInvariant() switch
+        {
+            "CLIENTE" => await _unitOfWork.UpdateFieldsAsync<User_Customer>(
+                new Dictionary<string, object> { { "Id", userId } }, fields),
+            "ADMIN" => await _unitOfWork.UpdateFieldsAsync<User_Admin>(
+                new Dictionary<string, object> { { "Id", userId } }, fields),
+            "DELIVERY" => await _unitOfWork.UpdateFieldsAsync<User_Delivery>(
+                new Dictionary<string, object> { { "Id", userId } }, fields),
+            _ => false
+        };
+
+        if (!updated)
+        {
+            if (newAvatarName != null && avatarFolder != null)
+                File.Delete(Path.Combine(avatarFolder, newAvatarName));
+            return Result<bool>.Failure(Error.Failure("Perfil", "Não foi possível atualizar o perfil."));
+        }
+
+        if (newAvatarName != null && avatarFolder != null && !string.IsNullOrWhiteSpace(oldAvatarName))
+        {
+            var oldAvatarPath = Path.Combine(avatarFolder, Path.GetFileName(oldAvatarName));
+            if (File.Exists(oldAvatarPath)) File.Delete(oldAvatarPath);
+        }
+
+        return Result<bool>.Success(true);
+    }
+
     public async Task<Result<bool>> PostSaveAddressUserService(AddressRequest NewAnddress)
     {
         if (NewAnddress.Standard == true)

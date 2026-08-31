@@ -18,6 +18,9 @@ namespace Mercado.Craibas.Application.Interfaces.Services
         Task<Result<bool>> PostCartItensUpdate(int Id, int Quantity, string Soma_Sub);
         Task<Result<bool>> DeleteProductCartList(int Id_Customer);
         Task<Result<List<RatingAllProducts>>> GetAssessmentAllProduct(int IdProduct);
+        Task<Result<bool>> PostFavoriteSave(int UserId, int IdProduct);
+        Task<Result<List<FavoritesResponse>>> GetAllFavorites(int UserId);
+        Task<Result<bool>> DeleteFavorites(int IdProduct);
 
     }
 }

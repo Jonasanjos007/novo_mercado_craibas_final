@@ -83,6 +83,35 @@ namespace Mercado.Api.Controllers.V1
 
             return result.ToActionResult();
         }
+        [Authorize]
+        [HttpPost("PostFavoriteSave")]
+        public async Task<IActionResult> PostFavoriteSave([FromBody] int Id_Product)
+        {
+            var Id_User = User.GetUserId();
+
+            var result = await _service.PostFavoriteSave(Id_User, Id_Product);
+
+            return result.ToActionResult();
+        }
+        [Authorize]
+        [HttpGet("GetAllFavorites")]
+        public async Task<IActionResult> GetAllFavorites()
+        {
+            var Id_User = User.GetUserId();
+
+            var result = await _service.GetAllFavorites(Id_User);
+
+            return result.ToActionResult();
+        }
+
+        [Authorize]
+        [HttpDelete("DeleteOneFavorite/{IdProduct}")]
+        public async Task<IActionResult> DeleteOneFavorite(int IdProduct)
+        {
+            var result = await _service.DeleteFavorites(IdProduct);
+
+            return result.ToActionResult();
+        }
 
     }
 }

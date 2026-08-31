@@ -633,6 +633,277 @@ public class OrderService : IOrderService
             return Result<bool>.Failure(Error.Failure("Avaliação",ex.Message));
         }
     }
+    public async Task<Result<bool>> PostUpdateEditeAssessment(int userId,ProductReviewEditerequest review)
+    {
+        try
+        {
+            if (userId <= 0)
+            {
+                return Result<bool>.Failure(Error.Failure("Avaliação", "Usuário inválido."));
+            }
+
+            if (review == null)
+            {
+                return Result<bool>.Failure(Error.Failure("Avaliação", "Avaliação inválida."));
+            }
+
+            if (review.Rating < 1 || review.Rating > 5)
+            {
+                return Result<bool>.Failure(Error.Failure("Avaliação", "A avaliação deve ser entre 1 e 5."));
+            }
+
+            // ==========================================
+            // 1. LOCALIZA O ITEM DO PEDIDO
+            // ==========================================
+
+            var orderItem = await _unitOfWork.Query<OrderLineItens>().FirstOrDefaultAsync(x =>x.Id_Order == review.OrderId && x.Id_Product == review.ProductId && x.Isdelete != true);
+
+            if (orderItem == null)
+            {
+                return Result<bool>.Failure(Error.Failure("Avaliação","Produto não encontrado neste pedido."));
+            }
+
+            // ==========================================
+            // 2. BUSCA A AVALIAÇÃO EXISTENTE
+            // ==========================================
+
+            var rating = await _unitOfWork.Query<Rating>().FirstOrDefaultAsync(x =>x.Id_Order == review.OrderId &&x.Id_Product == review.ProductId &&x.Id_User_Customer == userId &&x.Isdelete != true);
+
+            if (rating == null)
+            {
+                return Result<bool>.Failure(Error.Failure("Avaliação","Avaliação não encontrada."));
+            }
+
+            // ==========================================
+            // 3. MÍDIAS ANTIGAS
+            // ==========================================
+
+            var pastaDestino = GetImagesFolder("Avaliacoes");
+
+            var extensoesPermitidas = new[]
+            {
+            ".jpg",
+            ".jpeg",
+            ".png",
+            ".webp",
+            ".mp4",
+            ".mov",
+            ".webm"
+        };
+
+            var midiasAntigas = string.IsNullOrWhiteSpace(rating.Media)
+                ? new List<string>()
+                : rating.Media
+                    .Split(';', StringSplitOptions.RemoveEmptyEntries)
+                    .ToList();
+
+            // ==========================================
+            // 4. MÍDIAS QUE O USUÁRIO MANTEVE
+            // ==========================================
+
+            var midiasMantidas = string.IsNullOrWhiteSpace(review.MediaEdite)
+                ? new List<string>()
+                : review.MediaEdite
+                    .Split(';', StringSplitOptions.RemoveEmptyEntries)
+                    .Select(x => Path.GetFileName(x.Trim()))
+                    .Where(x => !string.IsNullOrWhiteSpace(x))
+                    .ToList();
+
+            // ==========================================
+            // 5. REMOVE FISICAMENTE AS MÍDIAS EXCLUÍDAS
+            // ==========================================
+
+            var midiasRemovidas = midiasAntigas
+                .Except(midiasMantidas, StringComparer.OrdinalIgnoreCase)
+                .ToList();
+
+            foreach (var nomeArquivo in midiasRemovidas)
+            {
+                var caminhoArquivo = Path.Combine(
+                    pastaDestino,
+                    nomeArquivo);
+
+                if (File.Exists(caminhoArquivo))
+                {
+                    File.Delete(caminhoArquivo);
+                }
+            }
+
+            // ==========================================
+            // 6. SALVA NOVAS MÍDIAS
+            // ==========================================
+
+            var novasMidias = new List<string>();
+
+            if (review.Media != null && review.Media.Any())
+            {
+                foreach (var arquivo in review.Media)
+                {
+                    if (arquivo == null || arquivo.Length == 0)
+                        continue;
+
+                    var extensao = Path
+                        .GetExtension(arquivo.FileName)
+                        .ToLowerInvariant();
+
+                    if (!extensoesPermitidas.Contains(extensao))
+                    {
+                        return Result<bool>.Failure(Error.Failure("Avaliação",$"Formato {extensao} não permitido."));
+                    }
+
+                    var nomeArquivo = $"{Guid.NewGuid()}{extensao}";
+
+                    var caminhoCompleto = Path.Combine(
+                        pastaDestino,
+                        nomeArquivo);
+
+                    using var stream = new FileStream(
+                        caminhoCompleto,
+                        FileMode.Create);
+
+                    await arquivo.CopyToAsync(stream);
+
+                    novasMidias.Add(nomeArquivo);
+                }
+            }
+
+            // ==========================================
+            // 7. JUNTA MÍDIAS ANTIGAS + NOVAS
+            // ==========================================
+
+            var todasMidias = midiasMantidas
+                .Concat(novasMidias)
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .ToList();
+
+            // ==========================================
+            // 8. ATUALIZA A AVALIAÇÃO EXISTENTE
+            // ==========================================
+
+            //rating.Ranting = review.Rating;
+            //rating.Comment = review.Comment;
+            //rating.Recommend = review.Recommend;
+            //rating.Media = todasMidias.Any()
+            //    ? string.Join(";", todasMidias)
+            //    : null;
+
+            var teste = todasMidias.Any()
+                ? string.Join(";", todasMidias)
+                : null;
+            await _unitOfWork.UpdateFieldsAsync<Rating>(
+                filters: new Dictionary<string, object>
+                {
+                { "Id", rating.Id }
+                },
+                fieldsToUpdate: new Dictionary<string, object>
+                {
+                { "Id_Product",rating.Id_Product },
+                { "Id_Order",rating.Id_Order },
+                { "Ranting",review.Rating },
+                { "Comment",review.Comment },
+                { "Media",todasMidias.Any() ? string.Join(";", todasMidias) : null },
+                { "Recommend",review.Recommend },
+                { "UpdateDate",DateTime.Now },
+                }
+            );
+
+            // ==========================================
+            // 9. GARANTE QUE O PEDIDO CONTINUE AVALIADO
+            // ==========================================
+
+            await _unitOfWork.UpdateFieldsAsync<OrderLineItens>(
+                filters: new Dictionary<string, object>
+                {
+                { "Id_Order", review.OrderId },
+                { "Id_Product", review.ProductId }
+                },
+                fieldsToUpdate: new Dictionary<string, object>
+                {
+                { "Evaluated", true }
+                }
+            );
+
+            // ==========================================
+            // 10. RECALCULA MÉDIA DO PRODUTO
+            // ==========================================
+
+            var product = await _unitOfWork.GetClassAsyncWhere<Product>(x => x.Id == review.ProductId && x.Isdelete != true);
+
+            if (product == null)
+            {
+                return Result<bool>.Failure(Error.Failure("Avaliação","Produto não encontrado."));
+            }
+
+            var productRatings = await _unitOfWork.GetClassListAsyncWhere<Rating>(x => x.Id_Product == review.ProductId && x.Isdelete != true);
+
+            var countRating = productRatings.Count;
+
+            var ratingAverage = countRating > 0 ? (double)productRatings.Sum(x => x.Ranting) / countRating : 5;
+
+            await _unitOfWork.UpdateFieldsAsync<Product>(
+                filters: new Dictionary<string, object>
+                {
+                { "Id", product.Id }
+                },
+                fieldsToUpdate: new Dictionary<string, object>
+                {
+                { "Rating", ratingAverage }
+                }
+            );
+
+            // ==========================================
+            // 11. LOG
+            // ==========================================
+
+            var user = await _unitOfWork.GetClassAsyncWhere<User_Customer>(x => x.Id == userId && x.Isdelete != true && x.Ativo == true);
+            var userAdmin = await _unitOfWork.GetClassListAsyncWhere<User_Admin>(x => x.Isdelete != true && x.Ativo == true);
+            var Order = await _unitOfWork.GetClassAsyncWhere<Orders>(x => x.Isdelete != true && x.Id == review.OrderId);
+
+
+            if (user != null)
+            {
+                await _unitOfWork.InsertAsyncReturnId<Logs>(
+                    new Logs
+                    {
+                        Id_User = userId,
+                        Log = $"{user.Name} editou a avaliação do produto {product.Name}. Comentário: {review.Comment}",
+                        Tipo = "Avaliação Produto",
+                        Nivel = "CLIENTE",
+                        Acao = $"O Cliente {user.Name} editou a avaliação do Produto {product.Name} para {review.Rating} Estrelas.",
+                        Info = $"{user.Name} editou a avaliação do Produto {product.Name} em {DateTime.Now:dd/MM/yyyy HH:mm:ss}",
+                        InsertDate = DateTime.Now
+                    });
+            }
+            var users = userAdmin.Select(x => new NotificationUserRequest
+            {
+                UserId = x.Id
+            }).ToList();
+
+            await _notification.SendNotification(
+       new NotificationRequest
+       {
+           Kind = "Avaliação Editada",
+           Title = "Avaliação de produto editada",
+           Description =
+               $"{user.Name} editou a avaliação do produto {product.Name} " +
+               $"do pedido Nº {Order.Number_Order}. " +
+               $"Confira a avaliação atualizada.",
+           Icone = "Star",
+           ActionUrl = "/admin",
+           ReferenceId = product.Id,
+           ReferenceType = "ASSESSMENT",
+           Role = "ADMIN"
+       },
+       users
+   );
+
+            return Result<bool>.Success(true);
+        }
+        catch (Exception ex)
+        {
+            return Result<bool>.Failure(Error.Failure("Avaliação",ex.Message));
+        }
+    } 
     public async Task<Result<RatingResponse>> GetAssessment(int userId, int IdProduct,int IdOrder)
     {
         try

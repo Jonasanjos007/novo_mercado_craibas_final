@@ -47,6 +47,16 @@ public class OrderController : ControllerBase
 
         return result.ToActionResult();
     }
+
+    [Authorize]
+    [HttpPost("PostEditeAssessment")]
+    public async Task<IActionResult> PostEditeAssessment([FromForm] ProductReviewEditerequest ProductReview)
+    {
+        var Id_User = User.GetUserId();
+        var result = await _service.PostUpdateEditeAssessment(Id_User, ProductReview);
+
+        return result.ToActionResult();
+    }
     [Authorize]
     [HttpPost("GetAssessment")]
     public async Task<IActionResult> GetAssessment(

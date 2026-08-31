@@ -23,7 +23,7 @@ import {
   CircleX,
   LogIn,
   TicketCheck,
-  RefreshCcw, Star, Pencil, TicketX, PlusCircle
+  RefreshCcw, Star, Pencil, TicketX, PlusCircle, Lock
 } from 'lucide-react';
 import { useStore } from '../context/store';
 import { formatPrice, orderStatusLabels, orderStatusLabelsAtualize, orderStatusColors, categoryLabels, badgeLabels, badgeLabel, cupomStatusLabels } from '../utils';
@@ -620,7 +620,7 @@ export default function AdminPage() {
   const filteredLogs = logs
     .filter(item => {
       const search = logSearch.trim().toLowerCase();
-      const matchesSearch = !search || [item.log, item.acao, item.info, item.tipo, item.nivel, String(item.id_User_Customer)]
+      const matchesSearch = !search || [item.log, item.acao, item.info, item.tipo, item.nivel, String(item.id_User)]
         .some(value => String(value ?? '').toLowerCase().includes(search));
       const matchesType = logTypeFilter === 'all' || item.tipo === logTypeFilter;
       const matchesLevel = logLevelFilter === 'all' || item.nivel === logLevelFilter;
@@ -4233,6 +4233,14 @@ export default function AdminPage() {
                       icon: Activity,
                       label: "Evento do sistema",
                     },
+                    "ALTERAÇÃO DE SENHA": {
+                      text: "text-orange-400",
+                      bg: "bg-orange-500/10",
+                      border: "border-orange-500/20",
+                      bar: "bg-orange-500",
+                      icon: Lock,
+                      label: "Alteração de senha",
+                    },
                   };
 
                   const levelConfig = configs[level] ?? configs["SISTEMA"];
@@ -4321,7 +4329,7 @@ export default function AdminPage() {
                             <span>
                               Usuário{' '}
                               <span className={`font-bold ${txt2}`}>
-                                #{item.id_User_Customer}
+                                ID#{item.id_User}
                               </span>
                             </span>
 

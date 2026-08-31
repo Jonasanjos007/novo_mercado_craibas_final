@@ -585,5 +585,81 @@ namespace Mercado.Craibas.Application.Services
                 );
             }
         }
+        public async Task<Result<bool>> PostFavoriteSave(int UserId, int IdProduct)
+        {
+            var ExisteProduct = await _unitOfWork.GetClassAsyncWhere<Favorite>(x => x.ProductId == IdProduct);
+            if(ExisteProduct != null)
+            {
+                return Result<bool>.Failure(Error.Failure("Favoritos", "Produto ja existe nos favoritos!"));
+            }
+            var Favorite = new Favorite
+            {
+                ProductId = IdProduct,
+                UserId =  UserId,
+                Isdelete = false,
+                InsertDate = DateTime.Now
+
+            };
+
+            var Insert_Cart_Itens = await _productRepository.InsertCartProductAsync<Favorite>(Favorite);
+
+            if (Insert_Cart_Itens == 0)
+            {
+                return Result<bool>.Failure(Error.Failure("Favoritos", "Nenhum Produto Adicionado aos Favoritos Entre em Contato Com Suporte!"));
+            }
+            return Result<bool>.Success(true);
+        }
+        public async Task<Result<List<FavoritesResponse>>> GetAllFavorites(int UserId)
+        {
+            var listFavoritesResponse = new List<FavoritesResponse>();
+
+            var listFavorites = await _unitOfWork.GetClassListAsyncWhere<Favorite>(x =>  x.UserId == UserId);
+
+            foreach (var favorite in listFavorites)
+            {
+                listFavoritesResponse.Add(new FavoritesResponse
+                {
+                    Id = favorite.Id,
+                    Id_Product = favorite.ProductId,
+                    InsertDate = favorite.InsertDate
+                });
+            }
+
+          
+
+            return Result<List<FavoritesResponse>>.Success(listFavoritesResponse);
+        
+        }
+
+        public async Task<Result<bool>> DeleteFavorites(int IdProduct)
+        {
+            if (IdProduct <= 0)
+            {
+                return Result<bool>.Failure(
+                    Error.Failure(
+                        "Favoritos",
+                        "Erro ao remover dos favoritos."
+                    )
+                );
+            }
+
+            var favorites = await _unitOfWork
+                .DeleteByColumnAsyncGlolbal<Favorite>(
+                    "ProductId",
+                    IdProduct
+                );
+
+            if (!favorites)
+            {
+                return Result<bool>.Failure(
+                    Error.Failure(
+                        "Favoritos",
+                        "Erro ao remover dos favoritos."
+                    )
+                );
+            }
+
+            return Result<bool>.Success(true);
+        }
     }
 }

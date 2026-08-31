@@ -1,6 +1,7 @@
 
 
 using Baldan.Pricing.Application.Commons;
+using Mercado.Craibas.Application.DTOs.Requests;
 using Pricing.Api.DTOs.Requests;
 using Pricing.Api.DTOs.Responses;
 
@@ -12,4 +13,5 @@ public interface IAuthService
     Task<Result<LoginResponse>> RefreshAsync(string refreshToken);
     Task<Result> LogoutAsync(string refreshToken);
     //Task<Result<LoginResponse>> RefreshAsync(string refreshToken);
+    Task<Result<bool>> ChangePassword(int userId, ChangePasswordRequest request);
 }

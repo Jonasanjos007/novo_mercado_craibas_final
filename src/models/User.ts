@@ -48,3 +48,15 @@ export interface UserRanting {
     avatar: string;
     role: string;
 };
+export interface UserProfile {
+    name: string;
+    avatar: string;
+    email: string;
+    phone: number;
+};
+export interface ChangePassword {
+    currentPassword: string,
+    newPassword: string,
+    confirmPassword: string,
+};
+

@@ -8,6 +8,7 @@ public interface IUserService
 {
     //task<result<string>> createuser(createuserrequest request);
     Task<Result<UserResponse>> GetbyIdUser(int userid , string role);
+    Task<Result<bool>> UpdateProfile(int userId, string role, UpdateProfileRequest request);
     Task<Result<bool>> PostSaveAddressUserService(AddressRequest NewAnddress);
     Task<Result<List<AddressResponse>>> GetAddressbyIdUserService(int Id_User);
     Task<Result<bool>> PostUpdateAddressUserService(AddressRequest NewAnddress);
