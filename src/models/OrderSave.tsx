@@ -50,6 +50,8 @@ export interface SendMessageViaWhatsAppResponse {
     number_Order: string;
     nome_Cliente: string;
 }
+type ReviewMedia = { name: string; type: string; url: string };
+
 export interface RatingResponse {
     id: number;
     id_Product: number;
@@ -58,6 +60,7 @@ export interface RatingResponse {
     ranting: number;
     comment: string;
     media: string;
+    mediaEdite?: ReviewMedia[];
     recommend: boolean;
     insertDate?: Date;
     updateDate?: Date;

@@ -10,15 +10,13 @@ export type ProductReview = {
   productId: number;
   rating: number;
   comment: string;
-  media: ReviewMedia[];
+  media?: ReviewMedia[];
+  mediaEdite?: string;
   recommend: boolean;
 };
 
 const STORAGE_KEY = 'mercado-craibas-product-reviews';
 
-export const getSavedReviews = (): ProductReview[] => {
-  try { return JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]'); } catch { return []; }
-};
 
 export const createAssessmentFormData = (assessment: ProductReview, files: File[]): FormData => {
   const data = new FormData();
@@ -39,13 +37,14 @@ interface Props {
   orderNumber?: string;
   themeClass?: string;
   onSaved?: (review: ProductReview) => void;
-  onSubmitFormData?: (formData: FormData) => Promise<void>;
+  IsEdite?: ProductReview;
+  onCloseEdite?: () => void;
 }
 
-export default function ProductReviewModal({ open, onClose, product, orderId, orderNumber, themeClass = 'bg-brand-500 hover:bg-brand-600', onSaved, onSubmitFormData }: Props) {
-  const existing = useMemo(() => getSavedReviews().find(r => r.orderId === orderId && r.productId === product?.id), [open, orderId, product?.id]);
+export default function ProductReviewModal({ open, onClose, product, orderId, orderNumber, themeClass = 'bg-brand-500 hover:bg-brand-600', onSaved, IsEdite, onCloseEdite
+}: Props) {
   const [rating, setRating] = useState(0);
-  const { PostRating } = UseOrderStore();
+  const { PostRating, PostEditeRating } = UseOrderStore();
   const notify = useNotification();
   const [hovered, setHovered] = useState(0);
   const [title, setTitle] = useState('');
@@ -62,31 +61,79 @@ export default function ProductReviewModal({ open, onClose, product, orderId, or
     media: [],
     recommend: false,
   });
+  console.log("IsEdite", IsEdite)
   const [mediaFiles, setMediaFiles] = useState<File[]>([]);
   const [saveAssessmentLoading, setSaveAssessmentLoading] = useState(false);
 
-
+  const [existingMedia, setExistingMedia] = useState<ReviewMedia[]>([]);
   useEffect(() => {
+    if (IsEdite) {
+      const existing: ReviewMedia[] = IsEdite.mediaEdite
+        ? IsEdite.mediaEdite
+          .split(';')
+          .filter(Boolean)
+          .map(fileName => ({
+            name: fileName,
+            type: fileName.toLowerCase().endsWith('.mp4')
+              ? 'video/mp4'
+              : 'image/*',
+            url: `/Imagens/Avaliacoes/${fileName}`,
+          }))
+        : [];
+
+      setExistingMedia(existing);
+
+      setAssessment({
+        comment: IsEdite.comment,
+        rating: IsEdite.rating,
+        media: existing,
+        mediaEdite: IsEdite.mediaEdite,
+        recommend: IsEdite.recommend,
+        orderId,
+        productId: product?.id ?? 0,
+      });
+
+      setRating(IsEdite.rating);
+      setRecommend(IsEdite.recommend);
+      setMediaFiles([]);
+    }
+
     if (!open) return;
-    setRating(existing?.rating || 0);
-    setComment(existing?.comment || '');
-    setRecommend(existing?.recommend ?? true);
-    setMedia(existing?.media || []);
-    setAssessment(existing || { orderId, productId: product?.id || 0, rating: 0, comment: '', media: [], recommend: true });
-    setMediaFiles([]);
-    setError(''); setSuccess(false);
-  }, [open, existing, orderId, product?.id]);
+
+    setError('');
+    setSuccess(false);
+  }, [IsEdite, open, orderId, product?.id]);
 
   if (!open || !product) return null;
   const image = `/Imagens/Produtos/${product.imagens?.[0]?.url_Imagem || ''}`;
 
   const addMedia = (event: ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(event.target.files || []);
-    const available = Math.max(0, 5 - media.length);
-    const valid = files.filter(f => f.type.startsWith('image/') || f.type.startsWith('video/')).slice(0, available);
-    setMedia(prev => [...prev, ...valid.map(file => ({ name: file.name, type: file.type, url: URL.createObjectURL(file) }))]);
+
+    const currentCount = assessment.media?.length ?? 0;
+    const available = Math.max(0, 5 - currentCount);
+
+    const valid = files
+      .filter(
+        f =>
+          f.type.startsWith('image/') ||
+          f.type.startsWith('video/')
+      )
+      .slice(0, available);
+
+    const newMedia: ReviewMedia[] = valid.map(file => ({
+      name: file.name,
+      type: file.type,
+      url: URL.createObjectURL(file),
+    }));
+
     setMediaFiles(prev => [...prev, ...valid]);
-    setAssessment(prev => ({ ...prev, media: [...prev.media, ...valid.map(file => ({ name: file.name, type: file.type, url: URL.createObjectURL(file) }))] }));
+
+    setAssessment(prev => ({
+      ...prev,
+      media: [...(prev.media ?? []), ...newMedia],
+    }));
+
     event.target.value = '';
   };
 
@@ -106,7 +153,7 @@ export default function ProductReviewModal({ open, onClose, product, orderId, or
     const review: ProductReview = {
       ...assessment,
       orderId,
-      productId: product.id,
+      productId: product.id ?? 0,
       comment: assessment.comment.trim(),
     };
 
@@ -134,8 +181,8 @@ export default function ProductReviewModal({ open, onClose, product, orderId, or
         return;
       }
 
-      const others = getSavedReviews().filter(r => !(r.orderId === orderId && r.productId === product.id));
-      localStorage.setItem(STORAGE_KEY, JSON.stringify([...others, review]));
+      // const others = getSavedReviews().filter(r => !(r.orderId === orderId && r.productId === product.id));
+      // localStorage.setItem(STORAGE_KEY, JSON.stringify([...others, review]));
       onSaved?.(review);
       setSuccess(true);
       setAssessment({ orderId: 0, productId: 0, rating: 0, comment: "", media: [], recommend: false, });
@@ -157,7 +204,94 @@ export default function ProductReviewModal({ open, onClose, product, orderId, or
       setSaveAssessmentLoading(false);
     }
   };
+  const handleEditAssessment = async () => {
+    setError('');
 
+    if (!assessment.rating) {
+      setError('Escolha de 1 a 5 estrelas.');
+      return;
+    }
+
+    if (assessment.comment.trim().length < 10) {
+      setError('Conte um pouco mais sobre o produto (mínimo de 10 caracteres).');
+      return;
+    }
+
+    setSaveAssessmentLoading(true);
+
+    const formData = new FormData();
+
+    formData.append('OrderId', String(orderId));
+    formData.append('ProductId', String(product?.id ?? 0));
+    formData.append('Rating', String(assessment.rating));
+    formData.append('Comment', assessment.comment.trim());
+    formData.append('Recommend', String(assessment.recommend));
+
+    // Mídias antigas que continuam existindo
+    const mediaEdite = existingMedia
+      .map(media => media.name)
+      .join(';');
+
+    formData.append('MediaEdite', mediaEdite);
+
+    // Novas mídias adicionadas pelo usuário
+    mediaFiles.forEach(file => {
+      formData.append('Media', file);
+    });
+
+    for (const [key, value] of formData.entries()) {
+      console.log(key, value);
+    }
+
+    try {
+      const result = await PostEditeRating(formData);
+
+      if (!result.success) {
+        setError(
+          result.error?.error.message || 'Erro ao editar avaliação.'
+        );
+
+        notify.error(
+          result.error?.error.code || 'Avaliação',
+          result.error?.error.message || 'Erro ao editar avaliação'
+        );
+
+        return;
+      }
+
+      const review: ProductReview = {
+        ...assessment,
+        orderId,
+        productId: product?.id ?? 0,
+        comment: assessment.comment.trim(),
+      };
+
+      onSaved?.(review);
+
+      setSuccess(true);
+
+      notify.success(
+        'Avaliação',
+        'Avaliação atualizada com sucesso!'
+      );
+
+      setMediaFiles([]);
+      setExistingMedia([]);
+
+    } catch (err: any) {
+      console.log(err);
+      console.log(err.response);
+      console.log(err.response?.data);
+
+      setError(
+        err.response?.data ||
+        'Não foi possível editar a avaliação. Tente novamente.'
+      );
+    } finally {
+      setSaveAssessmentLoading(false);
+
+    }
+  };
   return (
     <div className="fixed inset-0 z-[70] flex items-end justify-center bg-surface-950/60 backdrop-blur-sm sm:items-center sm:p-4"
       onClick={onClose}>
@@ -168,7 +302,7 @@ export default function ProductReviewModal({ open, onClose, product, orderId, or
             <p className="truncate text-[10px] font-bold uppercase tracking-widest text-surface-400 sm:text-[11px]">
               Pedido #{orderNumber || orderId}
             </p>
-            <h2 className="truncate font-display text-lg font-bold text-surface-900 sm:text-xl">{existing ? 'Editar avaliação' : 'Avaliar produto'}
+            <h2 className="truncate font-display text-lg font-bold text-surface-900 sm:text-xl">{'Avaliar produto'}
             </h2>
           </div>
           <button
@@ -190,9 +324,14 @@ export default function ProductReviewModal({ open, onClose, product, orderId, or
               Obrigado por compartilhar sua experiência. Ela ajuda outros clientes a escolherem melhor.
             </p>
             <button
-              onClick={onClose}
-              className={`mt-7 rounded-xl px-7 py-3 text-sm font-bold text-white ${themeClass}`}>
-              Concluir</button>
+              onClick={() => {
+                onClose();
+                onCloseEdite?.();
+              }}
+              className={`mt-7 rounded-xl px-7 py-3 text-sm font-bold text-white ${themeClass}`}
+            >
+              Concluir
+            </button>
           </div>
         ) : (
           <div className="overflow-y-auto overscroll-contain p-4 pb-[max(1rem,env(safe-area-inset-bottom))] sm:p-6">
@@ -261,11 +400,11 @@ export default function ProductReviewModal({ open, onClose, product, orderId, or
                     </p>
                   </div>
                   <span className="text-[11px] text-surface-400">
-                    {assessment.media.length}/5
+                    {assessment.media?.length}/5
                   </span>
                 </div>
                 <div className="grid grid-cols-3 gap-2 xs:grid-cols-4 sm:grid-cols-5">
-                  {assessment.media.map((item, index) =>
+                  {assessment.media?.map((item, index) =>
                     <div key={`${item.name}-${index}`}
                       className="group relative aspect-square overflow-hidden rounded-xl bg-surface-100">
                       {item.type.startsWith('video/') ? <>
@@ -280,13 +419,36 @@ export default function ProductReviewModal({ open, onClose, product, orderId, or
                           className="h-full w-full object-cover" />}
                       <button
                         onClick={() => {
-                          setAssessment(prev => ({ ...prev, media: prev.media.filter((_, i) => i !== index) }));
-                          setMediaFiles(prev => prev.filter((_, i) => i !== index));
+                          const item = assessment.media?.[index];
+
+                          if (!item) return;
+
+                          // Remove da lista visual
+                          setAssessment(prev => ({
+                            ...prev,
+                            media: prev.media?.filter((_, i) => i !== index),
+                          }));
+
+                          // Se for arquivo novo, remove também de mediaFiles
+                          const newFileIndex = mediaFiles.findIndex(
+                            file => file.name === item.name
+                          );
+
+                          if (newFileIndex !== -1) {
+                            setMediaFiles(prev =>
+                              prev.filter((_, i) => i !== newFileIndex)
+                            );
+                          }
+
+                          // Se for arquivo antigo, remove de existingMedia
+                          setExistingMedia(prev =>
+                            prev.filter(media => media.name !== item.name)
+                          );
                         }}
                         className="absolute right-1 top-1 grid h-7 w-7 place-items-center rounded-full bg-black/60 text-white">
                         <Trash2 className="h-3.5 w-3.5" />
                       </button>
-                    </div>)}{assessment.media.length < 5 &&
+                    </div>)}{(assessment?.media?.length ?? 0) < 5 &&
                       <label className="flex aspect-square min-h-20 cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed border-surface-200 text-surface-400 transition hover:border-brand-300 hover:bg-brand-50 hover:text-brand-500">
                         <UploadCloud className="h-6 w-6" />
                         <span className="mt-1 text-[10px] font-bold">
@@ -315,11 +477,18 @@ export default function ProductReviewModal({ open, onClose, product, orderId, or
                   className="flex-1 rounded-xl bg-surface-100 px-4 py-3 text-sm font-bold text-surface-600 hover:bg-surface-200">
                   Agora não
                 </button>
-                <button
+                {IsEdite ? (
+                  <button
+                    onClick={handleEditAssessment}
+                    disabled={saveAssessmentLoading}
+                    className={`flex-[1.5] rounded-xl px-4 py-3 text-sm font-bold text-white shadow-lg disabled:cursor-not-allowed disabled:opacity-60 ${themeClass}`}>{saveAssessmentLoading ? 'Enviando...' : 'Editar Avaliação'}
+                  </button>
+                ) : (<button
                   onClick={handleSaveAssessment}
                   disabled={saveAssessmentLoading}
-                  className={`flex-[1.5] rounded-xl px-4 py-3 text-sm font-bold text-white shadow-lg disabled:cursor-not-allowed disabled:opacity-60 ${themeClass}`}>{saveAssessmentLoading ? 'Enviando...' : existing ? 'Salvar alterações' : 'Publicar avaliação'}
-                </button>
+                  className={`flex-[1.5] rounded-xl px-4 py-3 text-sm font-bold text-white shadow-lg disabled:cursor-not-allowed disabled:opacity-60 ${themeClass}`}>{saveAssessmentLoading ? 'Enviando...' : 'Salvar alterações'}
+                </button>)}
+
               </div>
             </div>
           </div>

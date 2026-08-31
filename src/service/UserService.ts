@@ -3,6 +3,19 @@ import { User } from "../models/User";
 import { makeResult, Result } from "../utils/Result";
 
 export const UserService = {
+    updateProfile: async (profile: FormData): Promise<Result<boolean>> => {
+        try {
+            const response = await api.post("/v1/users/profile/PostUpdatePerfil", profile, {
+                headers: {
+                    "Content-Type": "multipart/form-data"
+                }
+            });
+            const { success, data, error } = response.data;
+            return makeResult(success, data, error);
+        } catch (err: any) {
+            return makeResult(false, false, err.response?.data || 'Falha ao atualizar o perfil.');
+        }
+    },
     getUser: async (Role: string): Promise<Result<User>> => {
         try {
             const response = await api.get("/v1/users/me/" + Role);

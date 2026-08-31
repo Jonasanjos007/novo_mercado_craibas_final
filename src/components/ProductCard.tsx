@@ -5,6 +5,8 @@ import { useNavigate } from 'react-router-dom';
 import { Product } from '../models/Product';
 import { UseCartStore } from '../store/UseCartStore';
 import { UseRouteStore } from '../store/UseRouteStore';
+import { UseProductStore } from '../store/UseProductStore';
+import { useNotification } from '../utils/NotificationCard';
 
 interface ProductCardProps {
   product: Product;
@@ -14,19 +16,51 @@ interface ProductCardProps {
 export default function ProductCard({ product, compact = false }: ProductCardProps) {
   const navigate = useNavigate();
   const { toggleWishlist, isWishlisted } = useStore();
+  const { PostfavoriteSave, DeleteOneFavorite, favorites } = UseProductStore();
   const { navigateTo } = UseRouteStore();
   const { addToCart } = UseCartStore();
   const discount = product.origin_Price ? formatDiscount(product.origin_Price, product.price_Unic) : 0;
   const wishlisted = isWishlisted(Number(product.id));
+  const notify = useNotification();
+  const isFavorite = favorites.some(
+    favorite => Number(favorite.id_Product) === Number(product.id)
+  );
 
-  const handleQuickAdd = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    addToCart({ product, quantity: 1 });
+  const handleySaveFavorites = async (event: React.MouseEvent<HTMLButtonElement>, IdProduct: number) => {
+    event.stopPropagation();
+    console.log(IdProduct)
+    if (IdProduct == 0) {
+      notify.warning('atençao', 'Algo deu errado ao adicionar aos favoritos tente novamente!');
+      return;
+    }
+
+    const result = await PostfavoriteSave(IdProduct);
+
+    if (!result.success) {
+      notify.warning(result.error?.error.code || 'atençao', result.error?.error.message || 'Algo deu errado ao adicionar aos favoritos tente novamente!');
+      return;
+    }
+    notify.success('Adicionado', 'Produto adicionado aos favoritos com sucesso.');
+    return;
   };
-  const handleWishlist = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    toggleWishlist(product);
+  const handleyDeleteFavorites = async (event: React.MouseEvent<HTMLButtonElement>, IdProduct: number) => {
+    event.stopPropagation();
+    console.log(IdProduct)
+    if (IdProduct == 0) {
+      notify.warning('atençao', 'Algo deu errado ao Remover dos favoritos tente novamente!');
+      return;
+    }
+
+    const result = await DeleteOneFavorite(IdProduct);
+
+    if (!result.success) {
+      notify.warning(result.error?.error.code || 'Atençao', result.error?.error.message || 'Algo deu errado ao Remover dos favoritos tente novamente!');
+      return;
+    }
+    notify.success('Adicionado', 'Produto removido dos favoritos com sucesso.');
+    return;
   };
+
   return (
     <div
       onClick={() => navigate(`/product/${product.id}`)}
@@ -47,13 +81,41 @@ export default function ProductCard({ product, compact = false }: ProductCardPro
           </div>
         )} */}
         {/* Quick actions */}
-        <div className="absolute bottom-2 right-2 flex gap-1.5 opacity-0 group-hover:opacity-100 transition-all duration-200">
-          <button onClick={handleWishlist} className={`w-7 h-7 rounded-xl flex items-center justify-center shadow-medium transition-all ${wishlisted ? 'bg-red-500 text-white' : 'bg-white text-surface-400 hover:text-red-500'}`}>
-            <Heart className="w-3 h-3" fill={wishlisted ? 'currentColor' : 'none'} />
-          </button>
-          <button onClick={handleQuickAdd} className="w-7 h-7 bg-brand-500 hover:bg-brand-600 text-white rounded-xl flex items-center justify-center shadow-brand">
+        <div className="absolute bottom-2 right-2 flex gap-1.5  transition-all duration-200">
+          <button
+            onClick={() => navigate(`/product/${product.id}`)}
+            className="w-7 h-7 bg-brand-500 hover:bg-brand-600 text-white rounded-xl flex items-center justify-center shadow-brand">
             <ShoppingCart className="w-3 h-3" />
           </button>
+          {isFavorite ? (
+            // JÁ É FAVORITO → REMOVER
+            <button
+              type="button"
+              onClick={(event) => handleyDeleteFavorites(event, product.id || 0)}
+              title="Remover dos favoritos"
+              className="w-7 h-7 rounded-xl flex items-center justify-center shadow-medium transition-all bg-red-500 text-white hover:bg-red-600"
+            >
+              <Heart
+                className="w-3 h-3"
+                fill="currentColor"
+              />
+            </button>
+          ) : (
+            // NÃO É FAVORITO → ADICIONAR
+            <button
+              type="button"
+              onClick={(event) => handleySaveFavorites(event, product.id || 0)}
+              title="Adicionar aos favoritos"
+              className="w-7 h-7 rounded-xl flex items-center justify-center shadow-medium transition-all bg-white text-surface-400 hover:text-red-500"
+            >
+              <Heart
+                className="w-3 h-3"
+                fill="none"
+              />
+            </button>
+          )}
+
+
         </div>
       </div>
 
@@ -69,13 +131,23 @@ export default function ProductCard({ product, compact = false }: ProductCardPro
           {product.count_Sold! > 1000 && <span className="text-[10px] text-surface-400 font-body ml-auto">{(product.count_Sold! / 1000).toFixed(1)}k vendidos</span>}
         </div>
         <div>
-          {product.origin_Price && <p className="text-[10px] text-surface-400 font-body line-through leading-none">{formatPrice(product.origin_Price)}</p>}
-          <p className={`font-display font-bold text-surface-900 leading-none ${compact ? 'text-base' : 'text-lg'}`}>{formatPrice(product.price_Unic)}</p>
-          {product.installments && <p className="text-[10px] text-surface-500 font-body mt-0.5">em {product.installments}x de {formatPrice(product.price_Unic / product.installments)}</p>}
+          {product.origin_Price &&
+            <p className="text-[10px] text-surface-400 font-body line-through leading-none">
+              {formatPrice(product.origin_Price)}
+            </p>}
+          <p className={`font-display font-bold text-surface-900 leading-none ${compact ? 'text-base' : 'text-lg'}`}>
+            {formatPrice(product.price_Unic)}
+          </p>
+          {product.installments &&
+            <p className="text-[10px] text-surface-500 font-body mt-0.5">
+              em {product.installments}x de {formatPrice(product.price_Unic / product.installments)}
+            </p>}
         </div>
         <div className="mt-2 flex items-center gap-1">
           <Zap className="w-3 h-3 text-brand-500" />
-          <span className="text-[10px] font-body font-semibold text-brand-600">{formatPrice(product.price_Unic * 0.95)} no PIX</span>
+          <span className="text-[10px] font-body font-semibold text-brand-600">
+            {formatPrice(product.price_Unic * 0.95)} no PIX
+          </span>
         </div>
       </div>
     </div>

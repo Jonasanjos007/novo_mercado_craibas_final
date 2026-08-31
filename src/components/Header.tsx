@@ -96,7 +96,11 @@ export default function Header() {
             {wishCount > 0 && <span className="absolute -top-0.5 -right-0.5 w-4 h-4 bg-red-500 text-white text-[9px] font-bold rounded-full flex items-center justify-center">{wishCount}</span>}
           </button> */}
           {user?.role === 'CLIENTE' && (
-            <button onClick={() => navigate('/notifications')} aria-label="Abrir notificações" title="Notificações" className="relative rounded-xl p-2.5 text-surface-400 transition-all hover:bg-surface-800 hover:text-white">
+            <button
+              onClick={() => navigate('/notifications')}
+              aria-label="Abrir notificações"
+              title="Notificações"
+              className="relative rounded-xl p-2.5 text-surface-400 transition-all hover:bg-surface-800 hover:text-white">
               <Bell className="h-5 w-5" />
               {unreadNotifications > 0 && <span className={`absolute -right-0.5 -top-0.5 flex h-5 min-w-5 items-center justify-center rounded-full px-1 text-[10px] font-bold text-white ${ColorGlobalTema}`}>{unreadNotifications > 99 ? '99+' : unreadNotifications}</span>}
             </button>
