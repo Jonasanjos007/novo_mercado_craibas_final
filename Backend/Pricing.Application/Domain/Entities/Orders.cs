@@ -1,5 +1,6 @@
 ﻿using Baldan.Pricing.Application.Domain.Enums;
 using Mercado.Craibas.Application.Domain.Entities;
+using MimeKit;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -33,6 +34,8 @@ namespace Baldan.Pricing.Application.Domain.Entities
         public User_Delivery User_Delivery { get; set; }
         public double? Delivery_Commission { get; set; }
         public DateTime? Estimated_Delivery_Date { get; set; }
+        public DateTime? CustomerDeliveryDate { get; set; }
+        public string? WhoReceivedIt { get; set; }
         public ICollection<OrderLineItens> OrderLineItens { get; set; } = [];
         public ICollection<Coupon_Use> Coupon_Uses { get; set; } = [];
 

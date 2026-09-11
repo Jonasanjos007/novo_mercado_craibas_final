@@ -10,7 +10,6 @@ export const OrderServiceAdmin = {
     GetOrderAllListAdmin: async (): Promise<Result<Order[]>> => {
         try {
             const response = await api.get("/admin/orders/GetAllOrderAdmin");
-            console.log("response.datalist", response)
             const { success, data, error } = response.data;
             if (!success) {
                 return makeResult(false, [], error);
@@ -130,9 +129,9 @@ export const OrderServiceAdmin = {
             return makeResult(false, false, err.response?.data);
         }
     },
-    PostUpdateNewStatus: async (Id_Order: number, New_Order: string): Promise<Result<boolean>> => {
+    PostUpdateNewStatus: async (Id_Order: number, New_Order: string, WhoReceivedIt?: string): Promise<Result<boolean>> => {
         try {
-            const response = await api.post(`/admin/orders/PostUpdateOrderNewStatus?Id_Order=${Id_Order}&NewStatus=${New_Order}`);
+            const response = await api.post(`/admin/orders/PostUpdateOrderNewStatus?Id_Order=${Id_Order}&NewStatus=${New_Order}&WhoReceivedIt=${WhoReceivedIt}`);
             console.log("response.datalist", response);
             const { success, data, error } = response.data;
             if (!success) {

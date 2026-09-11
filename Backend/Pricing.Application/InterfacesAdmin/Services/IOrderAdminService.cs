@@ -16,7 +16,7 @@ namespace Mercado.Craibas.Application.InterfacesAdmin.Services
         Task<Result<List<OrderResponse>>> GetOrderAllListAdmin();
         Task<Result<List<Logs>>> GetAlllogs();
         Task<Result<List<Product_Category>>> GetAllCategory();
-        Task<Result<bool>> PostUpdateStatusOrder(int Id_Order, string NewStatus,int IdUser);
+        Task<Result<bool>> PostUpdateStatusOrder(int Id_Order, string NewStatus,int IdUser, string WhoReceivedIt);
         Task<Result<SendMessageViaWhatsAppResponse>> NotifyViaWhatsAppUpdateEnviado(int IdOrders, int Id_User);
 
     }

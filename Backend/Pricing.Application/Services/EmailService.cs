@@ -80,12 +80,14 @@ public class EmailService : IEmailService
         }
     }
     public string EmailPedidoLayout(
-        string titulo,
-        string subtitulo,
-        string conteudoHtml,
-        string status,
-        string? textoBotao = null,
-        string? linkBotao = null)
+     string titulo,
+     string subtitulo,
+     string conteudoHtml,
+     string status,
+     string? textoBotao = null,
+     string? linkBotao = null,
+     string? whoReceivedIt = null,
+     DateTime? customerDeliveryDate = null)
     {
         var statusNormalizado = status
             .Trim()
@@ -174,6 +176,124 @@ public class EmailService : IEmailService
 
         // BOTÃO
         var botaoHtml = "";
+
+        var entregaHtml = "";
+
+        if (!string.IsNullOrWhiteSpace(whoReceivedIt) &&
+            customerDeliveryDate.HasValue)
+        {
+            var dataEntrega = customerDeliveryDate.Value
+                .ToString("dd/MM/yyyy 'às' HH:mm");
+
+            entregaHtml = $@"
+    <table
+        role='presentation'
+        width='100%'
+        cellpadding='0'
+        cellspacing='0'
+        border='0'
+        style='margin-top:22px;'
+    >
+        <tr>
+            <td
+                style='
+                    background:#f0fdf4;
+                    border:1px solid #bbf7d0;
+                    border-radius:14px;
+                    padding:20px;
+                '
+            >
+
+                <div
+                    style='
+                        color:#15803d;
+                        font-size:11px;
+                        font-weight:700;
+                        letter-spacing:1px;
+                        text-transform:uppercase;
+                    '
+                >
+                    DADOS DA ENTREGA
+                </div>
+
+                <table
+                    role='presentation'
+                    width='100%'
+                    cellpadding='0'
+                    cellspacing='0'
+                    border='0'
+                    style='margin-top:14px;'
+                >
+                    <tr>
+
+                        <td
+                            width='50%'
+                            valign='top'
+                            style='
+                                padding-right:15px;
+                                border-right:1px solid #bbf7d0;
+                            '
+                        >
+                            <div
+                                style='
+                                    color:#86a38e;
+                                    font-size:10px;
+                                    font-weight:600;
+                                    text-transform:uppercase;
+                                    letter-spacing:.5px;
+                                '
+                            >
+                                Recebido por
+                            </div>
+
+                            <div
+                                style='
+                                    margin-top:5px;
+                                    color:#166534;
+                                    font-size:14px;
+                                    font-weight:700;
+                                '
+                            >
+                                {whoReceivedIt}
+                            </div>
+                        </td>
+
+                        <td
+                            width='50%'
+                            valign='top'
+                            style='padding-left:15px;'
+                        >
+                            <div
+                                style='
+                                    color:#86a38e;
+                                    font-size:10px;
+                                    font-weight:600;
+                                    text-transform:uppercase;
+                                    letter-spacing:.5px;
+                                '
+                            >
+                                Entregue em
+                            </div>
+
+                            <div
+                                style='
+                                    margin-top:5px;
+                                    color:#166534;
+                                    font-size:14px;
+                                    font-weight:700;
+                                '
+                            >
+                                {dataEntrega}
+                            </div>
+                        </td>
+
+                    </tr>
+                </table>
+
+            </td>
+        </tr>
+    </table>";
+        }
 
         if (!string.IsNullOrWhiteSpace(textoBotao) &&
             !string.IsNullOrWhiteSpace(linkBotao))
@@ -510,6 +630,7 @@ public class EmailService : IEmailService
 
     </table>
 
+{entregaHtml}
 
     {botaoHtml}
 

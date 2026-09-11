@@ -333,7 +333,8 @@ public class OrderService : IOrderService
                     .Where(i => i.Isdelete != true)
                     .Select(i => i.Product.Product_Category.Category)
                     .FirstOrDefault(),
-
+                WhoReceivedIt = x.WhoReceivedIt,
+                CustomerDeliveryDate = x.CustomerDeliveryDate,
                 Address = new AddressResponse
                 {
                     Id = x.Address.Id,

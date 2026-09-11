@@ -128,7 +128,7 @@ type AdminControllerReturn = {
         generateCurrentMonthOrderDonut: () => { value: number; color: string; label: string }[];
         handleSaveCoupon: () => void;
         handleUpdateCoupon: () => void;
-        UpdateStatusOrder: (id: number, status: string) => void;
+        UpdateStatusOrder: (id: number, status: string, WhoReceivedIt: string) => void;
         handleDeleteCoupon: (IdCupom: number) => void;
         handleUpdateActiveCoupon: (IdCupom: number) => void;
         handleNext: () => void;
@@ -310,7 +310,7 @@ export const useAdminController = (): AdminControllerReturn => {
     };
     const GetListOrders = async () => {
         const result = await LoadOrdersAdmin();
-        console.log("result.data", result.data);
+        console.log("result.data orders", result.data);
         if (!result?.success) {
             notify.error((result.error?.error.code ?? "error"), (result?.error?.error.message || "Erro ao carregar pedidos"));
         }
@@ -1033,10 +1033,10 @@ export const useAdminController = (): AdminControllerReturn => {
         notify.success("Produto Excluido com sucesso!", "success");
     };
 
-    const UpdateStatusOrder = async (id: number, status: string) => {
+    const UpdateStatusOrder = async (id: number, status: string, WhoReceivedIt?: string) => {
         try {
             SetLoading(true);
-            const result = await UpdateNewStatusOrder(id, status);
+            const result = await UpdateNewStatusOrder(id, status, WhoReceivedIt);
 
             if (!result.success) {
                 notify.error((result?.error?.error?.code ?? "error"), (result.error?.error.message || "Erro ao atualizar status"));

@@ -23,7 +23,8 @@ import {
   CircleX,
   LogIn,
   TicketCheck,
-  RefreshCcw, Star, Pencil, TicketX, PlusCircle, Lock
+  RefreshCcw, Star, Pencil, TicketX, PlusCircle, Lock,
+  UserCheck
 } from 'lucide-react';
 import { useStore } from '../context/store';
 import { formatPrice, orderStatusLabels, orderStatusLabelsAtualize, orderStatusColors, categoryLabels, badgeLabels, badgeLabel, cupomStatusLabels } from '../utils';
@@ -81,7 +82,7 @@ export default function AdminPage() {
   const { orders } = UseOrderStore();
   const { navigatePages, navigateTo } = UseRouteStore();
   const { cupom } = UseCupomAdminStore();
-
+  const [deliveryRecipient, setDeliveryRecipient] = useState<Record<string, string>>({});
   const [tab, setTab] = useState<AdminTab>('dashboard');
   const [readNotificationIds, setReadNotificationIds] = useState<string[]>(() => {
     try {
@@ -3109,55 +3110,110 @@ export default function AdminPage() {
                                 </div>
                               )}
                               {/* STATUS ALTERADO */}
-                              {(editingStatus[o.id_Order] ??
-                                o.order_Status) !== o.order_Status && (
-                                  <>
-                                    {/* AVISO */}
-                                    <div className={` min-w-[230px] rounded-xl border p-3 ${dk ? `bg-amber-500/10 border-amber-500/20` : `bg-amber-50 border-amber-200`}`}>
-                                      <p className={`text-xs leading-relaxed ${dk ? 'text-amber-300' : 'text-amber-700'}`}>
-                                        O cliente será notificado automaticamente sobre essa alteração de status.
-                                      </p>
+                              {(editingStatus[o.id_Order] ?? o.order_Status) !== o.order_Status && (
+                                <>
+                                  <div className={`rounded-3xl border p-4 ${dk ? "bg-amber-500/10 border-amber-500/20" : "bg-amber-50 border-amber-200"}`}>
+                                    <div className="flex items-start gap-3">
+                                      <div className="w-10 h-10 rounded-2xl bg-amber-500/15 border border-amber-500/20 flex items-center justify-center flex-shrink-0">
+                                        <Bell className="w-5 h-5 text-amber-400" />
+                                      </div>
+                                      <div>
+                                        <p className={`text-sm font-bold ${dk ? "text-amber-300" : "text-amber-700"}`}>
+                                          Confirmar alteração
+                                        </p>
+                                        <p className={`text-xs mt-1 ${dk ? "text-amber-200/80" : "text-amber-700"}`}>
+                                          O cliente será notificado automaticamente sobre a alteração do status do pedido.
+                                        </p>
+                                      </div>
                                     </div>
-                                    {/* BOTÕES */}
-                                    <div className="flex gap-2 min-w-[230px]">
-                                      <button
-                                        type="button"
-                                        onClick={() =>
+                                  </div>
+
+                                  {/* Nome de quem recebeu — só quando o status alvo é ENTREGUE */}
+                                  {editingStatus[o.id_Order] === 'ENTREGUE' && (
+                                    <div className={`rounded-3xl border p-4 ${dk ? "bg-white/[0.03] border-white/10" : "bg-surface-50 border-surface-200"}`}>
+                                      <div className="flex items-start gap-3">
+                                        <div className="w-10 h-10 rounded-2xl bg-brand-500/15 border border-brand-500/20 flex items-center justify-center flex-shrink-0">
+                                          <UserCheck className="w-5 h-5 text-brand-500" />
+                                        </div>
+                                        <div className="flex-1 min-w-0">
+                                          <p className={`text-sm font-bold ${dk ? "text-white" : "text-surface-900"}`}>
+                                            Quem recebeu o pedido?
+                                          </p>
+                                          <p className={`text-xs mt-1 ${dk ? "text-white/60" : "text-surface-500"}`}>
+                                            Registre o nome de quem confirmou o recebimento na entrega
+                                          </p>
+
+                                          <input
+                                            type="text"
+                                            value={deliveryRecipient[o.id_Order] ?? ""}
+                                            onChange={(e) =>
+                                              setDeliveryRecipient(prev => ({ ...prev, [o.id_Order]: e.target.value }))
+                                            }
+                                            placeholder="Nome de quem recebeu"
+                                            className={`w-full mt-3 h-11 px-3.5 rounded-xl text-sm font-medium outline-none transition-all
+                ${dk
+                                                ? "bg-white/[0.05] border border-white/10 text-white placeholder:text-white/30 focus:border-brand-500/50"
+                                                : "bg-white border border-surface-200 text-surface-900 placeholder:text-surface-400 focus:border-brand-500"
+                                              }`}
+                                          />
+                                        </div>
+                                      </div>
+                                    </div>
+                                  )}
+
+                                  <div className="grid grid-cols-2 gap-3">
+                                    <button
+                                      onClick={() => {
+                                        setEditingStatus(prev => {
+                                          const copy = { ...prev };
+                                          delete copy[o.id_Order];
+                                          return copy;
+                                        });
+                                        setDeliveryRecipient(prev => {
+                                          const copy = { ...prev };
+                                          delete copy[o.id_Order];
+                                          return copy;
+                                        });
+                                      }}
+                                      className={`h-12 rounded-2xl font-bold transition-all ${dk ? "bg-white/[0.05] hover:bg-white/[0.08] text-white border border-white/10" : "bg-surface-100 hover:bg-surface-200 text-surface-700 border border-surface-200"}`}
+                                    >
+                                      Cancelar
+                                    </button>
+                                    <button
+                                      disabled={
+                                        (editingStatus[o.id_Order] === 'ENTREGUE' && !deliveryRecipient[o.id_Order]?.trim()) ||
+                                        loadingOrderId === o.id_Order
+                                      }
+                                      onClick={async () => {
+                                        setLoadingOrderId(o.id_Order);
+                                        try {
+                                          await Controller?.action.UpdateStatusOrder(
+                                            o.id_Order,
+                                            editingStatus[o.id_Order],
+                                            editingStatus[o.id_Order] === 'ENTREGUE'
+                                              ? deliveryRecipient[o.id_Order]?.trim()
+                                              : ''
+                                          );
                                           setEditingStatus((prev) => {
                                             const copy = { ...prev };
                                             delete copy[o.id_Order];
                                             return copy;
-                                          })
+                                          });
+                                        } finally {
+                                          setLoadingOrderId(null);
                                         }
-                                        className={` flex-1 h-9 rounded-xl text-xs font-bold transition-colors ${dk ? ` bg-white/5 hover:bg-white/10 text-white` : `bg-surface-100 hover:bg-surface-200 text-surface-700`}`}>
-                                        Cancelar
-                                      </button>
-                                      <button
-                                        type="button"
-                                        onClick={async () => {
-                                          setLoadingOrderId(o.id_Order);
-                                          try {
-                                            await Controller?.action.UpdateStatusOrder(
-                                              o.id_Order,
-                                              editingStatus[o.id_Order]
-                                            );
-                                            setEditingStatus((prev) => {
-                                              const copy = { ...prev };
-                                              delete copy[o.id_Order];
-                                              return copy;
-                                            });
-
-                                          } finally {
-                                            setLoadingOrderId(null);
-                                          }
-                                        }}
-                                        className=" flex-1 h-9 rounded-xl bg-brand-500 hover:bg-brand-600 text-white text-xs font-bold transition-colors"
-                                      >
-                                        Confirmar
-                                      </button>
-                                    </div>
-                                  </>
-                                )}
+                                      }}
+                                      className="h-12 rounded-2xl bg-brand-500 hover:bg-brand-600 disabled:opacity-40 disabled:cursor-not-allowed text-white font-bold shadow-brand transition-all flex items-center justify-center"
+                                    >
+                                      {loadingOrderId === o.id_Order ? (
+                                        <Loader2 className="w-4 h-4 animate-spin" />
+                                      ) : (
+                                        "Confirmar"
+                                      )}
+                                    </button>
+                                  </div>
+                                </>
+                              )}
                             </div>
                           </td>
                           {/* =====================VISUALIZAR====================== */}
@@ -3508,7 +3564,7 @@ export default function AdminPage() {
                         </div>
                         {(editingStatus[o.id_Order] ?? o.order_Status) !== o.order_Status && (
                           <>
-                            <div className={`rounded-3xl border p-4 ${dk ? "bg-amber-500/10 border-amber-500/20" : "bg-amber-50 border-amber-200"}`} >
+                            <div className={`rounded-3xl border p-4 ${dk ? "bg-amber-500/10 border-amber-500/20" : "bg-amber-50 border-amber-200"}`}>
                               <div className="flex items-start gap-3">
                                 <div className="w-10 h-10 rounded-2xl bg-amber-500/15 border border-amber-500/20 flex items-center justify-center flex-shrink-0">
                                   <Bell className="w-5 h-5 text-amber-400" />
@@ -3517,32 +3573,85 @@ export default function AdminPage() {
                                   <p className={`text-sm font-bold ${dk ? "text-amber-300" : "text-amber-700"}`}>
                                     Confirmar alteração
                                   </p>
-                                  <p className={`text-xs mt-1 ${dk ? "text-amber-200/80" : "text-amber-700"}`} > O cliente será notificado automaticamente sobre a alteração do status do pedido. </p>
+                                  <p className={`text-xs mt-1 ${dk ? "text-amber-200/80" : "text-amber-700"}`}>
+                                    O cliente será notificado automaticamente sobre a alteração do status do pedido.
+                                  </p>
                                 </div>
-
                               </div>
                             </div>
+
+                            {/* Nome de quem recebeu — só quando o status alvo é ENTREGUE */}
+                            {editingStatus[o.id_Order] === 'ENTREGUE' && (
+                              <div className={`rounded-3xl border p-4 ${dk ? "bg-white/[0.03] border-white/10" : "bg-surface-50 border-surface-200"}`}>
+                                <div className="flex items-start gap-3">
+                                  <div className="w-10 h-10 rounded-2xl bg-brand-500/15 border border-brand-500/20 flex items-center justify-center flex-shrink-0">
+                                    <UserCheck className="w-5 h-5 text-brand-500" />
+                                  </div>
+                                  <div className="flex-1 min-w-0">
+                                    <p className={`text-sm font-bold ${dk ? "text-white" : "text-surface-900"}`}>
+                                      Quem recebeu o pedido?
+                                    </p>
+                                    <p className={`text-xs mt-1 ${dk ? "text-white/60" : "text-surface-500"}`}>
+                                      Registre o nome de quem confirmou o recebimento na entrega
+                                    </p>
+
+                                    <input
+                                      type="text"
+                                      value={deliveryRecipient[o.id_Order] ?? ""}
+                                      onChange={(e) =>
+                                        setDeliveryRecipient(prev => ({ ...prev, [o.id_Order]: e.target.value }))
+                                      }
+                                      placeholder="Nome de quem recebeu"
+                                      className={`w-full mt-3 h-11 px-3.5 rounded-xl text-sm font-medium outline-none transition-all
+                ${dk
+                                          ? "bg-white/[0.05] border border-white/10 text-white placeholder:text-white/30 focus:border-brand-500/50"
+                                          : "bg-white border border-surface-200 text-surface-900 placeholder:text-surface-400 focus:border-brand-500"
+                                        }`}
+                                    />
+                                  </div>
+                                </div>
+                              </div>
+                            )}
+
                             <div className="grid grid-cols-2 gap-3">
                               <button
-                                onClick={() =>
+                                onClick={() => {
                                   setEditingStatus(prev => {
                                     const copy = { ...prev };
                                     delete copy[o.id_Order];
                                     return copy;
-                                  })
-                                }
-                                className={`h-12 rounded-2xl font-bold transition-all ${dk ? "bg-white/[0.05] hover:bg-white/[0.08] text-white border border-white/10" : "bg-surface-100 hover:bg-surface-200 text-surface-700 border border-surface-200"} `}>
+                                  });
+                                  setDeliveryRecipient(prev => {
+                                    const copy = { ...prev };
+                                    delete copy[o.id_Order];
+                                    return copy;
+                                  });
+                                }}
+                                className={`h-12 rounded-2xl font-bold transition-all ${dk ? "bg-white/[0.05] hover:bg-white/[0.08] text-white border border-white/10" : "bg-surface-100 hover:bg-surface-200 text-surface-700 border border-surface-200"}`}
+                              >
                                 Cancelar
                               </button>
                               <button
+                                disabled={
+                                  (editingStatus[o.id_Order] === 'ENTREGUE' && !deliveryRecipient[o.id_Order]?.trim()) ||
+                                  loadingOrderId === o.id_Order
+                                }
                                 onClick={async () => {
                                   setLoadingOrderId(o.id_Order);
                                   try {
                                     await Controller?.action.UpdateStatusOrder(
                                       o.id_Order,
-                                      editingStatus[o.id_Order]
+                                      editingStatus[o.id_Order],
+                                      editingStatus[o.id_Order] === 'ENTREGUE'
+                                        ? deliveryRecipient[o.id_Order]?.trim()
+                                        : ' '
                                     );
                                     setEditingStatus((prev) => {
+                                      const copy = { ...prev };
+                                      delete copy[o.id_Order];
+                                      return copy;
+                                    });
+                                    setDeliveryRecipient(prev => {
                                       const copy = { ...prev };
                                       delete copy[o.id_Order];
                                       return copy;
@@ -3551,9 +3660,13 @@ export default function AdminPage() {
                                     setLoadingOrderId(null);
                                   }
                                 }}
-                                className="h-12 rounded-2xl bg-brand-500 hover:bg-brand-600 text-white font-bold shadow-brand transition-all"
+                                className="h-12 rounded-2xl bg-brand-500 hover:bg-brand-600 disabled:opacity-40 disabled:cursor-not-allowed text-white font-bold shadow-brand transition-all flex items-center justify-center gap-2"
                               >
-                                Confirmar
+                                {loadingOrderId === o.id_Order ? (
+                                  <Loader2 className="w-4 h-4 animate-spin" />
+                                ) : (
+                                  "Confirmar"
+                                )}
                               </button>
                             </div>
                           </>
