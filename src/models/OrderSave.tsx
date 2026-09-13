@@ -42,6 +42,8 @@ export interface Order {
     shippingCost?: number;
     total_Value_OrderCupom?: number;
     notifyViaWhatsApp?: boolean;
+    customerDeliveryDate?: Date;
+    whoReceivedIt?: string;
 }
 export interface SendMessageViaWhatsAppResponse {
     idOrder: number;

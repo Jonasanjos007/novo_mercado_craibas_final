@@ -54,6 +54,8 @@ namespace Mercado.Craibas.Application.ServicesAdmin
              Discont = x.Discont,
              Quantity = x.OrderLineItens.Sum(i => i.Quantity),
              Category = x.OrderLineItens.Select(i => i.Product.Product_Category.Category).FirstOrDefault(),
+             WhoReceivedIt = x.WhoReceivedIt,
+             CustomerDeliveryDate = x.CustomerDeliveryDate,
              Address = new AddressResponse
              {
                  Id = x.Address.Id,
@@ -116,16 +118,35 @@ namespace Mercado.Craibas.Application.ServicesAdmin
            return Result<List<Product_Category>>.Success(Categorys);
        }
 
-        public async Task<Result<bool>> PostUpdateStatusOrder(int Id_Order,string NewStatus,int IdUser)
+        public async Task<Result<bool>> PostUpdateStatusOrder(int Id_Order,string NewStatus,int IdUser, string WhoReceivedIt)
         {
 
             var Order = await _unitOfWorkAdmin.GetClassAsyncWhere<Orders>(x => x.Id == Id_Order);
 
             var User = await _unitOfWorkAdmin.GetClassAsyncWhere<User_Admin>(x => x.Id == IdUser);
 
+            var newdate = DateTime.Now;
             var UserConsumer = await _unitOfWorkAdmin.GetClassAsyncWhere<User_Customer>(x => x.Id == Order.Id_User_Customer);
+            bool Update_StatusOrder;
+            if (NewStatus == "ENTREGUE" && WhoReceivedIt is not null)
+            {
+                 Update_StatusOrder = await _unitOfWorkAdmin.UpdateFieldsAsyncEntity<Orders>(filters: new Dictionary<string, object>
+                        {
+                                { "Id", Id_Order }
+                        },
 
-            var Update_StatusOrder = await _unitOfWorkAdmin.UpdateFieldsAsyncEntity<Orders>(filters: new Dictionary<string, object>
+                    fieldsToUpdate: new Dictionary<string, object>
+                    {
+                             {"Order_Status",NewStatus },
+                             {"NotifyViaWhatsApp",true },
+                             {"UpdateDate",newdate },
+                             {"WhoReceivedIt" , WhoReceivedIt },
+                             {"CustomerDeliveryDate" , newdate }
+                     });
+            }
+            else
+            {
+                 Update_StatusOrder = await _unitOfWorkAdmin.UpdateFieldsAsyncEntity<Orders>(filters: new Dictionary<string, object>
                         {
                                 { "Id", Id_Order }
                         },
@@ -134,9 +155,11 @@ namespace Mercado.Craibas.Application.ServicesAdmin
                       {
                              {"Order_Status",NewStatus },
                              {"NotifyViaWhatsApp",true },
-                             {"UpdateDate",DateTime.Now }
-                         
+                             {"UpdateDate",newdate }
+
                        });
+            }
+            
 
             if (Update_StatusOrder == null)
             {
@@ -166,7 +189,8 @@ namespace Mercado.Craibas.Application.ServicesAdmin
                      <p style='margin:8px 0 0 0;'>Total:<strong>R$ {Order.Total_Value_Order.ToString("N2", new System.Globalization.CultureInfo("pt-BR"))}</strong></p>
                   ",
                    textoBotao: "Acompanhar pedido",
-                   linkBotao: $"https://mavihstudio.com.br/pedidos/orders");
+                   linkBotao: $"https://mavihstudio.com.br/pedidos/orders",
+                    whoReceivedIt : WhoReceivedIt,customerDeliveryDate: newdate);
 
             var enviado = await _email.EnviarEmailAsync(UserConsumer.Email, "Mercado Craibas", layoutEmail);
 
@@ -203,25 +227,25 @@ namespace Mercado.Craibas.Application.ServicesAdmin
             };
 
             var InsertNotificacao = await _notification.SendNotification(
-     new NotificationRequest
-     {
-         Kind = "Novo status",
-         Title = NewStatus == "ENTREGUE" ? "Pedido Entregue" : "Pedido atualizado",
-         Description = mensagemNotificacao,
-         Icone = iconeNotificacao,
-         ActionUrl = "/orders",
-         ReferenceId = Order.Id,
-         ReferenceType = NewStatus == "ENTREGUE" ? "DELIVERY" : "ORDER",
-         Role = "CLIENTE"
-     },
-     new List<NotificationUserRequest>
-     {
-        new NotificationUserRequest
-        {
-            UserId = UserConsumer.Id
-        }
-     }
- );
+                      new NotificationRequest
+                      {
+                          Kind = "Novo status",
+                          Title = NewStatus == "ENTREGUE" ? "Pedido Entregue" : "Pedido atualizado",
+                          Description = mensagemNotificacao,
+                          Icone = iconeNotificacao,
+                          ActionUrl = "/orders",
+                          ReferenceId = Order.Id,
+                          ReferenceType = NewStatus == "ENTREGUE" ? "DELIVERY" : "ORDER",
+                          Role = "CLIENTE"
+                      },
+                      new List<NotificationUserRequest>
+                      {
+                         new NotificationUserRequest
+                         {
+                             UserId = UserConsumer.Id
+                         }
+                      }
+                  );
 
             if (!enviado)
             {

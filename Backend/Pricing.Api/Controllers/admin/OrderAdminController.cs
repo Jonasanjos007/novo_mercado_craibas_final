@@ -54,11 +54,11 @@ namespace Mercado.Api.Controllers.Admin
 
         [Authorize]
         [HttpPost("PostUpdateOrderNewStatus")]
-        public async Task<IActionResult> PostUpdateOrderNewStatus(int Id_Order,string NewStatus)
+        public async Task<IActionResult> PostUpdateOrderNewStatus(int Id_Order,string NewStatus, string WhoReceivedIt)
         {
             var Id_User = User.GetUserId();
 
-            var result = await _service.PostUpdateStatusOrder(Id_Order, NewStatus,Id_User);
+            var result = await _service.PostUpdateStatusOrder(Id_Order, NewStatus,Id_User, WhoReceivedIt);
             return result.ToActionResult();
         }
 

@@ -29,5 +29,7 @@ namespace Mercado.Craibas.Application.DTOs.Responses
         public bool CouponApplied { get; set; }
         public DateTime InsertDate { get; set; }
         public double? Total_Value_OrderCupom { get; set; }
+        public DateTime? CustomerDeliveryDate { get; set; }
+        public string? WhoReceivedIt { get; set; }
     }
 }

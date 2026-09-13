@@ -17,7 +17,7 @@ interface OrderState {
     PostSaveCategoryAdmin: (formData: FormData) => Promise<Result<boolean>>;
     PostUpdateCategoryAdmin: (formData: FormData) => Promise<Result<boolean>>;
     PostDeleteCategoryAdmin: (request: { id: number; action: 'move' | 'delete'; replacementCategoryId?: number; }) => Promise<Result<boolean>>;
-    UpdateNewStatusOrder: (Id_Order: number, New_Status: string) => Promise<Result<boolean>>;
+    UpdateNewStatusOrder: (Id_Order: number, New_Status: string, WhoReceivedIt?: string) => Promise<Result<boolean>>;
     PostMensegeViaWhatsApp: (Id_Order: number) => Promise<Result<SendMessageViaWhatsAppResponse>>;
 }
 
@@ -85,8 +85,8 @@ export const UseOrderAdminStore = create<OrderState>((set, get) => ({
         await get().LoadCategoryAdmin();
         return makeResult(true, true);
     },
-    UpdateNewStatusOrder: async (Id_Order: number, New_Status: string): Promise<Result<boolean>> => {
-        const result = await OrderServiceAdmin.PostUpdateNewStatus(Id_Order, New_Status);
+    UpdateNewStatusOrder: async (Id_Order: number, New_Status: string, WhoReceivedIt?: string): Promise<Result<boolean>> => {
+        const result = await OrderServiceAdmin.PostUpdateNewStatus(Id_Order, New_Status, WhoReceivedIt);
         console.log("resultigi.data", result.data);
         if (!result.success) {
             return makeResult(false, false, result.error);

@@ -4,6 +4,7 @@ import { UseOrderStore } from "../store/UseOrderStore";
 import { RatingResponse } from "../models/OrderSave";
 import { UseProductStore } from "../store/UseProductStore";
 import { Product } from "../models/Product";
+import { useNavigate } from "react-router-dom";
 
 type OrdersControllerReturn = {
     result: {
@@ -23,6 +24,8 @@ type OrdersControllerReturn = {
 export const useOrdersController = (): OrdersControllerReturn => {
     const { LoadOrders, LoadCupons, GetRating, orders } = UseOrderStore();
     const notify = useNotification();
+      const navigate = useNavigate();
+    
     const { loadProducts } = UseProductStore();
     const [Loading, SetLoading] = useState(false);
     const [reviewDetailsTarget, setReviewDetailsTarget] = useState<boolean>(false);
@@ -52,7 +55,7 @@ export const useOrdersController = (): OrdersControllerReturn => {
             SetLoading(false);
         };
         load();
-    }, []);
+    }, [navigate]);
     const GetListOrders = async () => {
         const result = await LoadOrders();
         // SetLoading(false);
@@ -120,7 +123,8 @@ export const useOrdersController = (): OrdersControllerReturn => {
         action: {
             handleGetAssents,
             setAssessmentResponse,
-            setReviewDetailsTarget
+            setReviewDetailsTarget,
+            
         }
     }
 }

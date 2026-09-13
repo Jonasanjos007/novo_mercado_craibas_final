@@ -4,6 +4,7 @@ using Mercado.Craibas.Infrastructure.Data.Context;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace Mercado.Craibas.Infrastructure.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260910191947_newCampoOrders")]
+    partial class newCampoOrders
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -743,8 +746,8 @@ namespace Mercado.Craibas.Infrastructure.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<string>("Phone")
-                        .HasColumnType("nvarchar(max)");
+                    b.Property<double?>("Phone")
+                        .HasColumnType("float");
 
                     b.Property<string>("RefreshToken")
                         .HasColumnType("nvarchar(max)");
@@ -780,11 +783,9 @@ namespace Mercado.Craibas.Infrastructure.Migrations
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("Email")
+                        .IsRequired()
                         .HasMaxLength(200)
                         .HasColumnType("nvarchar(200)");
-
-                    b.Property<bool>("EmailVerified")
-                        .HasColumnType("bit");
 
                     b.Property<DateTime>("InsertDate")
                         .HasColumnType("datetime2");
@@ -801,17 +802,14 @@ namespace Mercado.Craibas.Infrastructure.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<string>("Phone")
-                        .HasColumnType("nvarchar(max)");
+                    b.Property<double?>("Phone")
+                        .HasColumnType("float");
 
                     b.Property<string>("RefreshToken")
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<DateTime?>("RefreshTokenExpiresAt")
                         .HasColumnType("datetime2");
-
-                    b.Property<string>("RegistrationStatus")
-                        .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("Role")
                         .IsRequired()
@@ -1066,68 +1064,6 @@ namespace Mercado.Craibas.Infrastructure.Migrations
                     b.HasIndex("Id_User");
 
                     b.ToTable("Coupon_Use", (string)null);
-                });
-
-            modelBuilder.Entity("Mercado.Craibas.Application.Domain.Entities.EmailVerification", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<int>("Attempts")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int")
-                        .HasDefaultValue(0);
-
-                    b.Property<string>("CodeHash")
-                        .IsRequired()
-                        .HasMaxLength(500)
-                        .HasColumnType("nvarchar(500)");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("datetime2")
-                        .HasDefaultValueSql("GETUTCDATE()");
-
-                    b.Property<DateTime>("ExpiresAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<DateTime>("InsertDate")
-                        .HasColumnType("datetime2");
-
-                    b.Property<bool?>("Isdelete")
-                        .HasColumnType("bit");
-
-                    b.Property<DateTime?>("LastResendAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<int?>("ResendCount")
-                        .HasColumnType("int");
-
-                    b.Property<DateTime?>("ResendWindowStartedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<DateTime?>("UpdateDate")
-                        .HasColumnType("datetime2");
-
-                    b.Property<DateTime?>("UsedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<int>("UserId")
-                        .HasColumnType("int");
-
-                    b.Property<int?>("User_CustomerId")
-                        .HasColumnType("int");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("UserId");
-
-                    b.HasIndex("User_CustomerId");
-
-                    b.ToTable("EmailVerifications", (string)null);
                 });
 
             modelBuilder.Entity("Mercado.Craibas.Application.Domain.Entities.Favorite", b =>
@@ -1549,21 +1485,6 @@ namespace Mercado.Craibas.Infrastructure.Migrations
                     b.Navigation("User_Customer");
                 });
 
-            modelBuilder.Entity("Mercado.Craibas.Application.Domain.Entities.EmailVerification", b =>
-                {
-                    b.HasOne("Baldan.Pricing.Application.Domain.Entities.User_Customer", "User")
-                        .WithMany()
-                        .HasForeignKey("UserId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("Baldan.Pricing.Application.Domain.Entities.User_Customer", null)
-                        .WithMany("EmailVerifications")
-                        .HasForeignKey("User_CustomerId");
-
-                    b.Navigation("User");
-                });
-
             modelBuilder.Entity("Mercado.Craibas.Application.Domain.Entities.Favorite", b =>
                 {
                     b.HasOne("Baldan.Pricing.Application.Domain.Entities.Product", "Product")
@@ -1652,8 +1573,6 @@ namespace Mercado.Craibas.Infrastructure.Migrations
                     b.Navigation("Coupon_Uses");
 
                     b.Navigation("Customize_Cliente");
-
-                    b.Navigation("EmailVerifications");
 
                     b.Navigation("Orders");
 
