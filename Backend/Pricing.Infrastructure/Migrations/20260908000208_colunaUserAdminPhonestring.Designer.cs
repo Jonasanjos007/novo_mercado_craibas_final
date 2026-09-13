@@ -4,6 +4,7 @@ using Mercado.Craibas.Infrastructure.Data.Context;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace Mercado.Craibas.Infrastructure.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260908000208_colunaUserAdminPhonestring")]
+    partial class colunaUserAdminPhonestring
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -1093,15 +1096,6 @@ namespace Mercado.Craibas.Infrastructure.Migrations
 
                     b.Property<bool?>("Isdelete")
                         .HasColumnType("bit");
-
-                    b.Property<DateTime?>("LastResendAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<int?>("ResendCount")
-                        .HasColumnType("int");
-
-                    b.Property<DateTime?>("ResendWindowStartedAt")
-                        .HasColumnType("datetime2");
 
                     b.Property<DateTime?>("UpdateDate")
                         .HasColumnType("datetime2");

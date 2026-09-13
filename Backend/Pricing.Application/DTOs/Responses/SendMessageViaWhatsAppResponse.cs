@@ -10,7 +10,7 @@ namespace Mercado.Craibas.Application.DTOs.Responses
     {
         public int IdOrder { get; set; }
         public string Status { get; set; }
-        public double? Telefone { get; set; }
+        public string? Telefone { get; set; }
         public string Number_Order { get; set; }
         public string NomeCliente { get; set; }
     }

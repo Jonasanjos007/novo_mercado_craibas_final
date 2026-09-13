@@ -60,3 +60,39 @@ export interface ChangePassword {
     confirmPassword: string,
 };
 
+export interface RegisterStart {
+    name: string;
+    phone: string;
+};
+export interface RegisterEmail {
+    userId: number;
+    email: string;
+    confirmEmail: string;
+};
+
+
+export interface RegisterStartResponse {
+    idUser: number;
+    nextStep: string;
+    name: string;
+    phone: string;
+    backRegistration?: boolean;
+    email?: string;
+    expiresAt?: Date;
+};
+export interface RegisterResponse {
+    idUser?: number;
+    nextStep?: string;
+    name?: string;
+    phone?: string;
+    email?: string;
+    expiresAt?: Date;
+    backRegistration?: boolean;
+};
+export interface SavePasswordResponse {
+    idUser: number;
+    nextStep: string;
+    message: string;
+};
+
+export type RegistrationStep = 'Started' | 'PersonalDataCompleted' | 'EmailCompleted' | 'PasswordCompleted' | 'EmailVerificationPending' | 'Completed';

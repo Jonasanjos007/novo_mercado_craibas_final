@@ -57,7 +57,16 @@ public class AuthService : IAuthService
         "senha1234",
         "admin123"
     };
+    public async Task<Result> LogoutAsync(string refreshToken)
+    {
+        if (!string.IsNullOrWhiteSpace(refreshToken))
+        {
+            await _authRepository.ClearRefreshTokenAsync(refreshToken);
+            await _unitOfWork.CommitAsync();
+        }
 
+        return Result.Success();
+    }
     public async Task<Result<LoginResponse>> LoginAsync(LoginRequest request)
     {
         var User = null as UserResponse;
@@ -91,7 +100,7 @@ public class AuthService : IAuthService
                 }, null);
           
         }
-        var User_Admin = await _authRepository.GetByEmailAsyncAdmin(request.Email);
+        var User_Admin = await _unitOfWork.GetClassAsyncWhere<User_Admin>(x => x.Email == request.Email);
 
         if (User_Admin is not null)
         {

@@ -7,7 +7,7 @@ import {
     setStoredAccessToken,
 } from "./authStorage";
 
-const baseURL = "http://192.168.0.100:5022/api";
+const baseURL = "http://192.168.15.11:5022/api";
 
 export const api = axios.create({
     baseURL,

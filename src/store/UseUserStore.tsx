@@ -1,5 +1,5 @@
 import { create } from "zustand";
-import { User } from "../models/User";
+import { User, RegisterStart, RegisterStartResponse, RegisterResponse, RegisterEmail, SavePasswordResponse } from "../models/User";
 import { Address } from "../models/Address";
 import { AppPage } from "../types";
 import { CartItensProduct } from "../models/CartItensProduct";
@@ -14,6 +14,7 @@ import { UseRouteStore } from "./UseRouteStore";
 import { UseUserAdminStore } from "../storeAdmin/UseUserAdminStore";
 import { AuthService } from "../service/AuthService";
 import { ChangePassword } from "../models/User";
+import { clearBrowserUserData } from "../config/authStorage";
 
 
 interface UserState {
@@ -33,7 +34,12 @@ interface UserState {
     SaveColorGlobal: (NameColorGlobal: string, UserId: number) => Promise<Result<boolean>>;
     setUser: (User: User) => void;
     SaveChangePassword: (ChangePassword: ChangePassword) => Promise<Result<boolean>>;
-
+    SaveRegisterStart: (RegisterStart: RegisterStart) => Promise<Result<RegisterStartResponse>>;
+    SaveRegisterEmail: (RegisterEmail: RegisterEmail, IdUser: number) => Promise<Result<RegisterResponse>>;
+    SaveRegisterEmailCode: (IdUser: number, ConfirmCode: string) => Promise<Result<RegisterResponse>>;
+    SaveRegisterPassword: (userId: number, password: string, confirmPassword: string) => Promise<Result<SavePasswordResponse>>;
+    ResendCodigoExpired: (userId: number, Email: string, Phone: string) => Promise<Result<RegisterResponse>>;
+    EditEmailEndEtapStore: (userId: number, Email: string) => Promise<Result<RegisterResponse>>;
 
 }
 export const UseUserStore = create<UserState>()(persist((set, get) => ({
@@ -136,6 +142,59 @@ export const UseUserStore = create<UserState>()(persist((set, get) => ({
             return makeResult(false, false, responseTema.error);
         }
         return makeResult(true, true);
+    },
+    SaveRegisterStart: async (RegisterStart: RegisterStart): Promise<Result<RegisterStartResponse>> => {
+
+        const responseTema = await UserService.RegisterStartAsync(RegisterStart);
+
+        if (!responseTema.success) {
+            return makeResult(false, {} as RegisterStartResponse, responseTema.error);
+        }
+        return makeResult(true, responseTema.data);
+    },
+    SaveRegisterEmail: async (RegisterEmail: RegisterEmail, IdUser: number): Promise<Result<RegisterResponse>> => {
+        const responseTema = await UserService.RegisterEmailConfirm(RegisterEmail, IdUser);
+
+        if (!responseTema.success) {
+            return makeResult(false, {} as RegisterResponse, responseTema.error);
+        }
+        return makeResult(true, responseTema.data);
+    },
+    SaveRegisterEmailCode: async (IdUser: number, ConfirmCode: string): Promise<Result<RegisterResponse>> => {
+
+        const responseTema = await UserService.RegisterEmailConfirmCode(IdUser, ConfirmCode);
+
+        if (!responseTema.success) {
+            return makeResult(false, {} as RegisterResponse, responseTema.error);
+        }
+        return makeResult(true, responseTema.data);
+    },
+    SaveRegisterPassword: async (userId: number, password: string, confirmPassword: string): Promise<Result<SavePasswordResponse>> => {
+
+        const responseTema = await UserService.SaveRegisterPassword(userId, password, confirmPassword);
+
+        if (!responseTema.success) {
+            return makeResult(false, {} as SavePasswordResponse, responseTema.error);
+        }
+        return makeResult(true, responseTema.data);
+    },
+    ResendCodigoExpired: async (userId: number, Email: string, Phone: string): Promise<Result<RegisterResponse>> => {
+
+        const responseTema = await UserService.ResendCodigo(userId, Email, Phone);
+
+        if (!responseTema.success) {
+            return makeResult(false, {} as RegisterResponse, responseTema.error);
+        }
+        return makeResult(true, responseTema.data);
+    },
+    EditEmailEndEtapStore: async (userId: number, Email: string): Promise<Result<RegisterResponse>> => {
+
+        const responseTema = await UserService.EditEmailEndEtap(userId, Email);
+
+        if (!responseTema.success) {
+            return makeResult(false, {} as RegisterResponse, responseTema.error);
+        }
+        return makeResult(true, responseTema.data);
     },
 }), {
     name: '@user-storage',

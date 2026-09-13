@@ -3,14 +3,6 @@ import { Order, AppPage, OrderStatus, WishlistItem, Promotion } from '../types';
 import { Product } from '../models/Product';
 import { User } from '../models/User';
 import { persist } from 'zustand/middleware';
-import { api } from '../config/api';
-import { CartItensProduct } from '../models/CartItensProduct';
-import { CartUser } from '../models/CartUser';
-import { makeResult, Result } from '../utils/Result';
-import { Address } from '../models/Address';
-import { ProductsService } from '../service/ProductsService';
-import { AddressService } from '../service/AddressService';
-import { CartService } from '../service/CartService';
 interface AppState {
   // ShowProduct: (selectedProductId: number | null) => void;
   // Theme

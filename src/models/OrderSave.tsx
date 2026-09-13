@@ -46,7 +46,7 @@ export interface Order {
 export interface SendMessageViaWhatsAppResponse {
     idOrder: number;
     status: string;
-    telefone: number;
+    telefone: string;
     number_Order: string;
     nome_Cliente: string;
 }

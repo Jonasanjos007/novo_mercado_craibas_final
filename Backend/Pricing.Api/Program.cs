@@ -47,17 +47,17 @@ namespace Pricing.Api
             });
 
             // CORS
-         
-    builder.Services.AddCors(options =>
+
+            builder.Services.AddCors(options =>
             {
-                options.AddDefaultPolicy(policy =>
+                options.AddPolicy("AllowFrontend", policy =>
                 {
-                   policy.WithOrigins(
-                            "http://192.168.15.11:5173"
-                        )
+                    policy
+                        .WithOrigins("http://192.168.15.11:5173")
                         .AllowAnyHeader()
-                        .AllowAnyMethod();
-                }); 
+                        .AllowAnyMethod()
+                        .AllowCredentials();
+                });
             });
             // Auth
 
@@ -113,7 +113,7 @@ namespace Pricing.Api
             //builder.Services.AddScoped<IProfileRepository, ProfileRepository>();
             //builder.Services.AddScoped<IDashboardRepository, DashboardRepository>();
             //builder.Services.AddScoped<IDashboardService, DashboardService>();
-
+            builder.Services.AddMemoryCache();
             //Trocar DI
             builder.Services.AddApplication();
             builder.Services.AddControllers().AddJsonOptions(options =>
@@ -129,8 +129,7 @@ namespace Pricing.Api
                 app.UseSwagger();
                 app.UseSwaggerUI();
             }
-
-            app.UseCors();
+            app.UseCors("AllowFrontend");
 
             app.UseMiddleware<ExceptionMiddleware>();
             app.UseAuthentication();

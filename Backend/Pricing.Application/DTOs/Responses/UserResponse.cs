@@ -12,7 +12,7 @@ public class UserResponse
     public string Avatar { get; set; } = default!;
     public ProfileEnum Role { get; set; } = default!;
     public bool Ativo { get; set; } = default!;
-    public double  Phone { get; set; } = default!;
+    public string? Phone { get; set; } = default!;
     public CartResponse? Cart_User { get; set; }
     public string PasswordHash { get; set; } = default!;
     public string RefreshToken { get; set; } = default!;

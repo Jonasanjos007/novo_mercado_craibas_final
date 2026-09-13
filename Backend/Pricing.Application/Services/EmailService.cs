@@ -13,10 +13,7 @@ public class EmailService : IEmailService
         _configuration = configuration;
     }
 
-    public async Task<bool> EnviarEmailAsync(
-        string destinatario,
-        string assunto,
-        string html)
+    public async Task<bool> EnviarEmailAsync(string destinatario,string assunto,string html)
     {
         try
         {
@@ -677,6 +674,181 @@ public class EmailService : IEmailService
 
 </body>
 
+</html>";
+    }
+
+    public string EmailConfirmacaoCadastro(string nome,string codigo)
+    {
+        return $@"
+<!DOCTYPE html>
+<html lang='pt-BR'>
+<head>
+    <meta charset='UTF-8'>
+    <meta name='viewport' content='width=device-width, initial-scale=1.0'>
+    <title>Confirmação de e-mail</title>
+</head>
+
+<body style='
+    margin:0;
+    padding:0;
+    background-color:#f5f5f5;
+    font-family:Arial, Helvetica, sans-serif;
+    color:#1f2937;
+'>
+
+<table width='100%' cellpadding='0' cellspacing='0' border='0'
+       style='background-color:#f5f5f5; padding:40px 15px;'>
+
+    <tr>
+        <td align='center'>
+
+            <table width='100%' cellpadding='0' cellspacing='0' border='0'
+                   style='
+                       max-width:600px;
+                       background:#ffffff;
+                       border-radius:12px;
+                       overflow:hidden;
+                       box-shadow:0 2px 8px rgba(0,0,0,0.06);
+                   '>
+
+                <!-- HEADER -->
+                <tr>
+                    <td style='
+                        padding:28px 30px;
+                        border-bottom:1px solid #f1f1f1;
+                    '>
+
+                        <div style='
+                            font-size:25px;
+                            font-weight:bold;
+                            color:#f97316;
+                        '>
+                            Mercado Craíbas
+                        </div>
+
+                    </td>
+                </tr>
+
+                <!-- CONTEÚDO -->
+                <tr>
+                    <td style='padding:35px 30px 30px 30px;'>
+
+                        <p style='
+                            margin:0;
+                            font-size:16px;
+                            line-height:1.6;
+                        '>
+                            Olá, <strong>{nome}</strong>!
+                        </p>
+
+                        <p style='
+                            margin:16px 0 0 0;
+                            font-size:15px;
+                            line-height:1.6;
+                            color:#4b5563;
+                        '>
+                            Para continuar seu cadastro no
+                            <strong style='color:#f97316;'>
+                                Mercado Craíbas
+                            </strong>,
+                            precisamos confirmar seu endereço de e-mail.
+                        </p>
+
+                        <p style='
+                            margin:24px 0 0 0;
+                            font-size:15px;
+                            line-height:1.6;
+                            color:#4b5563;
+                        '>
+                            Digite o código abaixo na tela de confirmação:
+                        </p>
+
+                        <!-- CÓDIGO -->
+                        <table width='100%' cellpadding='0' cellspacing='0' border='0'
+                               style='margin:28px 0;'>
+
+                            <tr>
+                                <td align='center'>
+
+                                    <div style='
+                                        display:inline-block;
+                                        background:#fff7ed;
+                                        border:1px solid #fed7aa;
+                                        border-radius:10px;
+                                        padding:18px 35px;
+                                        letter-spacing:8px;
+                                        font-size:32px;
+                                        font-weight:bold;
+                                        color:#f97316;
+                                    '>
+                                        {codigo}
+                                    </div>
+
+                                </td>
+                            </tr>
+
+                        </table>
+
+                        <p style='
+                            margin:0;
+                            text-align:center;
+                            font-size:13px;
+                            color:#6b7280;
+                        '>
+                            Este código é válido por
+                            <strong>10 minutos</strong>.
+                        </p>
+
+                        <p style='
+                            margin:25px 0 0 0;
+                            font-size:14px;
+                            line-height:1.6;
+                            color:#6b7280;
+                        '>
+                            Se você não solicitou este código,
+                            pode ignorar este e-mail com segurança.
+                        </p>
+
+                    </td>
+                </tr>
+
+                <!-- FOOTER -->
+                <tr>
+                    <td style='
+                        background:#fafafa;
+                        border-top:1px solid #f1f1f1;
+                        padding:24px 30px;
+                        text-align:center;
+                    '>
+
+                        <p style='
+                            margin:0;
+                            font-size:13px;
+                            color:#6b7280;
+                        '>
+                            © {DateTime.Now.Year} Mercado Craíbas
+                        </p>
+
+                        <p style='
+                            margin:8px 0 0 0;
+                            font-size:12px;
+                            color:#9ca3af;
+                        '>
+                            Este é um e-mail automático. Por favor,
+                            não responda a esta mensagem.
+                        </p>
+
+                    </td>
+                </tr>
+
+            </table>
+
+        </td>
+    </tr>
+
+</table>
+
+</body>
 </html>";
     }
 }
