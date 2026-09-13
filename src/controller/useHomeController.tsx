@@ -49,7 +49,7 @@ export const useHomeController = () => {
     };
     return {
         action: {
-
+            SetLoading
         },
         result: {
             Loading

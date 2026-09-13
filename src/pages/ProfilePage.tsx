@@ -41,6 +41,8 @@ import { Order } from '../models/OrderSave';
 import { ProductSaveOrder } from '../models/Product';
 import ProductReviewModal from '../components/ProductReviewModal';
 import { useAuthStore } from '../context/AuthContext';
+import { UseProductStore } from '../store/UseProductStore';
+import ProductReviewDetailsModal from '../components/ProductReviewDetailsModal';
 type ProfileTab = 'overview' | 'orders' | 'wishlist' | 'addresses' | 'security' | 'preferences' | 'settings';
 
 

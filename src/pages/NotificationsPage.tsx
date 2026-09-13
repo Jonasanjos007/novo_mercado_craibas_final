@@ -8,6 +8,7 @@ import { getColorConfig } from '../types/Colors';
 import { UseNotificationAdmin } from '../storeAdmin/UseNotificationAdmin';
 import { useNotificationsController } from '../controller/useNotificationsController';
 import { NotificationModel } from '../models/NotificationModel';
+import Loading from '../components/Loading';
 
 const dateKey = (date: Date) => `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
 const dayTitle = (date: Date) => {
@@ -136,6 +137,8 @@ export default function NotificationsPage() {
     return itemKey === selectedDay;
   };
   const unreadOrder = Notification.filter(item => item.isRead === false && item.referenceType === "ORDER" && matchesSelectedPeriod(item.insertDate)).length;
+  const unreadREGISTRATION = Notification.filter(item => item.isRead === false && item.referenceType === "REGISTRATION" && matchesSelectedPeriod(item.insertDate)).length;
+
   const unreadPayment = Notification.filter(item => item.isRead === false && item.referenceType === "PAYMENT" && matchesSelectedPeriod(item.insertDate)).length;
   const unreadDelivery = Notification.filter(item => item.isRead === false && item.referenceType === "DELIVERY" && matchesSelectedPeriod(item.insertDate)).length;
   const unreadSegurancy = Notification.filter(item => item.isRead === false && item.referenceType === "PASSWORD_CHANGE" && matchesSelectedPeriod(item.insertDate)).length;
@@ -266,6 +269,7 @@ export default function NotificationsPage() {
             { id: 'ASSESSMENT', label: `Avaliação(${unreadAssessment})` },
             { id: 'PASSWORD_CHANGE', label: `Seguramça(${unreadSegurancy})` },
             { id: 'PAYMENT', label: `Pagamentos(${unreadPayment})` },
+            { id: 'REGISTRATION', label: `Bem-vindo(${unreadREGISTRATION})` },
             { id: 'READ', label: `Lidas(${unreadAllRead})` },] as const).map(item =>
               <button
                 key={item.id}
@@ -372,15 +376,16 @@ export default function NotificationsPage() {
                             Lida
                           </button>
                         )}
-
-                        <button
-                          onClick={() => {
-                            navigate('/orders');
-                          }}
-                          className={` flex items-center gap-1 rounded-lg border border-surface-200 bg-surface-50 px-2 py-1.5 text-[11px] font-bold transition-all hover:bg-surface-100 active:scale-95 ${color.class_text}`}>
-                          Ver pedido
-                          <ChevronRight className="h-3.5 w-3.5" />
-                        </button>
+                        {item.referenceType == 'ORDER' &&
+                          <button
+                            onClick={() => {
+                              navigate('/orders');
+                            }}
+                            className={` flex items-center gap-1 rounded-lg border border-surface-200 bg-surface-50 px-2 py-1.5 text-[11px] font-bold transition-all hover:bg-surface-100 active:scale-95 ${color.class_text}`}>
+                            Ver pedido
+                            <ChevronRight className="h-3.5 w-3.5" />
+                          </button>
+                        }
                       </div>
                     </div>
                   </div>
@@ -389,6 +394,11 @@ export default function NotificationsPage() {
             </div>
           </div>)}
       </section>
+      <Loading
+        loading={Controller?.result.loading || false}
+        message="Carregando Notificações"
+        subMessage="Estamos organizando tudo para você."
+      />
     </div>
   </main>;
 }

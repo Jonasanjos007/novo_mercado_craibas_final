@@ -15,5 +15,11 @@ public interface IUserService
     Task<Result<bool>> DeleteAddressService(AddressRequest DeleteAddress);
     Task<Result<bool>> SaveColorGlobalInsertService(string Color, int Id_User);
     Task<Result<bool>> SaveLogUser(LogRequest Log, int? UserId);
+    Task<Result<RegisterStartResponse>> RegisterStartAsync(RegisterStartRequest request);
+    Task<Result<RegisterEmailResponse>> RegisterEmailConfirm(RegisterEmailRequest request);
+    Task<Result<RegisterEmailResponse>> RegisterEmailCodeConfirm(int userId, string code);
+    Task<Result<RegisterPasswordResponse>> RegisterPassword(int userId, string password, string confirmPassword);
+    Task<Result<RegisterEmailResponse>> ResendCode(int userId, string email, string phone, string ipAddress);
+    Task<Result<RegisterEmailResponse>> EditEmailNew(string emailInvalid, int userId);
 }
 

@@ -18,7 +18,6 @@ namespace Mercado.Craibas.Infrastructure.Configurations
                 .HasMaxLength(150);
 
             builder.Property(x => x.Email)
-                .IsRequired()
                 .HasMaxLength(200);
 
             builder.Property(x => x.PasswordHash)
@@ -27,6 +26,9 @@ namespace Mercado.Craibas.Infrastructure.Configurations
             builder.Property(x => x.Role)
                 .HasConversion<string>()
                 .HasMaxLength(50);
+
+            builder.Property(x => x.RegistrationStatus)
+                .HasConversion<string>();
 
             builder.HasMany(x => x.Address)
                 .WithOne(x => x.User_Customer)
