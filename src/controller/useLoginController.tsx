@@ -34,7 +34,12 @@ export const useLoginController = () => {
     const [step, setStep] = useState<RegistrationStep>("Started");
     const [formNewUser, setFormNewUser] = useState({ name: '', phone: '' });
     const [modalVoltaCadatro, setModalVoltaCadatro] = useState(false);
+    const [modalNotYou, setModalNotYou] = useState(false);
     const [verificationCode, setVerificationCode] = useState('');
+    const [titlePopapAvis, setTitlePopapAvis] = useState('');
+    const [descriptonPopapAvis, setDescriptonPopapAvis] = useState('');
+    const [confirmTextPopapAvis, setConfirmTextPopapAvis] = useState('');
+    const [cancelTextPopapAvis, setCancelTextPopapAvis] = useState('');
     const [confirmPassword, setConfirmPassword] = useState('');
     const [showPassword, setShowPassword] = useState(false);
     const [showConfirmPassword, setShowConfirmPassword] = useState(false);
@@ -132,7 +137,6 @@ export const useLoginController = () => {
         useAuthStore.getState().logout();
     };
     const handleRegisterStart = async () => {
-        console.log('formNewUserteste', formNewUser);
         setMessage('Salvando seus dados');
         setsubMessage('Aguarde um momento...');
         try {
@@ -168,6 +172,7 @@ export const useLoginController = () => {
                     idUser: data?.idUser ?? 0,
                     backRegistration: data?.backRegistration ?? false,
                     email: data?.email ?? formEmail.email,
+                    expiresAt: data?.expiresAt ? data.expiresAt : new Date()
                 })
             );
             setuserRegisterResponse({
@@ -176,7 +181,8 @@ export const useLoginController = () => {
                 name: data?.name ?? '',
                 phone: data?.phone ?? '',
                 backRegistration: data?.backRegistration ?? false,
-                email: data?.email ?? ''
+                email: data?.email ?? '',
+                expiresAt: data?.expiresAt ? data.expiresAt : new Date()
             });
 
             setFormEmail(f => ({ ...f, userId: data?.idUser ?? 0 }));
@@ -193,8 +199,13 @@ export const useLoginController = () => {
                     name: data?.name ?? '',
                     phone: data?.phone ?? '',
                     backRegistration: data?.backRegistration ?? false,
+                    expiresAt: data?.expiresAt ? data.expiresAt : new Date()
                 });
                 setModalVoltaCadatro(true);
+                setTitlePopapAvis(`Olá ${UserRegisterResponse?.name} Você já começou seu cadastro a um tempo atraz😊`);
+                setDescriptonPopapAvis("Encontramos algumas informações que você já preencheu. Que tal continuar de onde parou? Assim você não precisa começar tudo novamente.");
+                setConfirmTextPopapAvis("Continuar");
+                setCancelTextPopapAvis("Cancelar");
             }
             setErrorUser('');
         } finally {
@@ -237,7 +248,7 @@ export const useLoginController = () => {
                     name: data?.name ?? formNewUser.name,
                     phone: data?.phone ?? formNewUser.phone,
                     nextStep: data?.nextStep ?? 'PersonalDataCompleted',
-                    IdUser: data?.idUser ?? 0,
+                    idUser: data?.idUser ?? 0,
                     backRegistration: data?.backRegistration ?? false,
                     email: data?.email ?? formEmail.email,
                     expiresAt: data?.expiresAt ?? new Date()
@@ -277,11 +288,49 @@ export const useLoginController = () => {
             nextStep: '',
             name: '',
             phone: '',
-            backRegistration: false
+            backRegistration: false,
+            email: '',
+            expiresAt: new Date()
         });
         setStep('Started');
         setFormNewUser({ name: '', phone: '' })
         setModalVoltaCadatro(false);
+        setTitlePopapAvis('');
+        setDescriptonPopapAvis('');
+        setConfirmTextPopapAvis('');
+        localStorage.removeItem("pending_registration");
+        setStep("Started");
+        setEmail("");
+        setPassword("");
+        formNewUser.name = "";
+        formNewUser.phone = "";
+        setFormEmail({ email: "", confirmEmail: "", userId: 0 });
+        setVerificationCode("");
+        setConfirmPassword("");
+        setError("");
+    };
+    const handleNotYouCancele = async () => {
+        setuserRegisterResponse({
+            idUser: 0,
+            nextStep: '',
+            name: '',
+            phone: '',
+            backRegistration: false,
+            email: '',
+            expiresAt: new Date()
+        });
+        setFormNewUser({ name: '', phone: '' })
+        localStorage.removeItem("pending_registration");
+        setStep("Started");
+        setEmail("");
+        setPassword("");
+        formNewUser.name = "";
+        formNewUser.phone = "";
+        setFormEmail({ email: "", confirmEmail: "", userId: 0 });
+        setVerificationCode("");
+        setConfirmPassword("");
+        setError("");
+        setModalNotYou(false);
     };
     const handleResendEmailCode = async () => {
         setLoading(true);
@@ -534,11 +583,8 @@ export const useLoginController = () => {
 
         } catch (error) {
             console.error("Erro ao finalizar cadastro:", error);
-
             notify.error('Erro', 'Não foi possível finalizar seu cadastro. Tente novamente.');
-
             setErrorPassword('Não foi possível finalizar seu cadastro. Tente novamente.');
-
         } finally {
             setLoading(false);
         }
@@ -581,7 +627,13 @@ export const useLoginController = () => {
             setuserRegisterResponse,
             handleResendEmailCode,
             setShowEditEmailModal,
-            handleEditEmail
+            handleEditEmail,
+            setModalNotYou,
+            handleNotYouCancele,
+            setConfirmTextPopapAvis,
+            setDescriptonPopapAvis,
+            setTitlePopapAvis,
+            setCancelTextPopapAvis
 
         },
         result: {
@@ -593,7 +645,6 @@ export const useLoginController = () => {
             step,
             formNewUser,
             modalVoltaCadatro,
-
             errorUser,
             message,
             subMessage,
@@ -606,7 +657,12 @@ export const useLoginController = () => {
             confirmPassword,
             errorPassword,
             errorCodeEmail,
-            showEditEmailModal
+            showEditEmailModal,
+            titlePopapAvis,
+            descriptonPopapAvis,
+            confirmTextPopapAvis,
+            modalNotYou,
+            cancelTextPopapAvis
         }
 
     }

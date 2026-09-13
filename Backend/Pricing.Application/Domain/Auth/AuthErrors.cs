@@ -17,4 +17,9 @@ public static class AuthErrors
         Error.Unauthorized(
             "Auth.InvalidRefreshToken",
             "Refresh token inválido");
+    public static Error UserInactive =>
+       Error.Unauthorized(
+           "Auth.UserInactive",
+           "Usuário inativo");
+
 }
