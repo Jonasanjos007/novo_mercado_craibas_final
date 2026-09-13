@@ -1,5 +1,6 @@
 ﻿using Baldan.Pricing.Application.Domain.Enums;
 using Mercado.Craibas.Application.Domain.Entities;
+using Mercado.Craibas.Application.Domain.Enums;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -16,7 +17,9 @@ namespace Baldan.Pricing.Application.Domain.Entities
         public string? Avatar { get; set; }
         public ProfileEnum Role { get; set; }
         public bool Ativo { get; set; }
-        public double? Phone { get; set; }
+        public bool EmailVerified { get; set; }
+        public string? RegistrationStatus { get; set; }
+        public string? Phone { get; set; }
         public ICollection<Address> Address { get; set; } = [];
         public Customize_Cliente Customize_Cliente { get; set; }
         public ICollection<Orders> Orders { get; set; } = [];
@@ -25,6 +28,6 @@ namespace Baldan.Pricing.Application.Domain.Entities
         public string? RefreshToken { get; set; }
         public DateTime? RefreshTokenExpiresAt { get; set; }
         public ICollection<Coupon_Use> Coupon_Uses { get; set; } = [];
-
+        public ICollection<EmailVerification> EmailVerifications { get; set; } = [];
     }
 }

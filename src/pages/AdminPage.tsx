@@ -24,7 +24,7 @@ import {
   LogIn,
   TicketCheck,
   RefreshCcw, Star, Pencil, TicketX, PlusCircle, Lock,
-  UserCheck
+  UserPlus,UserCheck
 } from 'lucide-react';
 import { useStore } from '../context/store';
 import { formatPrice, orderStatusLabels, orderStatusLabelsAtualize, orderStatusColors, categoryLabels, badgeLabels, badgeLabel, cupomStatusLabels } from '../utils';
@@ -4354,6 +4354,15 @@ export default function AdminPage() {
                       icon: Lock,
                       label: "Alteração de senha",
                     },
+                    "CADASTRO": {
+                      text: "text-green-400",
+                      bg: "bg-green-500/10",
+                      border: "border-green-500/20",
+                      bar: "bg-green-500",
+                      icon: UserPlus,
+                      label: "Novo cadastro",
+                    },
+
                   };
 
                   const levelConfig = configs[level] ?? configs["SISTEMA"];

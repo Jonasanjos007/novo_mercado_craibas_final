@@ -33,9 +33,9 @@ public class AppDbContext : DbContext
     public DbSet<Coupon_Use> Coupon_Use => Set<Coupon_Use>();
     public DbSet<Notification> Notification => Set<Notification>();
     public DbSet<NotificationUser> NotificationUser => Set<NotificationUser>();
+    public DbSet<EmailVerification> EmailVerifications => Set<EmailVerification>();
 
 
-   
     public AppDbContext(DbContextOptions<AppDbContext> options)
         : base(options)
     {

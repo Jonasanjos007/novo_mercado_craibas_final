@@ -16,7 +16,11 @@ import {
   Sparkles,
   Tag,
   X,
-  Lock
+  Lock,
+  UserPlus,
+  Star,
+  Pencil,
+  LockKeyhole
 } from 'lucide-react';
 import { useAdminController } from '../controller/useAdminController';
 import { UseNotificationAdmin } from '../storeAdmin/UseNotificationAdmin';
@@ -24,7 +28,7 @@ import { useNotification } from '../utils/NotificationCard';
 import { NotificationModel } from '../models/NotificationModel';
 import { AdminTab } from '../models/OrderSave';
 
-export type AdminNotificationKind = 'ORDER' | 'stock' | 'promotion' | 'Read' | 'PASSWORD_CHANGE';;
+export type AdminNotificationKind = 'ORDER' | 'stock' | 'promotion' | 'Read' | 'PASSWORD_CHANGE' | 'CADASTRO' | 'ASSESSMENT';
 
 export type AdminNotificationItem = {
   id: string;
@@ -84,23 +88,120 @@ const kindConfig = {
     ring: 'ring-amber-500/40'
   },
 
+  'CADASTRO': {
+    label: 'Novo Cadastro',
+    icon: UserPlus,
+    color: 'text-green-400',
+    bg: 'bg-green-500/20',
+    ring: 'ring-green-500/40'
+  },
+
+  'AVALIAÇÃO CADASTRADA': {
+    label: 'Avaliação Cadastrada',
+    icon: Star,
+    color: 'text-yellow-400',
+    bg: 'bg-yellow-500/20',
+    ring: 'ring-yellow-500/40'
+  },
+
+  'AVALIAÇÃO EDITADA': {
+    label: 'Avaliação Editada',
+    icon: Pencil,
+    color: 'text-cyan-400',
+    bg: 'bg-cyan-500/20',
+    ring: 'ring-cyan-500/40'
+  },
+
+  'ALTERAÇÃO DE SENHA': {
+    label: 'Alteração de Senha',
+    icon: LockKeyhole,
+    color: 'text-orange-400',
+    bg: 'bg-orange-500/20',
+    ring: 'ring-orange-500/40'
+  },
+
 } as const;
 function getNotificationKind(
   item: NotificationModel
 ): keyof typeof kindConfig {
   const value = `${item.referenceType} ${item.kind}`.toLowerCase();
 
-  if (value.includes('ORDER') || value.includes('pedido')) {
+  // Pedidos
+  if (
+    value.includes('order') ||
+    value.includes('pedido')
+  ) {
     return 'ORDER';
   }
 
-  if (value.includes('stock') || value.includes('estoque') || value.includes('product') || value.includes('produto')) {
+  // Estoque / Produtos
+  if (
+    value.includes('stock') ||
+    value.includes('estoque') ||
+    value.includes('product') ||
+    value.includes('produto')
+  ) {
     return 'stock';
   }
 
-  if (value.includes('promotion') || value.includes('promoç') || value.includes('cupom')
+  // Promoções / Cupons
+  if (
+    value.includes('promotion') ||
+    value.includes('promoç') ||
+    value.includes('cupom')
   ) {
     return 'promotion';
+  }
+
+  // Novo cadastro
+  if (
+    value.includes('cadastro') ||
+    value.includes('novo cadastro') ||
+    value.includes('new user') ||
+    value.includes('new customer')
+  ) {
+    return 'CADASTRO';
+  }
+
+  // Avaliação editada
+  if (
+    value.includes('avaliação editada') ||
+    value.includes('avaliacao editada') ||
+    value.includes('assessment edited') ||
+    value.includes('review edited')
+  ) {
+    return 'AVALIAÇÃO EDITADA';
+  }
+
+  // Avaliação cadastrada
+  if (
+    value.includes('avaliação cadastrada') ||
+    value.includes('avaliacao cadastrada') ||
+    value.includes('nova avaliação') ||
+    value.includes('nova avaliacao') ||
+    value.includes('assessment') ||
+    value.includes('review')
+  ) {
+    return 'AVALIAÇÃO CADASTRADA';
+  }
+
+  // Alteração de senha
+  if (
+    value.includes('alteração de senha') ||
+    value.includes('alteracao de senha') ||
+    value.includes('senha alterada') ||
+    value.includes('password changed') ||
+    value.includes('password')
+  ) {
+    return 'ALTERAÇÃO DE SENHA';
+  }
+
+  // Sistema
+  if (
+    value.includes('system') ||
+    value.includes('sistema')
+  ) {
+    return 'system';
   }
 
   return 'system';
@@ -215,12 +316,18 @@ export default function AdminNotificationsPage({ darkMode, notifications, onNavi
   const unreadOrder = Notification.filter(item => item.isRead === false && item.referenceType === "ORDER" && matchesSelectedPeriod(item.insertDate)).length;
   const unreadAllRead = notifications.filter(item => item.isRead === true && matchesSelectedPeriod(item.insertDate)).length;
   const unreadSegurancy = Notification.filter(item => item.isRead === false && item.referenceType === "PASSWORD_CHANGE" && matchesSelectedPeriod(item.insertDate)).length;
+  const unreadCadastro = Notification.filter(item => item.isRead === false && item.referenceType === "CADASTRO" && matchesSelectedPeriod(item.insertDate)).length;
+  const unreadAvaliacao = Notification.filter(item => item.isRead === false && item.referenceType === "ASSESSMENT" && matchesSelectedPeriod(item.insertDate)).length;
+
+
 
 
   const filters: Array<{ id: typeof filter; label: string }> = [
     { id: 'all', label: 'Todas' },
     { id: 'unread', label: `Não lidas${unread ? ` (${unread})` : ''}` },
     { id: 'ORDER', label: `Pedidos(${unreadOrder})` },
+    { id: 'CADASTRO', label: `Cadastros(${unreadCadastro})` },
+    { id: 'ASSESSMENT', label: `Avaliações(${unreadAvaliacao})` },
     { id: 'stock', label: `Estoque(Colocar)` },
     { id: 'promotion', label: 'Promoções(Colocar)' },
     { id: 'PASSWORD_CHANGE', label: `Segurança(${unreadSegurancy})` },

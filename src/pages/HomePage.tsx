@@ -987,6 +987,17 @@ export default function HomePage() {
         message="Carregando Produtos"
         subMessage="Carregando os melhores produtos para você"
       />
+      {/* <GlobalMessageModal
+        open={true}
+        type="promotion"
+        title="🔥 Cupom exclusivo pra você"
+        message="Use o código BEMVINDO10 e ganhe 10% de desconto na primeira compra."
+        buttonText="Agora não"
+        actionText="Usar cupom"
+        onAction={() => { handleCopyCoupon('BEMVINDO10'); setShowPromo(false); }}
+        onClose={() => setShowPromo(false)}
+      /> */}
+
     </div>
   );
 }
