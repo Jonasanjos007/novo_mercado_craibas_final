@@ -67,9 +67,128 @@ public class AuthService : IAuthService
 
         return Result.Success();
     }
+    //public async Task<Result<LoginResponse>> LoginAsync(LoginRequest request)
+    //{
+    //    var User = null as UserResponse;
+
+    //    var User_Costumer = await _authRepository.GetByEmailAsyncCustomer(request.Email);
+
+    //    if (User_Costumer is not null)
+    //    {
+    //        User = new UserResponse
+    //        {
+    //            Id = User_Costumer.Id,
+    //            Name = User_Costumer.Name,
+    //            Email = User_Costumer.Email,
+    //            Avatar = User_Costumer.Avatar,
+    //            Role = User_Costumer.Role,
+    //            Ativo = User_Costumer.Ativo,
+    //            PasswordHash = User_Costumer.PasswordHash,
+    //            RefreshToken = User_Costumer.RefreshToken,
+    //            RefreshTokenExpiresAt = User_Costumer.RefreshTokenExpiresAt
+    //        };
+
+    //            await _useService.SaveLogUser(new LogRequest
+    //            {
+    //                Id_User = User.Id,
+    //                Log = "Acesou a Home Cliete",
+    //                Tipo = "Acesso",
+    //                Nivel = User.Role.ToString(),
+    //                Acao = $"{string.Join(" ", User.Name.Split(' ', StringSplitOptions.RemoveEmptyEntries).Take(2))} acessou o sistema",
+    //                Info = $"Acessou o sistema em {DateTime.Now:dd/MM/yyyy HH:mm:ss}",
+    //                InsertDate = DateTime.Now
+    //            }, null);
+
+    //    }
+    //    var User_Admin = await _unitOfWork.GetClassAsyncWhere<User_Admin>(x => x.Email == request.Email);
+
+    //    if (User_Admin is not null)
+    //    {
+    //        User = new UserResponse
+    //        {
+    //            Id = User_Admin.Id,
+    //            Name = User_Admin.Name,
+    //            Email = User_Admin.Email,
+    //            Avatar = User_Admin.Avatar,
+    //            Role = User_Admin.Role,
+    //            Ativo = User_Admin.Ativo,
+    //            PasswordHash = User_Admin.PasswordHash,
+    //            RefreshToken = User_Admin.RefreshToken,
+    //            RefreshTokenExpiresAt = User_Admin.RefreshTokenExpiresAt
+    //        };
+    //        await _useService.SaveLogUser(new LogRequest
+    //        {
+    //            Id_User = User.Id,
+    //            Log = "Acesou a Home Admin",
+    //            Tipo = "Acesso",
+    //            Nivel = User.Role.ToString(),
+    //            Acao = $"{string.Join(" ", User.Name.Split(' ', StringSplitOptions.RemoveEmptyEntries).Take(2))} acessou o sistema",
+    //            Info = $"Acessou o sistema em {DateTime.Now:dd/MM/yyyy HH:mm:ss}",
+    //            InsertDate = DateTime.Now
+    //        }, null);
+    //    }
+    //    var User_Delvery = await _authRepository.GetByEmailAsyncDelivery(request.Email);
+
+    //    if (User_Delvery is not null) {
+    //        User = new UserResponse
+    //        {
+    //            Id = User_Delvery.Id,
+    //            Name = User_Delvery.Name,
+    //            Email = User_Delvery.Email,
+    //            Avatar = User_Delvery.Avatar,
+    //            Role = User_Delvery.Role,
+    //            Ativo = User_Delvery.Ativo,
+    //            PasswordHash = User_Delvery.PasswordHash,
+    //            RefreshToken = User_Delvery.RefreshToken,
+    //            RefreshTokenExpiresAt = User_Delvery.RefreshTokenExpiresAt
+    //        };
+    //        await _useService.SaveLogUser(new LogRequest
+    //        {
+    //            Id_User = User.Id,
+    //            Log = "Acesou a Home Deliveri",
+    //            Tipo = "Acesso",
+    //            Nivel = User.Role.ToString(),
+    //            Acao = $"{string.Join(" ", User.Name.Split(' ', StringSplitOptions.RemoveEmptyEntries).Take(2))} acessou o sistema",
+    //            Info = $"Acessou o sistema em {DateTime.Now:dd/MM/yyyy HH:mm:ss}",
+    //            InsertDate = DateTime.Now
+    //        }, null);
+    //    }
+
+    //    if(User  is null)
+    //    {
+    //        return Result<LoginResponse>.Failure(AuthErrors.InvalidCredentials);
+    //    }
+
+    //    if (!BCrypt.Net.BCrypt.Verify(request.Password, User.PasswordHash))
+    //    {
+    //        return Result<LoginResponse>.Failure(AuthErrors.InvalidCredentials);
+    //    }
+
+    //    var teste = User.Id.ToString();
+
+    //    var accessToken = _tokenService.GenerateAccessToken(
+    //        User.Id, User.Email, User.Role);
+
+    //    var refreshToken = _tokenService.GenerateRefreshToken();
+
+    //    var refreshTokenExpiresAt = DateTime.UtcNow.AddDays(20);
+
+    //    var userId = User.Id;
+    //    await _authRepository.UpdateRefreshTokenAsync(userId, User.Role, refreshToken, refreshTokenExpiresAt);
+
+    //    await _unitOfWork.CommitAsync();
+
+    //    return Result<LoginResponse>.Success(new LoginResponse
+    //    {
+    //        AccessToken = accessToken,
+    //        RefreshToken = refreshToken,
+    //        RefreshTokenExpiresAt = refreshTokenExpiresAt,
+    //        Role = User.Role
+    //    });
+    //}
     public async Task<Result<LoginResponse>> LoginAsync(LoginRequest request)
     {
-        var User = null as UserResponse;
+        UserResponse? User = null;
 
         var User_Costumer = await _authRepository.GetByEmailAsyncCustomer(request.Email);
 
@@ -87,104 +206,125 @@ public class AuthService : IAuthService
                 RefreshToken = User_Costumer.RefreshToken,
                 RefreshTokenExpiresAt = User_Costumer.RefreshTokenExpiresAt
             };
-            
-                await _useService.SaveLogUser(new LogRequest
+        }
+
+        if (User is null)
+        {
+            var User_Admin = await _unitOfWork.GetClassAsyncWhere<User_Admin>(x => x.Email == request.Email);
+
+            if (User_Admin is not null)
+            {
+                User = new UserResponse
                 {
-                    Id_User = User.Id,
-                    Log = "Acesou a Home Cliete",
-                    Tipo = "Acesso",
-                    Nivel = User.Role.ToString(),
-                    Acao = $"{string.Join(" ", User.Name.Split(' ', StringSplitOptions.RemoveEmptyEntries).Take(2))} acessou o sistema",
-                    Info = $"Acessou o sistema em {DateTime.Now:dd/MM/yyyy HH:mm:ss}",
-                    InsertDate = DateTime.Now
-                }, null);
-          
+                    Id = User_Admin.Id,
+                    Name = User_Admin.Name,
+                    Email = User_Admin.Email,
+                    Avatar = User_Admin.Avatar,
+                    Role = User_Admin.Role,
+                    Ativo = User_Admin.Ativo,
+                    PasswordHash = User_Admin.PasswordHash,
+                    RefreshToken = User_Admin.RefreshToken,
+                    RefreshTokenExpiresAt = User_Admin.RefreshTokenExpiresAt
+                };
+            }
         }
-        var User_Admin = await _unitOfWork.GetClassAsyncWhere<User_Admin>(x => x.Email == request.Email);
 
-        if (User_Admin is not null)
+        if (User is null)
         {
-            User = new UserResponse
-            {
-                Id = User_Admin.Id,
-                Name = User_Admin.Name,
-                Email = User_Admin.Email,
-                Avatar = User_Admin.Avatar,
-                Role = User_Admin.Role,
-                Ativo = User_Admin.Ativo,
-                PasswordHash = User_Admin.PasswordHash,
-                RefreshToken = User_Admin.RefreshToken,
-                RefreshTokenExpiresAt = User_Admin.RefreshTokenExpiresAt
-            };
-            await _useService.SaveLogUser(new LogRequest
-            {
-                Id_User = User.Id,
-                Log = "Acesou a Home Admin",
-                Tipo = "Acesso",
-                Nivel = User.Role.ToString(),
-                Acao = $"{string.Join(" ", User.Name.Split(' ', StringSplitOptions.RemoveEmptyEntries).Take(2))} acessou o sistema",
-                Info = $"Acessou o sistema em {DateTime.Now:dd/MM/yyyy HH:mm:ss}",
-                InsertDate = DateTime.Now
-            }, null);
-        }
-        var User_Delvery = await _authRepository.GetByEmailAsyncDelivery(request.Email);
+            var User_Delvery = await _authRepository.GetByEmailAsyncDelivery(request.Email);
 
-        if (User_Delvery is not null) {
-            User = new UserResponse
+            if (User_Delvery is not null)
             {
-                Id = User_Delvery.Id,
-                Name = User_Delvery.Name,
-                Email = User_Delvery.Email,
-                Avatar = User_Delvery.Avatar,
-                Role = User_Delvery.Role,
-                Ativo = User_Delvery.Ativo,
-                PasswordHash = User_Delvery.PasswordHash,
-                RefreshToken = User_Delvery.RefreshToken,
-                RefreshTokenExpiresAt = User_Delvery.RefreshTokenExpiresAt
-            };
-            await _useService.SaveLogUser(new LogRequest
-            {
-                Id_User = User.Id,
-                Log = "Acesou a Home Deliveri",
-                Tipo = "Acesso",
-                Nivel = User.Role.ToString(),
-                Acao = $"{string.Join(" ", User.Name.Split(' ', StringSplitOptions.RemoveEmptyEntries).Take(2))} acessou o sistema",
-                Info = $"Acessou o sistema em {DateTime.Now:dd/MM/yyyy HH:mm:ss}",
-                InsertDate = DateTime.Now
-            }, null);
+                User = new UserResponse
+                {
+                    Id = User_Delvery.Id,
+                    Name = User_Delvery.Name,
+                    Email = User_Delvery.Email,
+                    Avatar = User_Delvery.Avatar,
+                    Role = User_Delvery.Role,
+                    Ativo = User_Delvery.Ativo,
+                    PasswordHash = User_Delvery.PasswordHash,
+                    RefreshToken = User_Delvery.RefreshToken,
+                    RefreshTokenExpiresAt = User_Delvery.RefreshTokenExpiresAt
+                };
+            }
         }
 
-        if(User  is null)
+
+        if (User is null)
         {
             return Result<LoginResponse>.Failure(AuthErrors.InvalidCredentials);
         }
 
-        if (!BCrypt.Net.BCrypt.Verify(request.Password, User.PasswordHash))
+        if (!User.Ativo)
         {
-            return Result<LoginResponse>.Failure(AuthErrors.InvalidCredentials);
+            return Result<LoginResponse>.Failure(Error.Failure("Usuário", "Usuário Inativo! Entre em contato com suporte."));
         }
 
-        var teste = User.Id.ToString();
+        if (string.IsNullOrWhiteSpace(User.PasswordHash) || !BCrypt.Net.BCrypt.Verify(request.Password,User.PasswordHash))
+        {
+            return Result<LoginResponse>.Failure(Error.Failure("Credências", "Credências inválida."));
+
+        }
 
         var accessToken = _tokenService.GenerateAccessToken(
-            User.Id, User.Email, User.Role);
+            User.Id,
+            User.Email,
+            User.Role);
 
         var refreshToken = _tokenService.GenerateRefreshToken();
 
-        var refreshTokenExpiresAt = DateTime.UtcNow.AddDays(20);
+        var refreshTokenExpiresAt =
+            DateTime.UtcNow.AddDays(20);
 
-        var userId = User.Id;
-        await _authRepository.UpdateRefreshTokenAsync(userId, User.Role, refreshToken, refreshTokenExpiresAt);
+        await _authRepository.UpdateRefreshTokenAsync(
+            User.Id,
+            User.Role,
+            refreshToken,
+            refreshTokenExpiresAt);
+
+        var nomeUsuario = string.Join(
+            " ",
+            User.Name
+                .Split(
+                    ' ',
+                    StringSplitOptions.RemoveEmptyEntries)
+                .Take(2)
+        );
+
+        var logMensagem = User.Role.ToString() switch
+        {
+            "ADMIN" => "Acessou a Home Admin",
+            "CLIENTE" => "Acessou a Home Cliente",
+            "DELIVERY" => "Acessou a Home Delivery",
+            _ => "Acessou o sistema"
+        };
+
+        await _useService.SaveLogUser(
+            new LogRequest
+            {
+                Id_User = User.Id,
+                Log = logMensagem,
+                Tipo = "Acesso",
+                Nivel = User.Role.ToString(),
+                Acao = $"{nomeUsuario} acessou o sistema",
+                Info = $"Acessou o sistema em {DateTime.Now:dd/MM/yyyy HH:mm:ss}",
+                InsertDate = DateTime.UtcNow
+            },
+            null
+        );
 
         await _unitOfWork.CommitAsync();
 
-        return Result<LoginResponse>.Success(new LoginResponse
-        {
-            AccessToken = accessToken,
-            RefreshToken = refreshToken,
-            RefreshTokenExpiresAt = refreshTokenExpiresAt,
-            Role = User.Role
-        });
+        return Result<LoginResponse>.Success(
+            new LoginResponse
+            {
+                AccessToken = accessToken,
+                RefreshToken = refreshToken,
+                RefreshTokenExpiresAt = refreshTokenExpiresAt,
+                Role = User.Role
+            }
+        );
     }
 
     public async Task<Result<LoginResponse>> RefreshAsync(string refreshToken)

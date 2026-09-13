@@ -446,7 +446,7 @@ public class UserService : IUserService
                 BackRegistration = true,
                 Email = userExist.Email,
                 ExpiresAt =  EmailVerification?.ExpiresAt ?? DateTime.Now
-
+                
             });
         }
 
@@ -590,7 +590,7 @@ public class UserService : IUserService
 
         var codeHash = HashCode(code);
 
-        var createdAt = DateTime.UtcNow;
+        var createdAt = DateTime.Now;
 
         var expiresAt = createdAt.AddMinutes(10);
 
@@ -624,36 +624,24 @@ public class UserService : IUserService
             { "UpdateDate", DateTime.UtcNow }
             });
 
-        // ============================================================
-        // 12. Criar layout do e-mail
-        // ============================================================
 
         var layoutEmail =
             _Emaillayout.EmailConfirmacaoCadastro(
                 user.Name,
                 code);
 
-        // ============================================================
-        // 13. Enviar e-mail
-        // ============================================================
 
         var enviado = await _Emaillayout.EnviarEmailAsync(
             email,
             "Confirme seu e-mail - Mercado Craíbas",
             layoutEmail);
 
-        // ============================================================
-        // 14. Verificar envio
-        // ============================================================
 
         if (!enviado)
         {
             return Result<RegisterEmailResponse>.Failure(Error.Failure("Email","Não foi possível enviar o código de confirmação."));
         }
 
-        // ============================================================
-        // 15. Retornar
-        // ============================================================
         await _unitOfWork.InsertAsyncReturnId<Logs>(new Logs
         {
             Id_User = user.Id,
@@ -718,7 +706,7 @@ public class UserService : IUserService
         {
             return Result<RegisterEmailResponse>.Failure(Error.Failure("Código", "Número máximo de tentativas atingido. Solicite um novo código."));
         }
-        if (verification.ExpiresAt < DateTime.UtcNow)
+        if (verification.ExpiresAt < DateTime.Now)
         {
             return Result<RegisterEmailResponse>.Failure(Error.Failure("Código","O código de confirmação expirou. Solicite um novo código."));
         }
@@ -867,6 +855,7 @@ public class UserService : IUserService
           {
             {"RegistrationStatus",RegistrationStatusEnum.Completed.ToString()},
             {"PasswordHash",passwordHash},
+            { "Ativo", true },
             { "UpdateDate", DateTime.UtcNow }
           }
         );

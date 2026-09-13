@@ -108,10 +108,7 @@ export default function AuthPage() {
 
       Controller.action.setStep(nextStep);
 
-      notify.info(
-        'Cadastro pendente',
-        'Você tem um cadastro pendente. Continue de onde parou.'
-      );
+      notify.info('Cadastro pendente', 'Você tem um cadastro pendente. Continue de onde parou.');
 
     } catch (error) {
       console.error('Erro ao recuperar cadastro:', error);
@@ -146,7 +143,7 @@ export default function AuthPage() {
       console.log('Etapa recuperada:', nextStep);
 
       Controller.action.setuserRegisterResponse({
-        idUser,
+        idUser: data?.idUser ?? 0,
         nextStep,
         name: data?.name ?? '',
         phone: data?.phone ?? '',
@@ -910,7 +907,22 @@ export default function AuthPage() {
 
               </div>
             )}
-
+          {mode === 'register' && Controller.result.step != 'Started' && (
+            <button
+              type="button"
+              onClick={() => {
+                Controller.action.setTitlePopapAvis('Não é você?');
+                Controller.action.setDescriptonPopapAvis('se você não é a pessoa que iniciou o cadastro, clique em "Cancelar" para começar um novo cadastro.');
+                Controller.action.setConfirmTextPopapAvis('Cancelar');
+                Controller.action.setCancelTextPopapAvis('Sim sou eu');
+                Controller.action.setModalNotYou(true);
+              }}
+              title="Começar outro cadastro"
+              className="w-full mt-4 py-2.5 text-surface-400 hover:text-brand-500 font-body text-sm transition-colors"
+            >
+              Não é você? Começar outro cadastro
+            </button>
+          )}
           <button onClick={() => navigate('/')} className="w-full mt-4 py-2.5 text-surface-400 hover:text-surface-600 font-body text-sm transition-colors">← Voltar à loja</button>
         </div>
       </div>
@@ -921,12 +933,21 @@ export default function AuthPage() {
       /> */}
       <PendingRegistrationPopup
         open={Controller.result.modalVoltaCadatro}
-        title={`Olá ${Controller.result.UserRegisterResponse?.name} Você já começou seu cadastro a um tempo atraz😊`}
-        description="Encontramos algumas informações que você já preencheu. Que tal continuar de onde parou? Assim você não precisa começar tudo novamente."
-        confirmText="Continuar"
-        cancelText="Cancelar"
+        title={Controller.result.titlePopapAvis}
+        description={Controller.result.descriptonPopapAvis}
+        confirmText={Controller.result.confirmTextPopapAvis}
+        cancelText={Controller.result.cancelTextPopapAvis}
         onContinue={Controller.action.handleRegisterStartConfirmContinuar}
         onCancel={Controller.action.handleRegisterStartCancel}
+      />
+      <PendingRegistrationPopup
+        open={Controller.result.modalNotYou}
+        title={Controller.result.titlePopapAvis}
+        description={Controller.result.descriptonPopapAvis}
+        confirmText={Controller.result.confirmTextPopapAvis}
+        cancelText={Controller.result.cancelTextPopapAvis}
+        onContinue={Controller.action.handleNotYouCancele}
+        onCancel={() => Controller.action.setModalNotYou(false)}
       />
       <ConfirmResendCodeModal
         open={showResendModal}
