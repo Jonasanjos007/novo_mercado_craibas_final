@@ -61,7 +61,6 @@ export default function ProductReviewModal({ open, onClose, product, orderId, or
     media: [],
     recommend: false,
   });
-  console.log("IsEdite", IsEdite)
   const [mediaFiles, setMediaFiles] = useState<File[]>([]);
   const [saveAssessmentLoading, setSaveAssessmentLoading] = useState(false);
 
@@ -168,9 +167,9 @@ export default function ProductReviewModal({ open, onClose, product, orderId, or
       formData.append('Media', file);
     });
 
-    for (const [key, value] of formData.entries()) {
-      console.log(key, value);
-    }
+    // for (const [key, value] of formData.entries()) {
+    //   console.log(key, value);
+    // }
 
     try {
       const result = await PostRating(formData);

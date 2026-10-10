@@ -1,4 +1,4 @@
-import { ReactNode } from "react";
+import { ReactNode, useEffect, useState } from "react";
 import { AlertTriangle, Loader2 } from "lucide-react";
 
 interface ConfirmAdminPopupProps {
@@ -12,8 +12,13 @@ interface ConfirmAdminPopupProps {
 
     loading?: boolean;
 
-    onConfirm: () => void | Promise<void>;
+    onConfirm: (reason?: string) => void | Promise<void>;
     onCancel: () => void;
+
+    /** Exige o motivo antes de confirmar (exclusões do admin). */
+    requireReason?: boolean;
+    reasonLabel?: string;
+    reasonPlaceholder?: string;
 
     icon?: ReactNode;
 
@@ -36,8 +41,33 @@ export default function ConfirmAdminPopup({
     icon,
 
     confirmColor = "brand",
+
+    requireReason = false,
+    reasonLabel = "Motivo da exclusão",
+    reasonPlaceholder = "Explique por que este item está sendo excluído. Ficará registrado na Lixeira.",
 }: ConfirmAdminPopupProps) {
+    const [reason, setReason] = useState("");
+    const [touched, setTouched] = useState(false);
+
+    // Limpa o motivo sempre que o popup abre/fecha
+    useEffect(() => {
+        setReason("");
+        setTouched(false);
+    }, [open]);
+
     if (!open) return null;
+
+    const MIN_REASON = 5;
+    const reasonValid = !requireReason || reason.trim().length >= MIN_REASON;
+
+    const handleConfirm = () => {
+        if (!reasonValid) {
+            setTouched(true);
+            return;
+        }
+
+        onConfirm(requireReason ? reason.trim() : undefined);
+    };
 
     const confirmClass = {
         brand:
@@ -74,6 +104,41 @@ export default function ConfirmAdminPopup({
                         {description}
                     </p>
 
+                    {/* Motivo */}
+                    {requireReason && (
+                        <div className="mt-6">
+                            <label className="flex items-center justify-between mb-2">
+                                <span className="text-xs font-bold uppercase tracking-widest text-white/50">
+                                    {reasonLabel} <span className="text-red-400">*</span>
+                                </span>
+                                <span className={`text-[11px] ${reason.length > 500 ? "text-red-400" : "text-white/30"}`}>
+                                    {reason.length}/500
+                                </span>
+                            </label>
+
+                            <textarea
+                                value={reason}
+                                maxLength={500}
+                                rows={3}
+                                disabled={loading}
+                                autoFocus
+                                onChange={(e) => setReason(e.target.value)}
+                                onBlur={() => setTouched(true)}
+                                placeholder={reasonPlaceholder}
+                                className={`w-full resize-none rounded-2xl border bg-white/[0.04] px-4 py-3 text-sm text-white placeholder:text-white/25 outline-none transition-all focus:bg-white/[0.06] disabled:opacity-60 ${touched && !reasonValid
+                                    ? "border-red-500/60 focus:border-red-500"
+                                    : "border-white/10 focus:border-brand-500/60"
+                                    }`}
+                            />
+
+                            {touched && !reasonValid && (
+                                <p className="mt-2 text-xs text-red-400">
+                                    Informe o motivo (mínimo de {MIN_REASON} caracteres).
+                                </p>
+                            )}
+                        </div>
+                    )}
+
                     {/* Botões */}
                     <div className="mt-8 flex gap-3">
 
@@ -87,7 +152,7 @@ export default function ConfirmAdminPopup({
 
                         <button
                             disabled={loading}
-                            onClick={onConfirm}
+                            onClick={handleConfirm}
                             className={`flex-1 h-12 rounded-2xl text-white font-bold transition-all flex items-center justify-center gap-2 disabled:opacity-70 ${confirmClass[confirmColor]}`}
                         >
                             {loading ? (

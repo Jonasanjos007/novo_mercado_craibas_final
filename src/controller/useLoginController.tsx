@@ -61,7 +61,6 @@ export const useLoginController = () => {
         email: '',
         expiresAt: new Date()
     });
-    console.log('UserRegisterResponse', UserRegisterResponse);
 
     const passwordRules = {
         minLength: password.length >= 8,
@@ -122,7 +121,7 @@ export const useLoginController = () => {
                 }
             },
             (err) => {
-                notify.error("Erro", err.error.message);
+                notify.error(err.error.code, err.error.message);
                 cleanUserData();
             }
         );
@@ -161,7 +160,6 @@ export const useLoginController = () => {
             }
 
             const data = result.data;
-            console.log('data', data);
 
             localStorage.setItem(
                 PENDING_REGISTRATION_KEY,
@@ -342,10 +340,10 @@ export const useLoginController = () => {
         }
 
         const result = await ResendCodigoExpired(UserRegisterResponse.idUser || 0, UserRegisterResponse.email || '', UserRegisterResponse.phone || '');
-        console.log('data result', result);
+        // console.log('data result', result);
 
         const data = result.data;
-        console.log('data ResendCodigoExpired', data);
+        // console.log('data ResendCodigoExpired', data);
         if (!result.success) {
             notify.error('Erro', result.error?.error.message ?? 'Não foi possível reenviar o código.Tente novamente.');
             setLoading(false);
@@ -483,7 +481,6 @@ export const useLoginController = () => {
                 return;
             }
             const data = result.data;
-            console.log('data Codigo', data);
 
             localStorage.setItem(PENDING_REGISTRATION_KEY,
                 JSON.stringify({
@@ -494,7 +491,6 @@ export const useLoginController = () => {
                     phone: data?.phone ?? '',
                     backRegistration: data?.backRegistration ?? false,
                 }));
-            console.log('E-mail confirmado:', result.data);
 
             if (data?.nextStep) {
                 const nextStep = validSteps.includes(data?.nextStep as RegistrationStep) ? (data?.nextStep as RegistrationStep) : "Started";

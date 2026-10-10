@@ -118,12 +118,26 @@ namespace Mercado.Craibas.Application.ServicesAdmin
            return Result<List<Product_Category>>.Success(Categorys);
        }
 
-        public async Task<Result<bool>> PostUpdateStatusOrder(int Id_Order,string NewStatus,int IdUser, string WhoReceivedIt)
+        public async Task<Result<bool>> PostUpdateStatusOrder(int Id_Order,string NewStatus,int IdUser, string? WhoReceivedIt)
         {
 
             var Order = await _unitOfWorkAdmin.GetClassAsyncWhere<Orders>(x => x.Id == Id_Order);
 
+            if (Order == null)
+            {
+                return Result<bool>.Failure(Error.Failure("Pedido", "Pedido não encontrado!"));
+            }
+
+            var statusAnterior = Order.Order_Status;
+            var dataEntregaAnterior = Order.CustomerDeliveryDate;
+
             var User = await _unitOfWorkAdmin.GetClassAsyncWhere<User_Admin>(x => x.Id == IdUser);
+
+            if (User == null)
+            {
+                return Result<bool>.Failure(Error.Failure("Usuário", "Administrador não encontrado!"));
+            }
+
 
             var newdate = DateTime.Now;
             var UserConsumer = await _unitOfWorkAdmin.GetClassAsyncWhere<User_Customer>(x => x.Id == Order.Id_User_Customer);
@@ -165,20 +179,51 @@ namespace Mercado.Craibas.Application.ServicesAdmin
             {
                 return Result<bool>.Failure(Error.Failure("Status", "Erro ao atualizar status!"));
             }
-          
 
 
-            await _unitOfWorkAdmin.InsertAsyncReturnObjeto<Logs>(new Logs
+
+            var alteracoes = new List<string>();
+
+            if (statusAnterior != NewStatus)
             {
-                Id_User = IdUser,
-                Log = "Atualizou status dp pedido" + " " + Order.Number_Order,
-                Tipo = "Atualizar status",
-                Nivel = "Admin",
-                Acao = User.Name + " " + User.Role + " " + $"Atualizar o status do pedido",
-                Info = User.Name + " " + User.Role + " " + $"Atualizar o status do pedido em {DateTime.Now:dd/MM/yyyy HH:mm:ss}",
-                InsertDate = DateTime.Now
-            });
+                alteracoes.Add(
+                    $"Status: '{statusAnterior}' → '{NewStatus}'\n"
+                );
+            }
 
+            if (NewStatus == "ENTREGUE" && WhoReceivedIt is not null)
+            {
+      
+                    alteracoes.Add(
+                        $"Recebido por: → {WhoReceivedIt}\n"
+                    );
+                
+
+                alteracoes.Add(
+                    $"Data da entrega: {newdate:dd/MM/yyyy HH:mm:ss}\n"
+                );
+            }
+
+            await _unitOfWorkAdmin.InsertAsyncReturnObjeto<Logs>(
+                    new Logs
+                    {
+                        Id_User = IdUser,
+                        Log =
+                            $"O administrador {User.Name} atualizou o status do pedido N°:{Order.Number_Order} (ID: {Order.Id}). \n" +
+                            $"Status anterior: '{statusAnterior}' | Novo status: '{NewStatus}'  \n" +
+                            $"Cliente: {UserConsumer?.Name ?? "Não identificado"} | ID Cliente: {UserConsumer?.Id} | \n" +
+                            $"Data/Hora: {newdate:dd/MM/yyyy HH:mm:ss} | \n" +
+                            $"Alterações: " +
+                            $"{(alteracoes.Count > 0
+                                ? string.Join(" | ", alteracoes)
+                                : "Nenhuma alteração identificada.")}",
+                   
+                        Tipo = "Atualizar status",
+                        Nivel = "Admin",
+                        Acao = "Atualizou o status do pedido",
+                        Info =$"{User.Name} atualizou o pedido #{Order.Number_Order} " + $"de '{statusAnterior}' para '{NewStatus}' " + $"em {newdate:dd/MM/yyyy HH:mm}.",
+                        InsertDate = newdate
+                    });
 
             var layoutEmail = _email.EmailPedidoLayout(titulo: "Atualização do seu pedido", subtitulo: "Temos novidades sobre sua compra.", status: NewStatus,
                   conteudoHtml: $@"
@@ -258,48 +303,72 @@ namespace Mercado.Craibas.Application.ServicesAdmin
         public async Task<Result<SendMessageViaWhatsAppResponse>> NotifyViaWhatsAppUpdateEnviado(int IdOrders,int Id_User)
         {
             var order = await _unitOfWorkAdmin.GetClassAsyncWhere<Orders>(x => x.Id == IdOrders && x.Isdelete != true);
-            var User = await _unitOfWorkAdmin.GetClassAsyncWhere<User_Admin>(x => x.Id == Id_User && x.Isdelete != true);
-            var UserConsumer = await _unitOfWorkAdmin.GetClassAsyncWhere<User_Customer>(x => x.Id == order.Id_User_Customer && x.Isdelete != true);
 
+            var user = await _unitOfWorkAdmin.GetClassAsyncWhere<User_Admin>(x => x.Id == Id_User && x.Isdelete != true);
+
+            var userConsumer = await _unitOfWorkAdmin.GetClassAsyncWhere<User_Customer>(x => x.Id == order.Id_User_Customer && x.Isdelete != true);
 
             if (!order.NotifyViaWhatsApp)
             {
-                return Result<SendMessageViaWhatsAppResponse>.Failure(Error.Failure("Envio Via WhatsApp", "Não tem nenhum status pendente a ser avisado!"));
+                return Result<SendMessageViaWhatsAppResponse>.Failure(Error.Failure("Envio Via WhatsApp","Não tem nenhum status pendente a ser avisado!"));
             }
-            var UpdateNotifyViaWhatsApp = await _unitOfWorkAdmin.UpdateFieldsAsyncEntity<Orders>(filters: new Dictionary<string, object>
-                      {
-                              { "Id", order.Id }
-                      },
 
-                        fieldsToUpdate: new Dictionary<string, object>
-                        {
-                                 { "NotifyViaWhatsApp", false  },
-                                 {"UpdateDate",DateTime.Now }
+            var dataLog = DateTime.Now;
 
-                        });
-            await _unitOfWorkAdmin.InsertAsyncReturnObjeto<Logs>(new Logs
+            var updateNotifyViaWhatsApp =
+                await _unitOfWorkAdmin.UpdateFieldsAsyncEntity<Orders>(
+                    filters: new Dictionary<string, object>
+                    {
+                { "Id", order.Id }
+                    },
+
+                    fieldsToUpdate: new Dictionary<string, object>
+                    {
+                { "NotifyViaWhatsApp", false },
+                { "UpdateDate", dataLog }
+                    }
+                );
+
+            if (!updateNotifyViaWhatsApp)
             {
-                Id_User = Id_User,
-                Log = "Avisou o cliente sobre o novo status do pedido" + " " + order.Number_Order + "Status:" + order.Order_Status + "Para o Cliente:" + UserConsumer.Phone,
-                Tipo = "Avisou o Cliente Via WhatsApp",
-                Nivel = "Admin",
-                Acao = User.Name + " " + User.Role + " " + $"Avisou o Cliente Via WhatsApp",
-                Info = User.Name + " " + User.Role + " " + $"Avisou o Cliente Via WhatsApp em {DateTime.Now:dd/MM/yyyy HH:mm:ss}",
-                InsertDate = DateTime.Now
-            });
-
-            if (!UpdateNotifyViaWhatsApp)
-            {
-                return Result<SendMessageViaWhatsAppResponse>.Failure(Error.Failure("Pedido", "Pedido Não Econtrado!"));
+                return Result<SendMessageViaWhatsAppResponse>.Failure(Error.Failure("Pedido","Pedido Não Encontrado!"));
             }
-            return Result<SendMessageViaWhatsAppResponse>.Success(new SendMessageViaWhatsAppResponse
+
+            if (user != null)
             {
-                IdOrder = order.Id,
-                Status = order.Order_Status,
-                Number_Order = order.Number_Order,
-                Telefone = UserConsumer.Phone,
-                NomeCliente = UserConsumer.Name
-            });
+                await _unitOfWorkAdmin.InsertAsyncReturnObjeto<Logs>(
+                    new Logs
+                    {
+                        Id_User = user.Id,
+                        Log =
+                            $"O administrador {user.Name} avisou o cliente sobre a atualização do status do pedido.\n" +
+                            $"Pedido: #{order.Number_Order} (ID: {order.Id})\n" +
+                            $"Status informado: '{order.Order_Status}'\n" +
+                            $"Cliente: {userConsumer?.Name ?? "Não identificado"}\n" +
+                            $"Telefone: {userConsumer?.Phone ?? "Não informado"}\n" +
+                            $"Data/Hora: {dataLog:dd/MM/yyyy HH:mm:ss}",
+                        Tipo = "AVISOU O CLIENTE VIA WHATSAPP",
+                        Nivel = "Admin",
+                        Acao = "Avisou o cliente via WhatsApp",
+                        Info =
+                            $"{user.Name} avisou o cliente sobre o status do pedido " +
+                            $"#{order.Number_Order} via WhatsApp " +
+                            $"em {dataLog:dd/MM/yyyy HH:mm}.",
+                        InsertDate = dataLog
+                    }
+                );
+            }
+
+            return Result<SendMessageViaWhatsAppResponse>.Success(
+                new SendMessageViaWhatsAppResponse
+                {
+                    IdOrder = order.Id,
+                    Status = order.Order_Status,
+                    Number_Order = order.Number_Order,
+                    Telefone = userConsumer.Phone,
+                    NomeCliente = userConsumer.Name
+                }
+            );
         }
     }
 }

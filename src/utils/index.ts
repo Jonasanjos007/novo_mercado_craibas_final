@@ -1,3 +1,5 @@
+import { Activity, FolderPlus, LogIn, MessageCircle, Lock, Pencil, PlusCircle, RefreshCcw, Star, TicketCheck, TicketPlus, TicketX, Trash2, UserCheck, UserPlus, UserX } from "lucide-react";
+
 export const formatPrice = (price: number): string => {
   return price.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 };
@@ -177,4 +179,149 @@ export const getMensagemWhatsApp = (
          
          Acompanhe as informações pelo Mercado Craíbas.`;
   }
+};
+
+export const configs: Record<string, {
+  text: string;
+  bg: string;
+  border: string;
+  bar: string;
+  icon: React.ElementType;
+  label: string;
+}> = {
+  "NOVA CATEGORIA": {
+    text: "text-fuchsia-400",
+    bg: "bg-fuchsia-500/10",
+    border: "border-fuchsia-500/20",
+    bar: "bg-fuchsia-500",
+    icon: FolderPlus,
+    label: "Nova categoria",
+  },
+  "ATIVAÇÃO CUPOM": {
+    text: "text-emerald-400",
+    bg: "bg-emerald-500/10",
+    border: "border-emerald-500/20",
+    bar: "bg-emerald-500",
+    icon: TicketCheck,
+    label: "Ativação de cupom",
+  },
+  "ACESSO": {
+    text: "text-blue-400",
+    bg: "bg-blue-500/10",
+    border: "border-blue-500/20",
+    bar: "bg-blue-500",
+    icon: LogIn,
+    label: "Acesso ao sistema",
+  },
+  "ATUALIZAR STATUS": {
+    text: "text-cyan-400",
+    bg: "bg-cyan-500/10",
+    border: "border-cyan-500/20",
+    bar: "bg-cyan-500",
+    icon: RefreshCcw,
+    label: "Atualização de status",
+  },
+
+  "AVALIAÇÃO PRODUTO": {
+    text: "text-yellow-400",
+    bg: "bg-yellow-500/10",
+    border: "border-yellow-500/20",
+    bar: "bg-yellow-500",
+    icon: Star,
+    label: "Avaliação de produto",
+  },
+
+  "AVISOU O CLIENTE VIA WHATSAPP": {
+    text: "text-green-400",
+    bg: "bg-green-500/10",
+    border: "border-green-500/20",
+    bar: "bg-green-500",
+    icon: MessageCircle,
+    label: "Aviso via WhatsApp",
+  },
+  "NOVO CUPOM": {
+    text: "text-violet-400",
+    bg: "bg-violet-500/10",
+    border: "border-violet-500/20",
+    bar: "bg-violet-500",
+    icon: TicketPlus,
+    label: "Novo cupom",
+  },
+  "EDICAO": {
+    text: "text-amber-400",
+    bg: "bg-amber-500/10",
+    border: "border-amber-500/20",
+    bar: "bg-amber-500",
+    icon: Pencil,
+    label: "Edição de registro",
+  },
+
+  "EXCLUSÃO": {
+    text: "text-red-400",
+    bg: "bg-red-500/10",
+    border: "border-red-500/20",
+    bar: "bg-red-500",
+    icon: Trash2,
+    label: "Exclusão de registro",
+  },
+  "EXCLUSAO CUPOM": {
+    text: "text-rose-400",
+    bg: "bg-rose-500/10",
+    border: "border-rose-500/20",
+    bar: "bg-rose-500",
+    icon: TicketX,
+    label: "Exclusão de cupom",
+  },
+
+  "NOVO": {
+    text: "text-violet-400",
+    bg: "bg-violet-500/10",
+    border: "border-violet-500/20",
+    bar: "bg-violet-500",
+    icon: PlusCircle,
+    label: "Novo registro",
+  },
+
+  "SISTEMA": {
+    text: "text-zinc-400",
+    bg: "bg-zinc-500/10",
+    border: "border-zinc-500/20",
+    bar: "bg-zinc-500",
+    icon: Activity,
+    label: "Evento do sistema",
+  },
+  "ALTERAÇÃO DE SENHA": {
+    text: "text-orange-400",
+    bg: "bg-orange-500/10",
+    border: "border-orange-500/20",
+    bar: "bg-orange-500",
+    icon: Lock,
+    label: "Alteração de senha",
+  },
+  "CADASTRO": {
+    text: "text-green-400",
+    bg: "bg-green-500/10",
+    border: "border-green-500/20",
+    bar: "bg-green-500",
+    icon: UserPlus,
+    label: "Novo cadastro",
+  },
+  "ATIVAÇÃO USUÁRIO": {
+    text: "text-emerald-400",
+    bg: "bg-emerald-500/10",
+    border: "border-emerald-500/20",
+    bar: "bg-emerald-500",
+    icon: UserCheck,
+    label: "Ativação de usuário",
+  },
+
+  "DESATIVAÇÃO USUÁRIO": {
+    text: "text-rose-400",
+    bg: "bg-rose-500/10",
+    border: "border-rose-500/20",
+    bar: "bg-rose-500",
+    icon: UserX,
+    label: "Desativação de usuário",
+  },
+
 };

@@ -20,14 +20,19 @@ import {
   FolderTree, Activity, ListFilter, CalendarDays, ShieldAlert,
   Palette,
   MessageCircle,
+  TicketPlus,
   CircleX,
   LogIn,
   TicketCheck,
+  FolderPlus,
   RefreshCcw, Star, Pencil, TicketX, PlusCircle, Lock,
-  UserPlus,UserCheck
+  UserPlus, UserCheck,
+  UserX,
+  Users,
+  Upload
 } from 'lucide-react';
 import { useStore } from '../context/store';
-import { formatPrice, orderStatusLabels, orderStatusLabelsAtualize, orderStatusColors, categoryLabels, badgeLabels, badgeLabel, cupomStatusLabels } from '../utils';
+import { formatPrice, orderStatusLabels, orderStatusLabelsAtualize, orderStatusColors, categoryLabels, badgeLabels, badgeLabel, cupomStatusLabels, configs } from '../utils';
 import { useAdminController } from '../controller/useAdminController';
 import { UseOrderStore } from '../store/UseOrderStore';
 import { UseOrderAdminStore } from '../storeAdmin/UseOrderAdminStore';
@@ -45,7 +50,7 @@ import ConfirmAdminPopup from '../components/ConfirmAdminPopup';
 import { UseRouteStore } from '../store/UseRouteStore';
 import { useNavigate } from 'react-router-dom';
 import OrderQuickView from '../components/OrderQuickView';
-import { AdminTab, Order } from '../models/OrderSave';
+import { AdminTab, Order } from '../models/Order';
 import { ProductQuickView } from '../components/ProductQuickView';
 import { Cupom, CupomAdmin, DiscountType } from '../models/Cupom';
 import { UseCupomAdminStore } from '../storeAdmin/UseCupomAdminStore';
@@ -55,6 +60,9 @@ import { UseUserAdminStore } from '../storeAdmin/UseUserAdminStore';
 import AdminNotificationsPage, { AdminNotificationItem } from '../components/AdminNotificationsPage';
 import { UseNotificationAdmin } from '../storeAdmin/UseNotificationAdmin';
 import { useAuthStore } from '../context/AuthContext';
+import AdminUsersPage from '../components/AdminUsersPage';
+import AdminTrashPage from '../components/AdminTrashPage';
+import { useSiteSettingsController } from '../controller/useSiteSettingsController';
 
 
 
@@ -72,12 +80,13 @@ export default function AdminPage() {
   // } = useStore();
   const navigate = useNavigate();
   const { Notification } = UseNotificationAdmin();
+  const ControllerSettings = useSiteSettingsController();
+
   const Controller = useAdminController();
   const { ordersAdmin, logs, Category, LoadLogsAdmin } = UseOrderAdminStore();
-  const { PostEditeTemaAdmin } = UseUserAdminStore();
+  const { PostEditeTemaAdmin, BaseSiteInterface } = UseUserAdminStore();
   const { user, updateUser } = UseUserStore();
   const logout = useAuthStore((state) => state.logout);
-  console.log("User", user);
   const { products } = UseProductAdminStore();
   const { orders } = UseOrderStore();
   const { navigatePages, navigateTo } = UseRouteStore();
@@ -553,7 +562,6 @@ export default function AdminPage() {
       .filter(p => p.id_category === category.id)
       .reduce((total, product) => total + (product.count_Sold ?? 0), 0),
   }));
-  console.log("catCounts", catCounts)
   const filteredProducts = products
     .filter(p =>
       p.name.toLowerCase().includes(productSearch.toLowerCase())
@@ -723,30 +731,39 @@ export default function AdminPage() {
         { id: 'cartegories', label: 'Categoria', icon: <FolderTree className="w-4 h-4" /> },
         { id: 'promotions', label: 'Promoções', icon: <Tag className="w-4 h-4" /> },
         { id: 'movements', label: 'Movimentação', icon: <Activity className="w-4 h-4" />, badge: logsToday > 0 ? String(logsToday) : undefined, badgeRed: false },
-
+        { id: 'users', label: 'Usuários', icon: <Users className="w-4 h-4" /> },
+        { id: 'bin', label: 'Lixeira', icon: <Trash2 className="w-4 h-4" /> },
+        { id: 'settings', label: 'Configurações Site', icon: <Settings className="w-4 h-4" /> },
       ]
     },
     {
       label: 'Conta', items: [
         { id: 'profile', label: 'Perfil', icon: <User className="w-4 h-4" /> },
-        { id: 'settings', label: 'Configurações', icon: <Settings className="w-4 h-4" /> },
       ]
     },
   ];
   const SidebarContent = () => (
     <>
       <div className={`p-5 border-b ${bord} flex items-center gap-3 flex-shrink-0`}>
-        <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-brand-400 to-brand-600 flex items-center justify-center shadow-brand flex-shrink-0">
-          <Store className="w-4 h-4 text-white" />
+        <div className="w-9 h-9 rounded-xl overflow-hidden bg-gradient-to-br  to-brand-600 flex items-center justify-center shadow-brand flex-shrink-0">
+          {BaseSiteInterface.storeImageIcone ? (
+            <img
+              src={`/Imagens/Site/${BaseSiteInterface.storeImageIcone}`}
+              alt="Logo"
+              className="w-full h-full object-contain bg-black"
+            />
+          ) : (
+            <Store className="w-4 h-4 text-white" />
+          )}
         </div>
         <div className="min-w-0">
-          <p className={`font-display font-bold text-sm leading-none truncate ${txt}`}>Mercado Craibas</p>
+          <p className={`font-display font-bold text-sm leading-none truncate ${txt}`}>{BaseSiteInterface.storeName}</p>
           <p className="text-brand-400 text-[10px] mt-0.5 font-semibold uppercase tracking-wide">Admin Panel</p>
         </div>
         <button onClick={() => setSidebarOpen(false)} className={`ml-auto md:hidden p-1 rounded-lg ${txt2}`}><X className="w-4 h-4" /></button>
       </div>
 
-      <nav className="flex-1 p-3 space-y-4 overflow-y-auto">
+      <nav className="flex-1 p-3 space-y-4 overflow-y-auto [&::-webkit-scrollbar]:w-2  [&::-webkit-scrollbar-thumb]:bg-gray-400 [&::-webkit-scrollbar-thumb]:rounded-full">
         {navGroups.map(group => (
           <div key={group.label}>
             <p className={`text-[10px] font-bold uppercase tracking-widest px-3 mb-1.5 ${sub}`}>{group.label}</p>
@@ -852,7 +869,6 @@ export default function AdminPage() {
     ).sort((a, b) =>
       new Date(b.insertDate).getTime() - new Date(a.insertDate).getTime()
     );
-  console.log("filteredOrdersStatus", filteredOrdersStatus, ordersAdmin)
   return (
     <div className={`min-h-screen flex font-body ${bg}`}>
 
@@ -901,7 +917,7 @@ export default function AdminPage() {
             {dk ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
           </button>
         </header>
-        <main className="flex-1 overflow-y-auto p-4 md:p-6 space-y-6">
+        <main className="flex-1 overflow-y-auto p-4 space-y-6">
           {/* ─── DASHBOARD ─── */}
           {tab === 'dashboard' && (
             <>
@@ -2606,7 +2622,7 @@ export default function AdminPage() {
                         <AlertTriangle className="w-6 h-6 text-red-400" />
                       </div>
                       <div className="min-w-0">
-                        <p className="text-[9px] font-bold uppercase tracking-[0.18em] text-red-400">Ação permanente</p>
+                        <p className="text-[9px] font-bold uppercase tracking-[0.18em] text-red-400">Vai para a Lixeira</p>
                         <h3 className={`font-display font-black text-lg mt-1 ${txt}`}>Excluir categoria?</h3>
                         <p className={`text-xs mt-1 truncate ${sub}`}>{Controller?.result.categoryToDelete?.category}</p>
                       </div>
@@ -2652,7 +2668,7 @@ export default function AdminPage() {
                               <input type="radio" name="categoryDeleteAction" checked={Controller?.result.categoryDeleteAction === 'delete_products'} onChange={() => Controller?.action.setCategoryDeleteAction('delete_products')} className="accent-red-500 w-4 h-4 mt-0.5 flex-shrink-0" />
                               <div className="min-w-0 flex-1">
                                 <p className={`text-sm font-bold ${txt}`}>Excluir categoria e produtos</p>
-                                <p className="text-[11px] mt-1 leading-4 text-red-400">Todos os produtos vinculados também serão excluídos permanentemente.</p>
+                                <p className="text-[11px] mt-1 leading-4 text-red-400">Todos os produtos vinculados também serão excluídos e enviados para a Lixeira.</p>
                               </div>
                               <Trash2 className="h-4 w-4 flex-shrink-0 text-red-400" />
                             </div>
@@ -2662,17 +2678,34 @@ export default function AdminPage() {
                     ) : (
                       <div className={`rounded-2xl border p-4 mb-6 ${dk ? 'border-red-500/20 bg-red-500/[0.07]' : 'border-red-100 bg-red-50'}`}>
                         <p className={`text-xs leading-5 ${dk ? 'text-red-200' : 'text-red-800'}`}>
-                          A categoria está vazia e pode ser removida com segurança. Depois de confirmar, esta ação não poderá ser desfeita.
+                          A categoria está vazia e pode ser removida com segurança. Ela ficará na Lixeira e poderá ser restaurada.
                         </p>
                       </div>
                     )}
+
+                    <div className="mb-5">
+                      <label className="flex items-center justify-between mb-2">
+                        <span className={`text-[10px] font-bold uppercase tracking-[0.18em] ${sub}`}>
+                          Motivo da exclusão <span className="text-red-400">*</span>
+                        </span>
+                        <span className={`text-[10px] ${sub}`}>{Controller?.result.categoryDeleteReason.length ?? 0}/500</span>
+                      </label>
+                      <textarea
+                        value={Controller?.result.categoryDeleteReason ?? ''}
+                        onChange={e => Controller?.action.setCategoryDeleteReason(e.target.value)}
+                        maxLength={500}
+                        rows={3}
+                        placeholder="Explique por que esta categoria está sendo excluída. Ficará registrado na Lixeira."
+                        className={`w-full resize-none px-3.5 py-3 border rounded-xl text-xs outline-none ${inp}`}
+                      />
+                    </div>
 
                     <div className={`flex flex-col-reverse sm:flex-row gap-3 pt-4 border-t ${bord}`}>
                       <button onClick={() => { Controller?.action.setCategoryToDelete(null); Controller?.action.setReassignCategoryId(null); }} className={`flex-1 py-3 rounded-xl text-sm font-bold transition-all ${dk ? 'bg-white/[0.06] text-white/60 hover:bg-white/[0.10]' : 'bg-surface-100 text-surface-500 hover:bg-surface-200'}`}>
                         Cancelar
                       </button>
                       <button
-                        disabled={Controller?.result.Loading || (Controller?.result.categoryToDelete?.product_Count > 0 && Controller?.result.categoryDeleteAction === 'move' && !Controller?.result.reassignCategoryId)}
+                        disabled={Controller?.result.Loading || (Controller?.result.categoryDeleteReason.trim().length ?? 0) < 5 || (Controller?.result.categoryToDelete?.product_Count > 0 && Controller?.result.categoryDeleteAction === 'move' && !Controller?.result.reassignCategoryId)}
                         onClick={() => Controller?.action.handleDeleteCategory(Controller.result.categoryToDelete as CategoryAdmin)}
                         className="flex-1 py-3 bg-red-500 hover:bg-red-600 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-xl text-sm font-bold flex items-center justify-center gap-2 shadow-lg shadow-red-500/20 transition-all"
                       >
@@ -4249,121 +4282,6 @@ export default function AdminPage() {
                 {filteredLogs.map(item => {
                   const level = item.tipo?.toUpperCase() || 'SISTEMA';
 
-                  const configs: Record<string, {
-                    text: string;
-                    bg: string;
-                    border: string;
-                    bar: string;
-                    icon: React.ElementType;
-                    label: string;
-                  }> = {
-                    "ACESSO": {
-                      text: "text-blue-400",
-                      bg: "bg-blue-500/10",
-                      border: "border-blue-500/20",
-                      bar: "bg-blue-500",
-                      icon: LogIn,
-                      label: "Acesso ao sistema",
-                    },
-
-                    "ATIVAÇÃO CUPOM": {
-                      text: "text-emerald-400",
-                      bg: "bg-emerald-500/10",
-                      border: "border-emerald-500/20",
-                      bar: "bg-emerald-500",
-                      icon: TicketCheck,
-                      label: "Ativação de cupom",
-                    },
-
-                    "ATUALIZAR STATUS": {
-                      text: "text-cyan-400",
-                      bg: "bg-cyan-500/10",
-                      border: "border-cyan-500/20",
-                      bar: "bg-cyan-500",
-                      icon: RefreshCcw,
-                      label: "Atualização de status",
-                    },
-
-                    "AVALIAÇÃO PRODUTO": {
-                      text: "text-yellow-400",
-                      bg: "bg-yellow-500/10",
-                      border: "border-yellow-500/20",
-                      bar: "bg-yellow-500",
-                      icon: Star,
-                      label: "Avaliação de produto",
-                    },
-
-                    "AVISOU O CLIENTE VIA WHATSAPP": {
-                      text: "text-green-400",
-                      bg: "bg-green-500/10",
-                      border: "border-green-500/20",
-                      bar: "bg-green-500",
-                      icon: MessageCircle,
-                      label: "Aviso via WhatsApp",
-                    },
-
-                    "EDIÇÃO": {
-                      text: "text-amber-400",
-                      bg: "bg-amber-500/10",
-                      border: "border-amber-500/20",
-                      bar: "bg-amber-500",
-                      icon: Pencil,
-                      label: "Edição de registro",
-                    },
-
-                    "EXCLUSÃO": {
-                      text: "text-red-400",
-                      bg: "bg-red-500/10",
-                      border: "border-red-500/20",
-                      bar: "bg-red-500",
-                      icon: Trash2,
-                      label: "Exclusão de registro",
-                    },
-
-                    "EXCLUSÃO CUPOM": {
-                      text: "text-rose-400",
-                      bg: "bg-rose-500/10",
-                      border: "border-rose-500/20",
-                      bar: "bg-rose-500",
-                      icon: TicketX,
-                      label: "Exclusão de cupom",
-                    },
-
-                    "NOVO": {
-                      text: "text-violet-400",
-                      bg: "bg-violet-500/10",
-                      border: "border-violet-500/20",
-                      bar: "bg-violet-500",
-                      icon: PlusCircle,
-                      label: "Novo registro",
-                    },
-
-                    "SISTEMA": {
-                      text: "text-zinc-400",
-                      bg: "bg-zinc-500/10",
-                      border: "border-zinc-500/20",
-                      bar: "bg-zinc-500",
-                      icon: Activity,
-                      label: "Evento do sistema",
-                    },
-                    "ALTERAÇÃO DE SENHA": {
-                      text: "text-orange-400",
-                      bg: "bg-orange-500/10",
-                      border: "border-orange-500/20",
-                      bar: "bg-orange-500",
-                      icon: Lock,
-                      label: "Alteração de senha",
-                    },
-                    "CADASTRO": {
-                      text: "text-green-400",
-                      bg: "bg-green-500/10",
-                      border: "border-green-500/20",
-                      bar: "bg-green-500",
-                      icon: UserPlus,
-                      label: "Novo cadastro",
-                    },
-
-                  };
 
                   const levelConfig = configs[level] ?? configs["SISTEMA"];
                   const date = new Date(item.insertDate);
@@ -4888,64 +4806,554 @@ export default function AdminPage() {
           {/* ─── SETTINGS ─── */}
           {tab === 'settings' && (
             <div className="max-w-2xl space-y-5">
-              <div className={`rounded-2xl border p-6 ${card}`}>
-                <h3 className={`font-display font-bold mb-5 flex items-center gap-2 ${txt}`}><Store className="w-4 h-4 text-brand-400" /> Aparência da Loja</h3>
-                <div className="grid grid-cols-2 gap-4">
-                  {[{ label: 'Nome da Loja', key: 'storeName' }, { label: 'Slogan', key: 'slogan' }].map(f => (
-                    <div key={f.key}>
-                      <label className={`block text-xs font-bold uppercase tracking-wider mb-2 ${sub}`}>{f.label}</label>
-                      <input value={(settingsForm as any)[f.key]} onChange={e => setSettingsForm(s => ({ ...s, [f.key]: e.target.value }))}
-                        className={`w-full px-4 py-2.5 border rounded-xl text-sm outline-none transition-colors ${inp}`} />
-                    </div>
-                  ))}
+
+              <div className={`rounded-2xl border p-4 sm:p-6 ${card}`}>
+
+                {/* HEADER */}
+                <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between mb-5">
+                  <h3 className={`font-display font-bold flex items-center gap-2 ${txt}`}>
+                    <Store className="w-4 h-4 text-brand-400" />
+                    Aparência da Loja
+                  </h3>
+                </div>
+
+                {/* CONFIGURAÇÕES */}
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+
+                  {/* NOME DA LOJA */}
                   <div>
-                    <label className={`block text-xs font-bold uppercase tracking-wider mb-2 ${sub}`}>Cor Primária</label>
-                    <div className="flex items-center gap-2">
-                      <input type="color" value={settingsForm.primaryColor} onChange={e => setSettingsForm(s => ({ ...s, primaryColor: e.target.value }))} className="w-10 h-10 rounded-xl border-2 border-surface-200 cursor-pointer p-0.5" />
-                      <span className={`text-sm font-mono ${txt}`}>{settingsForm.primaryColor}</span>
-                    </div>
+                    <label
+                      className={`block text-xs font-bold uppercase tracking-wider mb-2 ${sub}`}
+                    >
+                      Nome da Loja
+                    </label>
+
+                    <input
+                      value={ControllerSettings?.result.settingsFormSite.storeName}
+                      onChange={(e) =>
+                        ControllerSettings?.action.setSettingsFormSite((s) => ({
+                          ...s,
+                          storeName: e.target.value,
+                        }))
+                      }
+                      className={`w-full px-4 py-2.5 border rounded-xl text-sm outline-none transition-colors ${inp}`}
+                    />
+
+                    {ControllerSettings?.result.infoErrors.storeName && (
+                      <p className="mt-1 flex items-center gap-1 text-xs text-red-500">
+                        ⚠ {ControllerSettings.result.infoErrors.storeName}
+                      </p>
+                    )}
                   </div>
-                  <div className="flex items-center justify-between">
-                    <div><p className={`text-sm font-medium ${txt}`}>Modo Escuro</p><p className={`text-xs ${sub}`}>Ativar tema escuro global</p></div>
-                    <button onClick={() => PostEditeTemaAdmin()}>{user?.customize?.tema ? <ToggleRight className="w-9 h-9 text-brand-500" /> : <ToggleLeft className="w-9 h-9 text-surface-300" />}</button>
-                  </div>
-                </div>
-              </div>
-              <div className={`rounded-2xl border p-6 ${card}`}>
-                <h3 className={`font-display font-bold mb-5 flex items-center gap-2 ${txt}`}><Package className="w-4 h-4 text-brand-400" /> Frete</h3>
-                <div className="grid grid-cols-2 gap-4">
-                  {[{ label: 'Frete Grátis Acima (R$)', key: 'freeShippingAbove' }, { label: 'Taxa Base (R$)', key: 'baseShipping' }, { label: 'Prazo (dias úteis)', key: 'deliveryDays' }].map(f => (
-                    <div key={f.key}>
-                      <label className={`block text-xs font-bold uppercase tracking-wider mb-2 ${sub}`}>{f.label}</label>
-                      <input value={(settingsForm as any)[f.key]} onChange={e => setSettingsForm(s => ({ ...s, [f.key]: e.target.value }))}
-                        className={`w-full px-4 py-2.5 border rounded-xl text-sm outline-none transition-colors ${inp}`} />
+
+                  {/* MODO ESCURO */}
+                  <div
+                    className=" flex items-center justify-between gap-4 rounded-xl border p-4 border-surface-200 dark:border-white/10 bg-surface-50 dark:bg-white/[0.02]"
+                  >
+                    <div className="min-w-0">
+                      <p className={`text-sm font-medium ${txt}`}>
+                        Modo Escuro
+                      </p>
+
+                      <p className={`text-xs mt-0.5 ${sub}`}>
+                        Ativar tema escuro global
+                      </p>
                     </div>
-                  ))}
-                </div>
-              </div>
-              <div className={`rounded-2xl border p-6 ${card}`}>
-                <h3 className={`font-display font-bold mb-5 flex items-center gap-2 ${txt}`}><Shield className="w-4 h-4 text-brand-400" /> Segurança</h3>
-                <div className="space-y-3">
-                  <div className={`flex items-center justify-between p-4 rounded-xl ${dk ? 'bg-white/[0.04]' : 'bg-surface-50'}`}>
-                    <div><p className={`font-medium text-sm ${txt}`}>2FA</p><p className={`text-xs ${sub}`}>Autenticação em 2 etapas</p></div>
-                    <button onClick={() => setSettingsForm(s => ({ ...s, twoFactor: !s.twoFactor }))}>
-                      {settingsForm.twoFactor ? <ToggleRight className="w-9 h-9 text-green-400" /> : <ToggleLeft className="w-9 h-9 text-surface-300" />}
+
+                    <button
+                      type="button"
+                      onClick={() => PostEditeTemaAdmin()}
+                      className="shrink-0 transition-transform hover:scale-105"
+                    >
+                      {user?.customize?.tema ? (
+                        <ToggleRight className="w-9 h-9 text-brand-500" />
+                      ) : (
+                        <ToggleLeft className="w-9 h-9 text-surface-300 dark:text-surface-600" />
+                      )}
                     </button>
                   </div>
-                  <div className={`flex items-center justify-between p-4 rounded-xl ${dk ? 'bg-white/[0.04]' : 'bg-surface-50'}`}>
-                    <div><p className={`font-medium text-sm ${txt}`}>Timeout de Sessão (min)</p><p className={`text-xs ${sub}`}>Deslogar após inatividade</p></div>
-                    <input value={settingsForm.sessionTimeout} onChange={e => setSettingsForm(s => ({ ...s, sessionTimeout: e.target.value }))}
-                      className={`w-20 px-3 py-1.5 border rounded-xl text-sm text-right outline-none ${inp}`} />
+
+                  {/* LOGO + IMAGEM DA LOJA */}
+                  <div className="lg:col-span-2 grid grid-cols-1 lg:grid-cols-2 gap-5">
+
+                    {/* ================= LOGO ================= */}
+                    <div className="min-w-0">
+                      <label
+                        className={`block text-xs font-bold uppercase tracking-wider mb-2 ${sub}`}
+                      >
+                        Logo da Loja
+                      </label>
+
+                      <div
+                        className="rounded-2xl border border-dashed border-surface-300 dark:border-white/10 bg-surface-50 dark:bg-white/[0.02] p-4"
+                      >
+                        {/* PREVIEW */}
+                        <div className="flex justify-center mb-4">
+                          <div
+                            className=" relative w-32 h-32 rounded-2xl overflow-hidden border border-surface-200 dark:border-white/10 bg-white dark:bg-surface-900 flex items-center justify-center"
+                          >
+                            {ControllerSettings?.result.settingsFormSite.storeLogo ? (
+                              <>
+                                <img
+                                  src={
+                                    ControllerSettings.result.settingsFormSite.ImageNew
+                                      ? ControllerSettings.result.settingsFormSite.storeLogo
+                                      : `/Imagens/Site/${ControllerSettings.result.settingsFormSite.storeLogo}`
+                                  }
+                                  alt="Logo da loja"
+                                  className="w-full h-full object-contain p-2"
+                                />
+
+                                <button
+                                  type="button"
+                                  onClick={() =>
+                                    ControllerSettings.action.setSettingsFormSite((s) => ({
+                                      ...s,
+                                      storeLogo: "",
+                                      storeImageFile: null,
+                                      ImageNew: false,
+                                    }))
+                                  }
+                                  className="  absolute top-2 right-2  w-7 h-7 rounded-full  bg-black/60 hover:bg-red-500  text-white  flex items-center justify-center  transition-colors"
+                                  title="Remover imagem"
+                                >
+                                  <X className="w-3.5 h-3.5" />
+                                </button>
+                              </>
+                            ) : (
+                              <div className="flex flex-col items-center justify-center text-center">
+                                <Store className={`w-9 h-9 mb-2 ${sub}`} />
+
+                                <span className={`text-[10px] ${sub}`}>
+                                  Sem imagem
+                                </span>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+
+                        {/* CONTROLES */}
+                        <div className="text-center">
+                          <p className={`text-sm font-semibold ${txt}`}>
+                            Logo da loja
+                          </p>
+
+                          <p className={`text-xs mt-1 mb-4 ${sub}`}>
+                            Imagem usada para identificar sua loja.
+                          </p>
+
+                          <label
+                            className="  inline-flex items-center justify-center gap-2  w-full  px-4 py-2.5  rounded-xl  bg-surface-900 dark:bg-white  text-white dark:text-surface-900  text-sm font-semibold  cursor-pointer  transition-all hover:opacity-90"
+                          >
+                            <Upload className="w-4 h-4" />
+
+                            {ControllerSettings?.result.settingsFormSite.storeLogo
+                              ? "Trocar imagem"
+                              : "Selecionar imagem"}
+
+                            <input
+                              type="file"
+                              accept="image/png,image/jpeg,image/jpg,image/webp"
+                              className="hidden"
+                              onChange={(e) => {
+                                const file = e.target.files?.[0];
+
+                                if (!file) return;
+
+                                ControllerSettings?.action.setSettingsFormSite((s) => ({
+                                  ...s,
+                                  storeLogo: URL.createObjectURL(file),
+                                  storeImageFile: file,
+                                  ImageNew: true,
+                                }));
+                              }}
+                            />
+                          </label>
+
+                          <p className={`text-[11px] mt-2 ${sub}`}>
+                            PNG, JPG ou WEBP • Recomendado: 512 × 512 px
+                          </p>
+                        </div>
+                      </div>
+
+                      {ControllerSettings?.result.infoErrors.storeLogo && (
+                        <p className="mt-1 flex items-center gap-1 text-xs text-red-500">
+                          ⚠ {ControllerSettings.result.infoErrors.storeLogo}
+                        </p>
+                      )}
+                    </div>
+
+
+                    {/* ================= IMAGEM DA LOJA ================= */}
+                    <div className="min-w-0">
+                      <label
+                        className={`block text-xs font-bold uppercase tracking-wider mb-2 ${sub}`}
+                      >
+                        Icone da Loja
+                      </label>
+
+                      <div
+                        className=" rounded-2xl border border-dashed border-surface-300 dark:border-white/10 bg-surface-50 dark:bg-white/[0.02] p-4"
+                      >
+                        {/* PREVIEW */}
+                        <div className="flex justify-center mb-4">
+                          <div
+                            className=" relative w-32 h-32 rounded-2xl overflow-hidden border border-surface-200 dark:border-white/10 bg-white dark:bg-surface-900 flex items-center justify-center"
+                          >
+                            {ControllerSettings?.result.settingsFormSite.storeLogoIcone ? (
+                              <>
+                                <img
+                                  src={
+                                    ControllerSettings.result.settingsFormSite.ImageNewIcone
+                                      ? ControllerSettings.result.settingsFormSite.storeLogoIcone
+                                      : `/Imagens/Site/${ControllerSettings.result.settingsFormSite.storeLogoIcone}`
+                                  }
+                                  alt="Imagem da loja"
+                                  className="w-full h-full object-contain p-2"
+                                />
+
+                                <button
+                                  type="button"
+                                  onClick={() =>
+                                    ControllerSettings.action.setSettingsFormSite((s) => ({
+                                      ...s,
+                                      storeImage: "",
+                                      storeImageFile: null,
+                                      ImageNewImage: false,
+                                    }))
+                                  }
+                                  className=" absolute top-2 right-2 w-7 h-7 rounded-full bg-black/60 hover:bg-red-500 text-white flex items-center justify-center transition-colors"
+                                  title="Remover Icone"
+                                >
+                                  <X className="w-3.5 h-3.5" />
+                                </button>
+                              </>
+                            ) : (
+                              <div className="flex flex-col items-center justify-center text-center">
+                                <Store className={`w-9 h-9 mb-2 ${sub}`} />
+
+                                <span className={`text-[10px] ${sub}`}>
+                                  Sem imagem
+                                </span>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+
+                        {/* CONTROLES */}
+                        <div className="text-center">
+                          <p className={`text-sm font-semibold ${txt}`}>
+                            Imagem da loja
+                          </p>
+
+                          <p className={`text-xs mt-1 mb-4 ${sub}`}>
+                            Imagem usada para representar loja.
+                          </p>
+
+                          <label
+                            className="  inline-flex items-center justify-center gap-2  w-full  px-4 py-2.5  rounded-xl  bg-surface-900 dark:bg-white  text-white dark:text-surface-900  text-sm font-semibold  cursor-pointer  transition-all hover:opacity-90"
+                          >
+                            <Upload className="w-4 h-4" />
+
+                            {ControllerSettings?.result.settingsFormSite.storeLogoIcone
+                              ? "Trocar imagem"
+                              : "Selecionar imagem"}
+
+                            <input
+                              type="file"
+                              accept="image/png,image/jpeg,image/jpg,image/webp"
+                              className="hidden"
+                              onChange={(e) => {
+                                const file = e.target.files?.[0];
+
+                                if (!file) return;
+
+                                ControllerSettings?.action.setSettingsFormSite((s) => ({
+                                  ...s,
+                                  storeLogoIcone: URL.createObjectURL(file),
+                                  storeImageIconeFile: file,
+                                  ImageNewIcone: true
+                                }));
+                              }}
+                            />
+                          </label>
+
+                          <p className={`text-[11px] mt-2 ${sub}`}>
+                            PNG, JPG ou WEBP • Recomendado: 512 × 512 px
+                          </p>
+                        </div>
+                      </div>
+
+                      {ControllerSettings?.result.infoErrors.storeLogoIcone && (
+                        <p className="mt-1 flex items-center gap-1 text-xs text-red-500">
+                          ⚠ {ControllerSettings.result.infoErrors.storeLogoIcones}
+                        </p>
+                      )}
+                    </div>
+
+                  </div>
+
+
+                  {/* COR PRIMÁRIA */}
+                  <div className="lg:col-span-2">
+
+                    <label
+                      className={`block text-xs font-bold uppercase tracking-wider mb-2 ${sub}`}
+                    >
+                      Cor Primária
+                    </label>
+
+                    <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+
+                      {/* ESQUERDA */}
+                      <div className="flex items-center gap-3">
+
+                        <input
+                          type="color"
+                          value={settingsForm.primaryColor}
+                          onChange={(e) =>
+                            setSettingsForm((s) => ({
+                              ...s,
+                              primaryColor: e.target.value,
+                            }))
+                          }
+                          className=" w-10 h-10 shrink-0 rounded-xl border-2 border-surface-200 dark:border-white/10 cursor-pointer p-0.5 bg-transparent"
+                        />
+
+                        <div
+                          className="  flex h-10 items-center  rounded-xl  border border-surface-200 dark:border-white/10  bg-surface-50 dark:bg-white/[0.03]  px-3"
+                        >
+                          <span className={`text-sm font-mono ${txt}`}>
+                            {settingsForm.primaryColor}
+                          </span>
+                        </div>
+
+                      </div>
+
+                      {/* DIREITA */}
+                      <button
+                        type="button"
+                        onClick={() =>
+                          ControllerSettings?.action.handleSaveInfoSite()
+                        }
+                        className=" inline-flex h-10 items-center justify-center gap-2 w-full sm:w-auto rounded-xl bg-brand-500 px-5 text-sm font-semibold text-white shadow-sm transition-all hover:bg-brand-600 hover:shadow-brand active:scale-[0.98]"
+                      >
+                        {ControllerSettings?.result.LoadingSentts ? (
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                        ) : (
+                          <>
+                            <Check className="h-4 w-4" />
+                            Salvar alterações
+                          </>
+                        )}
+                      </button>
+
+                    </div>
+                  </div>
+
+                </div>
+              </div>
+
+
+              {/* ================= FRETE ================= */}
+              <div className={`rounded-2xl border p-6 ${card}`}>
+                <h3
+                  className={`font-display font-bold mb-5 flex items-center gap-2 ${txt}`}
+                >
+                  <Package className="w-4 h-4 text-brand-400" />
+                  Frete
+                </h3>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <label
+                      className={`block text-xs font-bold uppercase tracking-wider mb-2 ${sub}`}
+                    >
+                      Taxa Base (R$)
+                    </label>
+
+                    <input
+                      type="number"
+                      value={ControllerSettings?.result.BaseRatesFormSite.shippingCost ?? ""}
+                      onChange={(e) =>
+                        ControllerSettings?.action.setBaseRatesFormSite((s) => ({
+                          ...s,
+                          shippingCost: Number(e.target.value),
+                        }))
+                      }
+                      className={`w-full px-4 py-2.5 border rounded-xl text-sm outline-none transition-colors ${inp}`}
+                    />
+                    {ControllerSettings?.result.taxasErrors.shippingCost && (
+                      <p className="mt-1 flex items-center gap-1 text-xs text-red-500">
+                        ⚠ {ControllerSettings?.result.taxasErrors.shippingCost}
+                      </p>
+                    )}
+                  </div>
+                  <div>
+                    <label
+                      className={`block text-xs font-bold uppercase tracking-wider mb-2 ${sub}`}
+                    >
+                      Prazo (dias úteis)
+                    </label>
+
+                    <input
+                      type="number"
+                      value={ControllerSettings?.result.BaseRatesFormSite.timeframeBusinessDays ?? ""}
+                      onChange={(e) =>
+                        ControllerSettings?.action.setBaseRatesFormSite((s) => ({
+                          ...s,
+                          timeframeBusinessDays: Number(e.target.value),
+                        }))
+                      }
+                      className={`w-full px-4 py-2.5 border rounded-xl text-sm outline-none transition-colors ${inp}`}
+                    />
+                    {ControllerSettings?.result.taxasErrors.timeframeBusinessDays && (
+                      <p className="mt-1 flex items-center gap-1 text-xs text-red-500">
+                        ⚠ {ControllerSettings?.result.taxasErrors.timeframeBusinessDays}
+                      </p>
+                    )}
+                  </div>
+                </div>
+                <div className="lg:col-span-2">
+
+                  <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+
+                    {/* ESQUERDA */}
+                    <div className="flex items-center gap-3">
+                    </div>
+
+                    {/* DIREITA */}
+                    <button
+                      type="button"
+                      onClick={() =>
+                        ControllerSettings?.action.handleUpdateTaxasBases()
+                      }
+                      className="mt-6 inline-flex h-10 items-center justify-center gap-2 w-full sm:w-auto rounded-xl bg-brand-500 px-5 text-sm font-semibold text-white shadow-sm transition-all hover:bg-brand-600 hover:shadow-brand active:scale-[0.98]"
+                    >
+                      {ControllerSettings?.result.LoadingTaxas ? (
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                      ) : (
+                        <>
+                          <Check className="h-4 w-4" />
+                          Salvar Taxas e Prazo
+                        </>
+                      )}
+                    </button>
+
                   </div>
                 </div>
               </div>
-              <button onClick={() => true}
-                className="px-6 py-2.5 bg-brand-500 hover:bg-brand-600 text-white text-sm font-bold rounded-xl transition-all flex items-center gap-2 shadow-brand">
-                <Check className="w-4 h-4" /> Salvar Configurações
+
+
+              {/* ================= SEGURANÇA ================= */}
+              <div className={`rounded-2xl border p-6 ${card}`}>
+
+                <h3
+                  className={`font-display font-bold mb-5 flex items-center gap-2 ${txt}`}
+                >
+                  <Shield className="w-4 h-4 text-brand-400" />
+                  Segurança
+                </h3>
+
+                <div className="space-y-3">
+
+                  {/* 2FA */}
+                  <div
+                    className={`
+            flex items-center justify-between
+            p-4 rounded-xl
+            ${dk ? "bg-white/[0.04]" : "bg-surface-50"}
+          `}
+                  >
+                    <div>
+                      <p className={`font-medium text-sm ${txt}`}>
+                        2FA
+                      </p>
+
+                      <p className={`text-xs ${sub}`}>
+                        Autenticação em 2 etapas
+                      </p>
+                    </div>
+
+                    <button
+                      onClick={() =>
+                        setSettingsForm((s) => ({
+                          ...s,
+                          twoFactor: !s.twoFactor,
+                        }))
+                      }
+                    >
+                      {settingsForm.twoFactor ? (
+                        <ToggleRight className="w-9 h-9 text-green-400" />
+                      ) : (
+                        <ToggleLeft className="w-9 h-9 text-surface-300" />
+                      )}
+                    </button>
+                  </div>
+
+                  {/* TIMEOUT */}
+                  <div
+                    className={`
+            flex items-center justify-between
+            p-4 rounded-xl
+            ${dk ? "bg-white/[0.04]" : "bg-surface-50"}
+          `}
+                  >
+                    <div>
+                      <p className={`font-medium text-sm ${txt}`}>
+                        Timeout de Sessão (min)
+                      </p>
+
+                      <p className={`text-xs ${sub}`}>
+                        Deslogar após inatividade
+                      </p>
+                    </div>
+
+                    <input
+                      value={settingsForm.sessionTimeout}
+                      onChange={(e) =>
+                        setSettingsForm((s) => ({
+                          ...s,
+                          sessionTimeout: e.target.value,
+                        }))
+                      }
+                      className={`w-20 px-3 py-1.5 border rounded-xl text-sm text-right outline-none ${inp}`}
+                    />
+                  </div>
+
+                </div>
+              </div>
+
+
+              {/* BOTÃO FINAL */}
+              <button
+                onClick={() => true}
+                className="
+        px-6 py-2.5
+        bg-brand-500 hover:bg-brand-600
+        text-white
+        text-sm font-bold
+        rounded-xl
+        transition-all
+        flex items-center gap-2
+        shadow-brand
+      "
+              >
+                <Check className="w-4 h-4" />
+                Salvar Configurações
               </button>
+
             </div>
           )}
-
+          {tab === 'users' && (
+            <AdminUsersPage
+              darkMode={dk}
+            />
+          )}
+          {tab === 'bin' && (
+            <AdminTrashPage
+              darkMode={dk}
+            />
+          )}
         </main>
       </div >
 
@@ -6105,7 +6513,7 @@ export default function AdminPage() {
       }
 
       <AdminPageLoading
-        loading={(Controller?.result.LoadingPageAll || false) && user?.role === 'ADMIN'}
+        loading={((Controller?.result.LoadingPageAll || ControllerSettings?.result.Loading) ?? false) && user?.role === 'ADMIN'}
         darkMode={dk}
         message="Carregando painel"
         subMessage="Buscando pedidos, produtos e estatísticas..."
@@ -6118,7 +6526,8 @@ export default function AdminPage() {
         cancelText="Cancelar"
         confirmColor="red"
         loading={Controller?.result.Loading}
-        onConfirm={Controller!.action.handleDeleteProduct}
+        requireReason
+        onConfirm={(reason) => Controller!.action.handleDeleteProduct(reason)}
         onCancel={() => {
           Controller?.action.setShowDeleteModal(false),
             Controller?.action.setNewProduct({});
@@ -6133,7 +6542,8 @@ export default function AdminPage() {
         cancelText="Cancelar"
         confirmColor="red"
         loading={Controller?.result.Loading}
-        onConfirm={() => Controller?.action.handleDeleteCoupon(idCupom)}
+        requireReason
+        onConfirm={(reason) => Controller?.action.handleDeleteCoupon(idCupom, reason)}
         onCancel={() => {
           Controller?.action.setshowDeleteModalCupom(false)
         }}

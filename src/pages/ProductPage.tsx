@@ -103,7 +103,6 @@ export const ProductPage = () => {
   const { selectedProductId, navigatePages } = UseRouteStore();
   const { products } = UseProductStore();
   const product = products.find(p => p.id === Number(selectedProductId));
-  console.log('product', product)
   const [imgIndex, setImgIndex] = useState(0);
   const [selectedVariations, setSelectedVariations] = useState<Record<string, string>>({});
   const [quantity, setQuantity] = useState(1);
@@ -149,7 +148,6 @@ export const ProductPage = () => {
   const reviewsPerPage = 3;
 
   const reviews = Controller?.result.RantingAllProduct ?? [];
-  console.log('reviews', reviews)
 
   const totalReviewPages = Math.ceil(reviews.length / reviewsPerPage);
 

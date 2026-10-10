@@ -972,4 +972,185 @@ public class EmailService : IEmailService
 </body>
 </html>";
     }
+
+    public string EmailContaDesativada(string nome,int idCliente,string email,string telefoneSuporte,string linkSuporte,string responsavelExclusao)
+    {
+        string mensagemExclusao;
+
+        if (responsavelExclusao == "ADMIN")
+        {
+            // Texto que já existe hoje para exclusão feita pelo administrador
+            mensagemExclusao = @"
+            <p>
+                Sua conta foi temporariamente desativada pela nossa equipe de suporte.
+            </p>
+            <p>
+                No momento, você não poderá acessar sua conta ou realizar compras.
+            </p>
+            <p>
+                Caso tenha alguma dúvida ou queira solicitar a recuperação da conta,
+                entre em contato com nosso suporte.
+            </p>";
+        }
+        else if (responsavelExclusao == "CLIENTE")
+        {
+            mensagemExclusao = @"
+            <p>
+                Você solicitou a exclusão da sua conta.
+            </p>
+            <p>
+                Ao excluir sua conta, você perderá o acesso a esta conta e aos recursos
+                vinculados a ela.
+            </p>
+            <p>
+                Caso queira cancelar a exclusão e recuperar sua conta,
+                entre em contato com nosso suporte.
+            </p>";
+        }
+        else
+        {
+            mensagemExclusao = @"
+            <p>
+                Sua conta foi temporariamente desativada.
+            </p>
+            <p>
+                Caso precise de ajuda ou queira solicitar a recuperação da conta,
+                entre em contato com nosso suporte.
+            </p>";
+        }
+
+        return $@"
+<!DOCTYPE html>
+<html lang='pt-BR'>
+<head>
+    <meta charset='UTF-8'>
+    <meta name='viewport' content='width=device-width, initial-scale=1.0'>
+    <title>Conta desativada - Mercado Craíbas</title>
+</head>
+
+<body style='margin:0; padding:0; background-color:#f5f5f5; font-family:Arial, Helvetica, sans-serif;'>
+
+    <table width='100%' cellpadding='0' cellspacing='0' style='background-color:#f5f5f5; padding:30px 10px;'>
+        <tr>
+            <td align='center'>
+
+                <table width='600' cellpadding='0' cellspacing='0'
+                       style='max-width:600px; width:100%; background:#ffffff; border-radius:12px; overflow:hidden;'>
+
+                    <!-- HEADER -->
+                    <tr>
+                        <td style='background:#111111; padding:25px; text-align:center;'>
+                            <h1 style='margin:0; color:#ffffff; font-size:28px;'>
+                                Mercado <span style='color:#f97316;'>Craíbas</span>
+                            </h1>
+                        </td>
+                    </tr>
+
+                    <!-- ALERTA -->
+                    <tr>
+                        <td style='background:#dc2626; padding:12px; text-align:center;'>
+                            <strong style='color:#ffffff; font-size:14px;'>
+                                CONTA TEMPORARIAMENTE DESATIVADA
+                            </strong>
+                        </td>
+                    </tr>
+
+                    <!-- CONTEÚDO -->
+                    <tr>
+                        <td style='padding:35px 30px;'>
+
+                            <h2 style='margin:0 0 20px; color:#111111; font-size:24px;'>
+                                Conta temporariamente desativada
+                            </h2>
+
+                            <p style='font-size:16px; color:#333333;'>
+                                Olá, <strong>{nome}</strong>.
+                            </p>
+
+                            {mensagemExclusao}
+
+                            <!-- DADOS DA CONTA -->
+                            <table width='100%' cellpadding='0' cellspacing='0'
+                                   style='margin-top:25px; background:#f8f8f8; border-radius:8px;'>
+                                <tr>
+                                    <td style='padding:20px;'>
+
+                                        <p style='margin:0 0 10px; color:#777777; font-size:12px;'>
+                                            DADOS DA CONTA
+                                        </p>
+
+                                        <p style='margin:5px 0; color:#222222;'>
+                                            <strong>Nome:</strong> {nome}
+                                        </p>
+
+                                        <p style='margin:5px 0; color:#222222;'>
+                                            <strong>ID do cliente:</strong> #{idCliente}
+                                        </p>
+
+                                        <p style='margin:5px 0; color:#222222;'>
+                                            <strong>E-mail:</strong> {email}
+                                        </p>
+
+                                    </td>
+                                </tr>
+                            </table>
+
+                            <!-- SUPORTE -->
+                            <table width='100%' cellpadding='0' cellspacing='0'
+                                   style='margin-top:25px; background:#fff7ed; border:1px solid #fed7aa; border-radius:8px;'>
+                                <tr>
+                                    <td style='padding:22px; text-align:center;'>
+
+                                        <p style='margin:0 0 8px; color:#111111; font-size:18px; font-weight:bold;'>
+                                            PRECISA DE AJUDA?
+                                        </p>
+
+                                        <p style='margin:0 0 15px; color:#555555;'>
+                                            Entre em contato com nosso suporte.
+                                        </p>
+
+                                        <p style='margin:0 0 20px; color:#111111; font-weight:bold;'>
+                                            {telefoneSuporte}
+                                        </p>
+
+                                        <a href='{linkSuporte}'
+                                           target='_blank'
+                                           style='display:inline-block; background:#f97316; color:#ffffff;
+                                                  text-decoration:none; padding:12px 25px;
+                                                  border-radius:6px; font-weight:bold;'>
+                                            Entrar em contato com o suporte
+                                        </a>
+
+                                    </td>
+                                </tr>
+                            </table>
+
+                            <!-- SEGURANÇA -->
+                            <p style='margin-top:30px; font-size:12px; color:#777777; line-height:1.5;'>
+                                Por segurança, o Mercado Craíbas nunca solicitará sua senha
+                                por e-mail. Caso receba alguma mensagem suspeita,
+                                entre em contato diretamente com nosso suporte.
+                            </p>
+
+                        </td>
+                    </tr>
+
+                    <!-- FOOTER -->
+                    <tr>
+                        <td style='background:#111111; padding:20px; text-align:center;'>
+                            <p style='margin:0; color:#999999; font-size:12px;'>
+                                © Mercado Craíbas - Todos os direitos reservados.
+                            </p>
+                        </td>
+                    </tr>
+
+                </table>
+
+            </td>
+        </tr>
+    </table>
+
+</body>
+</html>";
+    }
 }

@@ -18,10 +18,11 @@ namespace Baldan.Pricing.Application.Domain.Entities
         public double? CommissionDelivers { get; set; }
         public string Transport { get; set; }
         public Address? Address { get; set; }
-        public double? Phone { get; set; }
+        public string? Phone { get; set; }
         public ICollection<Orders> Orders { get; set; } = [];
         public string? RefreshToken { get; set; }
         public DateTime? RefreshTokenExpiresAt { get; set; }
+        public int TokenVersion { get; set; } = 1;
 
     }
 }

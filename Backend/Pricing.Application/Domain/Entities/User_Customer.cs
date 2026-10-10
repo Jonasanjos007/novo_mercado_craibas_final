@@ -29,5 +29,6 @@ namespace Baldan.Pricing.Application.Domain.Entities
         public DateTime? RefreshTokenExpiresAt { get; set; }
         public ICollection<Coupon_Use> Coupon_Uses { get; set; } = [];
         public ICollection<EmailVerification> EmailVerifications { get; set; } = [];
+        public int TokenVersion { get; set; } = 1;
     }
 }

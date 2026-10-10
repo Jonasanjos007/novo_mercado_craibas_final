@@ -53,7 +53,6 @@ export const UseProductStore = create<ProductState>((set, get) => ({
     },
     DeleteOneFavorite: async (IdProduct: number): Promise<Result<boolean>> => {
         const result = await ProductsService.DeleteProductsFavorite(IdProduct);
-        console.log('response', result)
 
         if (!result.success) {
             return makeResult(false, false, result.error);

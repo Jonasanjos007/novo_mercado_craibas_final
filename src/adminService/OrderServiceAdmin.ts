@@ -2,7 +2,7 @@ import { api } from "../config/api";
 import { CartItensProduct } from "../models/CartItensProduct";
 import { Cupom } from "../models/Cupom";
 import { Logs } from "../models/Logs";
-import { OrderSave, Order, SendMessageViaWhatsAppResponse } from "../models/OrderSave";
+import { OrderSave, Order, SendMessageViaWhatsAppResponse } from "../models/Order";
 import { Category, Product } from "../models/Product";
 import { makeResult, Result } from "../utils/Result";
 
@@ -26,7 +26,6 @@ export const OrderServiceAdmin = {
     GetLogsAllListAdmin: async (): Promise<Result<Logs[]>> => {
         try {
             const response = await api.get("/admin/orders/GetAllLogsAdmin");
-            console.log("response.datalist", response)
             const { success, data, error } = response.data;
             if (!success) {
                 return makeResult(false, [], error || "Erro ao buscar logs");
@@ -43,7 +42,6 @@ export const OrderServiceAdmin = {
     GetCategoryAllListAdmin: async (): Promise<Result<Category[]>> => {
         try {
             const response = await api.get("/admin/orders/GetCategoryAllListAdmin");
-            console.log("response.datalist", response);
             const { success, data, error } = response.data;
             if (!success) {
                 return makeResult(false, [], error || "Erro ao buscar logs");
@@ -117,7 +115,7 @@ export const OrderServiceAdmin = {
         }
     },
     PostDeleteCategoryAdmin: async (request: {
-        id: number; action: 'move' | 'delete'; replacementCategoryId?: number;
+        id: number; action: 'move' | 'delete'; replacementCategoryId?: number; reason: string;
     }): Promise<Result<boolean>> => {
         try {
             const response = await api.post("/admin/category/DeleteCategory", request);
@@ -132,7 +130,6 @@ export const OrderServiceAdmin = {
     PostUpdateNewStatus: async (Id_Order: number, New_Order: string, WhoReceivedIt?: string): Promise<Result<boolean>> => {
         try {
             const response = await api.post(`/admin/orders/PostUpdateOrderNewStatus?Id_Order=${Id_Order}&NewStatus=${New_Order}&WhoReceivedIt=${WhoReceivedIt}`);
-            console.log("response.datalist", response);
             const { success, data, error } = response.data;
             if (!success) {
                 return makeResult(false, false, error || "Erro ao atualizar status!");

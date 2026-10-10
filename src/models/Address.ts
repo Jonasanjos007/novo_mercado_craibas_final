@@ -15,4 +15,5 @@ export interface Address {
     supplement?: string;
     standard?: boolean;
     phone: string;
+    insertDate?: Date;
 }

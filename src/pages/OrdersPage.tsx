@@ -8,7 +8,7 @@ import { useOrdersController } from '../controller/useOrdersController';
 import { getColorConfig } from '../types/Colors';
 import Headerpages from '../components/Headerpages';
 import { useState } from 'react';
-import { Order } from '../models/OrderSave';
+import { Order } from '../models/Order';
 import { Cupom } from '../models/Cupom';
 import Loading from '../components/Loading';
 import ProductReviewModal from '../components/ProductReviewModal';
@@ -109,12 +109,27 @@ export default function OrdersPage() {
 
       <div className="max-w-3xl mx-auto px-4 py-6 space-y-4">
         {filteredOrders.length === 0 ? (
-          <div className="text-center py-20">
-            <Package className="w-16 h-16 text-surface-200 mx-auto mb-4" />
-            <h2 className="font-display font-bold text-surface-700 text-xl mb-2">Nenhum pedido ainda</h2>
-            <p className="text-surface-400 font-body text-sm mb-6">Explore nossos produtos incríveis</p>
-            <button onClick={() => navigate('/')} className={`px-6 py-3 ${ColorGlobalTema} text-white font-display font-bold rounded-xl shadow-brand hover:shadow-brand-lg transition-all`}>
-              Explorar Produtos
+          <div className="flex flex-col items-center justify-center px-6 py-14 text-center">
+            <div className="mb-5 flex h-16 w-16 items-center justify-center rounded-2xl bg-surface-100">
+              <ShoppingCart className="h-8 w-8 text-surface-400" />
+            </div>
+
+            <h3 className="font-display text-lg font-bold text-surface-800">
+              Você ainda não fez nenhum pedido
+            </h3>
+
+            <p className="mt-2 max-w-sm text-sm leading-relaxed text-surface-400">
+              Faça seu primeiro pedido e ele aparecerá aqui para você acompanhar
+              todos os detalhes da sua compra.
+            </p>
+
+            <button
+              type="button"
+              onClick={() => navigate("/")}
+              className={`mt-6 inline-flex items-center gap-2 rounded-xl px-5 py-3 text-sm font-bold text-white shadow-sm transition-all hover:opacity-90 active:scale-95 ${colorConfig.class}`}
+            >
+              <ShoppingCart className="h-4 w-4" />
+              Fazer meu primeiro pedido
             </button>
           </div>) : (
           filteredOrders.map(order => {
@@ -131,16 +146,16 @@ export default function OrdersPage() {
                 {/* Barra lateral */}
                 <div
                   className={`absolute left-0 top-0 bottom-0 w-1 ${order.order_Status === "ENTREGUE"
-                            ? "bg-green-500"
-                            : colorConfig.class
-                            } scale-y-0 group-hover:scale-y-100 transition-transform rounded-r-full`}
+                    ? "bg-green-500"
+                    : colorConfig.class
+                    } scale-y-0 group-hover:scale-y-100 transition-transform rounded-r-full`}
                 />
-                   <div
-                          className={`absolute left-0 top-0 right-0 h-1 ${order.order_Status === "ENTREGUE"
-                            ? "bg-green-500"
-                            : colorConfig.class
-                            }`}
-                        />
+                <div
+                  className={`absolute left-0 top-0 right-0 h-1 ${order.order_Status === "ENTREGUE"
+                    ? "bg-green-500"
+                    : colorConfig.class
+                    }`}
+                />
 
                 {/* Header */}
                 <div className="border-b border-surface-100 p-4 sm:p-5">
@@ -534,7 +549,7 @@ export default function OrdersPage() {
                               key={i}
                               onMouseEnter={() => setHoveredProduct(i)}
                               onMouseLeave={() => setHoveredProduct(null)}
-                              className={` rounded-xl p-2 transition-all duration-200 ${isHovered? "bg-surface-50" : "bg-transparent" }`}>
+                              className={` rounded-xl p-2 transition-all duration-200 ${isHovered ? "bg-surface-50" : "bg-transparent"}`}>
                               {/* Produto */}
                               <div className="flex items-center gap-3">
                                 {/* Imagem */}
@@ -548,8 +563,8 @@ export default function OrdersPage() {
                                 <div className="min-w-0 flex-1">
                                   <p
                                     className={` truncate text-xs font-semibold transition-colors duration-200 sm:text-sm ${isHovered
-                                        ? colorConfig.class_text
-                                        : "text-surface-800"
+                                      ? colorConfig.class_text
+                                      : "text-surface-800"
                                       }`}
                                   >
                                     {item.name}
@@ -881,106 +896,106 @@ export default function OrdersPage() {
                     Itens do pedido
                   </h4>
                   <div className="space-y-2">
-                 {selectedOrder.products.map((item, i) => (
-                          <div
-                            key={i}
-                            className="group relative rounded-xl border border-surface-100 bg-white p-3 transition-all hover:border-surface-200 hover:bg-surface-50/50"
-                          >
-                            {/* Produto */}
-                            <div className="flex items-center gap-3">
-                              {/* Imagem */}
-                              <img
-                                onClick={() => navigate(`/product/${item.id}`)}
-                                src={`/Imagens/Produtos/${item.imagens?.[0]?.url_Imagem}`}
-                                alt={item.name}
-                                className="h-14 w-14 shrink-0 cursor-pointer rounded-xl object-cover border border-surface-100 transition-transform duration-200 group-hover:scale-[1.02]"
-                              />
+                    {selectedOrder.products.map((item, i) => (
+                      <div
+                        key={i}
+                        className="group relative rounded-xl border border-surface-100 bg-white p-3 transition-all hover:border-surface-200 hover:bg-surface-50/50"
+                      >
+                        {/* Produto */}
+                        <div className="flex items-center gap-3">
+                          {/* Imagem */}
+                          <img
+                            onClick={() => navigate(`/product/${item.id}`)}
+                            src={`/Imagens/Produtos/${item.imagens?.[0]?.url_Imagem}`}
+                            alt={item.name}
+                            className="h-14 w-14 shrink-0 cursor-pointer rounded-xl object-cover border border-surface-100 transition-transform duration-200 group-hover:scale-[1.02]"
+                          />
 
-                              {/* Informações */}
-                              <div className="min-w-0 flex-1">
-                                <p
-                                  className={`line-clamp-2 cursor-pointer text-sm font-semibold leading-snug text-surface-800 ${ColorGlobalHoverText} transition-colors`}
-                                  onClick={() => navigate(`/product/${item.id}`)}
-                                >
-                                  {item.name}
-                                </p>
+                          {/* Informações */}
+                          <div className="min-w-0 flex-1">
+                            <p
+                              className={`line-clamp-2 cursor-pointer text-sm font-semibold leading-snug text-surface-800 ${ColorGlobalHoverText} transition-colors`}
+                              onClick={() => navigate(`/product/${item.id}`)}
+                            >
+                              {item.name}
+                            </p>
 
-                                <div className="mt-1 flex items-center gap-2 text-xs text-surface-400">
-                                  <span>
-                                    {item.quantity} {item.quantity === 1 ? "unidade" : "unidades"}
-                                  </span>
+                            <div className="mt-1 flex items-center gap-2 text-xs text-surface-400">
+                              <span>
+                                {item.quantity} {item.quantity === 1 ? "unidade" : "unidades"}
+                              </span>
 
-                                  <span className="h-1 w-1 rounded-full bg-surface-300" />
+                              <span className="h-1 w-1 rounded-full bg-surface-300" />
 
-                                  <span>{formatPrice(item.price_Unic)} cada</span>
-                                </div>
-                              </div>
-
-                              {/* Total */}
-                              <div className="shrink-0 text-right">
-                                <p className="text-sm font-bold text-surface-900">
-                                  {formatPrice(item.price_Unic * item.quantity)}
-                                </p>
-                              </div>
-                            </div>
-
-                            {/* Ações */}
-                            <div className="mt-3 flex items-center justify-between border-t border-surface-100 pt-3">
-
-                              {/* Comprar novamente */}
-                              <button
-                                type="button"
-                                onClick={() => navigate(`/product/${item.id}`)}
-                                className={`flex items-center gap-1.5 rounded-lg border border-surface-200 bg-white px-3 py-2 text-[10px] font-bold text-surface-600 transition-all hover:border-surface-300 hover:bg-surface-50 ${ColorGlobalHoverText}`}
-                              >
-                                <ShoppingCart className="h-3.5 w-3.5" />
-                                Comprar novamente
-                              </button>
-
-                              {/* Avaliação */}
-                              {selectedOrder.order_Status === "ENTREGUE" && (
-                                <>
-                                  {!item.evaluated ? (
-                                    <button
-                                      type="button"
-                                      onClick={() =>
-                                        setReviewTarget({
-                                          product: item,
-                                          order: selectedOrder,
-                                        })
-                                      }
-                                      className={`flex items-center justify-center gap-1.5 rounded-lg bg-surface-100 px-3 py-2 text-[10px] font-bold transition-colors hover:bg-surface-200 ${colorConfig.class_text}`}
-                                    >
-                                      <Star className="h-3.5 w-3.5" />
-                                      Avaliar produto
-                                    </button>
-                                  ) : (
-                                    <button
-                                      type="button"
-                                      onClick={() =>
-                                        Controller?.action.handleGetAssents(
-                                          selectedOrder.id_Order,
-                                          item.id
-                                        )
-                                      }
-                                      disabled={Controller?.result.Loading}
-                                      className="flex items-center justify-center gap-1.5 rounded-lg bg-green-50 px-3 py-2 text-[10px] font-bold text-green-600 transition-colors hover:bg-green-100 disabled:cursor-not-allowed disabled:opacity-60"
-                                    >
-                                      {Controller?.result.Loading ? (
-                                        <Loader2 className="h-4 w-4 animate-spin" />
-                                      ) : (
-                                        <>
-                                          <Star className="h-3.5 w-3.5 fill-current" />
-                                          Avaliado, obrigado!
-                                        </>
-                                      )}
-                                    </button>
-                                  )}
-                                </>
-                              )}
+                              <span>{formatPrice(item.price_Unic)} cada</span>
                             </div>
                           </div>
-                        ))}
+
+                          {/* Total */}
+                          <div className="shrink-0 text-right">
+                            <p className="text-sm font-bold text-surface-900">
+                              {formatPrice(item.price_Unic * item.quantity)}
+                            </p>
+                          </div>
+                        </div>
+
+                        {/* Ações */}
+                        <div className="mt-3 flex items-center justify-between border-t border-surface-100 pt-3">
+
+                          {/* Comprar novamente */}
+                          <button
+                            type="button"
+                            onClick={() => navigate(`/product/${item.id}`)}
+                            className={`flex items-center gap-1.5 rounded-lg border border-surface-200 bg-white px-3 py-2 text-[10px] font-bold text-surface-600 transition-all hover:border-surface-300 hover:bg-surface-50 ${ColorGlobalHoverText}`}
+                          >
+                            <ShoppingCart className="h-3.5 w-3.5" />
+                            Comprar novamente
+                          </button>
+
+                          {/* Avaliação */}
+                          {selectedOrder.order_Status === "ENTREGUE" && (
+                            <>
+                              {!item.evaluated ? (
+                                <button
+                                  type="button"
+                                  onClick={() =>
+                                    setReviewTarget({
+                                      product: item,
+                                      order: selectedOrder,
+                                    })
+                                  }
+                                  className={`flex items-center justify-center gap-1.5 rounded-lg bg-surface-100 px-3 py-2 text-[10px] font-bold transition-colors hover:bg-surface-200 ${colorConfig.class_text}`}
+                                >
+                                  <Star className="h-3.5 w-3.5" />
+                                  Avaliar produto
+                                </button>
+                              ) : (
+                                <button
+                                  type="button"
+                                  onClick={() =>
+                                    Controller?.action.handleGetAssents(
+                                      selectedOrder.id_Order,
+                                      item.id
+                                    )
+                                  }
+                                  disabled={Controller?.result.Loading}
+                                  className="flex items-center justify-center gap-1.5 rounded-lg bg-green-50 px-3 py-2 text-[10px] font-bold text-green-600 transition-colors hover:bg-green-100 disabled:cursor-not-allowed disabled:opacity-60"
+                                >
+                                  {Controller?.result.Loading ? (
+                                    <Loader2 className="h-4 w-4 animate-spin" />
+                                  ) : (
+                                    <>
+                                      <Star className="h-3.5 w-3.5 fill-current" />
+                                      Avaliado, obrigado!
+                                    </>
+                                  )}
+                                </button>
+                              )}
+                            </>
+                          )}
+                        </div>
+                      </div>
+                    ))}
                   </div>
                 </div>
 

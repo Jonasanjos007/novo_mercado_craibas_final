@@ -194,7 +194,6 @@ export const useAddressController = (): AddresssControllerReturn => {
             setLoadingTitleMessage("Removendo...");
 
             const result = await removerAddress(Address);
-            console.log("result____", result);
 
             if (result?.error?.data.code == "Padrão" && !result.success) {
                 setLoadingTitleMessage("Atenção");

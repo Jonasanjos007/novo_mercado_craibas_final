@@ -34,6 +34,7 @@ public class AppDbContext : DbContext
     public DbSet<Notification> Notification => Set<Notification>();
     public DbSet<NotificationUser> NotificationUser => Set<NotificationUser>();
     public DbSet<EmailVerification> EmailVerifications => Set<EmailVerification>();
+    public DbSet<UserSession> UserSessions => Set<UserSession>();
 
 
     public AppDbContext(DbContextOptions<AppDbContext> options)

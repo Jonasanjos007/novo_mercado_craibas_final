@@ -21,4 +21,6 @@ public class UserResponse
     public DateTime UpdateDate { get; set; } = default!;
     public List<AddressResponse>? Address { get; set; }
     public Customize_ClienteResponse Customize { get; set; }
+    public int TokenVersion { get; set; } = 1;
+    public bool Isdelete { get; set; }
 }

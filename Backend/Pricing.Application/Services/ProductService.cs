@@ -116,43 +116,114 @@ namespace Mercado.Craibas.Application.Services
             }
             return Result<List<ProductResponse>>.Success(productList);
         }
-        public async Task<Result<bool>> PostCartItensSave(CartItensRequest CartProduto, int userid)
+        public async Task<Result<bool>> PostCartItensSave(
+     CartItensRequest cartProduto,
+     int userid)
         {
-
-            var Cart = await  _unitOfWork.GetClassById<Cart>(CartProduto.User.Id, "Id_User_Customer");
-            var Cart_Itens = new Cart_Item
+            if (cartProduto == null)
             {
-                Id_Cart = Cart.Id,
-                Quantity = CartProduto.Quantity,
-                Id_Product = CartProduto.Product.Id,
-                Id_Variante = CartProduto.SelectedVariation.Id,
+                return Result<bool>.Failure(
+                    Error.Failure(
+                        "Carrinho",
+                        "Dados do produto não foram enviados."
+                    )
+                );
+            }
+
+            if (cartProduto.Product == null)
+            {
+                return Result<bool>.Failure(
+                    Error.Failure(
+                        "Carrinho",
+                        "Produto não informado."
+                    )
+                );
+            }
+
+            if (cartProduto.SelectedVariation == null)
+            {
+                return Result<bool>.Failure(
+                    Error.Failure(
+                        "Carrinho",
+                        "Variação do produto não informada."
+                    )
+                );
+            }
+
+            if (cartProduto.SelectedVariation.Id == null)
+            {
+                return Result<bool>.Failure(
+                    Error.Failure(
+                        "Carrinho",
+                        "A variação selecionada não possui ID."
+                    )
+                );
+            }
+
+            if (cartProduto.Quantity <= 0)
+            {
+                return Result<bool>.Failure(
+                    Error.Failure(
+                        "Carrinho",
+                        "A quantidade do produto deve ser maior que zero."
+                    )
+                );
+            }
+
+            var cart = await _unitOfWork.GetClassById<Cart>(
+                userid,
+                "Id_User_Customer"
+            );
+
+            if (cart == null)
+            {
+                return Result<bool>.Failure(
+                    Error.Failure(
+                        "Carrinho",
+                        "Carrinho do usuário não encontrado."
+                    )
+                );
+            }
+
+            var cartItem = new Cart_Item
+            {
+                Id_Cart = cart.Id,
+                Quantity = cartProduto.Quantity,
+                Id_Product = cartProduto.Product.Id,
+                Id_Variante = cartProduto.SelectedVariation.Id.Value,
                 Isdelete = false,
                 InsertDate = DateTime.Now
-                
             };
 
+            var insertCartItem =
+                await _productRepository.InsertCartProductAsync<Cart_Item>(
+                    cartItem
+                );
 
-            var Insert_Cart_Itens = await _productRepository.InsertCartProductAsync<Cart_Item>(Cart_Itens);
-
-            if(Insert_Cart_Itens == 0)
+            if (insertCartItem == 0)
             {
-               return Result<bool>.Failure(Error.Failure("Carrinho","Nenhum Produto Adicionado no carrinho Entre em Contato Com Suporte!"));
+                return Result<bool>.Failure(
+                    Error.Failure(
+                        "Carrinho",
+                        "Nenhum produto foi adicionado ao carrinho. Entre em contato com o suporte!"
+                    )
+                );
             }
+
             return Result<bool>.Success(true);
         }
 
-        public async Task<Result<bool>> PostCartItensUpdate(int Id,int Quantity,string Soma_Sub)
+        public async Task<Result<bool>> PostCartItensUpdate(int Id,int Quantity,string Soma_Sub,int? NewQunatity)
         {
             int? QuantityTotal = Quantity;
 
             if (Soma_Sub == "Soma")
             {
-                QuantityTotal = (QuantityTotal ?? 1) + 1;
+                QuantityTotal = (QuantityTotal ?? 1) + NewQunatity ?? 1;
             }
             else
             {
                 QuantityTotal = (QuantityTotal ?? 1) - 1;
-
             }
 
             var insert_cart_itens = await _unitOfWork.UpdateFieldsAsync<Cart_Item>(filters: new Dictionary<string, object>
@@ -191,7 +262,7 @@ namespace Mercado.Craibas.Application.Services
                 var ImageProductSelected = await _unitOfWork.GetClassListAsyncWhere<Imagens_Products>(x => x.Id_Product == ProductSelected.Id && x.Isdelete != true);
 
 
-                var Variants = await _unitOfWork.GetClassAsyncWhere<Variante_Products>(x => x.Id_Product == ProductSelected.Id && x.Isdelete != true);
+                var Variants = await _unitOfWork.GetClassAsyncWhere<Variante_Products>(x => x.Id_Product == ProductSelected.Id && x.Isdelete != true && x.Id == ProductOne.Id_Variante);
 
                 if (Variants == null)
                 {
@@ -206,7 +277,8 @@ namespace Mercado.Craibas.Application.Services
                         Value = Variants.Value,
                         Type = Variants.Type,
                         Stock = Variants.Stoke,
-                        Price_Modifier = Variants.Price_Modifier
+                        Price_Modifier = Variants.Price_Modifier,
+                        Id_Product = Variants.Id_Product
                     };
 
                 CartProductList.Add(new CartItemResponse
@@ -587,7 +659,7 @@ namespace Mercado.Craibas.Application.Services
         }
         public async Task<Result<bool>> PostFavoriteSave(int UserId, int IdProduct)
         {
-            var ExisteProduct = await _unitOfWork.GetClassAsyncWhere<Favorite>(x => x.ProductId == IdProduct);
+            var ExisteProduct = await _unitOfWork.GetClassAsyncWhere<Favorite>(x => x.ProductId == IdProduct && x.UserId == UserId);
             if(ExisteProduct != null)
             {
                 return Result<bool>.Failure(Error.Failure("Favoritos", "Produto ja existe nos favoritos!"));
@@ -635,28 +707,14 @@ namespace Mercado.Craibas.Application.Services
         {
             if (IdProduct <= 0)
             {
-                return Result<bool>.Failure(
-                    Error.Failure(
-                        "Favoritos",
-                        "Erro ao remover dos favoritos."
-                    )
-                );
+                return Result<bool>.Failure(Error.Failure("Favoritos","Erro ao remover dos favoritos."));
             }
 
-            var favorites = await _unitOfWork
-                .DeleteByColumnAsyncGlolbal<Favorite>(
-                    "ProductId",
-                    IdProduct
-                );
+            var favorites = await _unitOfWork.DeleteByColumnAsyncGlolbal<Favorite>("ProductId",IdProduct);
 
             if (!favorites)
             {
-                return Result<bool>.Failure(
-                    Error.Failure(
-                        "Favoritos",
-                        "Erro ao remover dos favoritos."
-                    )
-                );
+                return Result<bool>.Failure(Error.Failure("Favoritos","Erro ao remover dos favoritos."));
             }
 
             return Result<bool>.Success(true);

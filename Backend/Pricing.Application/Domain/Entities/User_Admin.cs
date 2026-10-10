@@ -19,6 +19,7 @@ namespace Baldan.Pricing.Application.Domain.Entities
         public Customize_Admin Customize_Admin { get; set; }
         public string? RefreshToken { get; set; }
         public DateTime? RefreshTokenExpiresAt { get; set; }
+        public int TokenVersion { get; set; } = 1;
 
     }
 }

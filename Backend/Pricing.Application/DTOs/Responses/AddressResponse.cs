@@ -22,5 +22,7 @@ namespace Mercado.Craibas.Application.DTOs.Responses
         public string State { get; set; }
         public int? Id_User_Customer { get; set; }
         public int? Id_User_Delivery { get; set; }
+        public DateTime? InsertDate { get; set; }
+        public DateTime? UpdateDate { get; set; }
     }
 }

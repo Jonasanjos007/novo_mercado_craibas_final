@@ -21,5 +21,6 @@ public interface IUserService
     Task<Result<RegisterPasswordResponse>> RegisterPassword(int userId, string password, string confirmPassword);
     Task<Result<RegisterEmailResponse>> ResendCode(int userId, string email, string phone, string ipAddress);
     Task<Result<RegisterEmailResponse>> EditEmailNew(string emailInvalid, int userId);
+    Task<Result<BaseSiteResponse>> GetBaseSite();
 }
 

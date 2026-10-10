@@ -7,7 +7,7 @@ import { UseOrderStore } from "../store/UseOrderStore";
 
 export const useHomeController = () => {
     const { loadProducts, GetfavoriteAll } = UseProductStore();
-    const { LoadCartUser } = UseCartStore();
+    const { LoadCartUser, cart } = UseCartStore();
     const { LoadCupons } = UseOrderStore();
 
     const { user } = UseUserStore();
@@ -20,8 +20,8 @@ export const useHomeController = () => {
             await GetListProducts();
             if (user) {
                 await GetCartUser();
+                await GetfavoriteAll();
             }
-            await GetfavoriteAll();
             await GetLoadCupons();
             SetLoading(false);
         };

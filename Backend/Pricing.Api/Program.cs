@@ -67,25 +67,290 @@ namespace Pricing.Api
                     options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
                     options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
                 })
-                .AddJwtBearer(options =>
+.AddJwtBearer(options =>
+{
+    var jwt = builder.Configuration.GetSection("Jwt");
+
+    options.TokenValidationParameters = new TokenValidationParameters
+    {
+        ValidateIssuer = true,
+        ValidateAudience = true,
+        ValidateLifetime = true,
+        ValidateIssuerSigningKey = true,
+
+        ValidIssuer = jwt["Issuer"],
+        ValidAudience = jwt["Audience"],
+
+        IssuerSigningKey = new SymmetricSecurityKey(
+            Encoding.UTF8.GetBytes(jwt["Key"]!)
+        ),
+
+        ClockSkew = TimeSpan.Zero
+    };
+
+    options.Events = new JwtBearerEvents
+    {
+        /*
+         * Quando a autenticação falha, devolve um 401 COM o código do motivo
+         * no mesmo formato das outras respostas da API:
+         *
+         * { success: false, data: null, error: { code, message } }
+         *
+         * Códigos:
+         *  Auth.UserDeleted          → usuário excluído / não encontrado
+         *  Auth.UserInactive         → usuário desativado
+         *  Auth.SessionInvalidated   → TokenVersion diferente / dispositivo removido
+         *  Auth.PasswordChanged      → senha alterada em outro dispositivo
+         *  Auth.TokenExpired         → access token expirado ou ausente
+         *  Auth.ValidationUnavailable→ falha ao consultar o banco (503, não derruba a sessão)
+         */
+        OnChallenge = async context =>
+        {
+            context.HandleResponse();
+
+            if (context.Response.HasStarted)
+            {
+                return;
+            }
+
+            var code = context.HttpContext.Items["AuthErrorCode"] as string
+                       ?? "Auth.TokenExpired";
+
+            var message = code switch
+            {
+                "Auth.UserDeleted" => "Usuário excluído.",
+                "Auth.UserInactive" => "Usuário inativo.",
+                "Auth.SessionInvalidated" => "Sessão encerrada. Faça login novamente.",
+                "Auth.PasswordChanged" => "A senha da conta foi alterada. Faça login novamente.",
+                "Auth.ValidationUnavailable" => "Não foi possível validar a sessão no momento.",
+                _ => "Sessão expirada."
+            };
+
+            context.Response.StatusCode = code == "Auth.ValidationUnavailable"
+                ? StatusCodes.Status503ServiceUnavailable
+                : StatusCodes.Status401Unauthorized;
+
+            await context.Response.WriteAsJsonAsync(new
+            {
+                success = false,
+                data = (object?)null,
+                error = new { code, message }
+            });
+        },
+
+        OnTokenValidated = async context =>
+        {
+            try
+            {
+                var userIdClaim = context.Principal?
+                    .FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?
+                    .Value;
+
+                var roleClaim = context.Principal?
+                    .FindFirst(System.Security.Claims.ClaimTypes.Role)?
+                    .Value;
+
+                var tokenVersionClaim = context.Principal?
+                    .FindFirst("token_version")?
+                    .Value;
+
+                // Claims obrigatórias
+                if (string.IsNullOrWhiteSpace(userIdClaim) ||
+                    string.IsNullOrWhiteSpace(roleClaim) ||
+                    string.IsNullOrWhiteSpace(tokenVersionClaim))
                 {
-                    var jwt = builder.Configuration.GetSection("Jwt");
+                    context.HttpContext.Items["AuthErrorCode"] = "Auth.SessionInvalidated";
+                    context.Fail("Token inválido.");
+                    return;
+                }
 
-                    options.TokenValidationParameters = new TokenValidationParameters
+                if (!int.TryParse(userIdClaim, out var userId))
+                {
+                    context.HttpContext.Items["AuthErrorCode"] = "Auth.SessionInvalidated";
+                    context.Fail("Token inválido.");
+                    return;
+                }
+
+                if (!int.TryParse(tokenVersionClaim, out var tokenVersion))
+                {
+                    context.HttpContext.Items["AuthErrorCode"] = "Auth.SessionInvalidated";
+                    context.Fail("Token inválido.");
+                    return;
+                }
+
+                // Pega o DbContext que já está registrado no DI
+                var db = context.HttpContext.RequestServices
+                    .GetRequiredService<AppDbContext>();
+
+                // SESSÃO (dispositivo)
+                // Verificada primeiro para devolver o MOTIVO certo quando
+                // ela foi encerrada (conta excluída, senha alterada,
+                // dispositivo removido em "Dispositivos conectados").
+                var sessionIdClaim = context.Principal?
+                    .FindFirst("session_id")?
+                    .Value;
+
+                if (!int.TryParse(sessionIdClaim, out var sessionId) ||
+                    !Enum.TryParse<Baldan.Pricing.Application.Domain.Enums.ProfileEnum>(roleClaim, out var sessionRole))
+                {
+                    context.HttpContext.Items["AuthErrorCode"] = "Auth.SessionInvalidated";
+                    context.Fail("Sessão inválida.");
+                    return;
+                }
+
+                var session = await db.UserSessions
+                    .AsNoTracking()
+                    .Where(x => x.Id == sessionId
+                             && x.UserId == userId
+                             && x.Role == sessionRole)
+                    .Select(x => new
                     {
-                        ValidateIssuer = true,
-                        ValidateAudience = true,
-                        ValidateLifetime = true,
-                        ValidateIssuerSigningKey = true,
-                        ValidIssuer = jwt["Issuer"],
-                        ValidAudience = jwt["Audience"],
-                        IssuerSigningKey = new SymmetricSecurityKey(
-                            Encoding.UTF8.GetBytes(jwt["Key"]!)
-                        ),
-                    ClockSkew = TimeSpan.Zero
+                        x.ExpiresAt,
+                        x.RevokedAt,
+                        x.RevokedReason
+                    })
+                    .FirstOrDefaultAsync();
 
+                if (session is not null && session.RevokedAt is not null)
+                {
+                    context.HttpContext.Items["AuthErrorCode"] = session.RevokedReason switch
+                    {
+                        Mercado.Craibas.Application.Domain.Enums.SessionRevokeReasonEnum.UserDeleted => "Auth.UserDeleted",
+                        Mercado.Craibas.Application.Domain.Enums.SessionRevokeReasonEnum.PasswordChanged => "Auth.PasswordChanged",
+                        _ => "Auth.SessionInvalidated"
                     };
-                });
+                    context.Fail("Sessão encerrada.");
+                    return;
+                }
+
+                // CLIENTE
+                if (roleClaim == "CLIENTE")
+                {
+                    var user = await db.User_Customer
+                        .FirstOrDefaultAsync(x => x.Id == userId);
+
+                    if (user is null)
+                    {
+                        context.HttpContext.Items["AuthErrorCode"] = "Auth.UserDeleted";
+                        context.Fail("Usuário não encontrado.");
+                        return;
+                    }
+
+                    if (user.Isdelete == true)
+                    {
+                        context.HttpContext.Items["AuthErrorCode"] = "Auth.UserDeleted";
+                        context.Fail("Usuário excluído.");
+                        return;
+                    }
+
+                    if (!user.Ativo)
+                    {
+                        context.HttpContext.Items["AuthErrorCode"] = "Auth.UserInactive";
+                        context.Fail("Usuário inativo.");
+                        return;
+                    }
+
+                    if (user.TokenVersion != tokenVersion)
+                    {
+                        context.HttpContext.Items["AuthErrorCode"] = "Auth.SessionInvalidated";
+                        context.Fail("Token invalidado.");
+                        return;
+                    }
+                }
+
+                // ADMIN
+                else if (roleClaim == "ADMIN")
+                {
+                    var user = await db.User_Admin
+                        .FirstOrDefaultAsync(x => x.Id == userId);
+
+                    if (user is null)
+                    {
+                        context.HttpContext.Items["AuthErrorCode"] = "Auth.UserDeleted";
+                        context.Fail("Usuário não encontrado.");
+                        return;
+                    }
+
+                    if (user.Isdelete == true)
+                    {
+                        context.HttpContext.Items["AuthErrorCode"] = "Auth.UserDeleted";
+                        context.Fail("Usuário excluído.");
+                        return;
+                    }
+
+                    if (!user.Ativo)
+                    {
+                        context.HttpContext.Items["AuthErrorCode"] = "Auth.UserInactive";
+                        context.Fail("Usuário inativo.");
+                        return;
+                    }
+
+                    if (user.TokenVersion != tokenVersion)
+                    {
+                        context.HttpContext.Items["AuthErrorCode"] = "Auth.SessionInvalidated";
+                        context.Fail("Token invalidado.");
+                        return;
+                    }
+                }
+
+                // DELIVERY
+                else if (roleClaim == "DELIVERY")
+                {
+                    var user = await db.User_Delivery
+                        .FirstOrDefaultAsync(x => x.Id == userId);
+
+                    if (user is null)
+                    {
+                        context.HttpContext.Items["AuthErrorCode"] = "Auth.UserDeleted";
+                        context.Fail("Usuário não encontrado.");
+                        return;
+                    }
+
+                    if (user.Isdelete == true)
+                    {
+                        context.HttpContext.Items["AuthErrorCode"] = "Auth.UserDeleted";
+                        context.Fail("Usuário excluído.");
+                        return;
+                    }
+
+                    if (!user.Ativo)
+                    {
+                        context.HttpContext.Items["AuthErrorCode"] = "Auth.UserInactive";
+                        context.Fail("Usuário inativo.");
+                        return;
+                    }
+
+                    if (user.TokenVersion != tokenVersion)
+                    {
+                        context.HttpContext.Items["AuthErrorCode"] = "Auth.SessionInvalidated";
+                        context.Fail("Token invalidado.");
+                        return;
+                    }
+                }
+
+                else
+                {
+                    context.HttpContext.Items["AuthErrorCode"] = "Auth.SessionInvalidated";
+                    context.Fail("Perfil de usuário inválido.");
+                    return;
+                }
+
+                // SESSÃO (dispositivo) precisa continuar ativa
+                if (session is null || session.ExpiresAt <= DateTime.UtcNow)
+                {
+                    context.HttpContext.Items["AuthErrorCode"] = "Auth.SessionInvalidated";
+                    context.Fail("Sessão encerrada.");
+                    return;
+                }
+            }
+            catch
+            {
+                context.HttpContext.Items["AuthErrorCode"] = "Auth.ValidationUnavailable";
+                context.Fail("Não foi possível validar o usuário.");
+            }
+        }
+    };
+});
 
             builder.Services.AddAuthorization();
 
@@ -109,6 +374,8 @@ namespace Pricing.Api
             builder.Services.AddScoped<ICupomService, CupomService>();
             builder.Services.AddScoped<ICategoriaServiceAdmin, CategoriaServiceAdmin>();
             builder.Services.AddScoped<IUserServiceAdmin, UserServiceAdmin>();
+            builder.Services.AddScoped<IDeletionRecordService, DeletionRecordService>();
+            builder.Services.AddScoped<ITrashServiceAdmin, TrashServiceAdmin>();
             builder.Services.AddScoped<IPasswordHasher, PasswordHasher>();
             //builder.Services.AddScoped<IProfileRepository, ProfileRepository>();
             //builder.Services.AddScoped<IDashboardRepository, DashboardRepository>();

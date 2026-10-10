@@ -3,10 +3,13 @@ using Backend.Services.Interfaces;
 using Baldan.Pricing.Application.Commons;
 using Baldan.Pricing.Application.Domain.Auth;
 using Baldan.Pricing.Application.Domain.Entities;
+using Baldan.Pricing.Application.Domain.Enums;
 using Baldan.Pricing.Application.Interfaces;
 using Baldan.Pricing.Application.Interfaces.Repositories;
 using BCrypt.Net;
+using Microsoft.Extensions.Caching.Memory;
 using Mercado.Craibas.Application.Domain.Entities;
+using Mercado.Craibas.Application.Domain.Enums;
 using Mercado.Craibas.Application.DTOs.Requests;
 using Mercado.Craibas.Application.DTOs.Responses;
 using Mercado.Craibas.Application.Interfaces;
@@ -25,6 +28,7 @@ public class AuthService : IAuthService
     private readonly IPasswordHasher _passwordHasher;
     private readonly IEmailService _email;
     private readonly INotificationService _notification;
+    private readonly IMemoryCache _cache;
 
 
     public AuthService(
@@ -34,9 +38,11 @@ public class AuthService : IAuthService
         IUserService userService,
         IPasswordHasher passwordHasher,
         IEmailService email,
-         INotificationService notification
+         INotificationService notification,
+        IMemoryCache cache
         )
     {
+        _cache = cache;
         _tokenService = tokenService;
         _authRepository = authRepository;
         _unitOfWork = unitOfWork;
@@ -61,8 +67,9 @@ public class AuthService : IAuthService
     {
         if (!string.IsNullOrWhiteSpace(refreshToken))
         {
-            await _authRepository.ClearRefreshTokenAsync(refreshToken);
-            await _unitOfWork.CommitAsync();
+            // Remove somente a sessão deste dispositivo
+            await _authRepository.DeleteSessionByTokenHashAsync(
+                TokenHasher.Hash(refreshToken));
         }
 
         return Result.Success();
@@ -186,7 +193,7 @@ public class AuthService : IAuthService
     //        Role = User.Role
     //    });
     //}
-    public async Task<Result<LoginResponse>> LoginAsync(LoginRequest request)
+    public async Task<Result<LoginResponse>> LoginAsync(LoginRequest request, string? userAgent, string? ipAddress, string? currentRefreshToken)
     {
         UserResponse? User = null;
 
@@ -204,7 +211,9 @@ public class AuthService : IAuthService
                 Ativo = User_Costumer.Ativo,
                 PasswordHash = User_Costumer.PasswordHash,
                 RefreshToken = User_Costumer.RefreshToken,
-                RefreshTokenExpiresAt = User_Costumer.RefreshTokenExpiresAt
+                RefreshTokenExpiresAt = User_Costumer.RefreshTokenExpiresAt,
+                Isdelete = User_Costumer.Isdelete ?? false,
+                TokenVersion = User_Costumer.TokenVersion
             };
         }
 
@@ -224,7 +233,10 @@ public class AuthService : IAuthService
                     Ativo = User_Admin.Ativo,
                     PasswordHash = User_Admin.PasswordHash,
                     RefreshToken = User_Admin.RefreshToken,
-                    RefreshTokenExpiresAt = User_Admin.RefreshTokenExpiresAt
+                    RefreshTokenExpiresAt = User_Admin.RefreshTokenExpiresAt,
+                    Isdelete = User_Admin.Isdelete ?? false,
+                    TokenVersion = User_Admin.TokenVersion
+
                 };
             }
         }
@@ -245,7 +257,9 @@ public class AuthService : IAuthService
                     Ativo = User_Delvery.Ativo,
                     PasswordHash = User_Delvery.PasswordHash,
                     RefreshToken = User_Delvery.RefreshToken,
-                    RefreshTokenExpiresAt = User_Delvery.RefreshTokenExpiresAt
+                    RefreshTokenExpiresAt = User_Delvery.RefreshTokenExpiresAt,
+                    Isdelete = User_Delvery.Isdelete ?? false,
+                    TokenVersion = User_Delvery.TokenVersion
                 };
             }
         }
@@ -256,41 +270,63 @@ public class AuthService : IAuthService
             return Result<LoginResponse>.Failure(AuthErrors.InvalidCredentials);
         }
 
-        if (!User.Ativo)
-        {
-            return Result<LoginResponse>.Failure(Error.Failure("Usuário", "Usuário Inativo! Entre em contato com suporte."));
-        }
-
         if (string.IsNullOrWhiteSpace(User.PasswordHash) || !BCrypt.Net.BCrypt.Verify(request.Password,User.PasswordHash))
         {
             return Result<LoginResponse>.Failure(Error.Failure("Credências", "Credências inválida."));
 
         }
+        if (!User.Ativo)
+        {
+            return Result<LoginResponse>.Failure(Error.Failure("Usuário", "Usuário Inativo! Entre em contato com suporte."));
+        }
+
+        if (User.Isdelete)
+        {
+            return Result<LoginResponse>.Failure(Error.Failure("Usuário", "Usuário Excluido! Entre em contato com suporte."));
+        }
+        // Se este navegador já tinha uma sessão (novo login no mesmo navegador),
+        // ela é substituída em vez de virar um dispositivo duplicado na lista.
+        if (!string.IsNullOrWhiteSpace(currentRefreshToken))
+        {
+            await _authRepository.DeleteSessionByTokenHashAsync(
+                TokenHasher.Hash(currentRefreshToken));
+        }
+
+        // Limpa sessões vencidas deste usuário
+        await _authRepository.DeleteExpiredSessionsAsync(User.Id, User.Role);
+
+        // Cria uma NOVA sessão para este dispositivo (não derruba as outras)
+        var refreshToken = _tokenService.GenerateRefreshToken();
+
+        var now = DateTime.UtcNow;
+
+        var refreshTokenExpiresAt = now.AddDays(RefreshTokenDays);
+
+        var device = DeviceInfoParser.Parse(userAgent);
+
+        var sessionId = await _authRepository.CreateSessionAsync(
+            new UserSession
+            {
+                UserId = User.Id,
+                Role = User.Role,
+                RefreshTokenHash = TokenHasher.Hash(refreshToken),
+                DeviceName = device.Name,
+                DeviceType = device.Type,
+                UserAgent = Truncate(userAgent, 500),
+                IpAddress = Truncate(ipAddress, 64),
+                InsertDate = now,
+                LastUsedAt = now,
+                ExpiresAt = refreshTokenExpiresAt
+            });
 
         var accessToken = _tokenService.GenerateAccessToken(
             User.Id,
             User.Email,
-            User.Role);
-
-        var refreshToken = _tokenService.GenerateRefreshToken();
-
-        var refreshTokenExpiresAt =
-            DateTime.UtcNow.AddDays(20);
-
-        await _authRepository.UpdateRefreshTokenAsync(
-            User.Id,
             User.Role,
-            refreshToken,
-            refreshTokenExpiresAt);
+            User.TokenVersion,
+            sessionId);
 
-        var nomeUsuario = string.Join(
-            " ",
-            User.Name
-                .Split(
-                    ' ',
-                    StringSplitOptions.RemoveEmptyEntries)
-                .Take(2)
-        );
+        var nomeUsuario = string.Join(" ",User.Name.Split(' ',StringSplitOptions.RemoveEmptyEntries).Take(2));
 
         var logMensagem = User.Role.ToString() switch
         {
@@ -305,7 +341,7 @@ public class AuthService : IAuthService
             {
                 Id_User = User.Id,
                 Log = logMensagem,
-                Tipo = "Acesso",
+                Tipo = "ACESSO",
                 Nivel = User.Role.ToString(),
                 Acao = $"{nomeUsuario} acessou o sistema",
                 Info = $"Acessou o sistema em {DateTime.Now:dd/MM/yyyy HH:mm:ss}",
@@ -327,52 +363,298 @@ public class AuthService : IAuthService
         );
     }
 
-    public async Task<Result<LoginResponse>> RefreshAsync(string refreshToken)
+    //public async Task<Result<LoginResponse>> RefreshAsync(string refreshToken)
+    //{
+    //    if (string.IsNullOrWhiteSpace(refreshToken))
+    //    {
+    //        return Result<LoginResponse>.Failure(AuthErrors.InvalidRefreshToken);
+    //    }
+
+    //    var user = await _authRepository.GetByRefreshTokenAsync(refreshToken);
+
+    //    if (user == null)
+    //    {
+    //        return Result<LoginResponse>.Failure(AuthErrors.InvalidRefreshToken);
+    //    }
+
+    //    // Verifica se o Refresh Token expirou
+    //    if (!user.RefreshTokenExpiresAt.HasValue || user.RefreshTokenExpiresAt.Value <= DateTime.UtcNow)
+    //    {
+    //        return Result<LoginResponse>.Failure(AuthErrors.InvalidRefreshToken);
+    //    }
+
+    //    var accessToken = _tokenService.GenerateAccessToken(
+    //        user.Id,
+    //        user.Email,
+    //        user.Role,
+    //        user.TokenVersion);
+
+    //    var newRefreshToken = _tokenService.GenerateRefreshToken();
+
+    //    var newExpiresAt = DateTime.UtcNow.AddDays(20);
+
+    //    await _authRepository.UpdateRefreshTokenAsync(
+    //        user.Id,
+    //        user.Role,
+    //        newRefreshToken,
+    //        newExpiresAt);
+
+    //    await _unitOfWork.CommitAsync();
+
+    //    return Result<LoginResponse>.Success(new LoginResponse
+    //    {
+    //        AccessToken = accessToken,
+    //        RefreshToken = newRefreshToken,
+    //        RefreshTokenExpiresAt = newExpiresAt,
+    //        Role = user.Role
+    //    });
+
+    //}
+
+
+    public async Task<Result<LoginResponse>> RefreshAsync(string refreshToken, string? ipAddress)
     {
         if (string.IsNullOrWhiteSpace(refreshToken))
         {
             return Result<LoginResponse>.Failure(AuthErrors.InvalidRefreshToken);
         }
 
-        var user = await _authRepository.GetByRefreshTokenAsync(refreshToken);
+        // Procura a sessão deste dispositivo pelo hash do token
+        var session = await _authRepository.GetSessionByTokenHashAsync(
+            TokenHasher.Hash(refreshToken));
 
-        if (user == null)
+        if (session is null)
         {
             return Result<LoginResponse>.Failure(AuthErrors.InvalidRefreshToken);
         }
 
-        // Verifica se o Refresh Token expirou
-        if (!user.RefreshTokenExpiresAt.HasValue || user.RefreshTokenExpiresAt.Value <= DateTime.UtcNow)
+        // Sessão encerrada: devolve o motivo e remove a sessão
+        // (o dispositivo recebe a mensagem uma única vez)
+        if (session.RevokedAt is not null)
         {
+            await _authRepository.DeleteSessionByIdAsync(session.Id);
+
+            return Result<LoginResponse>.Failure(session.RevokedReason switch
+            {
+                SessionRevokeReasonEnum.UserDeleted => AuthErrors.UserDeleted,
+                SessionRevokeReasonEnum.PasswordChanged => AuthErrors.PasswordChanged,
+                _ => AuthErrors.SessionInvalidated
+            });
+        }
+
+        // Sessão vencida
+        if (session.ExpiresAt <= DateTime.UtcNow)
+        {
+            await _authRepository.DeleteSessionByIdAsync(session.Id);
+
             return Result<LoginResponse>.Failure(AuthErrors.InvalidRefreshToken);
         }
 
+        var user = await _authRepository.GetUserByIdAsync(session.UserId, session.Role);
+
+        // Usuário não existe mais
+        if (user is null)
+        {
+            await _authRepository.DeleteSessionByIdAsync(session.Id);
+
+            return Result<LoginResponse>.Failure(AuthErrors.UserDeleted);
+        }
+
+        // Usuário excluído
+        if (user.Isdelete)
+        {
+            return Result<LoginResponse>.Failure(AuthErrors.UserDeleted);
+        }
+
+        // Usuário inativo
+        if (!user.Ativo)
+        {
+            return Result<LoginResponse>.Failure(AuthErrors.UserInactive);
+        }
+
+        // Rotaciona o Refresh Token somente desta sessão
+        var newRefreshToken = _tokenService.GenerateRefreshToken();
+
+        var newExpiresAt = DateTime.UtcNow.AddDays(RefreshTokenDays);
+
+        await _authRepository.UpdateSessionTokenAsync(
+            session.Id,
+            TokenHasher.Hash(newRefreshToken),
+            newExpiresAt,
+            Truncate(ipAddress, 64));
+
+        // Novo Access Token com a versão atual e a mesma sessão
         var accessToken = _tokenService.GenerateAccessToken(
             user.Id,
             user.Email,
-            user.Role);
-
-        var newRefreshToken = _tokenService.GenerateRefreshToken();
-
-        var newExpiresAt = DateTime.UtcNow.AddDays(20);
-
-        await _authRepository.UpdateRefreshTokenAsync(
-            user.Id,
             user.Role,
-            newRefreshToken,
-            newExpiresAt);
+            user.TokenVersion,
+            session.Id);
 
-        await _unitOfWork.CommitAsync();
-
-        return Result<LoginResponse>.Success(new LoginResponse
-        {
-            AccessToken = accessToken,
-            RefreshToken = newRefreshToken,
-            RefreshTokenExpiresAt = newExpiresAt,
-            Role = user.Role
-        });
-
+        return Result<LoginResponse>.Success(
+            new LoginResponse
+            {
+                AccessToken = accessToken,
+                RefreshToken = newRefreshToken,
+                RefreshTokenExpiresAt = newExpiresAt,
+                Role = user.Role
+            }
+        );
     }
+
+    // ───────────── Dispositivos conectados ─────────────
+
+    public async Task<Result<List<UserSessionResponse>>> GetSessionsAsync(
+        int userId,
+        ProfileEnum role,
+        int currentSessionId)
+    {
+        var sessions = await _authRepository.GetActiveSessionsAsync(userId, role);
+
+        var response = sessions
+            .Select(x => new UserSessionResponse
+            {
+                Id = x.Id,
+                DeviceName = x.DeviceName,
+                DeviceType = x.DeviceType,
+                // O banco devolve DateTime sem "Kind": marca como UTC para o
+                // front converter corretamente para o horário local.
+                CreatedAt = DateTime.SpecifyKind(x.InsertDate, DateTimeKind.Utc),
+                LastUsedAt = DateTime.SpecifyKind(x.LastUsedAt, DateTimeKind.Utc),
+                IsCurrent = x.Id == currentSessionId
+            })
+            .OrderByDescending(x => x.IsCurrent)
+            .ThenByDescending(x => x.LastUsedAt)
+            .ToList();
+
+        return Result<List<UserSessionResponse>>.Success(response);
+    }
+
+    public async Task<Result<bool>> RevokeSessionAsync(
+        int userId,
+        ProfileEnum role,
+        int sessionId,
+        int currentSessionId,
+        string? password)
+    {
+        // Confirma que é o dono da conta (senha)
+        var reauth = await EnsureRecentPasswordAsync(userId, role, currentSessionId, password);
+        if (reauth is not null)
+        {
+            return Result<bool>.Failure(reauth);
+        }
+
+        if (sessionId == currentSessionId)
+        {
+            return Result<bool>.Failure(
+                Error.Validation(
+                    "Dispositivo",
+                    "Para desconectar este dispositivo, use a opção Sair."));
+        }
+
+        var removed = await _authRepository.RevokeUserSessionAsync(userId, role, sessionId);
+
+        if (!removed)
+        {
+            return Result<bool>.Failure(
+                Error.NotFound(
+                    "Dispositivo",
+                    "Dispositivo não encontrado ou já desconectado."));
+        }
+
+        return Result<bool>.Success(true);
+    }
+
+    public async Task<Result<int>> RevokeOtherSessionsAsync(
+        int userId,
+        ProfileEnum role,
+        int currentSessionId,
+        string? password)
+    {
+        // Confirma que é o dono da conta (senha)
+        var reauth = await EnsureRecentPasswordAsync(userId, role, currentSessionId, password);
+        if (reauth is not null)
+        {
+            return Result<int>.Failure(reauth);
+        }
+
+        var removed = await _authRepository.RevokeOtherUserSessionsAsync(userId, role, currentSessionId);
+
+        return Result<int>.Success(removed);
+    }
+
+    private const int RefreshTokenDays = 20;
+
+    // ───────────── Confirmação de senha (ações sensíveis) ─────────────
+
+    /// <summary>Por quanto tempo a senha confirmada vale nesta sessão.</summary>
+    private static readonly TimeSpan ReauthWindow = TimeSpan.FromMinutes(10);
+
+    /// <summary>Tentativas erradas permitidas antes do bloqueio.</summary>
+    private const int ReauthMaxAttempts = 5;
+
+    /// <summary>Tempo de bloqueio após errar demais.</summary>
+    private static readonly TimeSpan ReauthLockTime = TimeSpan.FromMinutes(10);
+
+    /// <summary>
+    /// Garante que o usuário confirmou a senha recentemente nesta sessão.
+    ///
+    /// - Já confirmou nos últimos 10 minutos → segue sem pedir de novo.
+    /// - Enviou a senha → valida; se correta, libera por 10 minutos.
+    /// - 5 senhas erradas → bloqueia por 10 minutos.
+    ///
+    /// Retorna null quando liberado, ou o erro a devolver.
+    /// </summary>
+    private async Task<Error?> EnsureRecentPasswordAsync(int userId, ProfileEnum role, int sessionId, string? password)
+    {
+        var reauthKey = $"reauth:session:{sessionId}";
+        var attemptsKey = $"reauth:attempts:{role}:{userId}";
+
+        if (_cache.TryGetValue(reauthKey, out bool _))
+        {
+            return null;
+        }
+
+        if (_cache.TryGetValue(attemptsKey, out int attempts) && attempts >= ReauthMaxAttempts)
+        {
+            return Error.Validation("Auth.ReauthLocked", "Muitas tentativas incorretas. Aguarde alguns minutos e tente novamente.");
+        }
+
+        if (string.IsNullOrWhiteSpace(password))
+        {
+            return Error.Validation("Auth.ReauthRequired", "Confirme sua senha para continuar.");
+        }
+
+        var user = await _authRepository.GetUserByIdAsync(userId, role);
+
+        if (user is null || !_passwordHasher.Verify(password, user.PasswordHash))
+        {
+            attempts++;
+            _cache.Set(attemptsKey, attempts, ReauthLockTime);
+
+            var remaining = ReauthMaxAttempts - attempts;
+
+            return remaining > 0
+                ? Error.Validation("Auth.InvalidPassword", $"Senha incorreta. Você tem mais {remaining} tentativa(s).")
+                : Error.Validation("Auth.ReauthLocked", "Muitas tentativas incorretas. Aguarde alguns minutos e tente novamente.");
+        }
+
+        _cache.Remove(attemptsKey);
+        _cache.Set(reauthKey, true, ReauthWindow);
+
+        return null;
+    }
+
+    private static string? Truncate(string? value, int maxLength)
+    {
+        if (string.IsNullOrEmpty(value))
+        {
+            return value;
+        }
+
+        return value.Length <= maxLength ? value : value[..maxLength];
+    }
+
     public async Task<Result<bool>> ChangePassword(int userId,ChangePasswordRequest request)
     {
         // 1. Validar request
@@ -413,9 +695,7 @@ public class AuthService : IAuthService
         }
 
         // 6. Buscar usuário
-        var user = await _unitOfWork.GetClassAsyncWhere<User_Customer>(
-            x => x.Id == userId
-        );
+        var user = await _unitOfWork.GetClassAsyncWhere<User_Customer>(x => x.Id == userId);
 
         if (user == null)
         {
@@ -454,6 +734,10 @@ public class AuthService : IAuthService
 
             }
         );
+
+        // 11. Derruba todas as sessões em todos os dispositivos
+        //     (TokenVersion + 1 e apaga o Refresh Token)
+        await _authRepository.InvalidateSessionsAsync(user.Id, ProfileEnum.CLIENTE, SessionRevokeReasonEnum.PasswordChanged);
         var layoutEmail = $@"
                  <!DOCTYPE html>
                  <html lang='pt-BR'>

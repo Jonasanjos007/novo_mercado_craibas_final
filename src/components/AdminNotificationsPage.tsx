@@ -20,15 +20,16 @@ import {
   UserPlus,
   Star,
   Pencil,
-  LockKeyhole
+  LockKeyhole,
+  UserX
 } from 'lucide-react';
 import { useAdminController } from '../controller/useAdminController';
 import { UseNotificationAdmin } from '../storeAdmin/UseNotificationAdmin';
 import { useNotification } from '../utils/NotificationCard';
 import { NotificationModel } from '../models/NotificationModel';
-import { AdminTab } from '../models/OrderSave';
+import { AdminTab } from '../models/Order';
 
-export type AdminNotificationKind = 'ORDER' | 'stock' | 'promotion' | 'Read' | 'PASSWORD_CHANGE' | 'CADASTRO' | 'ASSESSMENT';
+export type AdminNotificationKind = 'ORDER' | 'stock' | 'promotion' | 'Read' | 'PASSWORD_CHANGE' | 'CADASTRO' | 'ASSESSMENT' | 'USUARIO' | 'USUARIO_EXCLUIDO' ;
 
 export type AdminNotificationItem = {
   id: string;
@@ -119,7 +120,13 @@ const kindConfig = {
     bg: 'bg-orange-500/20',
     ring: 'ring-orange-500/40'
   },
-
+  'USUARIO_EXCLUIDO': {
+    label: 'Usuários Excluídos',
+    icon: UserX,
+    color: 'text-red-400',
+    bg: 'bg-red-500/20',
+    ring: 'ring-red-500/40'
+  },
 } as const;
 function getNotificationKind(
   item: NotificationModel
@@ -132,6 +139,12 @@ function getNotificationKind(
     value.includes('pedido')
   ) {
     return 'ORDER';
+  }
+  if (
+    value.includes('USUARIO_EXCLUIDO') ||
+    value.includes('usuário_excluído')
+  ) {
+    return 'USUARIO_EXCLUIDO';
   }
 
   // Estoque / Produtos
@@ -318,6 +331,8 @@ export default function AdminNotificationsPage({ darkMode, notifications, onNavi
   const unreadSegurancy = Notification.filter(item => item.isRead === false && item.referenceType === "PASSWORD_CHANGE" && matchesSelectedPeriod(item.insertDate)).length;
   const unreadCadastro = Notification.filter(item => item.isRead === false && item.referenceType === "CADASTRO" && matchesSelectedPeriod(item.insertDate)).length;
   const unreadAvaliacao = Notification.filter(item => item.isRead === false && item.referenceType === "ASSESSMENT" && matchesSelectedPeriod(item.insertDate)).length;
+  const unreadUsuario = Notification.filter(item => item.isRead === false && item.referenceType === "USUARIO" && matchesSelectedPeriod(item.insertDate)).length;
+  const unreadUsuarioDelete = Notification.filter(item => item.isRead === false && item.referenceType === "USUARIO_EXCLUIDO" && matchesSelectedPeriod(item.insertDate)).length;
 
 
 
@@ -331,6 +346,8 @@ export default function AdminNotificationsPage({ darkMode, notifications, onNavi
     { id: 'stock', label: `Estoque(Colocar)` },
     { id: 'promotion', label: 'Promoções(Colocar)' },
     { id: 'PASSWORD_CHANGE', label: `Segurança(${unreadSegurancy})` },
+    { id: 'USUARIO', label: `USUARIO(${unreadUsuario})` },
+    { id: 'USUARIO_EXCLUIDO', label: `Usuários Excluídos(${unreadUsuarioDelete})` },
     //  { id: 'system', label: 'Sistema(Colocar)' },
     { id: 'Read', label: `Lidas(${unreadAllRead})` },
 

@@ -2,7 +2,7 @@ import { api } from "../config/api";
 import { CartItensProduct } from "../models/CartItensProduct";
 import { Cupom, CupomAdmin, UpdateCouponRequest } from "../models/Cupom";
 import { Logs } from "../models/Logs";
-import { OrderSave, Order } from "../models/OrderSave";
+import { OrderSave, Order } from "../models/Order";
 import { Category, Product } from "../models/Product";
 import { makeResult, Result } from "../utils/Result";
 
@@ -48,9 +48,11 @@ export const CupomServiceAdmin = {
             return makeResult(false, false, err.response?.data);
         }
     },
-    DeleteCupom: async (IdCupom: number): Promise<Result<boolean>> => {
+    DeleteCupom: async (IdCupom: number, reason: string): Promise<Result<boolean>> => {
         try {
-            await api.delete("/admin/cupom/DeleteCupom/" + IdCupom);
+            await api.delete("/admin/cupom/DeleteCupom/" + IdCupom, {
+                params: { reason }
+            });
             return makeResult(true, true);
         } catch (err: any) {
             console.log(err);

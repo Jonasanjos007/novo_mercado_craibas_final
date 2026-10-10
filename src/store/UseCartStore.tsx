@@ -42,7 +42,6 @@ export const UseCartStore = create<CartState>((set, get) => ({
         }
 
         const cart = await CartService.getCartProducts();
-        console.log("cart1234", cart)
         if (!cart.success) {
             set({ cart: CartVazio });
             return makeResult(false, false, cart.error);
@@ -52,10 +51,10 @@ export const UseCartStore = create<CartState>((set, get) => ({
         return makeResult(true);
     },
     addToCart: async (item) => {
-        const cart = get().cart ?? [];
+        const cart = get().cart;
         const existing = cart.cartItensProduct.find(c => c.product?.id === item.product?.id && c.selectedVariation?.id === item.selectedVariation?.id);
         if (existing) {
-            const result = await ProductsService.PostCartProductExistent(existing, "Soma");
+            const result = await ProductsService.PostCartProductExistent(existing, "Soma", item.quantity);
             if (!result.success) {
                 return makeResult(false, false, result.error);
 
@@ -136,7 +135,6 @@ export const UseCartStore = create<CartState>((set, get) => ({
     clearCart: () => set({ cart: CartVazio }),
     cartCount: () => {
         const cart = get().cart || [];
-        console.log("joanscart", cart)
         return cart.cartItensProduct.reduce((acc, item) => {
             return acc + item.quantity;
         }, 0);

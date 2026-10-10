@@ -1,4 +1,6 @@
 import { useEffect, useState } from "react";
+import { useAuthStore } from "../context/AuthContext";
+import { useSessionStore } from "../store/SessionStore";
 import { useStore } from "../context/store";
 import { Address } from "../models/Address";
 import { useNotification } from "../utils/NotificationCard";
@@ -8,7 +10,7 @@ import { UseUserStore } from "../store/UseUserStore";
 import { UseOrderStore } from "../store/UseOrderStore";
 import { ChangePassword, UserProfile } from "../models/User";
 import { UseProductStore } from "../store/UseProductStore";
-import { RatingResponse } from "../models/OrderSave";
+import { RatingResponse } from "../models/Order";
 import { Product } from "../models/Product";
 
 type ProfileControllerReturn = {
@@ -64,7 +66,7 @@ type ProfileControllerReturn = {
 type FormData = {
     name: string;
     email: string;
-    phone: number;
+    phone: string;
 };
 export const userProfileController = (): ProfileControllerReturn => {
     const { user, SaveColorGlobal, updateProfile, LoadUser, SaveChangePassword } = UseUserStore();
@@ -90,7 +92,7 @@ export const userProfileController = (): ProfileControllerReturn => {
     const [form, setForm] = useState<FormData>({
         name: user?.name ?? '',
         email: user?.email ?? '',
-        phone: user?.phone ?? 0,
+        phone: user?.phone ?? '',
     });
     const [passwordForm, setPasswordForm] = useState<ChangePassword>({
         currentPassword: '',
@@ -130,7 +132,6 @@ export const userProfileController = (): ProfileControllerReturn => {
     }, []);
     const GetListFavorites = async () => {
         const result = await GetfavoriteAll();
-        console.log("result.data", result.data);
         if (!result?.success) {
             notify.error(result.error?.error.code || "error", result?.error?.error.message || "Erro ao carregar Favoritos");
         }
@@ -525,8 +526,6 @@ export const userProfileController = (): ProfileControllerReturn => {
                 return;
             }
 
-            notify.success('Sucesso', 'Senha alterada com sucesso!');
-
             // Limpar formulário depois de alterar
             setPasswordForm({
                 currentPassword: '',
@@ -535,6 +534,12 @@ export const userProfileController = (): ProfileControllerReturn => {
             });
 
             setPasswordErrors({});
+
+            // O backend encerrou todas as sessões (inclusive esta).
+            // Mostra o aviso (somente "OK") e encerra a sessão local.
+            // Ao clicar em OK o usuário vai para o login.
+            useSessionStore.getState().open('PASSWORD_CHANGED_SELF');
+            await useAuthStore.getState().logout();
 
         } finally {
             setLoadingPassword(false);

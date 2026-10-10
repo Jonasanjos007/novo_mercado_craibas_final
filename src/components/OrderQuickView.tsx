@@ -2,7 +2,7 @@ import { useEffect } from 'react';
 import { X, MapPin, CreditCard, Package, Calendar, Truck, ShoppingBag, Star } from 'lucide-react';
 import { formatPrice, orderStatusLabels, orderStatusColors, badgeLabels } from '../utils';
 import { useStore } from '../context/store';
-import { Order } from '../models/OrderSave';
+import { Order } from '../models/Order';
 
 interface OrderQuickViewProps {
     order: Order | null;

@@ -5,7 +5,7 @@ import { User } from "../models/User";
 import { Category, Product } from "../models/Product";
 import { OrderService } from "../service/OrderService";
 import { Cupom } from "../models/Cupom";
-import { Order, OrderSave, RatingResponse } from "../models/OrderSave";
+import { Order, OrderSave, RatingResponse } from "../models/Order";
 import { UseUserStore } from "./UseUserStore";
 import { CartItensProduct } from "../models/CartItensProduct";
 import { UseCartStore } from "./UseCartStore";
@@ -43,7 +43,6 @@ export const UseOrderStore = create<OrderState>((set, get) => ({
     },
     LoadOrders: async (): Promise<Result<boolean>> => {
         const result = await OrderService.GetOrderAllList();
-        console.log("resultigi.data", result.data);
         if (!result.success) {
             set({ orders: [] });
             return makeResult(false, false, result.error);
@@ -61,7 +60,7 @@ export const UseOrderStore = create<OrderState>((set, get) => ({
 
         if (!result.success) {
             return makeResult(false, null, result.error);
-        } console.log("result.data teste", result.data)
+        }
         // const total = get().cartTotal();
         // const order: Order = {
         //     id: `ORD-${String(Date.now()).slice(-6)}`,

@@ -2,10 +2,11 @@
 import { ChevronLeft, Lock, ChevronDown, User, Package, Heart, LayoutDashboard, LogOut } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useStore } from '../context/store';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { UseUserStore } from '../store/UseUserStore';
 import { getColorConfig } from '../types/Colors';
 import { useAuthStore } from '../context/AuthContext';
+import { UseUserAdminStore } from '../storeAdmin/UseUserAdminStore';
 
 interface CheckoutHeaderProps {
     title?: string;
@@ -23,6 +24,7 @@ export default function Headerpages({
     const { user, ColorGlobalTema, NameColorGlobal, ColorGlobalHoverText } = UseUserStore();
     const logout = useAuthStore((state) => state.logout);
     const navigate = useNavigate();
+    const { BaseSiteInterface, getBaseSiteAdmin } = UseUserAdminStore()
     const [userMenuOpen, setUserMenuOpen] = useState(false);
     const colorConfig = getColorConfig(NameColorGlobal);
 
@@ -30,7 +32,12 @@ export default function Headerpages({
         if (onBack) onBack();
         else navigate(-1);
     };
-
+    useEffect(() => {
+        const load = async () => {
+            await getBaseSiteAdmin();
+        };
+        load();
+    }, []);
     return (
         <header
             className="sticky top-0 z-50 shadow-strong border-b border-surface-800"
@@ -52,18 +59,43 @@ export default function Headerpages({
                 </div>
 
                 {/* Centro: logo + título */}
-                <button onClick={() => navigate('/')} className="flex items-center gap-2 group shrink-0">
-                    <div className={`w-9 h-9 rounded-xl ${ColorGlobalTema} flex items-center justify-center `} style={{ boxShadow: `0 4px 12px  ${colorConfig.hex}` }}>
-                        <span className="text-white font-display font-bold text-sm">MC</span>
-                    </div>
+                <button
+                    onClick={() => navigate('/')}
+                    className="flex items-center gap-2 group shrink-0"
+                >
+                    {BaseSiteInterface.storeImageIcone ? (
+                        <div className="w-16 h-14 flex items-center justify-center overflow-hidden rounded-xl">
+                            <img
+                                src={`/Imagens/Site/${BaseSiteInterface.storeImageIcone}`}
+                                alt="Logo"
+                                className="w-full h-full object-contain"
+                            />
+                        </div>
+                    ) : (
+                        <div
+                            className={`w-9 h-9 rounded-xl ${ColorGlobalTema} flex items-center justify-center`}
+                            style={{ boxShadow: `0 4px 12px ${colorConfig.hex}`, }}
+                        >
+                            <span className="text-white font-display font-bold text-sm">
+                                MC
+                            </span>
+                        </div>
+                    )}
+
                     <div className="flex items-center gap-1.5">
-                        <span className={`font-display font-bold text-white text-sm ${ColorGlobalHoverText} transition-colors leading-none`}>
-                            Mercado Craibas
+                        <span className={`font-display font-bold text-white text-sm ${ColorGlobalHoverText} transition-colors leading-none`} >
+                            {BaseSiteInterface.storeName ?? "Mercado Craibas"}
                         </span>
+
                         {title && (
                             <>
-                                <span className="text-surface-600 text-sm font-body select-none">·</span>
-                                <span className="text-surface-400 text-sm font-body">{title}</span>
+                                <span className="text-surface-600 text-sm font-body select-none">
+                                    ·
+                                </span>
+
+                                <span className="text-surface-400 text-sm font-body">
+                                    {title}
+                                </span>
                             </>
                         )}
                     </div>

@@ -23,6 +23,9 @@ namespace Mercado.Craibas.Infrastructure.Configurations
             builder.Property(x => x.PasswordHash)
                 .IsRequired();
 
+            builder.Property(x => x.TokenVersion)
+                .IsRequired().HasDefaultValue(1);
+
             builder.Property(x => x.Role)
                 .HasConversion<string>()
                 .HasMaxLength(50);
@@ -53,6 +56,7 @@ namespace Mercado.Craibas.Infrastructure.Configurations
                .WithOne(x => x.User_Customer)
                .HasForeignKey(x => x.Id_User_Customer)
                .OnDelete(DeleteBehavior.Cascade);
+
         }
     }
 }

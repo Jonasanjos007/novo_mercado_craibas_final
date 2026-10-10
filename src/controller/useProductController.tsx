@@ -44,7 +44,6 @@ export const useProductController = (): ProductControllerReturn => {
     const [variationError, setVariationError] = useState(false);
     const [RantingAllProduct, setRantingAllProducte] = useState<RantingAllProduct[]>([]);
     const [tab, setTab] = useState<'desc' | 'reviews'>('desc');
-    console.log('RantingAllProduct', RantingAllProduct)
     useEffect(() => {
         const Response = async () => {
             const result = await loadProducts();
@@ -61,7 +60,6 @@ export const useProductController = (): ProductControllerReturn => {
     }, [id]);
     const GetListCategory = async () => {
         const result = await LoadCategory();
-        console.log("result.data", result.data);
         if (!result?.success) {
             notify.error(result.error?.error.code || "error", result?.error?.error.message || "Erro ao carregar Categoria");
         }
@@ -104,7 +102,7 @@ export const useProductController = (): ProductControllerReturn => {
                 )
                 : undefined;
 
-        const result = await addToCart({ product, quantity, selectedVariation: firstVariation, user: user });
+        const result = await addToCart({ product, quantity, selectedVariation: firstVariation });
         if (!result) {
             notify.error("Erro", "Não foi possível adicionar o produto ao carrinho.");
             return false;

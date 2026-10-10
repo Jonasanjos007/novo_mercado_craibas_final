@@ -5,11 +5,10 @@ import { Address } from "../models/Address";
 export const AddressService = {
     PostSaveAddres: async (Address: Address): Promise<Result<Address>> => {
         try {
-            console.log('request addres', Address);
 
             const response = await api.post("/v1/users/postSaveAddressUser", Address);
             const { success, data, error } = response.data;
-            console.log('request addres', response.data);
+            // console.log('request addres', response.data);
             if (!data) {
                 return makeResult(false, {} as Address, error);
             }
@@ -20,7 +19,6 @@ export const AddressService = {
             console.log(err.response?.data);
             return makeResult(false, {} as Address, err.response?.data);
         }
-
 
     },
     GetAddresByIdUser: async (): Promise<Result<Address[]>> => {

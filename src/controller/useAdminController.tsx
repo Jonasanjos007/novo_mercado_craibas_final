@@ -53,6 +53,7 @@ type AdminControllerReturn = {
         categoryBannerPreviews: string[];
         expandedCategoryImage: string | null;
         categoryDeleteAction: 'move' | 'delete_products';
+        categoryDeleteReason: string;
         reassignCategoryId: number | null;
         productsCategories: Product[];
         categories: Category[];
@@ -83,6 +84,7 @@ type AdminControllerReturn = {
         setCategoryImageFile: React.Dispatch<React.SetStateAction<File | null>>;
         setCategoryBannerFiles: React.Dispatch<React.SetStateAction<File[]>>;
         setCategoryDeleteAction: React.Dispatch<React.SetStateAction<'move' | 'delete_products'>>;
+        setCategoryDeleteReason: React.Dispatch<React.SetStateAction<string>>;
         setReassignCategoryId: React.Dispatch<React.SetStateAction<number | null>>;
         setProductsCategories: React.Dispatch<React.SetStateAction<Product[]>>;
         setCategories: React.Dispatch<React.SetStateAction<Category[]>>;
@@ -118,7 +120,7 @@ type AdminControllerReturn = {
         updateVariant: (id: number, patch: Partial<ProductVariation>) => void;
         removeVariant: (id: number) => void;
         handleSaveProduct: () => void;
-        handleDeleteProduct: () => void;
+        handleDeleteProduct: (reason?: string) => void;
         handleEditeProduct: () => void;
         generateMonthlyRevenue: () => { month: string; year: number; monthIndex: number; total: number; percentage: number; difference: number; }[];
         generateMonthlyOrders: () => { month: string; year: number; monthIndex: number; total: number; percentage: number; difference: number; }[];
@@ -129,7 +131,7 @@ type AdminControllerReturn = {
         handleSaveCoupon: () => void;
         handleUpdateCoupon: () => void;
         UpdateStatusOrder: (id: number, status: string, WhoReceivedIt: string) => void;
-        handleDeleteCoupon: (IdCupom: number) => void;
+        handleDeleteCoupon: (IdCupom: number, reason?: string) => void;
         handleUpdateActiveCoupon: (IdCupom: number) => void;
         handleNext: () => void;
         handleSaveCategory: () => void;
@@ -192,8 +194,6 @@ export const useAdminController = (): AdminControllerReturn => {
 
 
     const [newProduct, setNewProduct] = useState<Partial<ProductAdmin>>({});
-    console.log("newProduct", newProduct)
-    const [ProductDeleteId, setProductDeleteId] = useState<number>();
 
     const [variantErrors, setVariantErrors] = useState<Record<string, string>>({});
     const [cuponsErrors, setCuponsErrors] = useState<Record<string, string>>({});
@@ -222,10 +222,16 @@ export const useAdminController = (): AdminControllerReturn => {
     const [editingCategory, setEditingCategory] = useState<Category | null>(null);
     const [newCategory, setNewCategory] = useState<Partial<Category>>({});
     const [categoryDeleteAction, setCategoryDeleteAction] = useState<'move' | 'delete_products'>('move');
+    const [categoryDeleteReason, setCategoryDeleteReason] = useState('');
     const [reassignCategoryId, setReassignCategoryId] = useState<number | null>(null);
     const [productsCategories, setProductsCategories] = useState<Product[]>(products);
     const [categories, setCategories] = useState<Category[]>(Category);
     const [categoryToDelete, setCategoryToDelete] = useState<CategoryAdmin | null>(null);
+
+    // Limpa o motivo sempre que abrir/fechar a exclusão de categoria
+    useEffect(() => {
+        setCategoryDeleteReason('');
+    }, [categoryToDelete]);
 
     const [categoryErrors, setCategoryErrors] = useState<Partial<Record<keyof Category, string>>>({});
     const [categoryImagePreview, setCategoryImagePreview] = useState<string | null>(null);
@@ -302,7 +308,7 @@ export const useAdminController = (): AdminControllerReturn => {
     const GetListCupons = async () => {
         const result = await LoadcuponsAdmin();
         // SetLoading(false);
-        console.log("ListCupons", result)
+        // console.log("ListCupons", result)
         if (!result?.success) {
             notify.error((result?.error?.error?.code ?? "error"), (result?.error?.error.message || "Erro ao carregar pedidos"));
 
@@ -310,21 +316,21 @@ export const useAdminController = (): AdminControllerReturn => {
     };
     const GetListOrders = async () => {
         const result = await LoadOrdersAdmin();
-        console.log("result.data orders", result.data);
+        // console.log("result.data orders", result.data);
         if (!result?.success) {
             notify.error((result.error?.error.code ?? "error"), (result?.error?.error.message || "Erro ao carregar pedidos"));
         }
     };
     const GetListLogs = async () => {
         const result = await LoadLogsAdmin();
-        console.log("result.data", result.data);
+        // console.log("result.data", result.data);
         if (!result?.success) {
             notify.error((result.error?.error.code ?? "error"), (result?.error?.error.message || "Erro ao carregar logs"));
         }
     };
     const GetListCategory = async () => {
         const result = await LoadCategoryAdmin();
-        console.log("result.data", result.data);
+        // console.log("result.data", result.data);
         if (!result?.success) {
             notify.error((result.error?.error.code ?? "error"), (result?.error?.error.message || "Erro ao carregar Categoria"));
         }
@@ -797,8 +803,8 @@ export const useAdminController = (): AdminControllerReturn => {
         });
         // Imagens
         newProduct.imagens?.forEach((img, index) => {
-            console.log(index, img);
-            console.log(img.file);
+            // console.log(index, img);
+            // console.log(img.file);
 
             if (img.file) {
                 formData.append("Imagens", img.file);
@@ -813,10 +819,10 @@ export const useAdminController = (): AdminControllerReturn => {
         //     formData.append("removedVariants", id.toString());
         // });
 
-        console.log("formData", formData)
-        for (const [key, value] of formData.entries()) {
-            console.log(key, value);
-        }
+        // console.log("formData", formData)
+        // for (const [key, value] of formData.entries()) {
+        //     console.log(key, value);
+        // }
         const result = await PostSaveProductAdmin(formData);
 
         if (!result.success) {
@@ -895,8 +901,8 @@ export const useAdminController = (): AdminControllerReturn => {
         });
         // Imagens
         newProduct.imagens?.forEach((img, index) => {
-            console.log(index, img);
-            console.log(img.file);
+            // console.log(index, img);
+            // console.log(img.file);
 
             if (img.file) {
                 formData.append("Imagens", img.file);
@@ -911,12 +917,12 @@ export const useAdminController = (): AdminControllerReturn => {
             formData.append("removedVariants", id.toString());
         });
 
-        console.log("formData", formData)
-        for (const [key, value] of formData.entries()) {
-            console.log(key, value);
-        }
+        // console.log("formData", formData)
+        // for (const [key, value] of formData.entries()) {
+        //     console.log(key, value);
+        // }
         const result = await PostEditeProductAdmin(formData);
-        console.log("result", result)
+        // console.log("result", result)
         if (!result.success) {
             notify.error((result?.error?.error?.code ?? "error"), (result.error?.error.message || "Erro ao Editar produto"));
             return;
@@ -1014,23 +1020,29 @@ export const useAdminController = (): AdminControllerReturn => {
             setRemovedVariants(old => [...new Set([...old, Number(id)])]);
         }
 
-        console.log("testeid", id)
     };
 
-    const handleDeleteProduct = async () => {
+    const handleDeleteProduct = async (reason?: string) => {
+
+        if (!reason || reason.trim().length < 5) {
+            notify.error("Motivo", "Informe o motivo da exclusão.");
+            return;
+        }
 
         SetLoading(true);
 
-        const result = await DeleteProductId(newProduct.id ?? 0)
+        const result = await DeleteProductId(newProduct.id ?? 0, reason.trim())
+        SetLoading(false);
+
         if (!result.success) {
             notify.error((result?.error?.error?.code ?? "error"), (result.error?.error.message || "Erro ao Excluir produto"));
+            return;
         }
         setShowDeleteModal(false);
-        SetLoading(false);
         SetTitleCOnfirm("");
         SetDescriptionConfirm("");
         SetButtonConfirm("");
-        notify.success("Produto Excluido com sucesso!", "success");
+        notify.success("Produto Excluido com sucesso!", "O produto foi enviado para a Lixeira.");
     };
 
     const UpdateStatusOrder = async (id: number, status: string, WhoReceivedIt?: string) => {
@@ -1118,8 +1130,6 @@ export const useAdminController = (): AdminControllerReturn => {
             const errors = validateCoupon(newCoupon);
             setCuponsErrors(errors);
 
-            console.log("teste")
-
             if (Object.keys(errors).length) return;
 
             const payload: CupomAdmin = {
@@ -1128,7 +1138,7 @@ export const useAdminController = (): AdminControllerReturn => {
             };
 
             const result = await PostSaveCupomStore(payload);
-            console.log(result)
+            // console.log(result)
             if (!result.success) {
                 notify.error(result?.error?.error.code ?? "error", result?.error?.error.message ?? "Erro ao salvar cupom"
                 );
@@ -1180,7 +1190,6 @@ export const useAdminController = (): AdminControllerReturn => {
                 addedCategories,
                 removedCategories
             };
-            console.log("payload", payload)
             const result = await PostUpdateCupomStore(payload);
 
             if (!result.success) {
@@ -1197,7 +1206,12 @@ export const useAdminController = (): AdminControllerReturn => {
             SetLoading(false);
         }
     };
-    const handleDeleteCoupon = async (IdCupom: number) => {
+    const handleDeleteCoupon = async (IdCupom: number, reason?: string) => {
+        if (!reason || reason.trim().length < 5) {
+            notify.error("Motivo", "Informe o motivo da exclusão.");
+            return;
+        }
+
         try {
 
             SetLoading(true);
@@ -1208,7 +1222,7 @@ export const useAdminController = (): AdminControllerReturn => {
                 return;
             }
 
-            const result = await DeleteCupomStore(IdCupom);
+            const result = await DeleteCupomStore(IdCupom, reason.trim());
 
             if (!result.success) {
                 notify.error(result?.error?.error.code ?? "error", result?.error?.error.message ?? "Erro ao atualizar cupom"
@@ -1219,9 +1233,9 @@ export const useAdminController = (): AdminControllerReturn => {
             notify.success("success", "Cupom Excluido com sucesso!");
 
             setShowCouponModal(false);
+            setshowDeleteModalCupom(false);
         } finally {
             SetLoading(false);
-            setshowDeleteModalCupom(false);
         }
     };
     const handleUpdateActiveCoupon = async (IdCupom: number) => {
@@ -1310,10 +1324,9 @@ export const useAdminController = (): AdminControllerReturn => {
                         }
                     });
             }
-            console.log("Tese", [...formData.entries()], categoryBannerFiles);
 
             const result = editingCategory ? await PostUpdateCategoryAdmin(formData) : await PostSaveCategoryAdmin(formData);
-            console.log("result4", result);
+            // console.log("result4", result);
             if (!result.success) {
                 notify.error(result.error?.error?.code ?? 'category-save-error', result.error?.error?.message ?? (editingCategory ? 'Erro ao salvar categoria.' : 'Erro ao cadastrar categoria.'));
                 return;
@@ -1336,14 +1349,19 @@ export const useAdminController = (): AdminControllerReturn => {
 
         if (shouldMoveProducts && !reassignCategoryId) return;
 
+        if (categoryDeleteReason.trim().length < 5) {
+            notify.error('Motivo', 'Informe o motivo da exclusão (mínimo de 5 caracteres).');
+            return;
+        }
+
         const request = {
             id: category.id,
             action: shouldMoveProducts ? 'move' as const : 'delete' as const,
+            reason: categoryDeleteReason.trim(),
             ...(shouldMoveProducts && reassignCategoryId
                 ? { replacementCategoryId: reassignCategoryId }
                 : {})
         };
-        console.log("request", request);
         try {
             SetLoading(true);
             const result = await PostDeleteCategoryAdmin(request);
@@ -1366,6 +1384,7 @@ export const useAdminController = (): AdminControllerReturn => {
             setCategoryToDelete(null);
             setReassignCategoryId(null);
             setCategoryDeleteAction('move');
+            setCategoryDeleteReason('');
             notify.success('success', 'Categoria excluída com sucesso.');
         } finally {
             SetLoading(false);
@@ -1413,8 +1432,6 @@ export const useAdminController = (): AdminControllerReturn => {
 
         try {
             SetLoading(true);
-
-            console.log("formData", [...formData.entries()]);
 
             const result = await PostEditeUserAdmin(formData);
 
@@ -1525,6 +1542,7 @@ export const useAdminController = (): AdminControllerReturn => {
             SetLoading(false);
         }
     };
+
     return {
         result: {
             Loading,
@@ -1559,6 +1577,7 @@ export const useAdminController = (): AdminControllerReturn => {
             categoryBannerPreviews,
             expandedCategoryImage,
             categoryDeleteAction,
+            categoryDeleteReason,
             reassignCategoryId,
             productsCategories,
             categories,
@@ -1619,6 +1638,7 @@ export const useAdminController = (): AdminControllerReturn => {
             setCategoryBannerFiles,
             handleSaveCategory,
             setCategoryDeleteAction,
+            setCategoryDeleteReason,
             setReassignCategoryId,
             setProductsCategories,
             setCategories,

@@ -2,6 +2,8 @@ using Baldan.Pricing.Application.Commons;
 using Baldan.Pricing.Application.Domain.Entities;
 using Baldan.Pricing.Application.Models.Enums;
 using Mercado.Craibas.Application.Domain.Entities;
+using Mercado.Craibas.Application.Domain.Enums;
+using Mercado.Craibas.Application.Interfaces.Services;
 using Mercado.Craibas.Application.DTOs.Requests;
 using Mercado.Craibas.Application.InterfacesAdmin;
 using Mercado.Craibas.Application.InterfacesAdmin.Services;
@@ -21,10 +23,12 @@ namespace Mercado.Craibas.Application.ServicesAdmin
     {
         private readonly IUnitOfWorkAdmin _unitOfWorkAdmin;
         private readonly IConfiguration _configuration;
-        public CategoriaServiceAdmin(IUnitOfWorkAdmin unitOfWorkAdmin, IConfiguration configuration)
+        private readonly IDeletionRecordService _deletionRecord;
+        public CategoriaServiceAdmin(IUnitOfWorkAdmin unitOfWorkAdmin, IConfiguration configuration, IDeletionRecordService deletionRecord)
         {
             _unitOfWorkAdmin = unitOfWorkAdmin;
             _configuration = configuration;
+            _deletionRecord = deletionRecord;
         }
         private string GetImagesFolder(string subPasta)
         {
@@ -132,16 +136,34 @@ namespace Mercado.Craibas.Application.ServicesAdmin
                 }
                 var User = await _unitOfWorkAdmin.GetClassAsyncWhere<User_Admin>(x => x.Id == IdUser);
 
-                await _unitOfWorkAdmin.InsertAsyncReturnObjeto<Logs>(new Logs
+                if (User != null)
                 {
-                    Id_User = IdUser,
-                    Log = "Criou a Categoria" + " " + category.Name,
-                    Tipo = "Adição",
-                    Nivel = "Admin", 
-                    Acao = User.Name + " " + User.Role + " " + $"Criou uma Categoria",
-                    Info = User.Name + " " + User.Role + " " + $"Criou a Categoria em {DateTime.Now:dd/MM/yyyy HH:mm:ss}",
-                    InsertDate = DateTime.Now
-                });
+                    var dataLog = DateTime.Now;
+
+                    await _unitOfWorkAdmin.InsertAsyncReturnObjeto<Logs>(
+                        new Logs
+                        {
+                            Id_User = User.Id,
+                            Log =
+                                $"O administrador {User.Name} criou a categoria '{category.Name}' (ID: {InsertProduct.Id}).\n" +
+                                $"Descrição: {category.Description}\n" +
+                                $"Meta Title: {category.Meta_Title}\n" +
+                                $"Meta Description: {category.Meta_Description}\n" +
+                                $"Cor: {category.Color}\n" +
+                                $"Status: {(category.Ativo == true ? "Ativo" : "Inativo")}\n" +
+                                $"Imagem: {nomeArquivoImage}\n" +
+                                $"Banners adicionados: {nomesBanners.Count}\n" +
+                                $"Data/Hora: {dataLog:dd/MM/yyyy HH:mm:ss}",
+                            Tipo = "NOVA CATEGORIA",
+                            Nivel = "Admin",
+                            Acao = "Criou uma categoria",
+                            Info =
+                                $"{User.Name} criou a categoria '{category.Name}' " +
+                                $"em {dataLog:dd/MM/yyyy HH:mm}.",
+                            InsertDate = dataLog
+                        }
+                    );
+                }
                 return Result<bool>.Success(true);
             }
             catch (Exception ex)
@@ -255,6 +277,14 @@ namespace Mercado.Craibas.Application.ServicesAdmin
                 {
                     return Result<bool>.Failure(Error.Failure("Categoria não encontrada","Não foi possível localizar a categoria informada."));
                 }
+                var nomeAnterior = existingCategory.Category;
+                var descricaoAnterior = existingCategory.Description;
+                var corAnterior = existingCategory.Color;
+                var metaTitleAnterior = existingCategory.Meta_Title;
+                var metaDescriptionAnterior = existingCategory.Meta_Description;
+                var ativoAnterior = existingCategory.Ativo;
+                var imagemAnterior = existingCategory.Imagem;
+                var bannersAnteriores = existingCategory.Banners;
 
                 var pastaDestino = GetImagesFolder("Categorias");
 
@@ -409,16 +439,80 @@ namespace Mercado.Craibas.Application.ServicesAdmin
                     RemoverArquivo(pastaDestino,bannerRemovido);
                 }
                 var User = await _unitOfWorkAdmin.GetClassAsyncWhere<User_Admin>(x => x.Id == IdUser);
-                await _unitOfWorkAdmin.InsertAsyncReturnObjeto<Logs>(new Logs
+
+                if (User != null)
                 {
-                    Id_User = IdUser,
-                    Log = $"Editou a categoria {category.Name} --------- {JsonSerializer.Serialize(category)}",
-                    Tipo = "Edicao",
-                    Nivel = "Admin",
-                    Acao = User.Name + " " + User.Role + " " + $"Editou o Categoria",
-                    Info = User.Name + " " + User.Role + " " + $"Editou o Categoria em {DateTime.Now:dd/MM/yyyy HH:mm:ss}",
-                    InsertDate = DateTime.Now
-                });
+                    var dataLog = DateTime.Now;
+                    var alteracoes = new List<string>();
+
+                    if (nomeAnterior != category.Name)
+                    {
+                        alteracoes.Add($"Nome: '{nomeAnterior}' → '{category.Name}'");
+                    }
+
+                    if (descricaoAnterior != category.Description)
+                    {
+                        alteracoes.Add("Descrição da categoria foi alterada");
+                    }
+
+                    if (corAnterior != category.Color)
+                    {
+                        alteracoes.Add($"Cor: '{corAnterior}' → '{category.Color}'");
+                    }
+                    if (metaTitleAnterior != category.Meta_Title)
+                    {
+                        alteracoes.Add($"Meta Title: '{metaTitleAnterior}' → '{category.Meta_Title}'");
+                    }
+                    if (metaDescriptionAnterior != category.Meta_Description)
+                    {
+                        alteracoes.Add("Meta Description da categoria foi alterada");
+                    }
+                    if (ativoAnterior != category.Ativo)
+                    {
+                        alteracoes.Add($"Status: {(ativoAnterior == true ? "Ativo" : "Inativo")} → " + $"{(category.Ativo == true ? "Ativo" : "Inativo")}");
+                    }
+                    if (imagemAnterior != existingCategory.Imagem)
+                    {
+                        alteracoes.Add($"Imagem: '{imagemAnterior ?? "Nenhuma"}' → " + $"'{existingCategory.Imagem ?? "Nenhuma"}'");
+                    }
+                    var bannersAntigosSet = SepararNomesArquivos(bannersAnteriores);
+
+                    var bannersAdicionados = novosNomesBanners.Count;
+                    var bannersExcluidos = bannersRemovidos.Count;
+
+                    if (bannersAdicionados > 0)
+                    {
+                        alteracoes.Add($"{bannersAdicionados} novo(s) banner(s) adicionado(s)");
+                    }
+                    if (bannersExcluidos > 0)
+                    {
+                        alteracoes.Add($"{bannersExcluidos} banner(s) removido(s)");
+                    }
+                    await _unitOfWorkAdmin.InsertAsyncReturnObjeto<Logs>(
+                        new Logs
+                        {
+                            Id_User = User.Id,
+
+                            Log =
+                                $"O administrador {User.Name} editou a categoria '{category.Name}' (ID: {existingCategory.Id}).\n" +
+                                $"Alterações realizadas:\n" +
+                                $"{(alteracoes.Count > 0
+                                    ? string.Join("\n", alteracoes)
+                                    : "Nenhuma alteração identificada.")}\n" +
+                                $"Data/Hora: {dataLog:dd/MM/yyyy HH:mm:ss}",
+
+                            Tipo = "Edicao",
+                            Nivel = "Admin",
+                            Acao = "Editou a categoria",
+
+                            Info =
+                                $"{User.Name} editou a categoria '{category.Name}' " +
+                                $"em {dataLog:dd/MM/yyyy HH:mm}.",
+
+                            InsertDate = dataLog
+                        }
+                    );
+                }
                 return Result<bool>.Success(true);
             }
             catch (Exception ex)
@@ -429,10 +523,20 @@ namespace Mercado.Craibas.Application.ServicesAdmin
 
         public async Task<Result<bool>> DeleteCategory(DeleteCategoryRequest request ,int IdUser)
         {
+            Product_Category categoryset = null;
             if (request.Id <= 0)
             {
                 return Result<bool>.Failure(Error.Failure("Categoria inválida","O ID da categoria é obrigatório."));
             }
+
+            if (string.IsNullOrWhiteSpace(request.Reason) || request.Reason.Trim().Length < 5)
+            {
+                return Result<bool>.Failure(Error.Validation("Motivo", "Informe o motivo da exclusão (mínimo de 5 caracteres)."));
+            }
+
+            // Lixeira: produtos (e suas imagens/variações) excluídos junto com a categoria
+            var deletedImages = new List<Imagens_Products>();
+            var deletedVariants = new List<Variante_Products>();
 
             var action = request.Action?.Trim().ToLowerInvariant();
             if (action is not "move" and not "delete")
@@ -453,12 +557,13 @@ namespace Mercado.Craibas.Application.ServicesAdmin
 
                 if (action == "move")
                 {
+                var replacement = await _unitOfWorkAdmin.GetClassAsyncWhere<Product_Category>(x => x.Id == request.ReplacementCategoryId.Value && x.Isdelete != true && x.Ativo == true);
+                    categoryset = replacement;
                     if (!request.ReplacementCategoryId.HasValue || request.ReplacementCategoryId.Value <= 0 || request.ReplacementCategoryId.Value == request.Id)
                     {
                         return Result<bool>.Failure(Error.Failure("Categoria substituta inválida","Selecione outra categoria para receber os produtos."));
                     }
 
-                    var replacement = await _unitOfWorkAdmin.GetClassAsyncWhere<Product_Category>(x =>x.Id == request.ReplacementCategoryId.Value && x.Isdelete != true && x.Ativo == true);
 
                     if (replacement is null)
                     {
@@ -502,6 +607,7 @@ namespace Mercado.Craibas.Application.ServicesAdmin
                         }
 
                         var images = await _unitOfWorkAdmin.GetClassListAsyncWhere<Imagens_Products>(x => x.Id_Product == product.Id && x.Isdelete != true);
+                        deletedImages.AddRange(images);
 
                         foreach (var image in images)
                         {
@@ -511,6 +617,7 @@ namespace Mercado.Craibas.Application.ServicesAdmin
                         }
 
                         var variants = await _unitOfWorkAdmin.GetClassListAsyncWhere<Variante_Products>(x =>x.Id_Product == product.Id && x.Isdelete != true);
+                        deletedVariants.AddRange(variants);
 
                         foreach (var variant in variants)
                         {
@@ -531,18 +638,116 @@ namespace Mercado.Craibas.Application.ServicesAdmin
                 
                     });
 
-                var User = await _unitOfWorkAdmin.GetClassAsyncWhere<User_Admin>(x => x.Id == IdUser);
+                var user = await _unitOfWorkAdmin.GetClassAsyncWhere<User_Admin>(x => x.Id == IdUser);
 
-                await _unitOfWorkAdmin.InsertAsyncReturnObjeto<Logs>(new Logs
+                // Lixeira
+                if (categoryDeleted)
                 {
-                    Id_User = IdUser,
-                    Log = "Apagou a Categoria" + " " + category.Category ,
-                    Tipo = "Deletou",
-                    Nivel = "Admin",
-                    Acao = User.Name + " " + User.Role + " " + $"apagou o Categoria",
-                    Info = User.Name + " " + User.Role + " " + $"apagou o Categoria em {DateTime.Now:dd/MM/yyyy HH:mm:ss}",
-                    InsertDate = DateTime.Now
-                });
+                    var adminName = user?.Name ?? "Administrador";
+
+                    var parentRecordId = await _deletionRecord.RegisterAsync(new DeletionRecordRequest
+                    {
+                        EntityType = EntityTypeDelete.Category,
+                        EntityId = category.Id,
+                        DisplayName = category.Category,
+                        DeletedByUserId = IdUser,
+                        DeletedByRole = "ADMIN",
+                        DeletedByUserName = adminName,
+                        Reason = request.Reason!.Trim(),
+                        Entity = category,
+                        Extra = action == "move"
+                            ? new Dictionary<string, object?>
+                            {
+                                { "ProdutosMovidos", products.Count },
+                                { "MovidosParaCategoria", categoryset?.Category },
+                                { "MovidosParaCategoriaId", categoryset?.Id }
+                            }
+                            : new Dictionary<string, object?>
+                            {
+                                { "ProdutosExcluidos", products.Count }
+                            }
+                    });
+
+                    if (action == "delete")
+                    {
+                        var productNames = products.ToDictionary(p => p.Id, p => p.Name);
+
+                        var children = products
+                            .Select(p => new DeletionRecordRequest
+                            {
+                                EntityType = EntityTypeDelete.Product,
+                                EntityId = p.Id,
+                                DisplayName = p.Name,
+                                Entity = p
+                            })
+                            .Concat(deletedImages.Select(i => new DeletionRecordRequest
+                            {
+                                EntityType = EntityTypeDelete.ProductImage,
+                                EntityId = i.Id,
+                                DisplayName = $"Imagem do produto {productNames.GetValueOrDefault(i.Id_Product, $"#{i.Id_Product}")}",
+                                Entity = i
+                            }))
+                            .Concat(deletedVariants.Select(v => new DeletionRecordRequest
+                            {
+                                EntityType = EntityTypeDelete.ProductVariant,
+                                EntityId = v.Id,
+                                DisplayName = $"{v.Name}: {v.Value} ({productNames.GetValueOrDefault(v.Id_Product, $"#{v.Id_Product}")})",
+                                Entity = v
+                            }))
+                            .Select(c =>
+                            {
+                                c.DeletedByUserId = IdUser;
+                                c.DeletedByRole = "ADMIN";
+                                c.DeletedByUserName = adminName;
+                                c.Reason = "Excluído junto com a categoria";
+                                return c;
+                            })
+                            .ToList();
+
+                        await _deletionRecord.RegisterChildrenAsync(parentRecordId, children);
+                    }
+                }
+
+                if (user != null)
+                {
+                    var dataLog = DateTime.Now;
+
+                    var acaoLog = action == "move"
+                        ? "Excluiu a categoria e moveu os produtos"
+                        : "Excluiu a categoria e os produtos";
+
+
+                    var logDetalhado = action == "move"
+                        ? $"O administrador {user.Name} excluiu a categoria '{category.Category}'.\n" +
+                          $"Produtos vinculados: {products.Count}\n" +
+                          $"Nova categoria dos produtos: '{categoryset!.Category}' (ID: {categoryset.Id})\n" +
+                          $"Os produtos foram movidos para a categoria substituta antes da exclusão da categoria.\n" +
+                          $"Data/Hora: {dataLog:dd/MM/yyyy HH:mm:ss}"
+                        : $"O administrador {user.Name} excluiu a categoria '{category.Category}'.\n" +
+                          $"Produtos vinculados excluídos: {products.Count}\n" +
+                          $"Imagens e variantes dos produtos também foram marcadas como excluídas.\n" +
+                          $"Data/Hora: {dataLog:dd/MM/yyyy HH:mm:ss}";
+
+                    await _unitOfWorkAdmin.InsertAsyncReturnObjeto<Logs>(
+                        new Logs
+                        {
+                            Id_User = user.Id,
+                            Log = logDetalhado,
+                            Tipo = "EXCLUSAO CUPOM",
+                            Nivel = "Admin",
+                            Acao = acaoLog,
+                            Info =
+                                action == "move"
+                                    ? $"{user.Name} excluiu a categoria '{category.Category}' " +
+                                      $"e moveu {products.Count} produto(s) para outra categoria " +
+                                      $"em {dataLog:dd/MM/yyyy HH:mm}."
+                                    : $"{user.Name} excluiu a categoria '{category.Category}' " +
+                                      $"e {products.Count} produto(s) vinculados " +
+                                      $"em {dataLog:dd/MM/yyyy HH:mm}.",
+                            InsertDate = dataLog
+                        }
+                    );
+                }
 
                 return categoryDeleted
                     ? Result<bool>.Success(true)

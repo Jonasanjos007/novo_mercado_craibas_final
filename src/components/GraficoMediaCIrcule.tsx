@@ -13,7 +13,6 @@ export function GraficoMediaCIrcule({
     const r = 46, cx = 58, cy = 58, strokeW = 14;
     const circumference = 2 * Math.PI * r;
     let offset = 0;
-    console.log("teste2", dark)
     return (
         <svg viewBox="0 0 116 116" width={116} height={116}>
             <circle cx={cx} cy={cy} r={r} fill="none" stroke="rgba(255,255,255,0.06)" strokeWidth={strokeW} />

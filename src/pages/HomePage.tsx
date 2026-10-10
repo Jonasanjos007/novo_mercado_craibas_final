@@ -48,33 +48,25 @@ const PAGE_SIZE = 15;
 
 export default function HomePage() {
   const Controller = useHomeController();
-  const { LoadCupons, Cupons } = UseOrderStore();
-
-  const { toggleWishlist, isWishlisted, setListProducts } = useStore();
+  const { Cupons } = UseOrderStore();
   const { navigatePages, navigateTo } = UseRouteStore();
   const { Category } = UseOrderStore();
   const { products } = UseProductStore();
-
   const navigate = useNavigate();
   const [bannerIndex, setBannerIndex] = useState(0);
-  const [valorIDProduct, setValorIDProduct] = useState('');
   const [autoPlay, setAutoPlay] = useState(true);
   const [activeTab, setActiveTab] = useState<'featured' | 'new' | 'bestsellers'>('featured');
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
   const [copiedCode, setCopiedCode] = useState<string | null>(null);
   const { NameColorGlobal, ColorGlobalTema, ColorGlobalHover, ColorGlobalText, ColorGlobalHoverText } = UseUserStore();
   const colorConfig = getColorConfig(NameColorGlobal);
-  const scrollRef = useRef<HTMLDivElement>(null);
-
   const featured = products.filter(p => p.featured);
   const viral = products.filter(p => p.badge === 'viral');
   const Show_Flash_Offer = Cupons.filter(p => p.show_Flash_Offer === true);
-  console.log("Show_Flash_Offer", Show_Flash_Offer)
   const offers = products.filter(p => p.badge === 'oferta' || (p.origin_Price && p.origin_Price > p.price_Unic));
   const newProducts = products.filter(p => p.badge === 'novo');
   const bestsellers = [...products].sort((a, b) => b.count_Sold - a.count_Sold).slice(0, 8);
   const BANNER_SLIDE = products.filter(p => p.showBanner === true);
-
   const viralCarouselRef = useRef<HTMLDivElement | null>(null);
   const offersCarouselRef = useRef<HTMLDivElement | null>(null);
 

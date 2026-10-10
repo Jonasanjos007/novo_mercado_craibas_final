@@ -20,6 +20,9 @@ namespace Mercado.Craibas.Infrastructure.Configurations
                 .IsRequired()
                 .HasMaxLength(200);
 
+            builder.Property(x => x.TokenVersion)
+                .IsRequired().HasDefaultValue(1);
+
             builder.Property(x => x.Role)
                 .HasConversion<string>()
                 .HasMaxLength(50);

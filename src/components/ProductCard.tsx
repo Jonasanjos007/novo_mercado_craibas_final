@@ -28,7 +28,6 @@ export default function ProductCard({ product, compact = false }: ProductCardPro
 
   const handleySaveFavorites = async (event: React.MouseEvent<HTMLButtonElement>, IdProduct: number) => {
     event.stopPropagation();
-    console.log(IdProduct)
     if (IdProduct == 0) {
       notify.warning('atençao', 'Algo deu errado ao adicionar aos favoritos tente novamente!');
       return;
@@ -45,7 +44,6 @@ export default function ProductCard({ product, compact = false }: ProductCardPro
   };
   const handleyDeleteFavorites = async (event: React.MouseEvent<HTMLButtonElement>, IdProduct: number) => {
     event.stopPropagation();
-    console.log(IdProduct)
     if (IdProduct == 0) {
       notify.warning('atençao', 'Algo deu errado ao Remover dos favoritos tente novamente!');
       return;

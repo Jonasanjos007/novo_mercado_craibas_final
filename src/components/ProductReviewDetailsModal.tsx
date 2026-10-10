@@ -1,6 +1,6 @@
 import { CheckCircle2, Cloud, Play, Star, ThumbsUp, X } from 'lucide-react';
 import { ProductSaveOrder } from '../models/Product';
-import { RatingResponse } from '../models/OrderSave';
+import { RatingResponse } from '../models/Order';
 import { UseUserStore } from '../store/UseUserStore';
 import { useEffect, useState } from 'react';
 import ProductReviewModal, { ProductReview } from './ProductReviewModal';
@@ -18,7 +18,6 @@ export default function ProductReviewDetailsModal({
   assessment,
   onCloseEdite
 }: Props) {
-  console.log('assessment', assessment)
   const { ColorGlobalTema, ColorGlobalHover } = UseUserStore();
 
   const [piscarNuvem, setPiscarNuvem] = useState(false);

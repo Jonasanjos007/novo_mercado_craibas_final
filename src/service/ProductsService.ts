@@ -23,7 +23,7 @@ export const ProductsService = {
         }
     }, PostCartProduct: async (Cart_Itens: CartItensProduct): Promise<Result<CartItensProduct>> => {
         try {
-            console.log("Cart_Itens", Cart_Itens)
+            // console.log("Cart_Itens", Cart_Itens)
             const response = await api.post("/v1/product/postCartSave", Cart_Itens);
             const { success, data, error } = response.data;
 
@@ -38,9 +38,9 @@ export const ProductsService = {
             console.log(err.response?.data);
             return makeResult(false, {} as CartItensProduct, err.response?.data);
         }
-    }, PostCartProductExistent: async (Cart_Itens: CartItensProduct, Operador: string): Promise<Result<CartItensProduct>> => {
+    }, PostCartProductExistent: async (Cart_Itens: CartItensProduct, Operador: string, Quantity: number): Promise<Result<CartItensProduct>> => {
         try {
-            const response = await api.post("/v1/product/postCartUpdate", { ...Cart_Itens, operador: Operador });
+            const response = await api.post("/v1/product/postCartUpdate", { ...Cart_Itens, operador: Operador, NewQuantity: Quantity });
             const { success, data, error } = response.data;
 
             if (!data) {

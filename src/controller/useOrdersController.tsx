@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNotification } from "../utils/NotificationCard";
 import { UseOrderStore } from "../store/UseOrderStore";
-import { RatingResponse } from "../models/OrderSave";
+import { RatingResponse } from "../models/Order";
 import { UseProductStore } from "../store/UseProductStore";
 import { Product } from "../models/Product";
 import { useNavigate } from "react-router-dom";
@@ -24,8 +24,7 @@ type OrdersControllerReturn = {
 export const useOrdersController = (): OrdersControllerReturn => {
     const { LoadOrders, LoadCupons, GetRating, orders } = UseOrderStore();
     const notify = useNotification();
-      const navigate = useNavigate();
-    
+    const navigate = useNavigate();
     const { loadProducts } = UseProductStore();
     const [Loading, SetLoading] = useState(false);
     const [reviewDetailsTarget, setReviewDetailsTarget] = useState<boolean>(false);

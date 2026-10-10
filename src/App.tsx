@@ -19,6 +19,7 @@ import AddressPage from './pages/AddressPage';
 
 import CartSidebar from './components/CartSidebar';
 import SessionExpiredModal from './components/SessionExpiredModal';
+import Loading from './components/Loading';
 
 import { MainLayout } from './routes/MainLayout';
 import { AdminLayout } from './routes/AdminLayout';
@@ -31,12 +32,27 @@ import { useAuthStore } from './context/AuthContext';
 
 export default function App() {
 
-  const { expired } = useSessionStore();
+const {expired,modalType} = useSessionStore();
   const initAuth = useAuthStore((state) => state.init);
+  const isReady = useAuthStore((state) => state.isReady);
 
   useEffect(() => {
     initAuth();
   }, [initAuth]);
+
+  /**
+   * Aguarda a recuperação da sessão (refresh) antes de renderizar
+   * as páginas. Assim nenhuma página chama a API sem Access Token.
+   */
+  if (!isReady) {
+    return (
+      <Loading
+        loading
+        message="Carregando..."
+        subMessage="Verificando sua sessão"
+      />
+    );
+  }
 
   return (
     <>
@@ -89,7 +105,7 @@ export default function App() {
       <CartSidebar />
 
       {/* Modal Global */}
-      <SessionExpiredModal open={expired} />
+      <SessionExpiredModal open={expired}type={modalType}/>
 
     </>
   );

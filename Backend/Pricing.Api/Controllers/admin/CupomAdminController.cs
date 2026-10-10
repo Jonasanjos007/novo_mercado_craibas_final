@@ -43,11 +43,11 @@ namespace Mercado.Api.Controllers.Admin
         }
         [Authorize]
         [HttpDelete("DeleteCupom/{IdCupom}")]
-        public async Task<IActionResult> DeleteCupom(int IdCupom)
+        public async Task<IActionResult> DeleteCupom(int IdCupom, [FromQuery] string? reason)
         {
             var Id_User = User.GetUserId();
 
-            var result = await _service.DeleteCupom(IdCupom, Id_User);
+            var result = await _service.DeleteCupom(IdCupom, Id_User, reason);
             return result.ToActionResult();
         }
         [Authorize]

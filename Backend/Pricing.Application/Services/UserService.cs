@@ -12,6 +12,7 @@ using Mercado.Craibas.Application.DTOs.Requests;
 using Mercado.Craibas.Application.DTOs.Responses;
 using Mercado.Craibas.Application.Interfaces;
 using Mercado.Craibas.Application.Interfaces.Services;
+using Mercado.Craibas.Application.InterfacesAdmin;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc.ViewEngines;
 using Microsoft.EntityFrameworkCore;
@@ -22,6 +23,7 @@ using Pricing.Api.DTOs.Responses;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
+using System.Data;
 using System.Drawing;
 using System.Security.Claims;
 using System.Security.Cryptography;
@@ -37,8 +39,10 @@ public class UserService : IUserService
     private readonly IEmailService _Emaillayout;
     private readonly INotificationService _notification;
     private readonly IMemoryCache _memoryCache;
-    public UserService(IUserRepository userRepository, IUnitOfWork unitOfWork, IConfiguration configuration, IEmailService emailService, INotificationService notification, IMemoryCache memoryCache)
+    private readonly IDeletionRecordService _deletionRecord;
+    public UserService(IUserRepository userRepository, IUnitOfWork unitOfWork, IConfiguration configuration, IEmailService emailService, INotificationService notification, IMemoryCache memoryCache, IDeletionRecordService deletionRecord)
     {
+        _deletionRecord = deletionRecord;
         _userRepository = userRepository;
         _unitOfWork = unitOfWork;
         _configuration = configuration;
@@ -158,7 +162,7 @@ public class UserService : IUserService
         {
             { "Name", name },
             { "Email", email },
-            { "Phone", request.Phone ?? 0 },
+            { "Phone", request.Phone  },
             { "UpdateDate", DateTime.Now }
         };
 
@@ -282,7 +286,7 @@ public class UserService : IUserService
     {
         List<Address> ListAddress = [];
 
-        var NewListAnddres = await _unitOfWork.GetClassListById<Address>(Id_User, "Id_User_Customer");
+        var NewListAnddres = await _unitOfWork.GetClassListAsyncWhere<Address>(X => X.Id_User_Customer == Id_User && X.Isdelete != true);
 
 
         if (NewListAnddres == null)
@@ -363,13 +367,30 @@ public class UserService : IUserService
     }
     public async Task<Result<bool>> DeleteAddressService(AddressRequest DeleteAddress)
     {
+        var dataLog = DateTime.Now;
+        var user = await _unitOfWork.GetClassAsyncWhere<User_Customer>(X => X.Id == DeleteAddress.Id_User_Customer && X.Isdelete != true);
 
-        var DeleteAddres = await _unitOfWork.DeleteByColumnAsyncGlolbal<Address>("Id", DeleteAddress.Id);
+        // Cópia do endereço antes da exclusão (Lixeira)
+        var addressBefore = await _unitOfWork.GetClassAsyncWhere<Address>(x => x.Id == DeleteAddress.Id && x.Isdelete != true);
+
+        //var DeleteAddres = await _unitOfWork.DeleteByColumnAsyncGlolbal<Address>("Id", DeleteAddress.Id);
+
+        var DeleteAddres = await _unitOfWork.UpdateFieldsAsync<Address>(filters: new Dictionary<string, object>
+              {
+                 { "Id", DeleteAddress.Id }
+              },
+              fieldsToUpdate: new Dictionary<string, object>
+              {
+                  {"Isdelete",true },
+                  {"UpdateDate",DateTime.Now },
+
+              });
 
         if (!DeleteAddres)
         {
             return Result<bool>.Failure(Error.Failure("Endereço", "Error ao Remover Endereço"));
         }
+
         if (DeleteAddress.Standard == true)
         {
             var GetAddressStandard = await _unitOfWork.GetClassById<Address>(DeleteAddress.Id_User_Customer, "Id_User_Customer");
@@ -378,16 +399,53 @@ public class UserService : IUserService
             {
                 return Result<bool>.Failure(Error.Validation("Padrão", "Você ainda não possui um endereço cadastrado. Cadastre pelo menos um para ter um endereço padrão!"));
             }
+
+
+
             var Update_Standard = await _unitOfWork.UpdateFieldsAsync<Address>(filters: new Dictionary<string, object>
               {
-        { "Id", GetAddressStandard.Id }
+                  { "Id", GetAddressStandard.Id }
               },
-      fieldsToUpdate: new Dictionary<string, object>
-      {
+              fieldsToUpdate: new Dictionary<string, object>
+              {
                   {"Standard",true }
-      });
+               });
 
         }
+
+        // Lixeira: registra o endereço excluído pelo próprio cliente
+        await _deletionRecord.RegisterAsync(new DeletionRecordRequest
+        {
+            EntityType = EntityTypeDelete.Address,
+            EntityId = DeleteAddress.Id,
+            DisplayName = addressBefore is null
+                ? "Endereço do cliente"
+                : $"{addressBefore.Road}, {addressBefore.Number} - {addressBefore.Neighborhood}, {addressBefore.City}",
+            OwnerUserId = DeleteAddress.Id_User_Customer,
+            OwnerRole = "CLIENTE",
+            DeletedByUserId = DeleteAddress.Id_User_Customer,
+            DeletedByRole = "CLIENTE",
+            DeletedByUserName = user?.Name ?? string.Empty,
+            Reason = "Excluído pelo próprio cliente",
+            Entity = addressBefore
+        });
+
+
+        await _unitOfWork.InsertAsyncReturnId<Logs>(new Logs
+       {
+           Id_User = DeleteAddress.Id_User_Customer,
+           Log =
+               $"O usuário {user.Name} removeu o endereço (ID: {DeleteAddress.Id}).\n" +
+               $"Tipo: Endereço.\n" +
+               $"Status: Endereço enviado para a lixeira.\n" +
+               $"Data/Hora: {dataLog:dd/MM/yyyy HH:mm:ss}",
+           Tipo = "EXCLUSÃO",
+           Nivel = "CLIENTE",
+           Acao = "Excluiu o endereço",
+           Info =$"O endereço (ID: {DeleteAddress.Id}) foi enviado para a lixeira " + $"em {dataLog:dd/MM/yyyy HH:mm}.",
+           InsertDate = dataLog
+       });
+
         return Result<bool>.Success(true);
     }
 
@@ -434,7 +492,7 @@ public class UserService : IUserService
     public async Task<Result<RegisterStartResponse>> RegisterStartAsync(RegisterStartRequest request)
     {
        
-        var userExist = await _unitOfWork.GetClassAsyncWhere<User_Customer>(X => X.Name == request.Name && X.Phone == request.Phone && X.RegistrationStatus != RegistrationStatusEnum.Completed.ToString());
+        var userExist = await _unitOfWork.GetClassAsyncWhere<User_Customer>(X => X.Name == request.Name && X.Phone == request.Phone && X.RegistrationStatus != RegistrationStatusEnum.Completed.ToString() && X.Isdelete != true);
         if(userExist is not null)
         {
             var EmailVerification = await _unitOfWork.GetClassAsyncWhere<EmailVerification>(X => X.UserId == userExist.Id);
@@ -450,7 +508,7 @@ public class UserService : IUserService
             });
         }
 
-        var phoneExiste = await _unitOfWork.GetClassAsyncWhere<User_Customer>(x => x.Phone == request.Phone);
+        var phoneExiste = await _unitOfWork.GetClassAsyncWhere<User_Customer>(x => x.Phone == request.Phone && x.Isdelete != true);
 
         var phone = new string(request.Phone.Where(char.IsDigit).ToArray());
 
@@ -500,7 +558,7 @@ public class UserService : IUserService
         {
             Id_User = patternChangeList.Id,
             Log = $"O Cliente {patternChangeList.Name} iniciou o cadastro a primeira etapa do cadastro.",
-            Tipo = "Cadastro",
+            Tipo = "CADASTRO",
             Nivel = "CLIENTE",
             Acao = $"{patternChangeList.Name} iniciou um novo cadastro.",
             Info = $"{patternChangeList.Name} iniciou o cadastro em {DateTime.Now:dd/MM/yyyy HH:mm:ss}",
@@ -539,12 +597,26 @@ public class UserService : IUserService
     public async Task<Result<RegisterEmailResponse>> RegisterEmailConfirm(RegisterEmailRequest request)
     {
         var email = request.Email.Trim().ToLower();
-
-        var clienteExiste = await _unitOfWork.GetClassAsyncWhere<User_Customer>(x => x.Email.ToLower() == email);
+        dynamic? clienteExiste;
+         clienteExiste = await _unitOfWork.GetClassAsyncWhere<User_Customer>(x => x.Email.ToLower() == email && x.Isdelete != true && x.RegistrationStatus == RegistrationStatusEnum.Completed.ToString());
 
         if (clienteExiste is not null)
         {
             return Result<RegisterEmailResponse>.Failure(Error.Conflict("Email","Este e-mail já está cadastrado em uma conta."));
+        }
+
+        clienteExiste = await _unitOfWork.GetClassAsyncWhere<User_Admin>(x => x.Email.ToLower() == email);
+
+        if (clienteExiste is not null)
+        {
+            return Result<RegisterEmailResponse>.Failure(Error.Conflict("Email", "Este e-mail já está cadastrado em uma conta."));
+        }
+
+        clienteExiste = await _unitOfWork.GetClassAsyncWhere<User_Delivery>(x => x.Email.ToLower() == email);
+
+        if (clienteExiste is not null)
+        {
+            return Result<RegisterEmailResponse>.Failure(Error.Conflict("Email", "Este e-mail já está cadastrado em uma conta."));
         }
 
         var user = await _unitOfWork.GetClassAsyncWhere<User_Customer>(x => x.Id == request.UserId);
@@ -553,10 +625,6 @@ public class UserService : IUserService
         {
             return Result<RegisterEmailResponse>.Failure(Error.NotFound("Cadastro","Cadastro não encontrado."));
         }
-
-        // ============================================================
-        // 2. Verificar etapa
-        // ============================================================
 
         if (user.RegistrationStatus != RegistrationStatusEnum.PersonalDataCompleted.ToString())
         {
@@ -579,7 +647,7 @@ public class UserService : IUserService
         }
 
         var emailExists =
-            await _unitOfWork.GetClassAsyncWhere<User_Customer>(x => x.Email == email && x.Id != user.Id && x.RegistrationStatus == RegistrationStatusEnum.Completed.ToString());
+            await _unitOfWork.GetClassAsyncWhere<User_Customer>(x => x.Email == email && x.Id != user.Id && x.RegistrationStatus == RegistrationStatusEnum.Completed.ToString() && x.Isdelete != true);
 
         if (emailExists is not null)
         {
@@ -646,7 +714,7 @@ public class UserService : IUserService
         {
             Id_User = user.Id,
             Log = $"{user.Name} informou o e-mail {email} para confirmação.",
-            Tipo = "Cadastro",
+            Tipo = "CADASTRO",
             Nivel = "CLIENTE",
             Acao = $"O Cliente {user.Name} informou o e-mail para confirmação do cadastro.",
             Info = $"{user.Name} informou o e-mail {email} em {DateTime.Now:dd/MM/yyyy HH:mm:ss}",
@@ -764,7 +832,7 @@ public class UserService : IUserService
             {
                 Id_User = user.Id,
                 Log = $"{user.Name} confirmou o e-mail {user.Email}.",
-                Tipo = "Cadastro",
+                Tipo = "CADASTRO",
                 Nivel = "CLIENTE",
                 Acao = $"O Cliente {user.Name} confirmou o código de e-mail.",
                 Info = $"{user.Name} confirmou o e-mail em {DateTime.Now:dd/MM/yyyy HH:mm:ss}",
@@ -884,7 +952,7 @@ public class UserService : IUserService
            {
                Id_User = user.Id,
                Log = $"{user.Name} finalizou o cadastro da conta.",
-               Tipo = "Cadastro",
+               Tipo = "CADASTRO",
                Nivel = "CLIENTE",
                Acao = $"O Cliente {user.Name} concluiu todas as etapas do cadastro.",
                Info = $"{user.Name} finalizou o cadastro em {DateTime.Now:dd/MM/yyyy HH:mm:ss}",
@@ -1070,7 +1138,7 @@ public class UserService : IUserService
             {
                 Id_User = user.Id,
                 Log = $"{user.Name} solicitou um novo código de confirmação para o e-mail {user.Email}.",
-                Tipo = "Cadastro",
+                Tipo = "CADASTRO",
                 Nivel = "CLIENTE",
                 Acao = $"O Cliente {user.Name} solicitou o reenvio do código de confirmação.",
                 Info = $"{user.Name} solicitou um novo código de confirmação em {DateTime.Now:dd/MM/yyyy HH:mm:ss}.",
@@ -1130,5 +1198,29 @@ public class UserService : IUserService
             }
         );
     }
+    public async Task<Result<BaseSiteResponse>> GetBaseSite()
+    {
+       
+        var BaseSite = await _unitOfWork.GetClassAsyncWhere<BaseSite>(x => x.Isdelete != true);
+        var BaseTaxasSite = await _unitOfWork.GetClassAsyncWhere<BaseRates>(x => x.Isdelete != true);
 
+        if (BaseSite == null)
+        {
+            return Result<BaseSiteResponse>.Failure(Error.NotFound("Bases Site", "Bases Site não encontrado."));
+        }
+
+        return Result<BaseSiteResponse>.Success(new BaseSiteResponse
+        {
+            StoreName = BaseSite.StoreName,
+            StoreImage = BaseSite.StoreImage,
+            StoreImageIcone = BaseSite.StoreImageIcone,
+            ShippingCost = BaseTaxasSite.ShippingCost,
+            TimeframeBusinessDays = BaseTaxasSite.TimeframeBusinessDays
+
+        }
+        );
+    }
+
+
+    
 }

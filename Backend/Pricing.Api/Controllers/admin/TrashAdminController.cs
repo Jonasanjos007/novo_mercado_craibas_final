@@ -1,0 +1,56 @@
+using Mercado.Craibas.Application.DTOs.Requests;
+using Mercado.Craibas.Application.InterfacesAdmin.Services;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
+using Pricing.Api.Extensions;
+
+namespace Mercado.Api.Controllers.admin
+{
+    /// <summary>
+    /// Lixeira do admin. Somente ADMIN.
+    /// </summary>
+    [ApiController]
+    [Route("api/admin/trash")]
+    [Authorize(Roles = "ADMIN")]
+    public class TrashAdminController : ControllerBase
+    {
+        private readonly ITrashServiceAdmin _service;
+
+        public TrashAdminController(ITrashServiceAdmin service)
+        {
+            _service = service;
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> GetTrash()
+        {
+            var result = await _service.GetTrashAsync();
+
+            return result.ToActionResult();
+        }
+
+        [HttpPost("{id:int}/restore")]
+        public async Task<IActionResult> Restore(int id)
+        {
+            var result = await _service.RestoreAsync(id, User.GetUserId());
+
+            return result.ToActionResult();
+        }
+
+        [HttpDelete("{id:int}")]
+        public async Task<IActionResult> Purge(int id)
+        {
+            var result = await _service.PurgeAsync(id, User.GetUserId());
+
+            return result.ToActionResult();
+        }
+
+        [HttpPost("bulk")]
+        public async Task<IActionResult> Bulk([FromBody] TrashBulkRequest request)
+        {
+            var result = await _service.BulkAsync(request, User.GetUserId());
+
+            return result.ToActionResult();
+        }
+    }
+}

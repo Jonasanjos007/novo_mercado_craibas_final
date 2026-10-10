@@ -14,12 +14,13 @@ import { useNotification } from '../utils/NotificationCard';
 import { buildClientNotifications } from '../models/ClientNotification';
 import { UseNotificationAdmin } from '../storeAdmin/UseNotificationAdmin';
 import { useAuthStore } from '../context/AuthContext';
+import { UseUserAdminStore } from '../storeAdmin/UseUserAdminStore';
 export default function Header() {
   const navigate = useNavigate();
   const { searchQuery, setSearchQuery, wishlist } = useStore();
-  const { LoadCategory, LoadOrders, orders } = UseOrderStore();
+  const { LoadCategory, LoadOrders } = UseOrderStore();
   const { Notification } = UseNotificationAdmin();
-
+  const { BaseSiteInterface, getBaseSiteAdmin } = UseUserAdminStore()
   const { setCartOpen } = UseCartStore();
   const { Category } = UseOrderStore();
   const { navigatePages, Pages, selectedCategory } = UseRouteStore();
@@ -37,12 +38,28 @@ export default function Header() {
   const handleSearch = (e: React.FormEvent) => { e.preventDefault(); if (searchQuery.trim()) navigate('/search/search'); };
 
   useEffect(() => {
-    const load = async () => {
-      await GetListCategory();
-      if (user?.role === 'CLIENTE') await LoadOrders();
-    };
-    load();
-  }, [user?.id, user?.role]);
+  let cancelled = false;
+
+  const loadHeaderData = async () => {
+    await Promise.all([
+      GetListCategory(),
+      getBaseSiteAdmin(),
+    ]);
+  };
+
+  void loadHeaderData();
+
+  return () => {
+    cancelled = true;
+  };
+}, []);
+useEffect(() => {
+  if (user?.role !== 'CLIENTE' || !user?.id) {
+    return;
+  }
+
+  void LoadOrders();
+}, [user?.id, user?.role]);
   const GetListCategory = async () => {
     const result = await LoadCategory();
     // SetLoading(false);
@@ -52,21 +69,121 @@ export default function Header() {
   };
   return (
     <header className="sticky top-0 z-50 shadow-strong" style={{ background: 'var(--header-bg)' }}>
+      <div className="max-w-7xl mx-auto px-4 flex flex-wrap items-center ">
+        {BaseSiteInterface.storeImage ? (
+          <>
+            {/* MOBILE */}
+            <button
+              onClick={() => navigate('/')}
+              className="flex items-center shrink-0 group md:hidden"
+            >
+              <div
+                className="w-36 h-18 sm:w-20 sm:h-12 md:w-24 md:h-14 flex items-center justify-center overflow-hidden"
+              // style={{ filter: `drop-shadow(0 1px 8px ${colorConfig.hex})` }}
+              >
+                {BaseSiteInterface.storeImage ? (
+                  <img
+                    src={`/Imagens/Site/${BaseSiteInterface.storeImage}`}
+                    alt="Logo"
+                    className="w-full h-full object-contain"
+                  />
+                ) : (
+                  <span className="text-white font-display font-bold text-base sm:text-lg">
+                    {(BaseSiteInterface?.storeName || "Mercado Craibas").split(/\s+/).map((palavra) => palavra[0]).join("")}
+                  </span>
+                )}
+              </div>
+            </button>
+            <button
+              onClick={() => navigate('/')}
+              className="hidden md:flex items-center shrink-0 group"
+            >
+              <div
+                className="w-48 h-[90px] flex items-center justify-center overflow-hidden"
+              // style={{ filter: `drop-shadow(0 1px 8px ${colorConfig.hex})` }}
+              >
+                {BaseSiteInterface.storeImage ? (
+                  <img
+                    src={`/Imagens/Site/${BaseSiteInterface.storeImage}`}
+                    alt="Logo"
+                    className="w-full h-full object-contain"
+                  />
+                ) : (
+                  <span className="text-white font-display font-bold text-xl">
+                    {(BaseSiteInterface?.storeName || "Mercado Craibas").split(/\s+/).map((palavra) => palavra[0]).join("")}
+                  </span>
+                )}
+              </div>
+            </button>
+          </>
+        ) : (
+          <button
+            onClick={() => navigate('/')}
+            className="flex items-center gap-2 shrink-0 group"
+          >
+            <div
+              className={`w-9 h-9 rounded-xl ${ColorGlobalTema} flex items-center justify-center overflow-hidden`}
+              style={{
+                boxShadow: `0 1px 15px ${colorConfig.hex}`,
+              }}
+            >
+              {BaseSiteInterface.storeImageIcone ? (
+                <img
+                  src={`/Imagens/Site/${BaseSiteInterface.storeImageIcone}`}
+                  alt="Logo"
+                  className="w-full h-full object-contain bg-black scale-125"
+                />
+              ) : (
+                <span className="text-white font-display font-bold text-sm">
+                  {(BaseSiteInterface?.storeName || "Mercado Craibas")
+                    .split(/\s+/)
+                    .map((palavra) => palavra[0])
+                    .join("")}
+                </span>
+              )}
+            </div>
+            <div>
+              <span
+                className={`font-display font-bold text-white text-lg leading-none block ${ColorGlobalHoverText} transition-colors`}
+              >
+                {BaseSiteInterface.storeName?.split(" ")[0]}
+              </span>
 
-      <div className="max-w-7xl mx-auto px-4 py-3 flex flex-wrap items-center gap-3">
-        <button onClick={() => navigate('/')} className="flex items-center gap-2 shrink-0 group">
-          <div className={`w-9 h-9 rounded-xl ${ColorGlobalTema} flex items-center justify-center `} style={{ boxShadow: `0 4px 12px  ${colorConfig.hex}` }}>
-            <span className="text-white font-display font-bold text-sm">MC</span>
+              <span
+                className={`font-display font-bold ${ColorGlobalText} text-lg leading-none block`}
+              >
+                {BaseSiteInterface.storeName?.split(" ")[1]}
+              </span>
+            </div>
+          </button>
+        )}
+
+        {/* <button onClick={() => navigate('/')} className="flex items-center gap-2 shrink-0 group">
+          <div
+            className={`w-9 h-9 rounded-xl ${ColorGlobalTema} flex items-center justify-center overflow-hidden`}
+            style={{ boxShadow: `0 1px 15px ${colorConfig.hex}` }}
+          >
+            {BaseSiteInterface.storeImageIcone ? (
+              <img
+                src={`/Imagens/Site/${BaseSiteInterface.storeImageIcone}`}
+                alt="Logo"
+                className="w-full h-full object-contain bg-black scale-125"
+              />
+            ) : (
+              <span className="text-white font-display font-bold text-sm">
+                {(BaseSiteInterface?.storeName || "Mercado Craibas").split(" ").map(palavra => palavra[0]).join("")}
+              </span>
+            )}
           </div>
           <div className=" sm:block">
-            <span className={`"font-display font-bold text-white text-lg leading-none block ${ColorGlobalHoverText} transition-colors`}>Mercado</span>
-            <span className={`font-display font-bold ${ColorGlobalText} text-lg leading-none block`}>Craibas</span>
+            <span className={`"font-display font-bold text-white text-lg leading-none block ${ColorGlobalHoverText} transition-colors`}>{BaseSiteInterface.storeName?.split(" ")[0]}</span>
+            <span className={`font-display font-bold ${ColorGlobalText} text-lg leading-none block`}>{BaseSiteInterface.storeName?.split(" ")[1]}</span>
           </div>
-        </button>
+        </button> */}
 
         <form
           onSubmit={handleSearch}
-          className="order-3 w-full md:order-none md:flex-1 md:max-w-2xl md:mx-auto"
+          className="order-3 w-full py-2 md:order-none md:flex-1 md:max-w-2xl md:mx-auto"
         >
           <div className="flex items-center bg-white rounded-xl overflow-hidden ring-1 ring-surface-700 focus-within:ring-2 focus-within:ring-[var(--color)] transition-all"
             style={{ "--color": colorConfig.hex, } as React.CSSProperties}>

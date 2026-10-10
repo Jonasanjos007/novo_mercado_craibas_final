@@ -12,7 +12,7 @@ export interface CartItensProduct {
     cartUser?: CartUser;
     user?: User;
     operador?: string;
-    valorDicont?: number
+    valorDicont?: number;
 }
 
 export interface CartUserResponse {

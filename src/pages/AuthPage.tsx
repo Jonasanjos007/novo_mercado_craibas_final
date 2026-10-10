@@ -20,7 +20,6 @@ export default function AuthPage() {
   const { modeRegister } = useParams();
   const [mode, setMode] = useState<'login' | 'register'>('login');
   const [verificationTime, setVerificationTime] = useState(0);
-  console.log('Controller.result.verificationTime:', verificationTime);
   const [showPass, setShowPass] = useState(false);
   const [error, setError] = useState('');
   const [showResendModal, setShowResendModal] = useState(false);
@@ -83,7 +82,6 @@ export default function AuthPage() {
     try {
       const data = JSON.parse(saved);
 
-      console.log('Cadastro recuperado:', data);
 
       const idUser = data?.idUser ?? 0;
 
@@ -93,8 +91,6 @@ export default function AuthPage() {
         ? (data.nextStep as RegistrationStep)
         : 'Started';
 
-      console.log('ID recuperado:', idUser);
-      console.log('Etapa recuperada:', nextStep);
 
       Controller.action.setuserRegisterResponse({
         idUser: data?.idUser ?? 0,
@@ -126,11 +122,6 @@ export default function AuthPage() {
 
     try {
       const data = JSON.parse(saved);
-
-      console.log('Cadastro recuperado:', data);
-      console.log('Controller.result.step:', Controller.result.step);
-
-
       const idUser = data?.idUser ?? 0;
 
       const nextStep = validSteps.includes(
@@ -139,8 +130,6 @@ export default function AuthPage() {
         ? (data.nextStep as RegistrationStep)
         : 'Started';
 
-      console.log('ID recuperado:', idUser);
-      console.log('Etapa recuperada:', nextStep);
 
       Controller.action.setuserRegisterResponse({
         idUser: data?.idUser ?? 0,
@@ -180,7 +169,6 @@ export default function AuthPage() {
 
     const updateTimer = () => {
       const expiresAt = new Date(Controller?.result.UserRegisterResponse?.expiresAt || Date.now()).getTime();
-      console.log('Expires at:', expiresAt);
       const now = Date.now();
 
       const remaining = Math.max(

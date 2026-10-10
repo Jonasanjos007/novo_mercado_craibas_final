@@ -13,6 +13,7 @@ namespace Mercado.Craibas.Application.DTOs.Requests
         public int Id { get; set; }
         public int Id_Cart { get; set; }
         public int Quantity { get; set; }
+        public int NewQuantity { get; set; }
         public ProductResponse Product { get; set; }
         public Variante_ProductsRequest SelectedVariation { get; set; }
         public UserRequest User { get; set; }

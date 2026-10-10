@@ -9,8 +9,8 @@ import { UseCartStore } from "../store/UseCartStore";
 import { UseProductStore } from "../store/UseProductStore";
 import { UseOrderStore } from "../store/UseOrderStore";
 import { Cupom } from "../models/Cupom";
-import { Status_Pay } from "../models/OrderSave";
-import { OrderSave } from "../models/OrderSave";
+import { Status_Pay } from "../models/Order";
+import { OrderSave } from "../models/Order";
 import { UseCupomStore } from "../store/UseCupomStore";
 import { UseNotificationAdmin } from "../storeAdmin/UseNotificationAdmin";
 
@@ -49,9 +49,7 @@ export const useCheckoutController = (): CheckoutControllerReturn => {
     const { loadProducts } = UseProductStore();
     const { LoadCupons, Cupons, SaveOrderUser } = UseOrderStore();
     const { cart } = UseCartStore();
-    console.log(cart, 'cart');
     const [loading, setLoading] = useState(false);
-    console.log("loading", loading)
     const [step, setStep] = useState<Step>('Endereço');
     const { ApllyqueCupom, RemoveApllyqueCupom } = UseCupomStore();
 
@@ -60,7 +58,6 @@ export const useCheckoutController = (): CheckoutControllerReturn => {
     const [selectedCoupon, setSelectedCoupon] = useState<Cupom | null>(null);
 
     const [discount, setDiscount] = useState(0);
-    console.log(discount, 'discount');
     const [order, setOrder] = useState<OrderSave>();
 
     const total = cartTotal();
@@ -143,9 +140,7 @@ export const useCheckoutController = (): CheckoutControllerReturn => {
             discount_Type: cart.discount_Type ?? ""
         };
         setOrder(OrderSave);
-        console.log(OrderSave, 'OrderSave');
         const result = await SaveOrderUser(OrderSave);
-        console.log(result, 'result');
         if (!result?.success) {
             notify.error(result.error?.error.code || "error", result?.error?.error.message || "Erro ao salvar pedido");
             setLoading(false);

@@ -21,10 +21,9 @@ export const useWishlistPageController = () => {
         Response();
 
     }, [favorites]);
-    console.log('favorites', favorites);
     const GetListFavorites = async () => {
         const result = await GetfavoriteAll();
-        console.log("result.data", result.data);
+        // -console.log("result.data", result.data);
         if (!result?.success) {
             notify.error(result.error?.error.code || "error", result?.error?.error.message || "Erro ao carregar Favoritos");
         }

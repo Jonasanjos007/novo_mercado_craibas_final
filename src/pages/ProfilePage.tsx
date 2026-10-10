@@ -20,6 +20,9 @@ import {
   Loader2,
   UserCheck,
   PackageCheck,
+  EyeOff,
+  Eye,
+  MonitorSmartphone,
 
 } from 'lucide-react';
 import { Calendar, Hash } from 'lucide-react';
@@ -39,13 +42,14 @@ import { UseRouteStore } from '../store/UseRouteStore';
 import { colors, getColorConfig } from '../types/Colors';
 import Headerpages from '../components/Headerpages';
 import { UseOrderStore } from '../store/UseOrderStore';
-import { Order } from '../models/OrderSave';
+import { Order } from '../models/Order';
 import { ProductSaveOrder } from '../models/Product';
 import ProductReviewModal from '../components/ProductReviewModal';
 import { useAuthStore } from '../context/AuthContext';
 import { UseProductStore } from '../store/UseProductStore';
 import ProductReviewDetailsModal from '../components/ProductReviewDetailsModal';
-type ProfileTab = 'overview' | 'orders' | 'wishlist' | 'addresses' | 'security' | 'preferences' | 'settings';
+import ConnectedDevices from '../components/ConnectedDevices';
+type ProfileTab = 'overview' | 'orders' | 'wishlist' | 'addresses' | 'security' | 'preferences' | 'settings' | 'devices';
 
 
 
@@ -72,8 +76,33 @@ export default function ProfilePage() {
   const avatarInputRef = useRef<HTMLInputElement>(null);
   const [statusFilter, setStatusFilter] = useState("TODOS");
   const [expandedOrder, setExpandedOrder] = useState<number | null>(null);
+  const [showCurrentPassword, setShowCurrentPassword] = useState(false);
+  const [showNewPassword, setShowNewPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
-  console.log("User", user)
+  const currentPassword = Controller?.result.passwordForm.currentPassword ?? '';
+  const newPassword = Controller?.result.passwordForm.newPassword ?? '';
+  const confirmPassword = Controller?.result.passwordForm.confirmPassword ?? '';
+
+  const passwordRules = {
+    minLength: newPassword.length >= 8,
+    uppercase: /[A-Z]/.test(newPassword),
+    lowercase: /[a-z]/.test(newPassword),
+    number: /[0-9]/.test(newPassword),
+    special: /[^A-Za-z0-9]/.test(newPassword),
+    match:
+      confirmPassword.length > 0 &&
+      newPassword === confirmPassword,
+  };
+
+  const isPasswordValid =
+    passwordRules.minLength &&
+    passwordRules.uppercase &&
+    passwordRules.lowercase &&
+    passwordRules.number &&
+    passwordRules.special &&
+    passwordRules.match;
+
   const filteredOrders = statusFilter === "TODOS" ? orders : orders.filter(o => o.order_Status === statusFilter);
   const AddresStadand = address.filter(item => item.standard === true)[0];
   const filters = [
@@ -105,7 +134,7 @@ export default function ProfilePage() {
 
 
   const resetProfileForm = () => {
-    Controller?.action.setForm({ name: user?.name || '', email: user?.email || '', phone: user?.phone || 0 });
+    Controller?.action.setForm({ name: user?.name || '', email: user?.email || '', phone: user?.phone || '' });
     Controller?.action.setAvatarFile(null);
     setAvatarPreview(null);
   };
@@ -201,6 +230,7 @@ export default function ProfilePage() {
     { id: 'addresses', label: 'Endereços', icon: <MapPin className="w-4 h-4" /> },
     // { id: 'security', label: 'Segurança', icon: <Shield className="w-4 h-4" /> },
     { id: 'settings', label: 'Configuração', icon: <Settings className="w-4 h-4" /> },
+    { id: 'devices', label: 'Dispositivos', icon: <MonitorSmartphone className="w-4 h-4" /> },
     { id: 'preferences', label: 'Preferências', icon: <Bell className="w-4 h-4" /> },
   ];
   const fields = [
@@ -214,6 +244,7 @@ export default function ProfilePage() {
     { label: "Estado", key: "state", placeholder: "SP" },
 
   ];
+  const avatarUrl = user?.avatar === '' || !user?.avatar || user?.avatar === undefined || user?.avatar === null ? false : true;
 
   const formatPhone = (value: string) => {
     const numbers = value.replace(/\D/g, "");
@@ -377,12 +408,20 @@ export default function ProfilePage() {
                       className={`group relative h-48 w-48 overflow-hidden rounded-full border-4 border-white bg-surface-100 shadow-[0_14px_40px_rgba(15,23,42,0.16)] sm:h-60 sm:w-60 ${editing ? 'cursor-pointer ring-4 ring-brand-100' : 'cursor-zoom-in'}`}
                       onClick={() => editing ? avatarInputRef.current?.click() : setShowPhoto(true)}
                     >
-                      <img
-                        src={avatarPreview || `/Imagens/Usuarios/${user?.avatar}`}
-                        alt="Foto de perfil"
-                        className="h-full w-full object-contain object-center transition-transform duration-300 group-hover:scale-[1.02]"
-                      />
 
+                      {avatarUrl ? (
+                        <img
+                          src={avatarPreview || `/Imagens/Usuarios/${user?.avatar}`}
+                          alt="Foto de perfil"
+                          className="h-full w-full object-contain object-center transition-transform duration-300 group-hover:scale-[1.02]"
+                        />
+                      ) : (
+                        <span
+                          className={`flex h-full w-full items-center justify-center text-7xl font-black uppercase ${ColorGlobalText}`}
+                        >
+                          {user?.name?.charAt(0) || 'U'}
+                        </span>
+                      )}
                       {editing && (
                         <div className="pointer-events-none absolute inset-0 flex items-end justify-center bg-black/10 pb-5 transition-colors group-hover:bg-black/20">
                           <span className="flex items-center gap-2 rounded-full border border-white/30 bg-black/60 px-3 py-2 text-[11px] font-bold text-white backdrop-blur-sm">
@@ -549,7 +588,6 @@ export default function ProfilePage() {
                 {/* ── Last Order ── */}
                 {userOrders.length > 0 && (() => {
                   const last = orders[0];
-                  console.log(last.products);
                   return (
                     <div className="bg-white rounded-2xl border border-surface-100 shadow-soft overflow-hidden">
                       <div className="px-5 pt-4 pb-2 flex items-center gap-2 text-xs font-bold text-surface-500 uppercase tracking-wider">
@@ -618,267 +656,292 @@ export default function ProfilePage() {
                     </button>
                   ))}
                 </div>
-
                 <div className="space-y-5 px-4 py-4 sm:px-5">
-                  {filteredOrders.map(order => {
-                    const itemsCount = order.products.reduce(
-                      (s, p) => s + p.quantity,
-                      0
-                    );
+                  {filteredOrders.length === 0 ? (
+                    <div className="flex flex-col items-center justify-center px-6 py-14 text-center">
+                      <div className="mb-5 flex h-16 w-16 items-center justify-center rounded-2xl bg-surface-100">
+                        <ShoppingCart className="h-8 w-8 text-surface-400" />
+                      </div>
 
-                    const statusIdx = orderStatusSteps.indexOf(order.order_Status);
-                    const progress = statusIdx / (orderStatusSteps.length - 1);
-                    const isPending = order.status_Pay === "PENDENTE";
-                    const isDelivered = order.order_Status === "ENTREGUE";
+                      <h3 className="font-display text-lg font-bold text-surface-800">
+                        Você ainda não fez nenhum pedido
+                      </h3>
 
-                    return (
-                      <div
-                        key={order.id_Order}
-                        className="group relative overflow-hidden rounded-2xl border border-surface-200 bg-white shadow-sm transition-all duration-200 hover:border-surface-300 hover:shadow-md"
+                      <p className="mt-2 max-w-sm text-sm leading-relaxed text-surface-400">
+                        Faça seu primeiro pedido e ele aparecerá aqui para você acompanhar
+                        todos os detalhes da sua compra.
+                      </p>
+
+                      <button
+                        type="button"
+                        onClick={() => navigate("/")}
+                        className={`mt-6 inline-flex items-center gap-2 rounded-xl px-5 py-3 text-sm font-bold text-white shadow-sm transition-all hover:opacity-90 active:scale-95 ${colorConfig.class}`}
                       >
-                        {/* Barra lateral */}
-                        {/* Barra superior */}
+                        <ShoppingCart className="h-4 w-4" />
+                        Fazer meu primeiro pedido
+                      </button>
+                    </div>
+                  ) : (
+
+                    filteredOrders.map(order => {
+                      const itemsCount = order.products.reduce(
+                        (s, p) => s + p.quantity,
+                        0
+                      );
+
+                      const statusIdx = orderStatusSteps.indexOf(order.order_Status);
+                      const progress = statusIdx / (orderStatusSteps.length - 1);
+                      const isPending = order.status_Pay === "PENDENTE";
+                      const isDelivered = order.order_Status === "ENTREGUE";
+
+                      return (
                         <div
-                          className={`absolute left-0 top-0 bottom-0 w-1 ${order.order_Status === "ENTREGUE"
-                            ? "bg-green-500"
-                            : colorConfig.class
-                            } scale-y-0 group-hover:scale-y-100 transition-transform rounded-r-full`}
-                        />
-                        <div
-                          className={`absolute left-0 top-0 right-0 h-1 ${order.order_Status === "ENTREGUE"
-                            ? "bg-green-500"
-                            : colorConfig.class
-                            }`}
-                        />
+                          key={order.id_Order}
+                          className="group relative overflow-hidden rounded-2xl border border-surface-200 bg-white shadow-sm transition-all duration-200 hover:border-surface-300 hover:shadow-md"
+                        >
+                          {/* Barra lateral */}
+                          {/* Barra superior */}
+                          <div
+                            className={`absolute left-0 top-0 bottom-0 w-1 ${order.order_Status === "ENTREGUE"
+                              ? "bg-green-500"
+                              : colorConfig.class
+                              } scale-y-0 group-hover:scale-y-100 transition-transform rounded-r-full`}
+                          />
+                          <div
+                            className={`absolute left-0 top-0 right-0 h-1 ${order.order_Status === "ENTREGUE"
+                              ? "bg-green-500"
+                              : colorConfig.class
+                              }`}
+                          />
 
-                        <div className="px-4 py-4 sm:px-5">
-                          {/* Pedido + data */}
-                          <div className="flex items-center gap-2">
-                            <h3 className="text-sm font-bold text-surface-900">
-                              Pedido #{order.number_Order}
-                            </h3>
+                          <div className="px-4 py-4 sm:px-5">
+                            {/* Pedido + data */}
+                            <div className="flex items-center gap-2">
+                              <h3 className="text-sm font-bold text-surface-900">
+                                Pedido #{order.number_Order}
+                              </h3>
 
-                            <span className="h-1 w-1 shrink-0 rounded-full bg-surface-300" />
+                              <span className="h-1 w-1 shrink-0 rounded-full bg-surface-300" />
 
-                            <span className="text-[10px] font-medium text-surface-400 sm:text-[11px]">
-                              {new Date(order.insertDate).toLocaleDateString("pt-BR")}
-                            </span>
-                          </div>
-
-                          {/* Informações */}
-                          <div className="mt-2 flex flex-wrap items-center gap-2">
-                            {/* Quantidade */}
-                            <span className="text-[10px] text-surface-400 sm:text-[11px]">
-                              {itemsCount} {itemsCount === 1 ? "item" : "itens"}
-                            </span>
-
-                            <span className="h-1 w-1 rounded-full bg-surface-300" />
-
-                            {/* Total */}
-                            <span className="text-[10px] text-surface-400 sm:text-[11px]">
-                              Total{" "}
-                              <strong className="font-semibold text-surface-700">
-                                {formatPrice(order.total_Value_Order)}
-                              </strong>
-                            </span>
-
-                            <span className="h-1 w-1 rounded-full bg-surface-300" />
-
-                            {/* Status */}
-                            <span
-                              className={`inline-flex items-center rounded-full px-2.5 py-1 text-[9px] font-bold sm:text-[10px] ${orderStatusColors[order.order_Status]
-                                }`}
-                            >
-                              {orderStatusLabels[order.order_Status]}
-                            </span>
-
-                            {/* Pagamento pendente */}
-                            {isPending && (
-                              <span className="inline-flex items-center gap-1.5 rounded-full border border-amber-200 bg-amber-50 px-2.5 py-1 text-[9px] font-bold text-amber-700 sm:text-[10px]">
-                                <span className="h-1.5 w-1.5 shrink-0 animate-pulse rounded-full bg-amber-500" />
-                                Pagamento pendente
+                              <span className="text-[10px] font-medium text-surface-400 sm:text-[11px]">
+                                {new Date(order.insertDate).toLocaleDateString("pt-BR")}
                               </span>
-                            )}
+                            </div>
+
+                            {/* Informações */}
+                            <div className="mt-2 flex flex-wrap items-center gap-2">
+                              {/* Quantidade */}
+                              <span className="text-[10px] text-surface-400 sm:text-[11px]">
+                                {itemsCount} {itemsCount === 1 ? "item" : "itens"}
+                              </span>
+
+                              <span className="h-1 w-1 rounded-full bg-surface-300" />
+
+                              {/* Total */}
+                              <span className="text-[10px] text-surface-400 sm:text-[11px]">
+                                Total{" "}
+                                <strong className="font-semibold text-surface-700">
+                                  {formatPrice(order.total_Value_Order)}
+                                </strong>
+                              </span>
+
+                              <span className="h-1 w-1 rounded-full bg-surface-300" />
+
+                              {/* Status */}
+                              <span
+                                className={`inline-flex items-center rounded-full px-2.5 py-1 text-[9px] font-bold sm:text-[10px] ${orderStatusColors[order.order_Status]
+                                  }`}
+                              >
+                                {orderStatusLabels[order.order_Status]}
+                              </span>
+
+                              {/* Pagamento pendente */}
+                              {isPending && (
+                                <span className="inline-flex items-center gap-1.5 rounded-full border border-amber-200 bg-amber-50 px-2.5 py-1 text-[9px] font-bold text-amber-700 sm:text-[10px]">
+                                  <span className="h-1.5 w-1.5 shrink-0 animate-pulse rounded-full bg-amber-500" />
+                                  Pagamento pendente
+                                </span>
+                              )}
+                            </div>
                           </div>
-                        </div>
-                        <div className="border-y border-surface-100 bg-surface-50/40">
+                          <div className="border-y border-surface-100 bg-surface-50/40">
 
-                          {/* PAGAMENTO PENDENTE */}
-                          {isPending ? (
-                            <div className="border-b border-surface-100 bg-surface-50/40 px-5 py-4">
-                              <div className="flex items-center gap-3">
+                            {/* PAGAMENTO PENDENTE */}
+                            {isPending ? (
+                              <div className="border-b border-surface-100 bg-surface-50/40 px-5 py-4">
+                                <div className="flex items-center gap-3">
 
-                                {/* Ícone */}
-                                <div className="relative shrink-0">
-                                  <div className="absolute inset-0 rounded-xl bg-amber-400/20 animate-pulse" />
+                                  {/* Ícone */}
+                                  <div className="relative shrink-0">
+                                    <div className="absolute inset-0 rounded-xl bg-amber-400/20 animate-pulse" />
 
-                                  <div className="relative flex h-9 w-9 items-center justify-center rounded-xl border border-amber-200 bg-white">
-                                    <Clock className="h-4 w-4 text-amber-500" />
+                                    <div className="relative flex h-9 w-9 items-center justify-center rounded-xl border border-amber-200 bg-white">
+                                      <Clock className="h-4 w-4 text-amber-500" />
+                                    </div>
                                   </div>
-                                </div>
 
-                                {/* Texto */}
-                                <div className="min-w-0 flex-1">
+                                  {/* Texto */}
+                                  <div className="min-w-0 flex-1">
 
-                                  <div className="flex items-center gap-2">
-                                    <p className="text-xs font-bold text-surface-800">
-                                      Aguardando pagamento
+                                    <div className="flex items-center gap-2">
+                                      <p className="text-xs font-bold text-surface-800">
+                                        Aguardando pagamento
+                                      </p>
+
+                                      <span className="inline-flex items-center gap-1 rounded-full border border-amber-200 bg-amber-50 px-2 py-0.5 text-[9px] font-bold text-amber-700">
+                                        <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-amber-500" />
+                                        Pendente
+                                      </span>
+                                    </div>
+
+                                    <p className="mt-0.5 text-[10px] leading-relaxed text-surface-400">
+                                      Após a confirmação, seu pedido seguirá automaticamente para preparação.
                                     </p>
 
-                                    <span className="inline-flex items-center gap-1 rounded-full border border-amber-200 bg-amber-50 px-2 py-0.5 text-[9px] font-bold text-amber-700">
-                                      <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-amber-500" />
-                                      Pendente
+                                  </div>
+
+                                </div>
+
+                                {/* Indicador */}
+                                <div className="mt-3">
+
+                                  <div className="flex items-center justify-between mb-1.5">
+                                    <span className="text-[9px] font-medium text-surface-400">
+                                      Processando pagamento
+                                    </span>
+
+                                    <span className="text-[9px] font-semibold text-amber-600">
+                                      Aguardando
                                     </span>
                                   </div>
 
-                                  <p className="mt-0.5 text-[10px] leading-relaxed text-surface-400">
-                                    Após a confirmação, seu pedido seguirá automaticamente para preparação.
-                                  </p>
+                                  <div className="relative h-1.5 overflow-hidden rounded-full bg-surface-200">
 
-                                </div>
+                                    {/* Base */}
+                                    <div className="absolute inset-y-0 left-0 w-1/3 rounded-full bg-amber-400" />
 
-                              </div>
-
-                              {/* Indicador */}
-                              <div className="mt-3">
-
-                                <div className="flex items-center justify-between mb-1.5">
-                                  <span className="text-[9px] font-medium text-surface-400">
-                                    Processando pagamento
-                                  </span>
-
-                                  <span className="text-[9px] font-semibold text-amber-600">
-                                    Aguardando
-                                  </span>
-                                </div>
-
-                                <div className="relative h-1.5 overflow-hidden rounded-full bg-surface-200">
-
-                                  {/* Base */}
-                                  <div className="absolute inset-y-0 left-0 w-1/3 rounded-full bg-amber-400" />
-
-                                  {/* Shimmer */}
-                                  <div className="absolute inset-y-0 left-0 w-1/4 -skew-x-12 bg-gradient-to-r from-transparent via-white/80 to-transparent animate-[shimmerSweep_1.6s_ease-in-out_infinite]" />
-
-                                </div>
-
-                              </div>
-                            </div>
-                          ) : order.order_Status === 'ENTREGUE' ? (
-                            (() => {
-                              const allEvaluated = order.products.every(p => p.evaluated);
-
-                              return (
-                                <div className="px-5 py-4 border-b border-surface-100 bg-surface-50/70">
-
-                                  {/* Cabeçalho */}
-                                  <div className="flex items-center gap-3">
-
-                                    {/* Ícone */}
-                                    <div className="shrink-0 w-10 h-10 rounded-xl bg-white border border-green-200 shadow-sm flex items-center justify-center">
-                                      <PackageCheck className="w-4.5 h-4.5 text-green-600" />
-                                    </div>
-
-                                    {/* Informações */}
-                                    <div className="min-w-0 flex-1">
-                                      <div className="flex items-center gap-2 flex-wrap">
-                                        <p className="text-xs sm:text-sm font-bold text-surface-800">
-                                          Pedido entregue com sucesso
-                                        </p>
-
-                                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-green-50 border border-green-200 text-[9px] font-bold text-green-700">
-                                          <span className="w-1.5 h-1.5 rounded-full bg-green-500" />
-                                          Concluído
-                                        </span>
-                                      </div>
-
-                                      <p className="text-[10px] sm:text-[11px] text-surface-400 mt-1 leading-relaxed">
-                                        {allEvaluated
-                                          ? "Obrigado por avaliar os produtos deste pedido!"
-                                          : "Conte para gente o que achou dos produtos."}
-                                      </p>
-                                    </div>
+                                    {/* Shimmer */}
+                                    <div className="absolute inset-y-0 left-0 w-1/4 -skew-x-12 bg-gradient-to-r from-transparent via-white/80 to-transparent animate-[shimmerSweep_1.6s_ease-in-out_infinite]" />
 
                                   </div>
 
-                                  {/* Informações da entrega */}
-                                  {(order.whoReceivedIt != null ||
-                                    order.customerDeliveryDate != null) && (
-                                      <div className="mt-4 pt-3 border-t border-surface-200/70">
-                                        <div className="grid grid-cols-2">
+                                </div>
+                              </div>
+                            ) : order.order_Status === 'ENTREGUE' ? (
+                              (() => {
+                                const allEvaluated = order.products.every(p => p.evaluated);
 
-                                          {/* Recebido por */}
-                                          <div className="flex items-center gap-2 pr-4">
-                                            <div className="w-7 h-7 rounded-lg bg-white border border-surface-200 flex items-center justify-center shrink-0">
-                                              <UserCheck className="w-3.5 h-3.5 text-surface-400" />
-                                            </div>
+                                return (
+                                  <div className="px-5 py-4 border-b border-surface-100 bg-surface-50/70">
 
-                                            <div className="min-w-0">
-                                              <p className="text-[9px] text-surface-400 uppercase tracking-wide">
-                                                Recebido por
-                                              </p>
+                                    {/* Cabeçalho */}
+                                    <div className="flex items-center gap-3">
 
-                                              <p className="text-[10px] sm:text-[11px] font-bold text-surface-700 truncate">
-                                                {order.whoReceivedIt || "-"}
-                                              </p>
-                                            </div>
-                                          </div>
+                                      {/* Ícone */}
+                                      <div className="shrink-0 w-10 h-10 rounded-xl bg-white border border-green-200 shadow-sm flex items-center justify-center">
+                                        <PackageCheck className="w-4.5 h-4.5 text-green-600" />
+                                      </div>
 
-                                          {/* Data da entrega */}
-                                          <div className="flex items-center gap-2 pl-4 border-l border-surface-200">
-                                            <div className="w-7 h-7 rounded-lg bg-white border border-surface-200 flex items-center justify-center shrink-0">
-                                              <Calendar className="w-3.5 h-3.5 text-surface-400" />
-                                            </div>
+                                      {/* Informações */}
+                                      <div className="min-w-0 flex-1">
+                                        <div className="flex items-center gap-2 flex-wrap">
+                                          <p className="text-xs sm:text-sm font-bold text-surface-800">
+                                            Pedido entregue com sucesso
+                                          </p>
 
-                                            <div className="min-w-0">
-                                              <p className="text-[9px] text-surface-400 uppercase tracking-wide">
-                                                Entregue em
-                                              </p>
+                                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-green-50 border border-green-200 text-[9px] font-bold text-green-700">
+                                            <span className="w-1.5 h-1.5 rounded-full bg-green-500" />
+                                            Concluído
+                                          </span>
+                                        </div>
 
-                                              {order.customerDeliveryDate ? (
-                                                <p className="text-[10px] sm:text-[11px] font-bold text-surface-700 whitespace-nowrap">
-                                                  {new Date(
-                                                    order.customerDeliveryDate
-                                                  ).toLocaleDateString("pt-BR", {
-                                                    day: "2-digit",
-                                                    month: "2-digit",
-                                                    year: "numeric",
-                                                  })}{" "}
-                                                  às{" "}
-                                                  {new Date(
-                                                    order.customerDeliveryDate
-                                                  ).toLocaleTimeString("pt-BR", {
-                                                    hour: "2-digit",
-                                                    minute: "2-digit",
-                                                  })}
+                                        <p className="text-[10px] sm:text-[11px] text-surface-400 mt-1 leading-relaxed">
+                                          {allEvaluated
+                                            ? "Obrigado por avaliar os produtos deste pedido!"
+                                            : "Conte para gente o que achou dos produtos."}
+                                        </p>
+                                      </div>
+
+                                    </div>
+
+                                    {/* Informações da entrega */}
+                                    {(order.whoReceivedIt != null ||
+                                      order.customerDeliveryDate != null) && (
+                                        <div className="mt-4 pt-3 border-t border-surface-200/70">
+                                          <div className="grid grid-cols-2">
+
+                                            {/* Recebido por */}
+                                            <div className="flex items-center gap-2 pr-4">
+                                              <div className="w-7 h-7 rounded-lg bg-white border border-surface-200 flex items-center justify-center shrink-0">
+                                                <UserCheck className="w-3.5 h-3.5 text-surface-400" />
+                                              </div>
+
+                                              <div className="min-w-0">
+                                                <p className="text-[9px] text-surface-400 uppercase tracking-wide">
+                                                  Recebido por
                                                 </p>
-                                              ) : (
-                                                <p className="text-[10px] sm:text-[11px] font-bold text-surface-400">
-                                                  -
+
+                                                <p className="text-[10px] sm:text-[11px] font-bold text-surface-700 truncate">
+                                                  {order.whoReceivedIt || "-"}
                                                 </p>
-                                              )}
+                                              </div>
+                                            </div>
+
+                                            {/* Data da entrega */}
+                                            <div className="flex items-center gap-2 pl-4 border-l border-surface-200">
+                                              <div className="w-7 h-7 rounded-lg bg-white border border-surface-200 flex items-center justify-center shrink-0">
+                                                <Calendar className="w-3.5 h-3.5 text-surface-400" />
+                                              </div>
+
+                                              <div className="min-w-0">
+                                                <p className="text-[9px] text-surface-400 uppercase tracking-wide">
+                                                  Entregue em
+                                                </p>
+
+                                                {order.customerDeliveryDate ? (
+                                                  <p className="text-[10px] sm:text-[11px] font-bold text-surface-700 whitespace-nowrap">
+                                                    {new Date(
+                                                      order.customerDeliveryDate
+                                                    ).toLocaleDateString("pt-BR", {
+                                                      day: "2-digit",
+                                                      month: "2-digit",
+                                                      year: "numeric",
+                                                    })}{" "}
+                                                    às{" "}
+                                                    {new Date(
+                                                      order.customerDeliveryDate
+                                                    ).toLocaleTimeString("pt-BR", {
+                                                      hour: "2-digit",
+                                                      minute: "2-digit",
+                                                    })}
+                                                  </p>
+                                                ) : (
+                                                  <p className="text-[10px] sm:text-[11px] font-bold text-surface-400">
+                                                    -
+                                                  </p>
+                                                )}
+                                              </div>
                                             </div>
                                           </div>
                                         </div>
-                                      </div>
-                                    )}
-                                </div>
-                              );
-                            })()
+                                      )}
+                                  </div>
+                                );
+                              })()
 
-                          ) : (
-                            <div className="px-5 py-4 bg-surface-50 border-b border-surface-100">
-                              <div className="flex justify-between relative">
-                                <div className="absolute left-7 right-7 top-3.5 h-1 bg-surface-200 rounded-full" />
+                            ) : (
+                              <div className="px-5 py-4 bg-surface-50 border-b border-surface-100">
+                                <div className="flex justify-between relative">
+                                  <div className="absolute left-7 right-7 top-3.5 h-1 bg-surface-200 rounded-full" />
 
-                                <div
-                                  className="absolute left-7 top-3.5 h-1.5 bg-green-600 rounded-full overflow-hidden transition-all progress-bar"
-                                  style={{ '--progress': progress } as React.CSSProperties}
-                                >
-                                  <div className="shimmer-light" />
-                                </div>
+                                  <div
+                                    className="absolute left-7 top-3.5 h-1.5 bg-green-600 rounded-full overflow-hidden transition-all progress-bar"
+                                    style={{ '--progress': progress } as React.CSSProperties}
+                                  >
+                                    <div className="shimmer-light" />
+                                  </div>
 
-                                <style>{`.progress-bar {  width: calc(var(--progress) * 88%); } @media (min-width: 640px) {.progress-bar {width: calc(var(--progress) * 93%);} }
+                                  <style>{`.progress-bar {  width: calc(var(--progress) * 88%); } @media (min-width: 640px) {.progress-bar {width: calc(var(--progress) * 93%);} }
                               .shimmer-light {
                                 position: absolute;
                                 top: 0;
@@ -893,173 +956,176 @@ export default function ProfilePage() {
                               }
                             `}</style>
 
-                                {orderStatusSteps.map((step, i) => {
-                                  const done = i <= statusIdx;
-                                  return (
-                                    <div key={step} className="relative z-10 flex flex-col items-center">
-                                      <div
-                                        className={`w-7 h-7 rounded-full border-2 flex items-center justify-center text-[10px] font-bold ${done ? "bg-green-600 border-green-600 text-white" : "bg-white border-surface-300 text-surface-300"}`}
-                                      >
-                                        {done ? "✓" : i + 1}
+                                  {orderStatusSteps.map((step, i) => {
+                                    const done = i <= statusIdx;
+                                    return (
+                                      <div key={step} className="relative z-10 flex flex-col items-center">
+                                        <div
+                                          className={`w-7 h-7 rounded-full border-2 flex items-center justify-center text-[10px] font-bold ${done ? "bg-green-600 border-green-600 text-white" : "bg-white border-surface-300 text-surface-300"}`}
+                                        >
+                                          {done ? "✓" : i + 1}
+                                        </div>
+                                        <span className={`mt-1 text-[9px] text-center max-w-[-1px] ${done ? "text-green-600" : "text-surface-400"}`}>
+                                          {orderStatusLabels[step]}
+                                        </span>
+
                                       </div>
-                                      <span className={`mt-1 text-[9px] text-center max-w-[-1px] ${done ? "text-green-600" : "text-surface-400"}`}>
-                                        {orderStatusLabels[step]}
-                                      </span>
-
-                                    </div>
-                                  );
-                                })}
-                              </div>
-                            </div>
-                          )}
-
-                        </div>
-
-                        <div className="space-y-2 p-4 sm:p-5">
-
-                          {order.products.map((item, i) => {
-                            const subtotal = item.price_Unic * item.quantity;
-                            const isEvaluated = item.evaluated;
-                            const isLoading = Controller?.result.Loading;
-
-                            return (
-                              <div
-                                key={item.id ?? i}
-                                className="group rounded-xl border border-surface-100 bg-white p-3 transition-all hover:border-surface-200 hover:bg-surface-50/50"
-                              >
-                                {/* Produto */}
-                                <div className="flex gap-3">
-                                  {/* Imagem */}
-                                  <img
-                                    src={`/Imagens/Produtos/${item.imagens?.[0]?.url_Imagem ?? ""}`}
-                                    alt={item.name}
-                                    className="h-14 w-14 shrink-0 rounded-xl border border-surface-100 bg-surface-50 object-cover sm:h-16 sm:w-16"
-                                  />
-
-                                  {/* Conteúdo */}
-                                  <div className="min-w-0 flex-1">
-                                    <div className="flex items-start justify-between gap-3">
-                                      {/* Nome */}
-                                      <p className="line-clamp-2 min-w-0 text-xs font-semibold leading-snug text-surface-800 sm:text-sm">
-                                        {item.name}
-                                      </p>
-
-                                      {/* Subtotal */}
-                                      <div className="shrink-0 text-right">
-                                        <p className="text-[8px] font-semibold uppercase tracking-wide text-surface-400">
-                                          Subtotal
-                                        </p>
-
-                                        <p className="mt-0.5 text-xs font-bold text-surface-900 sm:text-sm">
-                                          {formatPrice(subtotal)}
-                                        </p>
-                                      </div>
-                                    </div>
-
-                                    {/* Quantidade / Unitário */}
-                                    <div className="mt-1.5 flex flex-wrap items-center gap-x-3 text-[10px] text-surface-400 sm:text-xs">
-                                      <span>
-                                        Qtd.{" "}
-                                        <strong className="font-semibold text-surface-600">
-                                          {item.quantity}
-                                        </strong>
-                                      </span>
-
-                                      <span className="h-1 w-1 rounded-full bg-surface-300" />
-
-                                      <span>
-                                        Unit.{" "}
-                                        <strong className="font-semibold text-surface-600">
-                                          {formatPrice(item.price_Unic)}
-                                        </strong>
-                                      </span>
-                                    </div>
-                                  </div>
+                                    );
+                                  })}
                                 </div>
-
-                                {/* Ações */}
-                                {isDelivered && (
-                                  <div className="mt-3 grid grid-cols-1 gap-2 border-t border-surface-100 pt-3 sm:flex sm:items-center sm:justify-between">
-
-                                    {/* Comprar novamente */}
-                                    <button
-                                      onClick={() => navigate(`/product/${item.id}`)}
-                                      type="button"
-                                      className={`flex w-full items-center justify-center gap-1.5 rounded-lg border border-surface-200 bg-white px-3 py-2.5 text-[10px] font-bold text-surface-600 transition-all hover:border-surface-300 hover:bg-surface-50 sm:w-auto sm:py-2 ${ColorGlobalHoverText}`}
-                                    >
-                                      <ShoppingCart className="h-3.5 w-3.5" />
-                                      Comprar novamente
-                                    </button>
-
-                                    {/* Avaliação */}
-                                    {!isEvaluated ? (
-                                      <button
-                                        type="button"
-                                        onClick={() =>
-                                          setReviewTarget({
-                                            product: item,
-                                            order,
-                                          })
-                                        }
-                                        className={`flex w-full items-center justify-center gap-1.5 rounded-lg bg-surface-100 px-3 py-2.5 text-[10px] font-bold transition-colors hover:bg-surface-200 sm:w-auto sm:py-2 ${colorConfig.class_text}`}
-                                      >
-                                        <Star className="h-3.5 w-3.5" />
-                                        Avaliar produto
-                                      </button>
-                                    ) : (
-                                      <button
-                                        type="button"
-                                        onClick={() =>
-                                          Controller?.action.handleGetAssents(
-                                            order.id_Order,
-                                            item.id
-                                          )
-                                        }
-                                        disabled={isLoading}
-                                        className="flex w-full items-center justify-center gap-1.5 rounded-lg bg-green-50 px-3 py-2.5 text-[10px] font-bold text-green-600 transition-colors hover:bg-green-100 disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto sm:py-2"
-                                      >
-                                        {isLoading ? (
-                                          <Loader2 className="h-4 w-4 animate-spin" />
-                                        ) : (
-                                          <>
-                                            <Star className="h-3.5 w-3.5 fill-current" />
-                                            Avaliado, obrigado!
-                                          </>
-                                        )}
-                                      </button>
-                                    )}
-                                  </div>
-                                )}
                               </div>
-                            );
-                          })}
+                            )}
+
+                          </div>
+
+                          <div className="space-y-2 p-4 sm:p-5">
+
+                            {order.products.map((item, i) => {
+                              const subtotal = item.price_Unic * item.quantity;
+                              const isEvaluated = item.evaluated;
+                              const isLoading = Controller?.result.Loading;
+
+                              return (
+                                <div
+                                  key={item.id ?? i}
+                                  className="group rounded-xl border border-surface-100 bg-white p-3 transition-all hover:border-surface-200 hover:bg-surface-50/50"
+                                >
+                                  {/* Produto */}
+                                  <div className="flex gap-3">
+                                    {/* Imagem */}
+                                    <img
+                                      src={`/Imagens/Produtos/${item.imagens?.[0]?.url_Imagem ?? ""}`}
+                                      alt={item.name}
+                                      className="h-14 w-14 shrink-0 rounded-xl border border-surface-100 bg-surface-50 object-cover sm:h-16 sm:w-16"
+                                    />
+
+                                    {/* Conteúdo */}
+                                    <div className="min-w-0 flex-1">
+                                      <div className="flex items-start justify-between gap-3">
+                                        {/* Nome */}
+                                        <p className="line-clamp-2 min-w-0 text-xs font-semibold leading-snug text-surface-800 sm:text-sm">
+                                          {item.name}
+                                        </p>
+
+                                        {/* Subtotal */}
+                                        <div className="shrink-0 text-right">
+                                          <p className="text-[8px] font-semibold uppercase tracking-wide text-surface-400">
+                                            Subtotal
+                                          </p>
+
+                                          <p className="mt-0.5 text-xs font-bold text-surface-900 sm:text-sm">
+                                            {formatPrice(subtotal)}
+                                          </p>
+                                        </div>
+                                      </div>
+
+                                      {/* Quantidade / Unitário */}
+                                      <div className="mt-1.5 flex flex-wrap items-center gap-x-3 text-[10px] text-surface-400 sm:text-xs">
+                                        <span>
+                                          Qtd.{" "}
+                                          <strong className="font-semibold text-surface-600">
+                                            {item.quantity}
+                                          </strong>
+                                        </span>
+
+                                        <span className="h-1 w-1 rounded-full bg-surface-300" />
+
+                                        <span>
+                                          Unit.{" "}
+                                          <strong className="font-semibold text-surface-600">
+                                            {formatPrice(item.price_Unic)}
+                                          </strong>
+                                        </span>
+                                      </div>
+                                    </div>
+                                  </div>
+
+                                  {/* Ações */}
+                                  {isDelivered && (
+                                    <div className="mt-3 grid grid-cols-1 gap-2 border-t border-surface-100 pt-3 sm:flex sm:items-center sm:justify-between">
+
+                                      {/* Comprar novamente */}
+                                      <button
+                                        onClick={() => navigate(`/product/${item.id}`)}
+                                        type="button"
+                                        className={`flex w-full items-center justify-center gap-1.5 rounded-lg border border-surface-200 bg-white px-3 py-2.5 text-[10px] font-bold text-surface-600 transition-all hover:border-surface-300 hover:bg-surface-50 sm:w-auto sm:py-2 ${ColorGlobalHoverText}`}
+                                      >
+                                        <ShoppingCart className="h-3.5 w-3.5" />
+                                        Comprar novamente
+                                      </button>
+
+                                      {/* Avaliação */}
+                                      {!isEvaluated ? (
+                                        <button
+                                          type="button"
+                                          onClick={() =>
+                                            setReviewTarget({
+                                              product: item,
+                                              order,
+                                            })
+                                          }
+                                          className={`flex w-full items-center justify-center gap-1.5 rounded-lg bg-surface-100 px-3 py-2.5 text-[10px] font-bold transition-colors hover:bg-surface-200 sm:w-auto sm:py-2 ${colorConfig.class_text}`}
+                                        >
+                                          <Star className="h-3.5 w-3.5" />
+                                          Avaliar produto
+                                        </button>
+                                      ) : (
+                                        <button
+                                          type="button"
+                                          onClick={() =>
+                                            Controller?.action.handleGetAssents(
+                                              order.id_Order,
+                                              item.id
+                                            )
+                                          }
+                                          disabled={isLoading}
+                                          className="flex w-full items-center justify-center gap-1.5 rounded-lg bg-green-50 px-3 py-2.5 text-[10px] font-bold text-green-600 transition-colors hover:bg-green-100 disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto sm:py-2"
+                                        >
+                                          {isLoading ? (
+                                            <Loader2 className="h-4 w-4 animate-spin" />
+                                          ) : (
+                                            <>
+                                              <Star className="h-3.5 w-3.5 fill-current" />
+                                              Avaliado, obrigado!
+                                            </>
+                                          )}
+                                        </button>
+                                      )}
+                                    </div>
+                                  )}
+                                </div>
+                              );
+                            })}
+
+                          </div>
+
+                          <div className="flex items-center justify-between border-t border-surface-100 bg-surface-50/40 px-4 py-3 sm:px-5">
+
+                            <span className="text-[10px] text-surface-400 sm:text-xs">
+                              {order.products.length}{" "}
+                              {order.products.length === 1
+                                ? "produto"
+                                : "produtos"}
+                            </span>
+
+                            <button
+                              type="button"
+                              onClick={() => setSelectedOrder(order)}
+                              className={`${colorConfig.class_text} inline-flex items-center gap-1.5 rounded-xl border border-current/20 bg-current/5 px-3.5 py-2 text-xs font-semibold shadow-sm transition-all duration-200 hover:bg-current/10 hover:shadow-md active:scale-95 sm:text-sm`}
+                            >
+                              Ver detalhes
+                              <ChevronRight className="h-4 w-4 transition-transform duration-200 group-hover:translate-x-0.5" />
+                            </button>
+
+                          </div>
 
                         </div>
+                      );
+                    })
 
-                        <div className="flex items-center justify-between border-t border-surface-100 bg-surface-50/40 px-4 py-3 sm:px-5">
-
-                          <span className="text-[10px] text-surface-400 sm:text-xs">
-                            {order.products.length}{" "}
-                            {order.products.length === 1
-                              ? "produto"
-                              : "produtos"}
-                          </span>
-
-                          <button
-                            type="button"
-                            onClick={() => setSelectedOrder(order)}
-                            className={`${colorConfig.class_text} inline-flex items-center gap-1.5 rounded-xl border border-current/20 bg-current/5 px-3.5 py-2 text-xs font-semibold shadow-sm transition-all duration-200 hover:bg-current/10 hover:shadow-md active:scale-95 sm:text-sm`}
-                          >
-                            Ver detalhes
-                            <ChevronRight className="h-4 w-4 transition-transform duration-200 group-hover:translate-x-0.5" />
-                          </button>
-
-                        </div>
-
-                      </div>
-                    );
-                  })}
+                  )}
                 </div>
+
               </div>
             )}
 
@@ -2164,98 +2230,249 @@ export default function ProfilePage() {
                     </div>
                     <div className="bg-white rounded-2xl border border-surface-100 p-6 shadow-soft">
                       <h2 className="font-display font-bold text-surface-900 text-lg mb-5 flex items-center gap-2">
-                        <Lock className="w-5 h-5 text-brand-500" /> Alterar Senha
+                        <Lock className="w-5 h-5 text-brand-500" />
+                        Alterar Senha
                       </h2>
-                      <div className="space-y-4 max-w-md">
 
-                        <div className="space-y-4 max-w-md">
+                      <div className="space-y-5 max-w-md">
 
-                          <div>
-                            <label className="block text-xs font-bold text-surface-500 uppercase tracking-wider mb-2">
-                              Senha Atual
-                            </label>
+                        {/* SENHA ATUAL */}
+                        <div>
+                          <label className="block text-xs font-display font-semibold text-surface-600 mb-1.5">
+                            Senha Atual
+                          </label>
+
+                          <div className="relative">
+                            <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-surface-300" />
 
                             <input
-                              type="password"
+                              type={showCurrentPassword ? 'text' : 'password'}
                               autoComplete="current-password"
-                              value={Controller?.result.passwordForm.currentPassword}
+                              value={currentPassword}
                               onChange={e =>
                                 Controller?.action.setPasswordForm(prev => ({
                                   ...prev,
                                   currentPassword: e.target.value
                                 }))
                               }
-                              className="w-full px-4 py-2.5 border-2 border-surface-200 rounded-xl text-sm font-body focus:border-brand-400 focus:outline-none transition-colors"
+                              placeholder="Digite sua senha atual"
+                              className="w-full pl-10 pr-12 py-3 border-2 border-surface-200 rounded-xl font-body text-sm text-surface-800 placeholder:text-surface-300 focus:border-brand-400 focus:outline-none transition-colors"
                             />
-                            {Controller?.result.passwordErrors.currentPassword && (
-                              <p className="mt-1 flex items-center gap-1 text-xs text-red-500">
-                                ⚠ {Controller?.result.passwordErrors.currentPassword}
-                              </p>
-                            )}
+
+                            <button
+                              type="button"
+                              onClick={() => setShowCurrentPassword(!showCurrentPassword)}
+                              className="absolute right-3.5 top-1/2 -translate-y-1/2 text-surface-300 hover:text-surface-500 transition-colors"
+                            >
+                              {showCurrentPassword ? (
+                                <EyeOff className="w-4 h-4" />
+                              ) : (
+                                <Eye className="w-4 h-4" />
+                              )}
+                            </button>
                           </div>
 
-                          <div>
-                            <label className="block text-xs font-bold text-surface-500 uppercase tracking-wider mb-2">
-                              Nova Senha
-                            </label>
+                          {Controller?.result.passwordErrors.currentPassword && (
+                            <p className="mt-1.5 flex items-center gap-1 text-xs text-red-500">
+                              ⚠ {Controller.result.passwordErrors.currentPassword}
+                            </p>
+                          )}
+                        </div>
+
+
+                        {/* NOVA SENHA */}
+                        <div>
+                          <label className="block text-xs font-display font-semibold text-surface-600 mb-1.5">
+                            Nova Senha
+                          </label>
+
+                          <div className="relative">
+                            <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-surface-300" />
 
                             <input
-                              type="password"
+                              type={showNewPassword ? 'text' : 'password'}
                               autoComplete="new-password"
-                              value={Controller?.result.passwordForm.newPassword}
+                              value={newPassword}
                               onChange={e =>
                                 Controller?.action.setPasswordForm(prev => ({
                                   ...prev,
                                   newPassword: e.target.value
                                 }))
                               }
-                              className="w-full px-4 py-2.5 border-2 border-surface-200 rounded-xl text-sm font-body focus:border-brand-400 focus:outline-none transition-colors"
+                              placeholder="Digite sua nova senha"
+                              className="w-full pl-10 pr-12 py-3 border-2 border-surface-200 rounded-xl font-body text-sm text-surface-800 placeholder:text-surface-300 focus:border-brand-400 focus:outline-none transition-colors"
                             />
-                            {Controller?.result.passwordErrors.newPassword && (
-                              <p className="mt-1 flex items-center gap-1 text-xs text-red-500">
-                                ⚠ {Controller?.result.passwordErrors.newPassword}
-                              </p>
-                            )}
+
+                            <button
+                              type="button"
+                              onClick={() => setShowNewPassword(!showNewPassword)}
+                              className="absolute right-3.5 top-1/2 -translate-y-1/2 text-surface-300 hover:text-surface-500 transition-colors"
+                            >
+                              {showNewPassword ? (
+                                <EyeOff className="w-4 h-4" />
+                              ) : (
+                                <Eye className="w-4 h-4" />
+                              )}
+                            </button>
                           </div>
 
-                          <div>
-                            <label className="block text-xs font-bold text-surface-500 uppercase tracking-wider mb-2">
-                              Confirmar Nova Senha
-                            </label>
+                          {Controller?.result.passwordErrors.newPassword && (
+                            <p className="mt-1.5 flex items-center gap-1 text-xs text-red-500">
+                              ⚠ {Controller.result.passwordErrors.newPassword}
+                            </p>
+                          )}
+                        </div>
+
+
+                        {/* REQUISITOS DA SENHA */}
+                        <div className="p-4 bg-surface-50 rounded-xl border border-surface-100">
+
+                          <p className="text-xs font-display font-semibold text-surface-600 mb-3">
+                            Sua nova senha deve conter:
+                          </p>
+
+                          <div className="space-y-1.5">
+
+                            {/* 8 CARACTERES */}
+                            <p
+                              className={`text-xs transition-colors ${passwordRules.minLength
+                                ? 'text-green-600'
+                                : newPassword.length > 0
+                                  ? 'text-red-500'
+                                  : 'text-surface-400'
+                                }`}
+                            >
+                              <span className="inline-block w-4">
+                                {passwordRules.minLength
+                                  ? '✓'
+                                  : newPassword.length > 0
+                                    ? '✕'
+                                    : '•'}
+                              </span>
+
+                              Pelo menos 8 caracteres
+                            </p>
+
+
+                            {/* MAIÚSCULA */}
+                            <p className={`text-xs transition-colors ${passwordRules.uppercase ? 'text-green-600' : newPassword.length > 0 ? 'text-red-500' : 'text-surface-400'}`} >
+                              <span className="inline-block w-4">
+                                {passwordRules.uppercase ? '✓' : newPassword.length > 0 ? '✕' : '•'}
+                              </span>
+                              Pelo menos 1 letra maiúscula
+                            </p>
+
+
+                            {/* MINÚSCULA */}
+                            <p
+                              className={`text-xs transition-colors ${passwordRules.lowercase ? 'text-green-600' : newPassword.length > 0 ? 'text-red-500' : 'text-surface-400'}`}
+                            >
+                              <span className="inline-block w-4">
+                                {passwordRules.lowercase ? '✓' : newPassword.length > 0 ? '✕' : '•'}
+                              </span>
+                              Pelo menos 1 letra minúscula
+                            </p>
+
+
+                            {/* NÚMERO */}
+                            <p
+                              className={`text-xs transition-colors ${passwordRules.number ? 'text-green-600' : newPassword.length > 0 ? 'text-red-500' : 'text-surface-400'}`}
+                            >
+                              <span className="inline-block w-4">
+                                {passwordRules.number ? '✓' : newPassword.length > 0 ? '✕' : '•'}
+                              </span>
+                              Pelo menos 1 número
+                            </p>
+
+
+                            {/* ESPECIAL */}
+                            <p
+                              className={`text-xs transition-colors ${passwordRules.special ? 'text-green-600' : newPassword.length > 0 ? 'text-red-500' : 'text-surface-400'}`}
+                            >
+                              <span className="inline-block w-4">   {passwordRules.special ? '✓' : newPassword.length > 0 ? '✕' : '•'}
+                              </span>
+
+                              Pelo menos 1 caractere especial
+                            </p>
+
+                          </div>
+                        </div>
+
+
+                        {/* CONFIRMAR NOVA SENHA */}
+                        <div>
+                          <label className="block text-xs font-display font-semibold text-surface-600 mb-1.5">
+                            Confirmar Nova Senha
+                          </label>
+
+                          <div className="relative">
+                            <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-surface-300" />
 
                             <input
-                              type="password"
+                              type={showConfirmPassword ? 'text' : 'password'}
                               autoComplete="new-password"
-                              value={Controller?.result.passwordForm.confirmPassword}
+                              value={confirmPassword}
                               onChange={e =>
                                 Controller?.action.setPasswordForm(prev => ({
                                   ...prev,
                                   confirmPassword: e.target.value
                                 }))
                               }
-                              className="w-full px-4 py-2.5 border-2 border-surface-200 rounded-xl text-sm font-body focus:border-brand-400 focus:outline-none transition-colors"
+                              placeholder="Digite sua nova senha novamente"
+                              className={` w-full pl-10 pr-12 py-3 border-2 rounded-xl font-body text-sm text-surface-800 placeholder:text-surface-300 focus:outline-none transition-colors ${confirmPassword &&
+                                  newPassword !== confirmPassword ? 'border-red-300 focus:border-red-400' : 'border-surface-200 focus:border-brand-400' }`}
                             />
-                            {Controller?.result.passwordErrors.confirmPassword && (
-                              <p className="mt-1 flex items-center gap-1 text-xs text-red-500">
-                                ⚠ {Controller?.result.passwordErrors.confirmPassword}
-                              </p>
-                            )}
+
+                            <button
+                              type="button"
+                              onClick={() =>
+                                setShowConfirmPassword(!showConfirmPassword)
+                              }
+                              className="absolute right-3.5 top-1/2 -translate-y-1/2 text-surface-300 hover:text-surface-500 transition-colors"
+                            >
+                              {showConfirmPassword ? (
+                                <EyeOff className="w-4 h-4" />
+                              ) : (
+                                <Eye className="w-4 h-4" />
+                              )}
+                            </button>
                           </div>
 
-                          <button
-                            type="button"
-                            onClick={() => { Controller?.action.handleChangePassword() }}
-                            disabled={Controller?.result.LoadingPassword}
-                            className="px-6 py-2.5 bg-brand-500 hover:bg-brand-600 disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold text-sm rounded-xl transition-all shadow-brand flex items-center gap-2"
-                          >
-                            <Check className="w-4 h-4" />
+                          {/* SENHAS DIFERENTES */}
+                          {confirmPassword &&
+                            newPassword !== confirmPassword && (
+                              <p className="text-red-500 text-xs mt-1.5">
+                                As senhas não coincidem.
+                              </p>
+                            )}
 
-                            {Controller?.result.LoadingPassword ? 'Atualizando...' : 'Atualizar Senha'}
-                          </button>
-
+                          {Controller?.result.passwordErrors.confirmPassword && (
+                            <p className="mt-1.5 flex items-center gap-1 text-xs text-red-500">
+                              ⚠ {Controller.result.passwordErrors.confirmPassword}
+                            </p>
+                          )}
                         </div>
 
 
+                        {/* BOTÃO */}
+                        <button
+                          type="button"
+                          onClick={() => {
+                            Controller?.action.handleChangePassword();
+                          }}
+                          disabled={
+                            Controller?.result.LoadingPassword ||
+                            !currentPassword ||
+                            !isPasswordValid
+                          }
+                          className="px-6 py-2.5 bg-brand-500 hover:bg-brand-600 disabled:opacity-50 disabled:cursor-not-allowed text-white font-display font-bold text-sm rounded-xl transition-all shadow-brand flex items-center gap-2"
+                        >
+                          <Check className="w-4 h-4" />
+
+                          {Controller?.result.LoadingPassword
+                            ? 'Atualizando...'
+                            : 'Atualizar Senha'}
+                        </button>
 
                       </div>
                     </div>
@@ -2266,6 +2483,9 @@ export default function ProfilePage() {
               </div>
             )}
             {/* ── PREFERENCES ── */}
+            {/* ── DISPOSITIVOS CONECTADOS ── */}
+            {tab === 'devices' && <ConnectedDevices />}
+
             {tab === 'preferences' && (
               <div className="space-y-4">
                 <div className="bg-white rounded-2xl border border-surface-100 p-6 shadow-soft">

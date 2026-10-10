@@ -4,6 +4,7 @@ using Baldan.Pricing.Application.Domain.Auth;
 using Mercado.Craibas.Application.DTOs.Requests;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.ModelBinding;
 using Pricing.Api.DTOs.Requests;
 using Pricing.Api.DTOs.Responses;
 using Pricing.Api.Extensions;
@@ -27,7 +28,11 @@ public class AuthController : ControllerBase
     public async Task<IActionResult> Login([FromBody] LoginRequest request)
     {
 
-        var result = await _service.LoginAsync(request);
+        var result = await _service.LoginAsync(
+            request,
+            Request.Headers.UserAgent.ToString(),
+            GetClientIp(),
+            Request.Cookies[RefreshTokenCookieName]);
 
         if (result.IsSuccess)
         {
@@ -48,7 +53,7 @@ public class AuthController : ControllerBase
             return AuthErrors.InvalidRefreshToken.ToActionResult();
         }
 
-        var result = await _service.RefreshAsync(refreshToken);
+        var result = await _service.RefreshAsync(refreshToken, GetClientIp());
 
         if (result.IsSuccess)
         {
@@ -69,6 +74,59 @@ public class AuthController : ControllerBase
         DeleteRefreshTokenCookie();
 
         return result.ToActionResult();
+    }
+
+    [Authorize]
+    [HttpGet("sessions")]
+    public async Task<IActionResult> GetSessions()
+    {
+        var result = await _service.GetSessionsAsync(
+            User.GetUserId(),
+            User.GetUserRole(),
+            User.GetSessionId());
+
+        return result.ToActionResult();
+    }
+
+    /// <summary>
+    /// Desconecta um dispositivo. Exige a senha (vale 10 minutos depois de confirmada).
+    /// </summary>
+    [Authorize]
+    [HttpPost("sessions/{sessionId:int}/revoke")]
+    public async Task<IActionResult> RevokeSession(
+        int sessionId,
+        [FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Allow)] ConfirmPasswordRequest? request)
+    {
+        var result = await _service.RevokeSessionAsync(
+            User.GetUserId(),
+            User.GetUserRole(),
+            sessionId,
+            User.GetSessionId(),
+            request?.Password);
+
+        return result.ToActionResult();
+    }
+
+    /// <summary>
+    /// Desconecta todos os outros dispositivos. Exige a senha.
+    /// </summary>
+    [Authorize]
+    [HttpPost("sessions/revoke-others")]
+    public async Task<IActionResult> RevokeOtherSessions(
+        [FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Allow)] ConfirmPasswordRequest? request)
+    {
+        var result = await _service.RevokeOtherSessionsAsync(
+            User.GetUserId(),
+            User.GetUserRole(),
+            User.GetSessionId(),
+            request?.Password);
+
+        return result.ToActionResult();
+    }
+
+    private string? GetClientIp()
+    {
+        return HttpContext.Connection.RemoteIpAddress?.ToString();
     }
 
     private void SetRefreshTokenCookie(LoginResponse response)

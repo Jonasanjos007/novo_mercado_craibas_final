@@ -1,11 +1,7 @@
 ﻿using Baldan.Pricing.Application.Commons;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace Baldan.Pricing.Application.Domain.Auth;
+
 public static class AuthErrors
 {
     public static Error InvalidCredentials =>
@@ -17,9 +13,29 @@ public static class AuthErrors
         Error.Unauthorized(
             "Auth.InvalidRefreshToken",
             "Refresh token inválido");
-    public static Error UserInactive =>
-       Error.Unauthorized(
-           "Auth.UserInactive",
-           "Usuário inativo");
 
+    public static Error UserInactive =>
+        Error.Unauthorized(
+            "Auth.UserInactive",
+            "Usuário inativo");
+
+    public static Error UserDeleted =>
+        Error.Unauthorized(
+            "Auth.UserDeleted",
+            "Usuário excluído");
+
+    public static Error SessionInvalidated =>
+        Error.Unauthorized(
+            "Auth.SessionInvalidated",
+            "Sessão invalidada");
+
+    public static Error PasswordChanged =>
+        Error.Unauthorized(
+            "Auth.PasswordChanged",
+            "A senha da conta foi alterada");
+
+    public static Error TokenExpired =>
+        Error.Unauthorized(
+            "Auth.TokenExpired",
+            "Sessão expirada");
 }

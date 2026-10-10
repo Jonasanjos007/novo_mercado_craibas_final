@@ -13,6 +13,7 @@ using Pricing.Api.DTOs.Responses;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -28,41 +29,42 @@ namespace Mercado.Craibas.Application.Services
         }
         public async Task<Result<List<CupomResponse>>> GetCupomList()
         {
-            var Cupons = await _unitOfWork.GetClassListById<Cupom>(1, "Active");
-
-            if (Cupons == null || !Cupons.Any())
+            try
             {
-                return Result<List<CupomResponse>>.Failure(Error.Failure("Cupom", "Cupons não encontrados!"));
-            }
+                var Cupons = await _unitOfWork.GetClassListAsyncWhere<Cupom>(x => x.Active == true && x.Date_End >= DateTime.Now);
 
-            var ListCupons = new List<CupomResponse>();
-
-            foreach (var Cupom in Cupons)
-            {
-
-
-
-
-                ListCupons.Add(new CupomResponse
+                var ListCupons = new List<CupomResponse>();
+                if (Cupons == null || !Cupons.Any())
                 {
-                    Id = Cupom.Id,
-                    Name_Cupom = Cupom.Name_Cupom,
-                    Cod_Cupom = Cupom.Cod_Cupom,
-                    Description = Cupom.Description,
-                    Discont = Cupom.Discount,
-                    Active = Cupom.Active,
-                    Show_Flash_Offer = Cupom.Show_Flash_Offer,
-                    Date_Start = Cupom.Date_Start,
-                    Date_end = Cupom.Date_End,
-                    Minimum_Value = Cupom.Minimum_Value,
-                    Quantity_Used = Cupom.Quantity_Used,
-                    Quantity_Uses = Cupom.Quantity_Uses,
+                    return Result<List<CupomResponse>>.Success(ListCupons);
+                }
+                foreach (var Cupom in Cupons)
+                {
+                    ListCupons.Add(new CupomResponse
+                    {
+                        Id = Cupom.Id,
+                        Name_Cupom = Cupom.Name_Cupom,
+                        Cod_Cupom = Cupom.Cod_Cupom,
+                        Description = Cupom.Description,
+                        Discont = Cupom.Discount,
+                        Active = Cupom.Active,
+                        Show_Flash_Offer = Cupom.Show_Flash_Offer,
+                        Date_Start = Cupom.Date_Start,
+                        Date_end = Cupom.Date_End,
+                        Minimum_Value = Cupom.Minimum_Value,
+                        Quantity_Used = Cupom.Quantity_Used,
+                        Quantity_Uses = Cupom.Quantity_Uses,
 
-                });
+                    });
+                }
+                return Result<List<CupomResponse>>.Success(ListCupons);
             }
-            return Result<List<CupomResponse>>.Success(ListCupons);
+            catch
+            {
+                    return Result<List<CupomResponse>>.Failure(Error.Failure("Cupom", "Cupons não encontrados!"));
+            }
+           
         }
-
 
         public async Task<Result<bool>> ApplyCupom(string Cod_upom, int userId)
         {

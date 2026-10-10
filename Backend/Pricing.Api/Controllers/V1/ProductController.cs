@@ -1,13 +1,13 @@
 ﻿using backend.services.interfaces;
+using Baldan.Pricing.Application.Commons;
+using Baldan.Pricing.Application.Domain.Entities;
 using Mercado.Craibas.Application.DTOs.Requests;
 using Mercado.Craibas.Application.Interfaces.Services;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Pricing.Api.Extensions;
 using System.Security.Claims;
 using System.Threading.Tasks;
-
-using Baldan.Pricing.Application.Commons;
-using Microsoft.AspNetCore.Authorization;
 
 namespace Mercado.Api.Controllers.V1
 {
@@ -43,7 +43,7 @@ namespace Mercado.Api.Controllers.V1
         [HttpPost("postCartUpdate")]
         public async Task<IActionResult> PostCartUpdate([FromBody] CartItensRequest Cart_Itens)
         {
-            var result = await _service.PostCartItensUpdate(Cart_Itens.Id,Cart_Itens.Quantity,Cart_Itens.Operador);
+            var result = await _service.PostCartItensUpdate(Cart_Itens.Id,Cart_Itens.Quantity,Cart_Itens.Operador,Cart_Itens.NewQuantity);
 
             return result.ToActionResult();
         }
@@ -51,7 +51,7 @@ namespace Mercado.Api.Controllers.V1
         [HttpPost("PostUpdateQuantity")]
         public async Task<IActionResult> PostUpdateQuantity([FromBody] UpdateQuantityRequest request)
         {
-            var result = await _service.PostCartItensUpdate(request.Cart_Itens_Id, request.Quantity, request.Operador);
+            var result = await _service.PostCartItensUpdate(request.Cart_Itens_Id, request.Quantity, request.Operador,null);
 
             return result.ToActionResult();
         }

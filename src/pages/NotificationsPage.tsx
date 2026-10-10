@@ -50,14 +50,11 @@ export default function NotificationsPage() {
   const navigate = useNavigate();
   const Controller = useNotificationsController();
   const { Notification, UpdateReadNotify, UpdateReadNotifyAll } = UseNotificationAdmin();
-  console.log("NotificationCliente", Notification)
   const { orders } = UseOrderStore();
   const { user, NameColorGlobal } = UseUserStore();
   const [view, setView] = useState<'week' | 'history'>('week');
   const [selectedDay, setSelectedDay] = useState(dateKey(new Date()));
-  console.log("selectedDay", selectedDay)
   const [historyDate, setHistoryDate] = useState('');
-  console.log("historyDate", historyDate)
   const [filter, setFilter] = useState<'all' | 'unread' | ClientNotificationKind>('unread');
   const [search, setSearch] = useState('');
   const color = getColorConfig(NameColorGlobal);
@@ -75,7 +72,6 @@ export default function NotificationsPage() {
     const matchesType = filter === 'READ' ? (item.isRead === true) : filter === 'all' ? (item) : (filter === 'unread' || item.referenceType === filter) && item.isRead === false;
     return matchesPeriod && matchesType && (!term || `${item.title} ${item.description} ${item.referenceType}`.toLowerCase().includes(term));
   }), [filter, historyDate, notifications, search, selectedDay, view, weekDays]);
-  console.log("filtered", filtered)
   const groups = useMemo(() =>
     filtered
       .reduce<Array<{

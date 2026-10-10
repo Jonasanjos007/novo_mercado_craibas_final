@@ -13,7 +13,7 @@ namespace Mercado.Craibas.Application.InterfacesAdmin.Services
     {
         Task<Result<bool>> PostSaveProduct(ProductRequest product);
         Task<Result<bool>> PostEditProduct(ProductRequest product,int IdUser);
-        Task<Result<bool>> DeleteProductId(int Id_Product);
+        Task<Result<bool>> DeleteProductId(int Id_Product, int IdUser, string? reason);
         Task<Result<List<ProductResponse>>> GetProductListAdmin();
 
     }

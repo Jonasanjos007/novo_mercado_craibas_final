@@ -20,7 +20,7 @@ export enum Status_Pay {
     CONFIRMADO = "CONFIRMADO",
     PENDENTE = "PENDENTE"
 }
-export type AdminTab = 'dashboard' | 'notifications' | 'products' | 'categories' | 'orders' | 'promotions' | 'movements' | 'profile' | 'settings' | 'cartegories';
+export type AdminTab = 'dashboard' | 'notifications' | 'products' | 'categories' | 'orders' | 'promotions' | 'movements' | 'profile' | 'settings' | 'cartegories' | 'users' | 'bin';
 
 export interface Order {
     id_Order: number;
@@ -69,4 +69,13 @@ export interface RatingResponse {
     isDelete: boolean;
     product: Product;
     numberOrder: string;
+}
+export interface GeneralOrderInformation {
+    ordersAmount?: number;
+    ordersDelivered?: number;
+    ordersCanceled?: number;
+    couponAmount?: number;
+    emptyCart?: boolean;
+    totalExpenses?: number;
+    paymentRequestPending?: boolean;
 }

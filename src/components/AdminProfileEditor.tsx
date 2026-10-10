@@ -39,7 +39,6 @@ export default function AdminProfileEditor({ open, darkMode, user, initialData, 
   }, [open, onClose]);
 
   if (!open) return null;
-  console.log('AdminProfileEditor renderizado', form);
   const panel = darkMode ? 'bg-[#0d0d14] border-white/[0.08]' : 'bg-white border-surface-200';
   const text = darkMode ? 'text-white' : 'text-surface-900';
   const muted = darkMode ? 'text-white/40' : 'text-surface-400';

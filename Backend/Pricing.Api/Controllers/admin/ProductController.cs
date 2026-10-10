@@ -49,9 +49,11 @@ namespace Mercado.Api.Controllers.admin
 
         [Authorize]
         [HttpDelete("DeleteProductId/{id_Product}")]
-        public async Task<IActionResult> DeleteProductId(int Id_Product)
+        public async Task<IActionResult> DeleteProductId(int Id_Product, [FromQuery] string? reason)
         {
-            var result = await _service.DeleteProductId(Id_Product);
+            var Id_User = User.GetUserId();
+
+            var result = await _service.DeleteProductId(Id_Product, Id_User, reason);
 
             return result.ToActionResult();
         }

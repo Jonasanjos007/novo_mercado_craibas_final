@@ -2,23 +2,18 @@ import { api } from "../config/api";
 import { CartItensProduct } from "../models/CartItensProduct";
 import { Cupom } from "../models/Cupom";
 import { Logs } from "../models/Logs";
-import { OrderSave, Order } from "../models/OrderSave";
+import { OrderSave, Order } from "../models/Order";
 import { Category, Product, ProductAdmin } from "../models/Product";
 import { makeResult, Result } from "../utils/Result";
 
 export const ProductServiceAdmin = {
     PostSaveProductAdmin: async (formData: FormData): Promise<Result<ProductAdmin[]>> => {
         try {
-            console.log(
-                "Categoria enviada:",
-                [...formData.entries()]
-            );
             const response = await api.post("/admin/Product/PostSaveProduct", formData, {
                 headers: {
                     "Content-Type": "multipart/form-data"
                 }
             });
-            console.log("response.datalist", response)
             const { success, data, error } = response.data;
             if (!success) {
                 return makeResult(false, [], error || "Erro ao Salvar Produto");
@@ -34,13 +29,11 @@ export const ProductServiceAdmin = {
     },
     PostEditeProductAdmin: async (formData: FormData): Promise<Result<ProductAdmin[]>> => {
         try {
-            console.log("looog", formData instanceof FormData);
             const response = await api.post("/admin/Product/PostEditeProduct", formData, {
                 headers: {
                     "Content-Type": "multipart/form-data"
                 }
             });
-            console.log("response.datalist", response)
             const { success, data, error } = response.data;
             if (!success) {
                 return makeResult(false, [], error || "Erro ao Salvar Produto");
@@ -72,9 +65,11 @@ export const ProductServiceAdmin = {
         }
     },
 
-    DeleteProductsAdmin: async (id_Product: number): Promise<Result<ProductAdmin[]>> => {
+    DeleteProductsAdmin: async (id_Product: number, reason: string): Promise<Result<ProductAdmin[]>> => {
         try {
-            const response = await api.delete(`/admin/Product/DeleteProductId/${id_Product}`);
+            const response = await api.delete(`/admin/Product/DeleteProductId/${id_Product}`, {
+                params: { reason }
+            });
             const { success, data, error } = response.data;
             console.log(data)
             if (!data) {

@@ -11,8 +11,9 @@ export interface User {
     role: string;
     CartUser?: CartUser;
     address?: Address[];
-    phone?: number;
+    phone?: string;
     customize?: Customize;
+    ativo?: boolean;
     //bio?: string;
     // vehicle?: string;
     //region?: string;
@@ -95,4 +96,43 @@ export interface SavePasswordResponse {
     message: string;
 };
 
+export interface InfoSiteInterface {
+    storeName: string;
+    primaryColor?: string;
+    storeLogo?: string;
+    storeLogoIcone?: string;
+    storeImageIconeFile?: File | null;
+    storeImageFile?: File | null;
+    ImageNewIcone?: boolean;
+
+    ImageNew?: boolean;
+};
+export interface BaseRatesInterface {
+    timeframeBusinessDays: number;
+    shippingCost?: number;
+};
+export interface BaseSiteInterface {
+    storeImage?: string;
+    storeName?: string;
+    storeImageIcone?: string;
+    shippingCost?: number;
+    timeframeBusinessDays?: number;
+}
+export interface UserAdminAll {
+    id?: number;
+    name?: string;
+    email?: string;
+    avatar?: string;
+    role: UserRole;
+    ativo: boolean;
+    phone: string;
+    insert_Date: Date;
+    updateDate?: Date;
+}
+
 export type RegistrationStep = 'Started' | 'PersonalDataCompleted' | 'EmailCompleted' | 'PasswordCompleted' | 'EmailVerificationPending' | 'Completed';
+
+
+export type UserRole = 'ADMIN' | 'CLIENTE' | 'DELIVERY';
+
+export type UserFilter = 'ALL' | UserRole;

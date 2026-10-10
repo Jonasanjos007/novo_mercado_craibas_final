@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { CreditCard, Smartphone, FileText, ChevronRight, Check, MapPin, ShoppingBag, Zap, ArrowLeft, Lock, Pencil, Ticket, X, BadgeCheck, Package, Truck, Mail, TicketPercent, AlertTriangle, Info } from 'lucide-react';
+import { CreditCard, Smartphone, FileText, ChevronRight, Check, MapPin, ShoppingBag, Zap, ArrowLeft, Lock, Pencil, Ticket, X, BadgeCheck, Package, Truck, Mail, TicketPercent, AlertTriangle, Info, Clock, Bell, Receipt, Home } from 'lucide-react';
 import { useStore } from '../context/store';
 import { formatPrice } from '../utils';
 import { useNavigate } from 'react-router-dom';
@@ -30,10 +30,6 @@ export default function CheckoutPage() {
   const { address } = UseAddressStore();
   const { Cupons } = UseOrderStore();
   const cupomSelecionado = Cupons.find(c => c.id === cart.id_Cupom) ?? null;
-  console.log("cart", cart)
-  console.log("cupomSelecionado", cupomSelecionado)
-
-
   const { user, ColorGlobalTema, ColorGlobalText, ColorGlobalHoverText, NameColorGlobal } = UseUserStore();
   const [selectedAddress, setSelectedAddress] = useState(true);
   const [cardData, setCardData] = useState({ number: '', name: '', expiry: '', cvv: '' });
@@ -46,7 +42,6 @@ export default function CheckoutPage() {
   const [openCouponDetails, setOpenCouponDetails] = useState(false);
   const [openCouponConfirm, setopenCouponConfirm] = useState(false);
   const [loadingRemove, setloadingRemove] = useState(false);
-  console.log("loadingRemove", loadingRemove)
   const STEPS = ['Endereço', 'Checkout', 'Pagamento'];
   const stepLabels: Record<string, string> = {
     'Endereço': 'Endereço',
@@ -115,247 +110,320 @@ export default function CheckoutPage() {
 
     return () => clearTimeout(timer);
   }, [user, navigate, cart, cupomSelecionado]);
-  console.log(Controller?.result.order, 'Controller?.result.order');
   if (Controller?.result.step === "success") {
     const order = Controller?.result.order;
+    const items = order?.products ?? [];
+    const itemsCount = items.reduce((total, item) => total + (item.quantity || 0), 0);
+    const firstName = (user?.name ?? '').trim().split(' ')[0];
+    const brand = colorConfig.hex;
+
+    const paymentInfo: Record<string, { label: string; icon: React.ReactNode; hint: string }> = {
+      pix: {
+        label: 'PIX',
+        icon: <Zap className="w-5 h-5" />,
+        hint: 'Assim que o PIX for compensado, o pedido é confirmado.',
+      },
+      credit: {
+        label: 'Cartão de crédito',
+        icon: <CreditCard className="w-5 h-5" />,
+        hint: 'A operadora do cartão confirma o pagamento em instantes.',
+      },
+      boleto: {
+        label: 'Boleto bancário',
+        icon: <FileText className="w-5 h-5" />,
+        hint: 'O boleto pode levar até 3 dias úteis para compensar.',
+      },
+    };
+    const payment = paymentInfo[order?.payment_terms ?? ''] ?? {
+      label: order?.payment_terms || 'Não informado',
+      icon: <CreditCard className="w-5 h-5" />,
+      hint: 'Você será avisado assim que o pagamento for confirmado.',
+    };
+
+    const timeline = [
+      { label: 'Pedido realizado', icon: Receipt, state: 'done' as const },
+      { label: 'Confirmação do pagamento', icon: Clock, state: 'current' as const },
+      { label: 'Separação', icon: Package, state: 'next' as const },
+      { label: 'Entrega', icon: Truck, state: 'next' as const },
+    ];
 
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-emerald-50 flex items-center justify-center px-4 py-8">
-
-        <div className="w-full max-w-3xl">
-
-          <div className="overflow-hidden rounded-[32px] bg-white shadow-2xl border border-slate-200">
-
-            {/* HEADER */}
-            <div className="relative overflow-hidden bg-gradient-to-br from-emerald-500 via-green-500 to-teal-500">
-
-              <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(255,255,255,.25),transparent_45%)]" />
-              <div className="absolute -left-20 -bottom-20 w-60 h-60 rounded-full bg-white/10 blur-3xl" />
-              <div className="absolute -right-20 top-0 w-72 h-72 rounded-full bg-black/10 blur-3xl" />
-
-              <div className="relative px-6 md:px-10 py-12 flex flex-col items-center">
-
-                <div className="relative">
-
-                  <div className="absolute inset-0 rounded-full bg-white/40 animate-ping" />
-
-                  <div className="relative w-24 h-24 rounded-full bg-white shadow-2xl flex items-center justify-center">
-
-                    <Check
-                      className="w-12 h-12 text-green-500"
-                      strokeWidth={3}
-                    />
-
-                  </div>
-
-                </div>
-
-                <h1 className="mt-6 text-white font-display text-3xl md:text-4xl font-bold text-center">
-                  Pedido Confirmado 🎉
-                </h1>
-
-                <p className="text-green-100 mt-3 text-center max-w-lg">
-                  Seu pagamento foi aprovado e seu pedido já entrou em nosso
-                  processo de separação.
-                </p>
-
-              </div>
-
-            </div>
-
-            {/* BODY */}
-            <div className="p-6 md:p-10">
-
-              {/* TOTAL */}
-              <div className="text-center">
-
-                <p className="uppercase tracking-[0.25em] text-slate-400 text-xs font-semibold">
-                  Total Pago
-                </p>
-
-                <h2 className="text-4xl md:text-5xl font-black text-emerald-500 mt-2">
-                  {formatPrice(order?.total_Value_Order || 0)}
-                </h2>
-
-                <p className="text-slate-500 mt-3">
-                  Pedido #
-                  <span className="font-bold text-slate-700">
-                    {5465465465}
-                  </span>
-                </p>
-
-              </div>
-
-              {/* CARDS */}
-              <div className="grid md:grid-cols-2 gap-5 mt-10">
-
-                <div className="rounded-3xl bg-slate-50 p-6 border border-slate-200">
-
-                  <CreditCard className="w-8 h-8 text-brand-500 mb-4" />
-
-                  <p className="text-slate-400 text-sm">
-                    Forma de pagamento
-                  </p>
-
-                  <h3 className="font-bold text-lg text-slate-800 mt-1">
-                    {order?.payment_terms}
-                  </h3>
-
-                </div>
-
-                <div className="rounded-3xl bg-green-50 p-6 border border-green-200">
-
-                  <BadgeCheck className="w-8 h-8 text-green-500 mb-4" />
-
-                  <p className="text-slate-400 text-sm">
-                    Status
-                  </p>
-
-                  <h3 className="font-bold text-green-700 mt-1">
-                    Pagamento Aprovado
-                  </h3>
-
-                </div>
-
-              </div>
-
-              {/* ENDEREÇO */}
-              <div className="mt-6 rounded-3xl border border-slate-200 p-6">
-
-                <div className="flex items-center gap-3 mb-5">
-
-                  <MapPin className="w-6 h-6 text-brand-500" />
-
-                  <h2 className="font-display font-bold text-xl">
-                    Endereço de Entrega
-                  </h2>
-
-                </div>
-
-                <div className="space-y-1 text-slate-600">
-
-                  <p>
-                    {order?.address?.road}, {order?.address?.number}
-                  </p>
-
-                  <p>
-                    {order?.address?.neighborhood}
-                  </p>
-
-                  <p>
-                    {order?.address?.city} - {order?.address?.state}
-                  </p>
-
-                  <p>
-                    CEP {order?.address?.neighborhood}
-                  </p>
-
-                </div>
-
-              </div>
-
-              {/* TIMELINE */}
-              <div className="mt-10">
-
-                <h2 className="font-display font-bold text-xl text-center mb-8">
-                  Acompanhamento do Pedido
-                </h2>
-
-                <div className="flex items-center justify-between">
-
-                  <div className="flex flex-col items-center w-24">
-
-                    <div className="w-14 h-14 rounded-full bg-green-500 flex items-center justify-center shadow-lg">
-                      <Check className="text-white w-7 h-7" />
-                    </div>
-
-                    <span className="mt-3 text-sm font-semibold text-center">
-                      Pagamento
-                    </span>
-
-                  </div>
-
-                  <div className="flex-1 h-1 bg-green-300 mx-2 rounded-full" />
-
-                  <div className="flex flex-col items-center w-24">
-
-                    <div className="w-14 h-14 rounded-full bg-slate-200 flex items-center justify-center">
-                      <Package className="w-6 h-6 text-slate-500" />
-                    </div>
-
-                    <span className="mt-3 text-sm text-center">
-                      Separação
-                    </span>
-
-                  </div>
-
-                  <div className="flex-1 h-1 bg-slate-200 mx-2 rounded-full" />
-
-                  <div className="flex flex-col items-center w-24">
-
-                    <div className="w-14 h-14 rounded-full bg-slate-200 flex items-center justify-center">
-                      <Truck className="w-6 h-6 text-slate-500" />
-                    </div>
-
-                    <span className="mt-3 text-sm text-center">
-                      Envio
-                    </span>
-
-                  </div>
-
-                </div>
-
-              </div>
-
-              {/* AVISO */}
-              <div className="mt-10 rounded-3xl bg-blue-50 border border-blue-200 p-6">
-
-                <div className="flex gap-4">
-
-                  <Mail className="w-8 h-8 text-blue-500 flex-shrink-0" />
-
-                  <div>
-
-                    <h3 className="font-bold text-slate-800">
-                      Confirmação enviada
-                    </h3>
-
-                    <p className="text-slate-500 mt-1">
-                      Enviamos um e-mail com todas as informações do seu pedido.
-                      Você também poderá acompanhar tudo na área de pedidos.
-                    </p>
-
-                  </div>
-
-                </div>
-
-              </div>
-
-              {/* BOTÕES */}
-              <div className="grid sm:grid-cols-2 gap-4 mt-10">
-
-                <button
-                  onClick={() => navigate("/orders")}
-                  className="h-14 rounded-2xl bg-brand-500 hover:bg-brand-600 text-white font-bold shadow-xl transition-all hover:scale-[1.02]"
+      <div className="min-h-screen bg-surface-50 pb-12">
+        <Headerpages title="Pedido realizado" showSecure={false} />
+
+        <div className="max-w-4xl mx-auto px-4 py-8 space-y-5 animate-fade-in">
+
+          {/* ── HERO ── */}
+          <div className="relative overflow-hidden rounded-3xl bg-white border border-surface-100 shadow-soft">
+            <div
+              className="absolute -top-28 -right-20 w-80 h-80 rounded-full blur-3xl opacity-20 pointer-events-none"
+              style={{ backgroundColor: brand }}
+            />
+            <div
+              className="absolute -bottom-32 -left-24 w-72 h-72 rounded-full blur-3xl opacity-10 pointer-events-none"
+              style={{ backgroundColor: brand }}
+            />
+
+            <div className="relative px-6 py-10 sm:px-10 sm:py-12 text-center">
+              <div className="relative mx-auto w-20 h-20">
+                <span
+                  className="absolute inset-0 rounded-3xl animate-ping opacity-20"
+                  style={{ backgroundColor: brand }}
+                />
+                <div
+                  className="relative w-20 h-20 rounded-3xl flex items-center justify-center shadow-xl"
+                  style={{
+                    background: `linear-gradient(135deg, ${brand}, ${brand}B3)`,
+                    boxShadow: `0 16px 40px ${brand}55`,
+                  }}
                 >
-                  Ver meus pedidos
-                </button>
-
-                <button
-                  onClick={() => navigate("/")}
-                  className="h-14 rounded-2xl border border-slate-300 bg-white hover:bg-slate-50 font-semibold text-slate-700 transition-all"
-                >
-                  Continuar Comprando
-                </button>
-
+                  <Check className="w-10 h-10 text-white" strokeWidth={3} />
+                </div>
               </div>
 
-            </div>
+              <span
+                className="inline-flex items-center gap-1.5 mt-6 px-3 py-1 rounded-full text-[11px] font-bold uppercase tracking-widest"
+                style={{ color: brand, backgroundColor: `${brand}14` }}
+              >
+                <BadgeCheck className="w-3.5 h-3.5" />
+                Pedido realizado
+              </span>
 
+              <h1 className="mt-4 font-display font-bold text-surface-900 text-2xl sm:text-3xl">
+                {firstName ? `Obrigado pela compra, ${firstName}!` : 'Obrigado pela sua compra!'}
+              </h1>
+
+              <p className="mt-2 text-surface-500 text-sm sm:text-base max-w-lg mx-auto">
+                Recebemos o seu pedido e ele já está registrado. Agora é só aguardar a confirmação do pagamento.
+              </p>
+
+              {/* Números do pedido */}
+              <div className="mt-8 grid grid-cols-1 sm:grid-cols-3 gap-3 text-left">
+                <div className="rounded-2xl border border-surface-100 bg-surface-50/70 p-4">
+                  <p className="text-[11px] font-bold uppercase tracking-widest text-surface-400">Total</p>
+                  <p className="mt-1 font-display font-bold text-surface-900 text-2xl">
+                    {formatPrice(order?.total_Value_Order || 0)}
+                  </p>
+                  <p className="mt-0.5 text-xs text-surface-400">
+                    {itemsCount} {itemsCount === 1 ? 'item' : 'itens'}
+                    {(order?.shippingCost ?? 0) > 0 ? ` · frete ${formatPrice(order?.shippingCost || 0)}` : ' · frete grátis'}
+                  </p>
+                </div>
+
+                <div className="rounded-2xl border border-surface-100 bg-surface-50/70 p-4">
+                  <p className="text-[11px] font-bold uppercase tracking-widest text-surface-400">Pagamento</p>
+                  <div className="mt-1.5 flex items-center gap-2 text-surface-900">
+                    <span
+                      className="w-8 h-8 rounded-xl flex items-center justify-center"
+                      style={{ color: brand, backgroundColor: `${brand}14` }}
+                    >
+                      {payment.icon}
+                    </span>
+                    <span className="font-display font-bold">{payment.label}</span>
+                  </div>
+                </div>
+
+                <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4">
+                  <p className="text-[11px] font-bold uppercase tracking-widest text-amber-600">Status</p>
+                  <div className="mt-1.5 flex items-center gap-2">
+                    <span className="relative flex w-2.5 h-2.5">
+                      <span className="absolute inline-flex w-full h-full rounded-full bg-amber-400 opacity-75 animate-ping" />
+                      <span className="relative inline-flex w-2.5 h-2.5 rounded-full bg-amber-500" />
+                    </span>
+                    <span className="font-display font-bold text-amber-800 text-sm">
+                      Aguardando pagamento
+                    </span>
+                  </div>
+                  <p className="mt-1 text-xs text-amber-700 leading-relaxed">{payment.hint}</p>
+                </div>
+              </div>
+            </div>
           </div>
 
-        </div>
+          {/* ── ACOMPANHAMENTO ── */}
+          <div className="rounded-3xl bg-white border border-surface-100 shadow-soft p-6">
+            <h2 className="font-display font-bold text-surface-900 text-lg">Acompanhamento</h2>
+            <p className="text-sm text-surface-400 mt-0.5">Você recebe uma notificação a cada nova etapa.</p>
 
+            <div className="mt-6 grid grid-cols-4 gap-2">
+              {timeline.map((step, index) => {
+                const Icon = step.icon;
+                const isDone = step.state === 'done';
+                const isCurrent = step.state === 'current';
+
+                return (
+                  <div key={step.label} className="relative flex flex-col items-center text-center">
+                    {index < timeline.length - 1 && (
+                      <div
+                        className="absolute top-5 left-1/2 w-full h-0.5"
+                        style={{ backgroundColor: isDone ? brand : '#e5e7eb' }}
+                      />
+                    )}
+
+                    <div
+                      className={`relative z-10 w-10 h-10 rounded-2xl flex items-center justify-center transition-all ${isDone || isCurrent ? 'text-white shadow-lg' : 'bg-surface-100 text-surface-400'}`}
+                      style={
+                        isDone
+                          ? { backgroundColor: brand, boxShadow: `0 8px 20px ${brand}40` }
+                          : isCurrent
+                            ? { backgroundColor: brand, boxShadow: `0 0 0 5px ${brand}26` }
+                            : {}
+                      }
+                    >
+                      {isDone ? <Check className="w-5 h-5" strokeWidth={3} /> : <Icon className={`w-5 h-5 ${isCurrent ? 'animate-pulse' : ''}`} />}
+                    </div>
+
+                    <span
+                      className={`mt-2.5 text-[11px] sm:text-xs leading-tight font-semibold ${isDone || isCurrent ? 'text-surface-800' : 'text-surface-400'}`}
+                    >
+                      {step.label}
+                    </span>
+                    {isCurrent && (
+                      <span className="mt-1 text-[10px] font-bold uppercase tracking-wide" style={{ color: brand }}>
+                        Agora
+                      </span>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-5 gap-5">
+
+            {/* ── ITENS ── */}
+            <div className="lg:col-span-3 rounded-3xl bg-white border border-surface-100 shadow-soft p-6">
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center gap-2">
+                  <div className="w-8 h-8 rounded-xl flex items-center justify-center" style={{ color: brand, backgroundColor: `${brand}14` }}>
+                    <ShoppingBag className="w-4 h-4" />
+                  </div>
+                  <h2 className="font-display font-bold text-surface-900 text-lg">Itens do pedido</h2>
+                </div>
+                <span className="text-xs font-semibold text-surface-400">
+                  {itemsCount} {itemsCount === 1 ? 'item' : 'itens'}
+                </span>
+              </div>
+
+              <div className="divide-y divide-surface-100">
+                {items.map((item, index) => (
+                  <div key={`${item.id}-${index}`} className="flex items-center gap-3 py-3">
+                    <div className="w-10 h-10 rounded-xl bg-surface-50 border border-surface-100 flex items-center justify-center shrink-0 overflow-hidden">
+                      <img
+                        src={
+                          item?.imagens?.[0]?.url_Imagem
+                            ? `/Imagens/Produtos/${item.imagens[0].url_Imagem}`
+                            : "/images/produto-placeholder.png"
+                        }
+                        alt={item?.name || "Produto"}
+                        className="w-full h-full object-cover"
+                        onError={(e) => {
+                          e.currentTarget.onerror = null;
+                          e.currentTarget.src = "/images/produto-placeholder.png";
+                        }}
+                      />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-semibold text-surface-900 truncate">{item.name}</p>
+                      <p className="text-xs text-surface-400">
+                        {item.quantity}x {formatPrice(item.price_Unic || 0)}
+                        {item.variations?.name ? ` · ${item.variations.name}: ${item.variations.value}` : ''}
+                      </p>
+                    </div>
+                    <span className="text-sm font-display font-bold text-surface-900 shrink-0">
+                      {formatPrice((item.price_Unic || 0) * (item.quantity || 0))}
+                    </span>
+                  </div>
+                ))}
+              </div>
+
+              <div className="mt-3 pt-3 border-t border-surface-100 space-y-1.5 text-sm">
+                <div className="flex justify-between text-surface-500">
+                  <span>Frete</span>
+                  <span className={(order?.shippingCost ?? 0) > 0 ? 'font-semibold text-surface-800' : 'font-semibold text-green-600'}>
+                    {(order?.shippingCost ?? 0) > 0 ? formatPrice(order?.shippingCost || 0) : 'Grátis'}
+                  </span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="font-display font-bold text-surface-900">Total</span>
+                  <span className="font-display font-bold text-surface-900 text-lg">
+                    {formatPrice(order?.total_Value_Order || 0)}
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            {/* ── ENTREGA ── */}
+            <div className="lg:col-span-2 space-y-5">
+              <div className="rounded-3xl bg-white border border-surface-100 shadow-soft p-6">
+                <div className="flex items-center gap-2 mb-4">
+                  <div className="w-8 h-8 rounded-xl flex items-center justify-center" style={{ color: brand, backgroundColor: `${brand}14` }}>
+                    <MapPin className="w-4 h-4" />
+                  </div>
+                  <h2 className="font-display font-bold text-surface-900 text-lg">Entrega</h2>
+                </div>
+
+                <div className="rounded-2xl bg-surface-50 border border-surface-100 p-4 space-y-1">
+                  <p className="text-sm font-semibold text-surface-900">{order?.address?.name}</p>
+                  <p className="text-sm text-surface-600">
+                    {order?.address?.road}, {order?.address?.number}
+                    {order?.address?.supplement ? `, ${order.address.supplement}` : ''}
+                  </p>
+                  <p className="text-sm text-surface-600">
+                    {order?.address?.neighborhood}
+                    {order?.address?.city ? ` · ${order.address.city}` : ''}
+                    {order?.address?.state ? ` - ${order.address.state}` : ''}
+                  </p>
+                  {order?.address?.referencePoint && (
+                    <p className="text-xs text-surface-400 pt-1">Referência: {order.address.referencePoint}</p>
+                  )}
+                  {order?.address?.phone && (
+                    <p className="text-xs text-surface-400">Contato: {formatPhone(order.address.phone)}</p>
+                  )}
+                </div>
+              </div>
+
+              <div className="rounded-3xl bg-white border border-surface-100 shadow-soft p-5">
+                <div className="flex items-start gap-3">
+                  <div className="w-9 h-9 rounded-xl bg-surface-50 flex items-center justify-center shrink-0">
+                    <Bell className={`w-4 h-4 ${ColorGlobalText}`} />
+                  </div>
+                  <div>
+                    <p className="text-sm font-semibold text-surface-900">Fique de olho</p>
+                    <p className="text-xs text-surface-500 mt-0.5 leading-relaxed">
+                      Avisamos cada atualização em <span className="font-semibold text-surface-700">Notificações</span> e por e-mail. O número do pedido fica em <span className="font-semibold text-surface-700">Minhas compras</span>.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* ── AÇÕES ── */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+            <button
+              onClick={() => navigate('/orders')}
+              className={`py-4 rounded-2xl ${ColorGlobalTema} text-white font-display font-bold flex items-center justify-center gap-2 shadow-lg transition-all hover:-translate-y-0.5 hover:brightness-110`}
+              style={{ boxShadow: `0 10px 24px ${brand}40` }}
+            >
+              <Receipt className="w-4 h-4" />
+              Acompanhar meus pedidos
+            </button>
+
+            <button
+              onClick={() => navigate('/')}
+              className="py-4 rounded-2xl border border-surface-200 bg-white text-surface-700 font-display font-bold flex items-center justify-center gap-2 transition-all hover:bg-surface-50 hover:border-surface-300"
+            >
+              <Home className="w-4 h-4" />
+              Continuar comprando
+            </button>
+          </div>
+
+          <div className="flex items-center justify-center gap-2 text-surface-400 pt-1">
+            <Lock className="w-3.5 h-3.5" />
+            <p className="text-xs">Compra protegida · Mercado Craibas</p>
+          </div>
+        </div>
       </div>
     );
   }

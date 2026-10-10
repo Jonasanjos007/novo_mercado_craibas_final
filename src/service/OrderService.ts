@@ -1,7 +1,7 @@
 import { api } from "../config/api";
 import { CartItensProduct } from "../models/CartItensProduct";
 import { Cupom } from "../models/Cupom";
-import { OrderSave, Order, RatingResponse } from "../models/OrderSave";
+import { OrderSave, Order, RatingResponse } from "../models/Order";
 import { Product } from "../models/Product";
 import { makeResult, Result } from "../utils/Result";
 
@@ -25,7 +25,6 @@ export const OrderService = {
     GetOrderAllList: async (): Promise<Result<Order[]>> => {
         try {
             const response = await api.get("/v1/order/GetAllOrderResponse");
-            console.log("response.datalist", response)
             const { success, data, error } = response.data;
             if (!success) {
                 return makeResult(false, [], error);

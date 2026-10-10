@@ -1,4 +1,4 @@
-import { Order } from './OrderSave';
+import { Order } from './Order';
 
 export type ClientNotificationKind = 'ORDER' | 'DELIVERY' | 'PAYMENT' | 'READ' | 'ASSESSMENT' | 'PASSWORD_CHANGE' | 'REGISTRATION';
 

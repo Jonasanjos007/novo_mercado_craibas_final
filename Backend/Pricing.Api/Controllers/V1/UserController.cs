@@ -142,4 +142,11 @@ public class UserController : ControllerBase
 
         return result.ToActionResult();
     }
+    [HttpGet("GetBaseSite")]
+    public async Task<IActionResult> GetBaseSite()
+    {
+        var result = await _service.GetBaseSite();
+
+        return result.ToActionResult();
+    }
 }

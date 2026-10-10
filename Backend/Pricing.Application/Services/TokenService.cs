@@ -18,7 +18,7 @@ public class TokenService : ITokenService
         _config = config;
     }
 
-    public string GenerateAccessToken(int userId, string email, ProfileEnum role)
+    public string GenerateAccessToken(int userId, string email, ProfileEnum role, int tokenVersion, int sessionId)
     {
         var jwt = _config.GetSection("Jwt");
 
@@ -26,7 +26,10 @@ public class TokenService : ITokenService
         {
             new Claim(ClaimTypes.NameIdentifier, userId.ToString()),
             new Claim(ClaimTypes.Email, email),
-            new Claim(ClaimTypes.Role, role.ToString())
+            new Claim(ClaimTypes.Role, role.ToString()),
+            new Claim("token_version",tokenVersion.ToString()),
+            // Id da sessão (dispositivo). Permite derrubar um dispositivo específico.
+            new Claim("session_id", sessionId.ToString())
         };
 
         var key = new SymmetricSecurityKey(

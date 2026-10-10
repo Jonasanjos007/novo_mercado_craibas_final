@@ -54,7 +54,7 @@ namespace Mercado.Api.Controllers.Admin
 
         [Authorize]
         [HttpPost("PostUpdateOrderNewStatus")]
-        public async Task<IActionResult> PostUpdateOrderNewStatus(int Id_Order,string NewStatus, string WhoReceivedIt)
+        public async Task<IActionResult> PostUpdateOrderNewStatus(int Id_Order,string NewStatus, string? WhoReceivedIt)
         {
             var Id_User = User.GetUserId();
 
