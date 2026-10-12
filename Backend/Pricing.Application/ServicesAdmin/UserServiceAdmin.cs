@@ -31,16 +31,250 @@ namespace Mercado.Craibas.Application.ServicesAdmin
         private readonly IEmailService _email;
         private readonly IAuthRepository _authRepository;
         private readonly IDeletionRecordService _deletionRecord;
+        private readonly IPasswordHasher _passwordHasher;
 
 
-        public UserServiceAdmin(IUnitOfWorkAdmin unitOfWorkAdmin, IEmailService email, INotificationService notificationService, IAuthRepository authRepository, IDeletionRecordService deletionRecord)
+        public UserServiceAdmin(IUnitOfWorkAdmin unitOfWorkAdmin, IEmailService email, INotificationService notificationService, IAuthRepository authRepository, IDeletionRecordService deletionRecord, IPasswordHasher passwordHasher)
         {
+            _passwordHasher = passwordHasher;
             _deletionRecord = deletionRecord;
             _unitOfWorkAdmin = unitOfWorkAdmin;
             _notification = notificationService;
             _email = email;
             _authRepository = authRepository;
         }
+        /// <summary>
+        /// Admin cria um novo ADMIN ou DELIVERY.
+        /// Usa as mesmas regras do cadastro do site (nome, telefone, e-mail e senha)
+        /// e já entrega a conta pronta: ativa, com tema e cadastro concluído.
+        /// A confirmação de senha do admin (para criar ADMIN) é feita no controller.
+        /// </summary>
+        public async Task<Result<string>> CreateUserAsync(AdminCreateUserRequest request, int adminId)
+        {
+            var admin = await _unitOfWorkAdmin.GetClassAsyncWhere<User_Admin>(x => x.Id == adminId && x.Isdelete != true);
+
+            if (admin == null)
+                return Result<string>.Failure(Error.NotFound("Administrador", "Administrador não encontrado."));
+
+            if (request == null)
+                return Result<string>.Failure(Error.Validation("Cadastro", "Dados inválidos."));
+
+            // ── Tipo: somente ADMIN ou DELIVERY ──
+            if (!Enum.TryParse<ProfileEnum>(request.Role?.Trim(), true, out var role) || role == ProfileEnum.CLIENTE)
+                return Result<string>.Failure(Error.Validation("Tipo", "Escolha o tipo de acesso: Administrador ou Delivery."));
+
+            // ── Nome ──
+            var name = request.Name?.Trim();
+
+            if (string.IsNullOrWhiteSpace(name) || name.Length < 3)
+                return Result<string>.Failure(Error.Validation("Nome", "Informe o nome completo."));
+
+            if (name.Length > 150)
+                return Result<string>.Failure(Error.Validation("Nome", "O nome deve ter no máximo 150 caracteres."));
+
+            // ── E-mail ──
+            var email = request.Email?.Trim().ToLowerInvariant();
+
+            if (string.IsNullOrWhiteSpace(email))
+                return Result<string>.Failure(Error.Validation("Email", "Informe o e-mail."));
+
+            if (email.Length > 200 || !new System.ComponentModel.DataAnnotations.EmailAddressAttribute().IsValid(email))
+                return Result<string>.Failure(Error.Validation("Email", "Informe um e-mail válido."));
+
+            if (string.IsNullOrWhiteSpace(request.ConfirmEmail) || request.ConfirmEmail.Trim().ToLowerInvariant() != email)
+                return Result<string>.Failure(Error.Validation("Email", "Os e-mails não são iguais."));
+
+            // ── Telefone ──
+            var phoneDigits = new string((request.Phone ?? string.Empty).Where(char.IsDigit).ToArray());
+
+            if (phoneDigits.Length < 10 || phoneDigits.Length > 11)
+                return Result<string>.Failure(Error.Validation("Telefone", "Informe um telefone válido com DDD."));
+
+            // ── Transporte (delivery) ──
+            var transport = request.Transport?.Trim();
+
+            if (role == ProfileEnum.DELIVERY && (string.IsNullOrWhiteSpace(transport) || transport.Length < 2 || transport.Length > 50))
+                return Result<string>.Failure(Error.Validation("Transporte", "Informe o meio de transporte do entregador."));
+
+            // ── Senha (regra única do sistema) ──
+            var passwordError = PasswordPolicy.Validate(request.Password, request.ConfirmPassword);
+
+            if (passwordError is not null)
+                return Result<string>.Failure(passwordError);
+
+            // ── E-mail único nas 3 tabelas ──
+            // O login não filtra excluídos, então um e-mail de conta excluída também bloqueia.
+            var emailConflict = await FindEmailOwnerAsync(email);
+
+            if (emailConflict != null)
+                return Result<string>.Failure(Error.Conflict("Email", emailConflict));
+
+            // ── Telefone único no tipo escolhido ──
+            var phonesInUse = role == ProfileEnum.ADMIN
+                ? (await _unitOfWorkAdmin.GetClassListAsyncWhere<User_Admin>(x => x.Isdelete != true && x.Phone != null)).Select(x => x.Phone)
+                : (await _unitOfWorkAdmin.GetClassListAsyncWhere<User_Delivery>(x => x.Isdelete != true && x.Phone != null)).Select(x => x.Phone);
+
+            if (phonesInUse.Any(p => new string(p!.Where(char.IsDigit).ToArray()) == phoneDigits))
+                return Result<string>.Failure(Error.Conflict("Telefone", "Este telefone já está cadastrado em outra conta deste tipo."));
+
+            var phone = FormatPhone(phoneDigits);
+            var passwordHash = _passwordHasher.Hash(request.Password!);
+            var now = DateTime.Now;
+            int newUserId;
+            string roleLabel;
+
+            if (role == ProfileEnum.ADMIN)
+            {
+                var newAdmin = await _unitOfWorkAdmin.InsertAsyncReturnObjeto(new User_Admin
+                {
+                    Name = name,
+                    Email = email,
+                    Phone = phone,
+                    PasswordHash = passwordHash,
+                    Role = ProfileEnum.ADMIN,
+                    Ativo = true,
+                    InsertDate = now,
+                    Isdelete = false
+                });
+
+                // Sem o tema o login quebra (o /me lê o Customize)
+                await _unitOfWorkAdmin.InsertAsyncReturnObjeto(new Customize_Admin
+                {
+                    Global_Site_Color = "brand",
+                    Dark = true,
+                    Id_User_Admin = newAdmin.Id,
+                    InsertDate = now,
+                    Isdelete = false
+                });
+
+                newUserId = newAdmin.Id;
+                roleLabel = "administrador";
+            }
+            else
+            {
+                var newDelivery = await _unitOfWorkAdmin.InsertAsyncReturnObjeto(new User_Delivery
+                {
+                    Name = name,
+                    Email = email,
+                    Phone = phone,
+                    Transport = transport!,
+                    PasswordHash = passwordHash,
+                    Role = ProfileEnum.DELIVERY,
+                    Ativo = true,
+                    InsertDate = now,
+                    Isdelete = false
+                });
+
+                await _unitOfWorkAdmin.InsertAsyncReturnObjeto(new Customize_Delivery
+                {
+                    Global_Site_Color = "brand",
+                    Dark = true,
+                    Id_User_Delivery = newDelivery.Id,
+                    InsertDate = now,
+                    Isdelete = false
+                });
+
+                newUserId = newDelivery.Id;
+                roleLabel = "entregador";
+            }
+
+            // ── LOG ──
+            await _unitOfWorkAdmin.InsertAsyncReturnObjeto(new Logs
+            {
+                Id_User = adminId,
+                Log = $"O administrador {admin.Name} cadastrou o {roleLabel} {name} (ID: {newUserId}). \n" +
+                      $"E-mail: {email} | Telefone: {phone}" +
+                      (role == ProfileEnum.DELIVERY ? $" | Transporte: {transport}" : string.Empty) +
+                      $" | Data/Hora: {now:dd/MM/yyyy HH:mm:ss}",
+                Tipo = "CADASTRO",
+                Nivel = "Admin",
+                Acao = $"Cadastrou um novo {roleLabel}",
+                Info = $"{admin.Name} cadastrou o {roleLabel} {name} em {now:dd/MM/yyyy HH:mm}.",
+                InsertDate = now
+            });
+
+            // ── NOTIFICAÇÕES ──
+            var otherAdmins = await _unitOfWorkAdmin.GetClassListAsyncWhere<User_Admin>(x => x.Isdelete != true && x.Ativo == true && x.Id != adminId);
+
+            if (otherAdmins.Count > 0)
+            {
+                await _notification.SendNotification(
+                    new NotificationRequest
+                    {
+                        Kind = "Novo Cadastro",
+                        Title = role == ProfileEnum.ADMIN ? "Novo administrador cadastrado" : "Novo entregador cadastrado",
+                        Description = $"{admin.Name} cadastrou {name} como {roleLabel}.",
+                        Icone = "UserPlus",
+                        ActionUrl = "/admin",
+                        ReferenceId = newUserId,
+                        ReferenceType = "CADASTRO",
+                        Role = "ADMIN"
+                    },
+                    otherAdmins.Select(x => new NotificationUserRequest { UserId = x.Id }).ToList()
+                );
+            }
+
+            await _notification.SendNotification(
+                new NotificationRequest
+                {
+                    Kind = "Cadastro",
+                    Title = "Bem-vindo(a) ao Mercado Craíbas! 🎉",
+                    Description = role == ProfileEnum.ADMIN
+                        ? $"Olá, {name}! Seu acesso de administrador foi criado por {admin.Name}."
+                        : $"Olá, {name}! Seu acesso de entregador foi criado. Suas entregas aparecem no portal de entregas.",
+                    Icone = "UserCheck",
+                    ActionUrl = role == ProfileEnum.ADMIN ? "/admin" : "/delivery",
+                    ReferenceId = newUserId,
+                    ReferenceType = "REGISTRATION",
+                    Role = role.ToString()
+                },
+                new List<NotificationUserRequest> { new NotificationUserRequest { UserId = newUserId } }
+            );
+
+            // ── E-MAIL DE BOAS-VINDAS (sem senha) ──
+            try
+            {
+                var layout = _email.EmailContaCriada(
+                    nome: name,
+                    email: email,
+                    perfil: role == ProfileEnum.ADMIN ? "Administrador" : "Entregador",
+                    criadoPor: admin.Name,
+                    linkAcesso: "https://mavihstudio.com.br/login");
+
+                await _email.EnviarEmailAsync(email, "Sua conta foi criada - Mercado Craíbas", layout);
+            }
+            catch
+            {
+                // A conta já foi criada; falha no e-mail não desfaz o cadastro.
+            }
+
+            return Result<string>.Success(name);
+        }
+
+        /// <summary>Mensagem de conflito se o e-mail já existir em alguma das 3 tabelas.</summary>
+        private async Task<string?> FindEmailOwnerAsync(string email)
+        {
+            var customer = await _unitOfWorkAdmin.GetClassAsyncWhere<User_Customer>(x => x.Email != null && x.Email.ToLower() == email);
+            var adminUser = customer == null ? await _unitOfWorkAdmin.GetClassAsyncWhere<User_Admin>(x => x.Email.ToLower() == email) : null;
+            var delivery = customer == null && adminUser == null ? await _unitOfWorkAdmin.GetClassAsyncWhere<User_Delivery>(x => x.Email.ToLower() == email) : null;
+
+            var deleted = customer?.Isdelete ?? adminUser?.Isdelete ?? delivery?.Isdelete;
+
+            if (customer == null && adminUser == null && delivery == null)
+                return null;
+
+            if (deleted == true)
+                return "Este e-mail pertence a uma conta excluída. Exclua definitivamente na Lixeira para poder reutilizar.";
+
+            var owner = customer != null ? "um cliente" : adminUser != null ? "um administrador" : "um entregador";
+            return $"Este e-mail já está em uso por {owner}.";
+        }
+
+        private static string FormatPhone(string digits) =>
+            digits.Length == 11
+                ? $"({digits[..2]}) {digits.Substring(2, 5)}-{digits[7..]}"
+                : $"({digits[..2]}) {digits.Substring(2, 4)}-{digits[6..]}";
+
         public async Task<Result<bool>> PostEditeUserAdmin(UserAdminRequest User, int IdUser)
         {
             try

@@ -376,6 +376,9 @@ namespace Pricing.Api
             builder.Services.AddScoped<IUserServiceAdmin, UserServiceAdmin>();
             builder.Services.AddScoped<IDeletionRecordService, DeletionRecordService>();
             builder.Services.AddScoped<ITrashServiceAdmin, TrashServiceAdmin>();
+            builder.Services.AddScoped<IOrderStatusNotifier, OrderStatusNotifier>();
+            builder.Services.AddScoped<IDeliveryService, DeliveryService>();
+            builder.Services.AddScoped<IDeliveryServiceAdmin, DeliveryServiceAdmin>();
             builder.Services.AddScoped<IPasswordHasher, PasswordHasher>();
             //builder.Services.AddScoped<IProfileRepository, ProfileRepository>();
             //builder.Services.AddScoped<IDashboardRepository, DashboardRepository>();

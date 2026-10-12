@@ -8,4 +8,7 @@ public class UpdateProfileRequest
     public string Email { get; set; } = string.Empty;
     public string? Phone { get; set; }
     public IFormFile Avatar { get; set; }
+
+    /// <summary>Somente entregador: meio de transporte (moto, bicicleta...).</summary>
+    public string? Transport { get; set; }
 }

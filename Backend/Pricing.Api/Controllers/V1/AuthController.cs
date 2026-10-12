@@ -156,7 +156,7 @@ public class AuthController : ControllerBase
     {
         var userid = User.GetUserId();
 
-        var result = await _service.ChangePassword(userid, request);
+        var result = await _service.ChangePassword(userid, User.GetUserRole(), request);
 
         return result.ToActionResult();
     }

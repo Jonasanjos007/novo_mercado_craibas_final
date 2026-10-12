@@ -19,5 +19,8 @@ public interface IAuthService
     Task<Result<bool>> RevokeSessionAsync(int userId, ProfileEnum role, int sessionId, int currentSessionId, string? password);
     Task<Result<int>> RevokeOtherSessionsAsync(int userId, ProfileEnum role, int currentSessionId, string? password);
     //Task<Result<LoginResponse>> RefreshAsync(string refreshToken);
-    Task<Result<bool>> ChangePassword(int userId, ChangePasswordRequest request);
+    Task<Result<bool>> ChangePassword(int userId, ProfileEnum role, ChangePasswordRequest request);
+
+    /// <summary>Confirmação de senha para ações sensíveis (10 min de janela, bloqueio após 5 erros).</summary>
+    Task<Result<bool>> ConfirmRecentPasswordAsync(int userId, ProfileEnum role, int sessionId, string? password);
 }

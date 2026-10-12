@@ -19,6 +19,14 @@ interface ConfirmAdminPopupProps {
     requireReason?: boolean;
     reasonLabel?: string;
     reasonPlaceholder?: string;
+    /** Mínimo de caracteres do campo (padrão 5). */
+    minReasonLength?: number;
+    /** Máximo de caracteres do campo (padrão 500). */
+    maxReasonLength?: number;
+    /** Linhas do campo (padrão 3). */
+    reasonRows?: number;
+    /** Mensagem quando o campo está inválido. */
+    reasonErrorText?: string;
 
     icon?: ReactNode;
 
@@ -45,6 +53,10 @@ export default function ConfirmAdminPopup({
     requireReason = false,
     reasonLabel = "Motivo da exclusão",
     reasonPlaceholder = "Explique por que este item está sendo excluído. Ficará registrado na Lixeira.",
+    minReasonLength = 5,
+    maxReasonLength = 500,
+    reasonRows = 3,
+    reasonErrorText,
 }: ConfirmAdminPopupProps) {
     const [reason, setReason] = useState("");
     const [touched, setTouched] = useState(false);
@@ -57,7 +69,7 @@ export default function ConfirmAdminPopup({
 
     if (!open) return null;
 
-    const MIN_REASON = 5;
+    const MIN_REASON = minReasonLength;
     const reasonValid = !requireReason || reason.trim().length >= MIN_REASON;
 
     const handleConfirm = () => {
@@ -111,15 +123,15 @@ export default function ConfirmAdminPopup({
                                 <span className="text-xs font-bold uppercase tracking-widest text-white/50">
                                     {reasonLabel} <span className="text-red-400">*</span>
                                 </span>
-                                <span className={`text-[11px] ${reason.length > 500 ? "text-red-400" : "text-white/30"}`}>
-                                    {reason.length}/500
+                                <span className={`text-[11px] ${reason.length > maxReasonLength ? "text-red-400" : "text-white/30"}`}>
+                                    {reason.length}/{maxReasonLength}
                                 </span>
                             </label>
 
                             <textarea
                                 value={reason}
-                                maxLength={500}
-                                rows={3}
+                                maxLength={maxReasonLength}
+                                rows={reasonRows}
                                 disabled={loading}
                                 autoFocus
                                 onChange={(e) => setReason(e.target.value)}
@@ -133,7 +145,7 @@ export default function ConfirmAdminPopup({
 
                             {touched && !reasonValid && (
                                 <p className="mt-2 text-xs text-red-400">
-                                    Informe o motivo (mínimo de {MIN_REASON} caracteres).
+                                    {reasonErrorText ?? `Informe o motivo (mínimo de ${MIN_REASON} caracteres).`}
                                 </p>
                             )}
                         </div>

@@ -114,6 +114,7 @@ public class UserService : IUserService
 
             case "DELIVERY":
                 user = await _userRepository.GetByIdAsync<User_Delivery>(userid, "Id");
+                Customize = await _unitOfWork.GetClassById<Customize_Delivery>(userid, "Id_User_Delivery");
                 break;
 
             default:
@@ -165,6 +166,17 @@ public class UserService : IUserService
             { "Phone", request.Phone  },
             { "UpdateDate", DateTime.Now }
         };
+
+        // Entregador: meio de transporte
+        if (role.Equals("DELIVERY", StringComparison.OrdinalIgnoreCase) && request.Transport != null)
+        {
+            var transport = request.Transport.Trim();
+
+            if (transport.Length < 2 || transport.Length > 50)
+                return Result<bool>.Failure(Error.Failure("Perfil", "Informe o meio de transporte (2 a 50 caracteres)."));
+
+            fields.Add("Transport", transport);
+        }
 
         string newAvatarName = null;
         string oldAvatarName = null;
@@ -868,46 +880,12 @@ public class UserService : IUserService
             return Result<RegisterPasswordResponse>.Failure(Error.Failure("Usuário não encontrado", "Senha ja existe acesse na tela de login."));
         }
       
-        // 2. Validar senha
-        if (string.IsNullOrWhiteSpace(password))
-        {
-            return Result<RegisterPasswordResponse>.Failure(Error.Failure("Senha necessária","A senha é obrigatória."));
-        }
+        // 2. Validar senha (regra única do sistema)
+        var passwordError = PasswordPolicy.Validate(password, confirmPassword);
 
-        // 3. Confirmar senha
-        if (password != confirmPassword)
+        if (passwordError is not null)
         {
-            return Result<RegisterPasswordResponse>.Failure(Error.Failure("Senha necessária", "As senhas não coincidem."));
-        }
-
-        // 4. Pelo menos 8 caracteres
-        if (password.Length < 8)
-        {
-            return Result<RegisterPasswordResponse>.Failure(Error.Failure("Comprimento da Senha","A senha deve possuir pelo menos 8 caracteres."));
-        }
-
-        // 5. Letra maiúscula
-        if (!password.Any(char.IsUpper))
-        {
-            return Result<RegisterPasswordResponse>.Failure(Error.Failure("Letra Maiúscula","A senha deve possuir pelo menos uma letra maiúscula."));
-        }
-
-        // 6. Letra minúscula
-        if (!password.Any(char.IsLower))
-        {
-            return Result<RegisterPasswordResponse>.Failure(Error.Failure("Letra minúscula", "A senha deve possuir pelo menos uma letra minúscula."));
-        }
-
-        // 7. Número
-        if (!password.Any(char.IsDigit))
-        {
-            return Result<RegisterPasswordResponse>.Failure(Error.Failure("Numero Senha","A senha deve possuir pelo menos um número."));
-        }
-
-        // 8. Caractere especial
-        if (!password.Any(ch => !char.IsLetterOrDigit(ch)))
-        {
-            return Result<RegisterPasswordResponse>.Failure(Error.Failure("Caráctere Especial","A senha deve possuir pelo menos um caractere especial."));
+            return Result<RegisterPasswordResponse>.Failure(passwordError);
         }
 
         // 9. Gerar hash

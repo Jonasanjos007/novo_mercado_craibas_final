@@ -318,6 +318,41 @@ namespace Mercado.Craibas.Infrastructure.Migrations
                     b.ToTable("Customize_Cliente", (string)null);
                 });
 
+            modelBuilder.Entity("Baldan.Pricing.Application.Domain.Entities.Customize_Delivery", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<bool>("Dark")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("Global_Site_Color")
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.Property<int>("Id_User_Delivery")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("InsertDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<bool?>("Isdelete")
+                        .HasColumnType("bit");
+
+                    b.Property<DateTime?>("UpdateDate")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Id_User_Delivery")
+                        .IsUnique();
+
+                    b.ToTable("Customize_Delivery", (string)null);
+                });
+
             modelBuilder.Entity("Baldan.Pricing.Application.Domain.Entities.Imagens_Products", b =>
                 {
                     b.Property<int>("Id")
@@ -433,8 +468,14 @@ namespace Mercado.Craibas.Infrastructure.Migrations
                     b.Property<DateTime?>("CustomerDeliveryDate")
                         .HasColumnType("datetime2");
 
+                    b.Property<DateTime?>("Delivery_AssignedAt")
+                        .HasColumnType("datetime2");
+
                     b.Property<double?>("Delivery_Commission")
                         .HasColumnType("float");
+
+                    b.Property<DateTime?>("Delivery_DispatchedAt")
+                        .HasColumnType("datetime2");
 
                     b.Property<double>("Discont")
                         .HasColumnType("float");
@@ -452,6 +493,9 @@ namespace Mercado.Craibas.Infrastructure.Migrations
                         .HasColumnType("int");
 
                     b.Property<int?>("Id_Cupom")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("Id_User_Admin_Delivery")
                         .HasColumnType("int");
 
                     b.Property<int?>("Id_User_Customer")
@@ -508,6 +552,8 @@ namespace Mercado.Craibas.Infrastructure.Migrations
                     b.HasIndex("Id_Address");
 
                     b.HasIndex("Id_Cupom");
+
+                    b.HasIndex("Id_User_Admin_Delivery");
 
                     b.HasIndex("Id_User_Customer");
 
@@ -851,6 +897,9 @@ namespace Mercado.Craibas.Infrastructure.Migrations
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<double?>("CommissionDelivers")
+                        .HasColumnType("float");
+
+                    b.Property<double?>("DailyRate")
                         .HasColumnType("float");
 
                     b.Property<string>("Email")
@@ -1211,6 +1260,160 @@ namespace Mercado.Craibas.Infrastructure.Migrations
                     b.HasIndex("Status", "DeletedAt");
 
                     b.ToTable("DeletionRecords", (string)null);
+                });
+
+            modelBuilder.Entity("Mercado.Craibas.Application.Domain.Entities.DeliveryPayout", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("Id_User_Delivery")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("InsertDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<bool?>("Isdelete")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("Mode")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.Property<string>("Note")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<DateTime>("PaidAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("PaidById")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("PeriodEnd")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime>("PeriodStart")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime?>("ReversedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int?>("ReversedById")
+                        .HasColumnType("int");
+
+                    b.Property<string>("ReversedReason")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<double>("Total")
+                        .HasColumnType("float");
+
+                    b.Property<DateTime?>("UpdateDate")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Id_User_Delivery");
+
+                    b.ToTable("DeliveryPayouts", (string)null);
+                });
+
+            modelBuilder.Entity("Mercado.Craibas.Application.Domain.Entities.DeliveryPayoutItem", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<double>("Amount")
+                        .HasColumnType("float");
+
+                    b.Property<int>("Deliveries")
+                        .HasColumnType("int");
+
+                    b.Property<int>("Id_DeliveryPayout")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("Id_Order")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("InsertDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<bool?>("Isdelete")
+                        .HasColumnType("bit");
+
+                    b.Property<DateTime>("ReferenceDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime?>("UpdateDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime?>("WorkDate")
+                        .HasColumnType("date");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Id_DeliveryPayout");
+
+                    b.HasIndex("Id_Order");
+
+                    b.ToTable("DeliveryPayoutItems", (string)null);
+                });
+
+            modelBuilder.Entity("Mercado.Craibas.Application.Domain.Entities.DeliverySettings", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime?>("CountFrom")
+                        .HasColumnType("datetime2");
+
+                    b.Property<double>("DailyValue")
+                        .HasColumnType("float");
+
+                    b.Property<DateTime>("InsertDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<bool?>("Isdelete")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("Mode")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.Property<double>("OrderValue")
+                        .HasColumnType("float");
+
+                    b.Property<string>("OrderValueType")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.Property<bool>("TipEnabled")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(false);
+
+                    b.Property<DateTime?>("UpdateDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int?>("UpdatedById")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("DeliverySettings", (string)null);
                 });
 
             modelBuilder.Entity("Mercado.Craibas.Application.Domain.Entities.EmailVerification", b =>
@@ -1595,6 +1798,17 @@ namespace Mercado.Craibas.Infrastructure.Migrations
                     b.Navigation("User_Customer");
                 });
 
+            modelBuilder.Entity("Baldan.Pricing.Application.Domain.Entities.Customize_Delivery", b =>
+                {
+                    b.HasOne("Baldan.Pricing.Application.Domain.Entities.User_Delivery", "User_Delivery")
+                        .WithOne("Customize_Delivery")
+                        .HasForeignKey("Baldan.Pricing.Application.Domain.Entities.Customize_Delivery", "Id_User_Delivery")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("User_Delivery");
+                });
+
             modelBuilder.Entity("Baldan.Pricing.Application.Domain.Entities.Imagens_Products", b =>
                 {
                     b.HasOne("Baldan.Pricing.Application.Domain.Entities.Product", "Product")
@@ -1638,6 +1852,11 @@ namespace Mercado.Craibas.Infrastructure.Migrations
                         .HasForeignKey("Id_Cupom")
                         .OnDelete(DeleteBehavior.Restrict);
 
+                    b.HasOne("Baldan.Pricing.Application.Domain.Entities.User_Admin", "User_Admin_Delivery")
+                        .WithMany()
+                        .HasForeignKey("Id_User_Admin_Delivery")
+                        .OnDelete(DeleteBehavior.Restrict);
+
                     b.HasOne("Baldan.Pricing.Application.Domain.Entities.User_Customer", "User_Customer")
                         .WithMany("Orders")
                         .HasForeignKey("Id_User_Customer")
@@ -1651,6 +1870,8 @@ namespace Mercado.Craibas.Infrastructure.Migrations
                     b.Navigation("Address");
 
                     b.Navigation("Cupom");
+
+                    b.Navigation("User_Admin_Delivery");
 
                     b.Navigation("User_Customer");
 
@@ -1763,6 +1984,35 @@ namespace Mercado.Craibas.Infrastructure.Migrations
                     b.Navigation("Order");
 
                     b.Navigation("User_Customer");
+                });
+
+            modelBuilder.Entity("Mercado.Craibas.Application.Domain.Entities.DeliveryPayout", b =>
+                {
+                    b.HasOne("Baldan.Pricing.Application.Domain.Entities.User_Delivery", "User_Delivery")
+                        .WithMany()
+                        .HasForeignKey("Id_User_Delivery")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("User_Delivery");
+                });
+
+            modelBuilder.Entity("Mercado.Craibas.Application.Domain.Entities.DeliveryPayoutItem", b =>
+                {
+                    b.HasOne("Mercado.Craibas.Application.Domain.Entities.DeliveryPayout", "DeliveryPayout")
+                        .WithMany("Items")
+                        .HasForeignKey("Id_DeliveryPayout")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Baldan.Pricing.Application.Domain.Entities.Orders", "Order")
+                        .WithMany()
+                        .HasForeignKey("Id_Order")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("DeliveryPayout");
+
+                    b.Navigation("Order");
                 });
 
             modelBuilder.Entity("Mercado.Craibas.Application.Domain.Entities.EmailVerification", b =>
@@ -1880,12 +2130,19 @@ namespace Mercado.Craibas.Infrastructure.Migrations
                 {
                     b.Navigation("Address");
 
+                    b.Navigation("Customize_Delivery");
+
                     b.Navigation("Orders");
                 });
 
             modelBuilder.Entity("Baldan.Pricing.Application.Domain.Entities.Variante_Products", b =>
                 {
                     b.Navigation("Cart_Items");
+                });
+
+            modelBuilder.Entity("Mercado.Craibas.Application.Domain.Entities.DeliveryPayout", b =>
+                {
+                    b.Navigation("Items");
                 });
 
             modelBuilder.Entity("Mercado.Craibas.Application.Domain.Entities.Notification", b =>

@@ -11,6 +11,7 @@ namespace Mercado.Craibas.Application.Interfaces
         Task<bool> EnviarEmailAsync(string destinatario,string assunto,string html);
         string EmailPedidoLayout( string titulo, string subtitulo, string conteudoHtml, string status, string? textoBotao = null, string? linkBotao = null, string? whoReceivedIt = null,DateTime? customerDeliveryDate = null);
         string EmailConfirmacaoCadastro(string nome, string codigo);
+        string EmailContaCriada(string nome, string email, string perfil, string criadoPor, string linkAcesso);
         string EmailContaDesativada(string nome, int idCliente, string email, string telefoneSuporte, string linkSuporte, string responsavelExclusao);
     }
 }

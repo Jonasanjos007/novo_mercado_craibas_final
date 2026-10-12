@@ -8,15 +8,45 @@ using System.Security.Claims;
 
 namespace Mercado.Api.Controllers.admin
 {
-        [ApiController]
-        [Route("api/admin/User")]
+    /// <summary>
+    /// Usuários no painel do admin. Somente ADMIN.
+    /// </summary>
+    [ApiController]
+    [Route("api/admin/User")]
+    [Authorize(Roles = "ADMIN")]
     public class UserAdminController : ControllerBase
     {
         private readonly IUserServiceAdmin _service;
+        private readonly IAuthService _authService;
 
-        public UserAdminController(IUserServiceAdmin service)
+        public UserAdminController(IUserServiceAdmin service, IAuthService authService)
         {
             _service = service;
+            _authService = authService;
+        }
+
+        /// <summary>
+        /// Cria um novo ADMIN ou DELIVERY.
+        /// Criar outro ADMIN exige a senha do admin logado (mesma janela de 10 minutos dos dispositivos).
+        /// </summary>
+        [HttpPost("CreateUser")]
+        public async Task<IActionResult> CreateUser([FromBody] AdminCreateUserRequest request)
+        {
+            var adminId = User.GetUserId();
+
+            if (string.Equals(request?.Role?.Trim(), "ADMIN", StringComparison.OrdinalIgnoreCase))
+            {
+                var reauth = await _authService.ConfirmRecentPasswordAsync(adminId, User.GetUserRole(), User.GetSessionId(), request?.AdminPassword);
+
+                if (reauth.IsFailure)
+                {
+                    return reauth.ToActionResult();
+                }
+            }
+
+            var result = await _service.CreateUserAsync(request!, adminId);
+
+            return result.ToActionResult();
         }
 
         [Authorize]

@@ -62,6 +62,9 @@ import { UseNotificationAdmin } from '../storeAdmin/UseNotificationAdmin';
 import { useAuthStore } from '../context/AuthContext';
 import AdminUsersPage from '../components/AdminUsersPage';
 import AdminTrashPage from '../components/AdminTrashPage';
+import AdminMyDeliveriesPage from '../components/AdminMyDeliveriesPage';
+import AdminDeliverersPage from '../components/AdminDeliverersPage';
+import { Bike } from 'lucide-react';
 import { useSiteSettingsController } from '../controller/useSiteSettingsController';
 
 
@@ -734,6 +737,12 @@ export default function AdminPage() {
         { id: 'users', label: 'Usuários', icon: <Users className="w-4 h-4" /> },
         { id: 'bin', label: 'Lixeira', icon: <Trash2 className="w-4 h-4" /> },
         { id: 'settings', label: 'Configurações Site', icon: <Settings className="w-4 h-4" /> },
+      ]
+    },
+    {
+      label: 'Entregas', items: [
+        { id: 'mydeliveries', label: 'Minhas entregas', icon: <Bike className="w-4 h-4" /> },
+        { id: 'deliverers', label: 'Deliverys', icon: <Truck className="w-4 h-4" /> },
       ]
     },
     {
@@ -5351,6 +5360,16 @@ export default function AdminPage() {
           )}
           {tab === 'bin' && (
             <AdminTrashPage
+              darkMode={dk}
+            />
+          )}
+          {tab === 'mydeliveries' && (
+            <AdminMyDeliveriesPage
+              darkMode={dk}
+            />
+          )}
+          {tab === 'deliverers' && (
+            <AdminDeliverersPage
               darkMode={dk}
             />
           )}

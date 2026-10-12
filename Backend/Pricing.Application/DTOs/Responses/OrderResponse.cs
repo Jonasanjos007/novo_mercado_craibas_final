@@ -31,5 +31,11 @@ namespace Mercado.Craibas.Application.DTOs.Responses
         public double? Total_Value_OrderCupom { get; set; }
         public DateTime? CustomerDeliveryDate { get; set; }
         public string? WhoReceivedIt { get; set; }
+
+        /// <summary>Quem está entregando (entregador ou admin).</summary>
+        public string? DeliveryName { get; set; }
+
+        /// <summary>DELIVERY, ADMIN ou null.</summary>
+        public string? DeliveryAssigneeType { get; set; }
     }
 }

@@ -20,7 +20,7 @@ export enum Status_Pay {
     CONFIRMADO = "CONFIRMADO",
     PENDENTE = "PENDENTE"
 }
-export type AdminTab = 'dashboard' | 'notifications' | 'products' | 'categories' | 'orders' | 'promotions' | 'movements' | 'profile' | 'settings' | 'cartegories' | 'users' | 'bin';
+export type AdminTab = 'dashboard' | 'notifications' | 'products' | 'categories' | 'orders' | 'promotions' | 'movements' | 'profile' | 'settings' | 'cartegories' | 'users' | 'bin' | 'mydeliveries' | 'deliverers';
 
 export interface Order {
     id_Order: number;
@@ -44,6 +44,9 @@ export interface Order {
     notifyViaWhatsApp?: boolean;
     customerDeliveryDate?: Date;
     whoReceivedIt?: string;
+    /** Quem está entregando (entregador ou admin). */
+    deliveryName?: string | null;
+    deliveryAssigneeType?: 'DELIVERY' | 'ADMIN' | null;
 }
 export interface SendMessageViaWhatsAppResponse {
     idOrder: number;

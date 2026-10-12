@@ -51,18 +51,6 @@ public class AuthService : IAuthService
         _email = email;
         _notification = notification;
     }
-    private static readonly HashSet<string> SenhasFracas = new(StringComparer.OrdinalIgnoreCase)
-    {
-        "12345678",
-        "123456789",
-        "1234567890",
-        "password",
-        "password123",
-        "qwerty123",
-        "senha123",
-        "senha1234",
-        "admin123"
-    };
     public async Task<Result> LogoutAsync(string refreshToken)
     {
         if (!string.IsNullOrWhiteSpace(refreshToken))
@@ -597,6 +585,19 @@ public class AuthService : IAuthService
     private static readonly TimeSpan ReauthLockTime = TimeSpan.FromMinutes(10);
 
     /// <summary>
+    /// Ações sensíveis fora deste service (ex: admin criando outro admin)
+    /// usam a mesma confirmação de senha: janela de 10 minutos e bloqueio após 5 erros.
+    /// </summary>
+    public async Task<Result<bool>> ConfirmRecentPasswordAsync(int userId, ProfileEnum role, int sessionId, string? password)
+    {
+        var error = await EnsureRecentPasswordAsync(userId, role, sessionId, password);
+
+        return error is null
+            ? Result<bool>.Success(true)
+            : Result<bool>.Failure(error);
+    }
+
+    /// <summary>
     /// Garante que o usuário confirmou a senha recentemente nesta sessão.
     ///
     /// - Já confirmou nos últimos 10 minutos → segue sem pedir de novo.
@@ -655,7 +656,7 @@ public class AuthService : IAuthService
         return value.Length <= maxLength ? value : value[..maxLength];
     }
 
-    public async Task<Result<bool>> ChangePassword(int userId,ChangePasswordRequest request)
+    public async Task<Result<bool>> ChangePassword(int userId, ProfileEnum role, ChangePasswordRequest request)
     {
         // 1. Validar request
         if (request == null)
@@ -670,34 +671,17 @@ public class AuthService : IAuthService
         if (string.IsNullOrWhiteSpace(request.ConfirmPassword))
             return Result<bool>.Failure(Error.Failure("Senha", "Confirme sua nova senha."));
 
-        // 2. Confirmar nova senha
-        if (request.NewPassword != request.ConfirmPassword)
-            return Result<bool>.Failure(Error.Failure("Senha", "As senhas não coincidem."));
+        // 2. Regra única de senha do sistema
+        var passwordError = PasswordPolicy.Validate(request.NewPassword, request.ConfirmPassword);
 
-        // 3. Tamanho mínimo
-        if (request.NewPassword.Length < 8)
-            return Result<bool>.Failure(Error.Failure("Senha","A nova senha deve possuir pelo menos 8 caracteres."));
-
-        // 4. Senhas muito fracas
-        if (SenhasFracas.Contains(request.NewPassword))
-        {
-            return Result<bool>.Failure(Error.Failure("Senha","Essa senha é muito fácil de descobrir. Escolha uma senha mais forte."));
-        }
-
-        // 5. Complexidade
-        bool temMaiuscula = request.NewPassword.Any(char.IsUpper);
-        bool temMinuscula = request.NewPassword.Any(char.IsLower);
-        bool temNumero = request.NewPassword.Any(char.IsDigit);
-
-        if (!temMaiuscula || !temMinuscula || !temNumero)
-        {
-            return Result<bool>.Failure(Error.Failure("Senha","A senha deve conter letras maiúsculas, minúsculas e números."));
-        }
+        if (passwordError is not null)
+            return Result<bool>.Failure(passwordError);
 
         // 6. Buscar usuário
-        var user = await _unitOfWork.GetClassAsyncWhere<User_Customer>(x => x.Id == userId);
+        // Busca na tabela do perfil logado (cliente, admin ou entregador)
+        var user = await _authRepository.GetUserByIdAsync(userId, role);
 
-        if (user == null)
+        if (user == null || user.Isdelete)
         {
             return Result<bool>.Failure(Error.Failure("Senha","Não foi possível alterar a senha."));
         }
@@ -722,22 +706,33 @@ public class AuthService : IAuthService
         var newHash = _passwordHasher.Hash(request.NewPassword);
 
         // 10. Atualizar somente o PasswordHash
-        await _unitOfWork.UpdateFieldsAsync<User_Customer>(
-            filters: new Dictionary<string, object>
-            {
+        var passwordFilters = new Dictionary<string, object>
+        {
             { "Id", user.Id }
-            },
-            fieldsToUpdate: new Dictionary<string, object>
-            {
+        };
+
+        var passwordFields = new Dictionary<string, object>
+        {
             { "PasswordHash", newHash },
             { "UpdateDate", DateTime.Now }
+        };
 
-            }
-        );
+        var passwordUpdated = role switch
+        {
+            ProfileEnum.CLIENTE => await _unitOfWork.UpdateFieldsAsync<User_Customer>(passwordFilters, passwordFields),
+            ProfileEnum.ADMIN => await _unitOfWork.UpdateFieldsAsync<User_Admin>(passwordFilters, passwordFields),
+            ProfileEnum.DELIVERY => await _unitOfWork.UpdateFieldsAsync<User_Delivery>(passwordFilters, passwordFields),
+            _ => false
+        };
+
+        if (!passwordUpdated)
+        {
+            return Result<bool>.Failure(Error.Failure("Senha", "Não foi possível alterar a senha."));
+        }
 
         // 11. Derruba todas as sessões em todos os dispositivos
         //     (TokenVersion + 1 e apaga o Refresh Token)
-        await _authRepository.InvalidateSessionsAsync(user.Id, ProfileEnum.CLIENTE, SessionRevokeReasonEnum.PasswordChanged);
+        await _authRepository.InvalidateSessionsAsync(user.Id, role, SessionRevokeReasonEnum.PasswordChanged);
         var layoutEmail = $@"
                  <!DOCTYPE html>
                  <html lang='pt-BR'>

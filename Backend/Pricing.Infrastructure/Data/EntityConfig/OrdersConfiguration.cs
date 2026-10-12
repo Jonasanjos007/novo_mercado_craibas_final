@@ -61,6 +61,12 @@ namespace Mercado.Craibas.Infrastructure.Configurations
                .HasForeignKey(x => x.Id_User_Delivery)
                .OnDelete(DeleteBehavior.Restrict);
 
+            // Admin que entrega ele mesmo
+            builder.HasOne(x => x.User_Admin_Delivery)
+               .WithMany()
+               .HasForeignKey(x => x.Id_User_Admin_Delivery)
+               .OnDelete(DeleteBehavior.Restrict);
+
             builder.HasMany(x => x.OrderLineItens)
                .WithOne(x => x.Orders)
                .HasForeignKey(x => x.Id_Order)

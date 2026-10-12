@@ -110,6 +110,7 @@ export const useLoginController = () => {
             });
         finalResult.fold(
             (user) => {
+                console.log('User logged in:', user);
                 saveUser(user);
                 notify.success("Sucesso", "Bem-vindo!" + " " + user.name);
                 if (user.role === 'ADMIN') {
@@ -121,6 +122,7 @@ export const useLoginController = () => {
                 }
             },
             (err) => {
+                console.error('Login failed:', err);
                 notify.error(err.error.code, err.error.message);
                 cleanUserData();
             }

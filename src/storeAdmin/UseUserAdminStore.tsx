@@ -6,7 +6,7 @@ import { ProductServiceAdmin } from "../adminService/ProductServiceAdmin";
 import { UserServiceAdmin } from "../adminService/UserServiceAdmin";
 import { UseUserStore } from "../store/UseUserStore";
 import { UserService } from "../service/UserService";
-import { BaseSiteInterface, UserAdminAll } from "../models/User";
+import { AdminCreateUser, BaseSiteInterface, UserAdminAll } from "../models/User";
 import { TaxasBases } from "../models/SiteBases";
 import { Address } from "../models/Address";
 import { GeneralOrderInformation } from "../models/Order";
@@ -25,12 +25,25 @@ interface UsertState {
     GetUserInfoOrdersAll: (IdUser: number) => Promise<Result<GeneralOrderInformation>>;
     DeleteUserSelected: (IdUser: number, role: string, reason: string) => Promise<Result<boolean>>;
     getUser: () => Promise<Result<boolean>>;
+    CreateUser: (user: AdminCreateUser) => Promise<Result<string>>;
     BaseSiteInterface: BaseSiteInterface;
     UserAllAdmin: UserAdminAll[];
 }
 export const UseUserAdminStore = create<UsertState>((set, get) => ({
     BaseSiteInterface: {},
     UserAllAdmin: [],
+
+    CreateUser: async (user: AdminCreateUser): Promise<Result<string>> => {
+        const result = await UserServiceAdmin.CreateUser(user);
+
+        if (!result.success) {
+            return makeResult(false, '', result.error);
+        }
+
+        // Atualiza a lista de usuários
+        await get().getUser();
+        return makeResult(true, result.data ?? '');
+    },
 
     PostEditeUserAdmin: async (formData: FormData): Promise<Result<boolean>> => {
         const result = await UserServiceAdmin.PostUpdateUserAdmin(formData);

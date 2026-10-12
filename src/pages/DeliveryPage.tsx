@@ -1,467 +1,945 @@
-// import { useState } from 'react';
-// import {
-//   MapPin, Package, Check, Truck, ArrowLeft, Phone, Navigation,
-//   Star, TrendingUp, User, Camera, Mail, Shield, Edit3,
-//   ChevronRight, AlertCircle, LogOut, BarChart2, Calendar,
-//   Bell, Settings, DollarSign, CheckCircle2, Clock, Sun, Moon
-// } from 'lucide-react';
-// import { useStore } from '../context/store';
-// import { formatPrice, orderStatusLabels, orderStatusColors } from '../utils';
-// import { OrderStatus } from '../types';
+import { useEffect, useMemo, useState } from 'react';
+import {
+    Bike,
+    Calendar,
+    Camera,
+    CheckCircle2,
+    ChevronRight,
+    Clock,
+    Edit3,
+    Eye,
+    EyeOff,
+    History,
+    KeyRound,
+    Loader2,
+    LogOut,
+    Mail,
+    MapPin,
+    Moon,
+    Package,
+    Phone,
+    RefreshCw,
+    Save,
+    Sparkles,
+    Sun,
+    Truck,
+    User as UserIcon,
+    Wallet,
+    X,
+} from 'lucide-react';
+import DeliveryOrderCard from '../components/DeliveryOrderCard';
+import ConfirmAdminPopup from '../components/ConfirmAdminPopup';
+import ConnectedDevices from '../components/ConnectedDevices';
+import { DeliveryTab, useDeliveryController } from '../controller/useDeliveryController';
+import { DeliveryEarningEntry, DeliveryOrder } from '../models/Delivery';
+import { formatPrice } from '../utils';
+import {
+    DeliveryTheme,
+    addressLine,
+    avatarUrl,
+    deliveryTheme,
+    formatRelative,
+    groupByDay,
+    groupEarningsByWeek,
+    initials,
+    startOfWeek,
+    toDate,
+} from '../utils/delivery';
 
-// type DeliveryTab = 'collecting' | 'enroute' | 'delivered' | 'earnings' | 'profile';
+/* ============================================================= */
+/* PORTAL DO ENTREGADOR                                          */
+/* Feito para o celular, mas se ajusta a qualquer tela.          */
+/* ============================================================= */
 
-// // Helper: format date as "Hoje", "Ontem" or DD/MM
-// function relativeDate(date: Date): string {
-//   const now   = new Date();
-//   const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-//   const d     = new Date(date.getFullYear(), date.getMonth(), date.getDate());
-//   const diff  = Math.round((today.getTime() - d.getTime()) / (1000 * 60 * 60 * 24));
-//   if (diff === 0) return 'Hoje';
-//   if (diff === 1) return 'Ontem';
-//   if (diff <= 6)  return `Há ${diff} dias`;
-//   return date.toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' });
-// }
+const greeting = () => {
+    const hour = new Date().getHours();
+    if (hour < 12) return 'Bom dia';
+    if (hour < 18) return 'Boa tarde';
+    return 'Boa noite';
+};
 
-// function sameDay(a: Date, b: Date) {
-//   return a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
-// }
+export default function DeliveryPage() {
+    const Controller = useDeliveryController();
+    const r = Controller.result;
+    const a = Controller.action;
+    const t = deliveryTheme(r.dark);
 
-// function groupByDay<T extends { updatedAt: Date }>(items: T[]): { label: string; date: Date; items: T[] }[] {
-//   const groups: Map<string, { label: string; date: Date; items: T[] }> = new Map();
-//   for (const item of items) {
-//     const key = item.updatedAt.toDateString();
-//     if (!groups.has(key)) groups.set(key, { label: relativeDate(item.updatedAt), date: item.updatedAt, items: [] });
-//     groups.get(key)!.items.push(item);
-//   }
-//   return Array.from(groups.values()).sort((a, b) => b.date.getTime() - a.date.getTime());
-// }
+    const name = r.profile?.name ?? r.user?.name ?? 'Entregador';
+    const firstName = name.split(' ')[0];
 
-// export default function DeliveryPage() {
-//   const { orders, updateOrderStatus, navigateTo, user, logout, updateUser, darkMode, toggleDarkMode } = useStore();
-//   const [tab, setTab] = useState<DeliveryTab>('collecting');
-//   const [expandedOrder, setExpandedOrder] = useState<string | null>(null);
-//   const [editingProfile, setEditingProfile] = useState(false);
-//   const [profileForm, setProfileForm] = useState({
-//     name: user?.name || '', phone: user?.phone || '', vehicle: user?.vehicle || '', region: user?.region || '', bio: user?.bio || '',
-//   });
-//   const [notifEnabled, setNotifEnabled] = useState(user?.preferences?.notifications ?? true);
+    const tabs: { id: DeliveryTab; label: string; icon: JSX.Element; count?: number; hidden?: boolean }[] = [
+        { id: 'orders', label: 'Entregas', icon: <Truck className="w-5 h-5" />, count: r.orders.length },
+        { id: 'history', label: 'Histórico', icon: <History className="w-5 h-5" /> },
+        { id: 'earnings', label: 'Ganhos', icon: <Wallet className="w-5 h-5" />, hidden: !r.earningsEnabled },
+        { id: 'profile', label: 'Perfil', icon: <UserIcon className="w-5 h-5" /> },
+    ];
 
-//   const today = new Date();
-//   const collectingOrders = orders.filter(o => ['confirmado', 'preparando'].includes(o.status));
-//   const enrouteOrders    = orders.filter(o => o.status === 'saiu_entrega');
-//   const deliveredOrders  = orders.filter(o => o.status === 'entregue');
+    const visibleTabs = tabs.filter((tab) => !tab.hidden);
 
-//   // For earnings
-//   const totalEarnings    = deliveredOrders.reduce((s, o) => s + (o.deliveryCommission || +(o.total * 0.05).toFixed(2)), 0);
-//   const todayEarnings    = deliveredOrders.filter(o => sameDay(o.updatedAt, today)).reduce((s, o) => s + (o.deliveryCommission || +(o.total * 0.05).toFixed(2)), 0);
+    const weekEarning = useMemo(() => {
+        if (!r.earnings?.enabled) return 0;
+        const start = startOfWeek(new Date()).getTime();
+        return r.earnings.entries
+            .filter((e) => (toDate(e.date)?.getTime() ?? 0) >= start)
+            .reduce((sum, e) => sum + e.amount, 0);
+    }, [r.earnings]);
 
-//   // History grouped by day
-//   const historyGroups = groupByDay(deliveredOrders);
+    return (
+        <div className={`min-h-screen font-body ${t.page}`}>
+            {/* ───────────── TOPO ───────────── */}
+            <header className={`sticky top-0 z-30 border-b backdrop-blur-xl ${r.dark ? 'bg-[#07070b]/85 border-white/[0.06]' : 'bg-white/85 border-surface-200/70'}`}>
+                <div className="max-w-5xl mx-auto px-4 py-3 flex items-center gap-3">
+                    <Avatar name={name} avatar={r.profile?.avatar} size="sm" dark={r.dark} />
 
-//   const fakeAddresses = [
-//     { street: 'Rua das Flores', number: '123', neighborhood: 'Centro', city: 'Craibas', state: 'AL', zipCode: '57465-000' },
-//     { street: 'Av. Principal', number: '456', neighborhood: 'Vila Nova', city: 'Craibas', state: 'AL', zipCode: '57465-100' },
-//     { street: 'Rua das Pedras', number: '78', neighborhood: 'Jardim', city: 'Craibas', state: 'AL', zipCode: '57465-200' },
-//     { street: 'Travessa do Sol', number: '12', neighborhood: 'Alto da Boa Vista', city: 'Craibas', state: 'AL', zipCode: '57465-300' },
-//     { street: 'Rua do Comércio', number: '330', neighborhood: 'Centro', city: 'Arapiraca', state: 'AL', zipCode: '57300-000' },
-//   ];
+                    <div className="flex-1 min-w-0">
+                        <p className={`font-display font-bold text-sm leading-none truncate ${t.txt}`}>{name}</p>
+                        <p className="mt-1 flex items-center gap-1.5 text-[11px] font-semibold text-emerald-500">
+                            <span className="relative flex w-2 h-2">
+                                <span className="absolute inline-flex w-full h-full rounded-full bg-emerald-400 opacity-75 animate-ping" />
+                                <span className="relative inline-flex w-2 h-2 rounded-full bg-emerald-500" />
+                            </span>
+                            Entregador · online
+                        </p>
+                    </div>
 
-//   const tabs: { id: DeliveryTab; label: string; icon: React.ReactNode; count?: number; color: string }[] = [
-//     { id: 'collecting', label: 'Coletar',   icon: <Package className="w-4 h-4"/>,      count: collectingOrders.length, color: 'text-blue-400' },
-//     { id: 'enroute',    label: 'A Caminho', icon: <Truck className="w-4 h-4"/>,         count: enrouteOrders.length,    color: 'text-brand-400' },
-//     { id: 'delivered',  label: 'Histórico', icon: <CheckCircle2 className="w-4 h-4"/>,  count: deliveredOrders.length,  color: 'text-green-400' },
-//     { id: 'earnings',   label: 'Comissões', icon: <DollarSign className="w-4 h-4"/>,    color: 'text-amber-400' },
-//     { id: 'profile',    label: 'Perfil',    icon: <User className="w-4 h-4"/>,           color: 'text-purple-400' },
-//   ];
+                    <button
+                        type="button"
+                        onClick={() => a.loadAll()}
+                        disabled={r.refreshing}
+                        aria-label="Atualizar"
+                        className={`w-10 h-10 rounded-xl flex items-center justify-center transition ${t.txt2} ${t.hover} disabled:opacity-50`}
+                    >
+                        <RefreshCw className={`w-[18px] h-[18px] ${r.refreshing ? 'animate-spin' : ''}`} />
+                    </button>
+                    <button
+                        type="button"
+                        onClick={a.toggleTheme}
+                        aria-label="Alternar tema"
+                        className={`w-10 h-10 rounded-xl flex items-center justify-center transition ${t.txt2} ${t.hover}`}
+                    >
+                        {r.dark ? <Sun className="w-[18px] h-[18px]" /> : <Moon className="w-[18px] h-[18px]" />}
+                    </button>
+                    <button
+                        type="button"
+                        onClick={() => a.setLogoutOpen(true)}
+                        className="hidden md:flex items-center gap-2 h-10 px-3 rounded-xl text-xs font-bold text-red-400 hover:bg-red-500/10 transition"
+                    >
+                        <LogOut className="w-4 h-4" /> Sair
+                    </button>
+                </div>
+            </header>
 
-//   const dk = darkMode;
-//   const bg     = dk ? 'bg-[#0a0a0f]'  : 'bg-[#f5f5f7]';
-//   const card   = dk ? 'bg-[#0d0d14] border-white/[0.06]' : 'bg-white border-surface-100';
-//   const header = dk ? 'bg-[#0d0d14] border-white/[0.06]' : 'bg-white border-surface-100';
-//   const txt    = dk ? 'text-white'    : 'text-surface-900';
-//   const sub    = dk ? 'text-white/40' : 'text-surface-400';
-//   const inp    = dk ? 'bg-[#0a0a0f] border-white/[0.08] text-white placeholder:text-white/20' : 'bg-surface-50 border-surface-200 text-surface-800';
-//   const bord   = dk ? 'border-white/[0.06]' : 'border-surface-100';
+            <main className="max-w-5xl mx-auto px-4 pt-5 pb-32 md:pb-12">
+                {/* ───────────── RESUMO ───────────── */}
+                <section className="relative overflow-hidden rounded-[28px] bg-gradient-to-br from-brand-500 via-brand-600 to-orange-700 text-white p-5 sm:p-7 shadow-brand-lg animate-fade-in">
+                    <div
+                        className="absolute inset-0 opacity-[0.12] pointer-events-none"
+                        style={{ backgroundImage: 'radial-gradient(circle, white 1px, transparent 1px)', backgroundSize: '22px 22px' }}
+                    />
+                    <div className="absolute -right-16 -top-16 w-56 h-56 rounded-full bg-white/10 blur-2xl pointer-events-none" />
+                    <Truck className="absolute -right-4 bottom-2 w-36 h-36 text-white/[0.07] -rotate-6 pointer-events-none" />
 
-//   const nextStatus  = (s: string): OrderStatus | null => ({ confirmado:'preparando', preparando:'saiu_entrega', saiu_entrega:'entregue' } as any)[s] || null;
-//   const nextLabel   = (s: string) => ({ confirmado:'Confirmar Coleta', preparando:'Saiu p/ Entrega', saiu_entrega:'Confirmar Entrega' } as any)[s] || '';
-//   const nextColor   = (s: string) => ({ confirmado:'bg-blue-500 hover:bg-blue-600 shadow-blue-500/20', preparando:'bg-brand-500 hover:bg-brand-600 shadow-brand-500/20', saiu_entrega:'bg-green-500 hover:bg-green-600 shadow-green-500/20' } as any)[s] || '';
+                    <div className="relative">
+                        <p className="text-white/70 text-xs font-semibold uppercase tracking-[0.18em]">
+                            {new Date().toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long' })}
+                        </p>
+                        <h1 className="mt-1.5 font-display font-black text-2xl sm:text-3xl leading-tight">
+                            {greeting()}, {firstName}!
+                        </h1>
+                        <p className="mt-1 text-sm text-white/80">
+                            {r.orders.length === 0
+                                ? 'Nenhuma entrega com você agora. Assim que o admin atribuir, ela aparece aqui.'
+                                : `Você tem ${r.orders.length} ${r.orders.length === 1 ? 'entrega' : 'entregas'} em andamento.`}
+                        </p>
 
-//   const OrderCard = ({ order, idx, showAction = true }: { order: any; idx: number; showAction?: boolean }) => {
-//     const addr     = fakeAddresses[idx % fakeAddresses.length];
-//     const isExp    = expandedOrder === order.id;
-//     const commission = order.deliveryCommission || +(order.total * 0.05).toFixed(2);
-//     const dateLabel  = relativeDate(order.createdAt);
-//     const ns = nextStatus(order.status);
+                        <div className="mt-5 grid grid-cols-3 gap-2 sm:gap-3">
+                            <HeroStat label="Para sair" value={r.toDispatch.length} icon={<Package className="w-4 h-4" />} />
+                            <HeroStat label="Em rota" value={r.enRoute.length} icon={<Truck className="w-4 h-4" />} />
+                            <HeroStat label="Hoje" value={r.profile?.deliveredToday ?? 0} icon={<CheckCircle2 className="w-4 h-4" />} />
+                        </div>
 
-//     return (
-//       <div className={`rounded-2xl border overflow-hidden transition-all ${card} hover:border-brand-400/20`}>
-//         <button onClick={() => setExpandedOrder(isExp ? null : order.id)} className={`w-full flex items-center gap-3 p-4 text-left ${isExp ? (dk?'bg-white/[0.03]':'bg-surface-50/80') : ''}`}>
-//           <div className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 ${order.status==='saiu_entrega'?'bg-brand-500/15':order.status==='preparando'?'bg-blue-500/15':order.status==='entregue'?'bg-green-500/15':dk?'bg-white/[0.06]':'bg-surface-100'}`}>
-//             {order.status==='saiu_entrega'?<Truck className="w-5 h-5 text-brand-400"/>:order.status==='entregue'?<CheckCircle2 className="w-5 h-5 text-green-400"/>:<Package className="w-5 h-5 text-blue-400"/>}
-//           </div>
-//           <div className="flex-1 min-w-0">
-//             <div className="flex items-center gap-2 flex-wrap">
-//               <span className={`font-display font-bold text-sm ${txt}`}>#{order.id}</span>
-//               <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${orderStatusColors[order.status]}`}>{orderStatusLabels[order.status]}</span>
-//             </div>
-//             <p className={`text-xs mt-0.5 truncate ${sub}`}>{addr.street}, {addr.number} · {addr.neighborhood}</p>
-//             <p className={`text-[10px] mt-0.5 ${sub}`}>{dateLabel} · {order.createdAt.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})}</p>
-//           </div>
-//           <div className="text-right flex-shrink-0 mr-1">
-//             <p className="text-green-400 font-display font-bold text-sm">+{formatPrice(commission)}</p>
-//             <p className={`text-[10px] ${sub}`}>comissão</p>
-//           </div>
-//           <ChevronRight className={`w-4 h-4 ${sub} transition-transform flex-shrink-0 ${isExp?'rotate-90':''}`}/>
-//         </button>
+                        {r.earningsEnabled && r.earnings && (
+                            <button
+                                type="button"
+                                onClick={() => a.setTab('earnings')}
+                                className="mt-3 w-full flex items-center gap-3 rounded-2xl bg-black/15 hover:bg-black/25 border border-white/15 px-4 py-3 text-left transition"
+                            >
+                                <Wallet className="w-5 h-5 text-white/80" />
+                                <div className="flex-1 min-w-0">
+                                    <p className="text-[11px] text-white/70 font-semibold uppercase tracking-wider">A receber</p>
+                                    <p className="font-display font-bold text-lg leading-tight">{formatPrice(r.earnings.pendingTotal)}</p>
+                                </div>
+                                <div className="text-right">
+                                    <p className="text-[11px] text-white/70 font-semibold uppercase tracking-wider">Esta semana</p>
+                                    <p className="font-display font-bold text-sm">{formatPrice(weekEarning)}</p>
+                                </div>
+                                <ChevronRight className="w-4 h-4 text-white/70" />
+                            </button>
+                        )}
+                    </div>
+                </section>
 
-//         {isExp && (
-//           <div className={`border-t ${bord} p-4 space-y-3 animate-fade-in`}>
-//             <div className={`flex items-start gap-3 p-3 rounded-xl ${dk?'bg-white/[0.04]':'bg-surface-50'}`}>
-//               <MapPin className="w-4 h-4 text-brand-400 flex-shrink-0 mt-0.5"/>
-//               <div>
-//                 <p className={`text-sm font-semibold ${txt}`}>{addr.street}, {addr.number}</p>
-//                 <p className={`text-xs ${sub}`}>{addr.neighborhood} · {addr.city}/{addr.state}</p>
-//                 <p className={`text-[11px] font-mono ${dk?'text-white/25':'text-surface-300'}`}>{addr.zipCode}</p>
-//               </div>
-//             </div>
-//             <div className="grid grid-cols-3 gap-2">
-//               {[
-//                 { label:'Código',    value:`#${order.id.slice(-4)}` },
-//                 { label:'Peso',      value:`${(order.items.reduce((s:number,i:any)=>s+i.quantity,0)*0.8).toFixed(1)}kg` },
-//                 { label:'Comissão',  value:formatPrice(commission), green:true },
-//               ].map((info,i) => (
-//                 <div key={i} className={`rounded-xl p-3 text-center ${dk?'bg-white/[0.04]':'bg-surface-50'}`}>
-//                   <p className={`font-display font-bold text-sm ${info.green?'text-green-400':txt}`}>{info.value}</p>
-//                   <p className={`text-[10px] mt-0.5 ${sub}`}>{info.label}</p>
-//                 </div>
-//               ))}
-//             </div>
-//             <div className="flex items-start gap-2 p-3 rounded-xl bg-amber-500/10 border border-amber-500/20">
-//               <AlertCircle className="w-4 h-4 text-amber-400 flex-shrink-0 mt-0.5"/>
-//               <p className="text-amber-400/80 text-xs">Acesso restrito — apenas código, peso e endereço. Conteúdo é confidencial.</p>
-//             </div>
-//             {showAction && ns && (
-//               <div className="flex gap-2 flex-wrap">
-//                 <button className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-xs font-bold border transition-all ${dk?'border-white/[0.08] text-white/50 hover:text-white hover:bg-white/[0.06]':'border-surface-200 text-surface-400 hover:bg-surface-50 hover:text-surface-700'}`}>
-//                   <Phone className="w-3.5 h-3.5"/> Ligar
-//                 </button>
-//                 <button className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-xs font-bold bg-blue-500/15 text-blue-400 hover:bg-blue-500/25 transition-all">
-//                   <Navigation className="w-3.5 h-3.5"/> Navegar
-//                 </button>
-//                 <button onClick={() => { updateOrderStatus(order.id, ns); setExpandedOrder(null); }}
-//                   className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-xs font-bold text-white shadow-lg transition-all ${nextColor(order.status)}`}>
-//                   {ns==='entregue'?<Check className="w-3.5 h-3.5"/>:<Truck className="w-3.5 h-3.5"/>}
-//                   {nextLabel(order.status)}
-//                 </button>
-//               </div>
-//             )}
-//           </div>
-//         )}
-//       </div>
-//     );
-//   };
+                {/* ───────────── ABAS (tablet / computador) ───────────── */}
+                <nav className={`hidden md:flex mt-6 p-1.5 rounded-2xl border gap-1 ${t.card}`}>
+                    {visibleTabs.map((tab) => (
+                        <button
+                            key={tab.id}
+                            type="button"
+                            onClick={() => a.setTab(tab.id)}
+                            className={`flex-1 flex items-center justify-center gap-2 h-11 rounded-xl text-sm font-display font-semibold transition ${r.tab === tab.id ? 'bg-brand-500 text-white shadow-brand' : `${t.txt2} ${t.hover}`}`}
+                        >
+                            {tab.icon}
+                            {tab.label}
+                            {!!tab.count && (
+                                <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full ${r.tab === tab.id ? 'bg-white/25' : 'bg-brand-500/15 text-brand-500'}`}>{tab.count}</span>
+                            )}
+                        </button>
+                    ))}
+                </nav>
 
-//   const EmptyCard = ({ icon, title, subtitle }: { icon: React.ReactNode; title: string; subtitle: string }) => (
-//     <div className={`rounded-2xl border p-12 text-center ${card}`}>
-//       <div className={`w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-4 ${dk?'bg-white/[0.04] text-white/20':'bg-surface-100 text-surface-300'}`}>{icon}</div>
-//       <p className={`font-display font-bold text-base mb-1 ${dk?'text-white/40':'text-surface-500'}`}>{title}</p>
-//       <p className={`text-sm ${sub}`}>{subtitle}</p>
-//     </div>
-//   );
+                <div className="mt-6">
+                    {r.loading ? (
+                        <LoadingList theme={t} />
+                    ) : (
+                        <>
+                            {r.tab === 'orders' && <OrdersTab Controller={Controller} theme={t} />}
+                            {r.tab === 'history' && <HistoryTab history={r.history} theme={t} showEarning={r.earningsEnabled} />}
+                            {r.tab === 'earnings' && r.earningsEnabled && <EarningsTab Controller={Controller} theme={t} />}
+                            {r.tab === 'profile' && <ProfileTab Controller={Controller} theme={t} />}
+                        </>
+                    )}
+                </div>
+            </main>
 
-//   return (
-//     <div className={`min-h-screen flex flex-col ${bg}`}>
-//       {/* Header */}
-//       <header className={`sticky top-0 z-30 border-b ${header}`}>
-//         <div className="max-w-2xl mx-auto px-4 py-3 flex items-center gap-3">
-//           <button onClick={() => navigateTo('home')} className={`p-2 rounded-xl ${sub} transition-all ${dk?'hover:bg-white/[0.08]':'hover:bg-surface-100'}`}><ArrowLeft className="w-5 h-5"/></button>
-//           <div className="flex items-center gap-3 flex-1 min-w-0">
-//             <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-brand-400 to-brand-600 flex items-center justify-center shadow-brand flex-shrink-0">
-//               <span className="text-white font-bold text-base">{user?.name?.[0]||'C'}</span>
-//             </div>
-//             <div className="min-w-0">
-//               <p className={`font-display font-bold text-sm leading-none truncate ${txt}`}>{user?.name||'Entregador'}</p>
-//               <div className="flex items-center gap-1.5 mt-0.5">
-//                 <div className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse"/>
-//                 <span className="text-green-400 text-[11px] font-medium">Online</span>
-//               </div>
-//             </div>
-//           </div>
-//           <button onClick={toggleDarkMode} className={`p-2 rounded-xl ${sub} ${dk?'hover:bg-white/[0.08]':'hover:bg-surface-100'} transition-all`}>
-//             {dk?<Sun className="w-5 h-5"/>:<Moon className="w-5 h-5"/>}
-//           </button>
-//           <button onClick={() => setTab('profile')} className={`p-2 rounded-xl ${sub} ${dk?'hover:bg-white/[0.08]':'hover:bg-surface-100'} transition-all`}>
-//             <Settings className="w-5 h-5"/>
-//           </button>
-//         </div>
-//       </header>
+            {/* ───────────── ABAS (celular) ───────────── */}
+            <nav
+                className={`md:hidden fixed bottom-0 inset-x-0 z-40 border-t backdrop-blur-xl ${r.dark ? 'bg-[#0b0b11]/90 border-white/[0.06]' : 'bg-white/90 border-surface-200/70'}`}
+                style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
+            >
+                <div className="flex px-2 pt-1.5 pb-1.5">
+                    {visibleTabs.map((tab) => {
+                        const active = r.tab === tab.id;
+                        return (
+                            <button
+                                key={tab.id}
+                                type="button"
+                                onClick={() => a.setTab(tab.id)}
+                                className={`relative flex-1 flex flex-col items-center gap-1 py-1.5 rounded-xl transition ${active ? 'text-brand-500' : t.sub}`}
+                            >
+                                {active && <span className="absolute -top-1.5 h-1 w-8 rounded-full bg-brand-500" />}
+                                <span className="relative">
+                                    {tab.icon}
+                                    {!!tab.count && (
+                                        <span className="absolute -top-1.5 -right-2.5 min-w-[18px] h-[18px] px-1 rounded-full bg-brand-500 text-white text-[10px] font-bold flex items-center justify-center">
+                                            {tab.count}
+                                        </span>
+                                    )}
+                                </span>
+                                <span className="text-[11px] font-semibold">{tab.label}</span>
+                            </button>
+                        );
+                    })}
+                </div>
+            </nav>
 
-//       {/* Stats strip */}
-//       <div className={`border-b ${header}`}>
-//         <div className="max-w-2xl mx-auto px-4 py-3 grid grid-cols-4 gap-3">
-//           {[
-//             { label:'Coletar',   value:collectingOrders.length, icon:<Package className="w-3.5 h-3.5"/>,  color:'text-blue-400',  bg:dk?'bg-blue-500/10':'bg-blue-50'  },
-//             { label:'A Caminho', value:enrouteOrders.length,    icon:<Truck className="w-3.5 h-3.5"/>,    color:'text-brand-400', bg:dk?'bg-brand-500/10':'bg-brand-50' },
-//             { label:'Entregues', value:deliveredOrders.length,  icon:<Check className="w-3.5 h-3.5"/>,    color:'text-green-400', bg:dk?'bg-green-500/10':'bg-green-50' },
-//             { label:'Hoje',      value:formatPrice(todayEarnings), icon:<DollarSign className="w-3.5 h-3.5"/>, color:'text-amber-400', bg:dk?'bg-amber-500/10':'bg-amber-50' },
-//           ].map((s,i) => (
-//             <div key={i} className="text-center">
-//               <div className={`w-7 h-7 rounded-lg ${s.bg} flex items-center justify-center ${s.color} mx-auto mb-1`}>{s.icon}</div>
-//               <p className={`font-display font-bold text-xs ${s.color} leading-none`}>{s.value}</p>
-//               <p className={`text-[10px] mt-0.5 ${sub}`}>{s.label}</p>
-//             </div>
-//           ))}
-//         </div>
-//       </div>
+            {/* ───────────── POPUPS ───────────── */}
+            <ConfirmAdminPopup
+                open={!!r.dispatchTarget}
+                title="Saiu para entrega?"
+                description={r.dispatchTarget ? `O pedido #${r.dispatchTarget.number_Order} vai para "Em rota" e o cliente recebe o aviso de que a entrega está a caminho.` : ''}
+                confirmText="Sim, saí para entregar"
+                icon={<Truck className="w-8 h-8 text-brand-400" />}
+                loading={r.busyId === r.dispatchTarget?.id}
+                onCancel={() => a.setDispatchTarget(null)}
+                onConfirm={() => a.confirmDispatch()}
+            />
 
-//       {/* Tab bar */}
-//       <div className={`border-b sticky top-[73px] z-20 ${header}`}>
-//         <div className="max-w-2xl mx-auto px-3 flex gap-1 py-2 overflow-x-auto">
-//           {tabs.map(t => (
-//             <button key={t.id} onClick={() => setTab(t.id)}
-//               className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-display font-semibold whitespace-nowrap transition-all flex-shrink-0 ${
-//                 tab===t.id ? 'bg-brand-500 text-white shadow-brand' : `${sub} ${dk?'hover:bg-white/[0.06]':'hover:bg-surface-50'}`
-//               }`}>
-//               {t.icon} {t.label}
-//               {t.count !== undefined && t.count > 0 && (
-//                 <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full ${tab===t.id?'bg-white/25':'bg-brand-500/20 text-brand-400'}`}>{t.count}</span>
-//               )}
-//             </button>
-//           ))}
-//         </div>
-//       </div>
+            <ConfirmAdminPopup
+                open={!!r.deliverTarget}
+                title="Confirmar entrega"
+                description={r.deliverTarget ? `Pedido #${r.deliverTarget.number_Order} · ${addressLine(r.deliverTarget.address)}` : ''}
+                confirmText="Confirmar entrega"
+                confirmColor="green"
+                icon={<CheckCircle2 className="w-8 h-8 text-emerald-400" />}
+                requireReason
+                reasonLabel="Quem recebeu"
+                reasonPlaceholder="Nome de quem recebeu o pedido"
+                reasonErrorText="Informe o nome de quem recebeu (mínimo de 2 letras)."
+                minReasonLength={2}
+                maxReasonLength={100}
+                reasonRows={1}
+                loading={r.busyId === r.deliverTarget?.id}
+                onCancel={() => a.setDeliverTarget(null)}
+                onConfirm={(who) => a.confirmDeliver(who)}
+            />
 
-//       {/* Content */}
-//       <div className="flex-1 max-w-2xl mx-auto w-full px-4 py-5 space-y-3">
+            <ConfirmAdminPopup
+                open={r.logoutOpen}
+                title="Sair da conta?"
+                description="Você vai precisar entrar de novo para ver suas entregas."
+                confirmText="Sair"
+                confirmColor="red"
+                icon={<LogOut className="w-8 h-8 text-red-400" />}
+                onCancel={() => a.setLogoutOpen(false)}
+                onConfirm={() => a.logout()}
+            />
+        </div>
+    );
+}
 
-//         {/* ── COLLECTING ── */}
-//         {tab==='collecting' && (
-//           collectingOrders.length === 0
-//             ? <EmptyCard icon={<Package className="w-8 h-8"/>} title="Nenhuma coleta pendente" subtitle="Novos pedidos aparecem aqui para você coletar"/>
-//             : <>
-//                 <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-blue-500/10 border border-blue-500/20">
-//                   <Package className="w-4 h-4 text-blue-400"/><span className="text-blue-400 text-xs font-bold">{collectingOrders.length} pedido{collectingOrders.length>1?'s':''} aguardando coleta</span>
-//                   <span className={`ml-auto text-[10px] ${sub}`}>{relativeDate(today)}</span>
-//                 </div>
-//                 {collectingOrders.map((o,i) => <OrderCard key={o.id} order={o} idx={i}/>)}
-//               </>
-//         )}
+/* ============================================================= */
+/* ENTREGAS                                                      */
+/* ============================================================= */
 
-//         {/* ── EN ROUTE ── */}
-//         {tab==='enroute' && (
-//           enrouteOrders.length === 0
-//             ? <EmptyCard icon={<Truck className="w-8 h-8"/>} title="Nenhuma entrega em rota" subtitle="Pedidos coletados aparecem aqui ao saírem para entrega"/>
-//             : <>
-//                 <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-brand-500/10 border border-brand-500/20">
-//                   <Truck className="w-4 h-4 text-brand-400"/><span className="text-brand-400 text-xs font-bold">{enrouteOrders.length} entrega{enrouteOrders.length>1?'s':''} em andamento</span>
-//                 </div>
-//                 {enrouteOrders.map((o,i) => <OrderCard key={o.id} order={o} idx={i+10}/>)}
-//               </>
-//         )}
+type ControllerType = ReturnType<typeof useDeliveryController>;
 
-//         {/* ── HISTORY (grouped by day) ── */}
-//         {tab==='delivered' && (
-//           deliveredOrders.length === 0
-//             ? <EmptyCard icon={<CheckCircle2 className="w-8 h-8"/>} title="Nenhuma entrega concluída" subtitle="Seus histórico de entregas aparecerá aqui"/>
-//             : <>
-//                 <div className="flex items-center justify-between px-1">
-//                   <span className={`text-xs font-bold uppercase tracking-wider ${sub}`}>Histórico de Entregas</span>
-//                   <span className="text-green-400 text-xs font-bold">{formatPrice(totalEarnings)} total</span>
-//                 </div>
-//                 {historyGroups.map((group) => (
-//                   <div key={group.date.toDateString()}>
-//                     {/* Day separator */}
-//                     <div className="flex items-center gap-3 py-2">
-//                       <div className={`flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-bold ${
-//                         relativeDate(group.date) === 'Hoje' ? 'bg-brand-500/15 text-brand-400' :
-//                         relativeDate(group.date) === 'Ontem' ? 'bg-blue-500/15 text-blue-400' :
-//                         dk ? 'bg-white/[0.06] text-white/40' : 'bg-surface-100 text-surface-400'
-//                       }`}>
-//                         <Calendar className="w-3 h-3"/>
-//                         {group.label} — {group.date.toLocaleDateString('pt-BR', { weekday:'short', day:'numeric', month:'short' })}
-//                       </div>
-//                       <div className={`flex-1 h-px ${dk?'bg-white/[0.06]':'bg-surface-200'}`}/>
-//                       <span className="text-green-400 text-xs font-bold">
-//                         +{formatPrice(group.items.reduce((s, o: any) => s + (o.deliveryCommission || +(o.total * 0.05).toFixed(2)), 0))}
-//                       </span>
-//                     </div>
-//                     {/* Orders in this group */}
-//                     {group.items.map((o: any, i) => (
-//                       <div key={o.id} className={`rounded-2xl border p-4 flex items-center gap-3 mb-2 ${card}`}>
-//                         <div className="w-9 h-9 bg-green-500/10 rounded-xl flex items-center justify-center flex-shrink-0">
-//                           <CheckCircle2 className="w-5 h-5 text-green-400"/>
-//                         </div>
-//                         <div className="flex-1 min-w-0">
-//                           <p className={`font-display font-bold text-sm ${txt}`}>#{o.id}</p>
-//                           <p className={`text-xs ${sub}`}>{fakeAddresses[i % fakeAddresses.length].street} · {o.items.reduce((s: number, it: any) => s + it.quantity, 0)} iten{o.items.reduce((s: number, it: any) => s + it.quantity, 0)!==1?'s':''}</p>
-//                           <p className={`text-[10px] ${sub}`}>{o.updatedAt.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})}</p>
-//                         </div>
-//                         <div className="text-right flex-shrink-0">
-//                           <p className="text-green-400 font-display font-bold">+{formatPrice(o.deliveryCommission || +(o.total * 0.05).toFixed(2))}</p>
-//                           <p className={`text-[10px] ${sub}`}>5% de {formatPrice(o.total)}</p>
-//                         </div>
-//                       </div>
-//                     ))}
-//                   </div>
-//                 ))}
-//               </>
-//         )}
+function OrdersTab({ Controller, theme: t }: { Controller: ControllerType; theme: DeliveryTheme }) {
+    const r = Controller.result;
 
-//         {/* ── EARNINGS ── */}
-//         {tab==='earnings' && (
-//           <div className="space-y-4">
-//             <div className="grid grid-cols-2 gap-3">
-//               {[
-//                 {label:'Total Ganho',    value:formatPrice(totalEarnings),    from:'from-green-500',  to:'to-emerald-600', glow:'shadow-green-500/20',  icon:<TrendingUp className="w-5 h-5"/>},
-//                 {label:'Entregas',       value:deliveredOrders.length,        from:'from-brand-500',  to:'to-orange-600',  glow:'shadow-brand-500/20',  icon:<Package className="w-5 h-5"/>},
-//                 {label:'Média/Entrega',  value:deliveredOrders.length>0?formatPrice(totalEarnings/deliveredOrders.length):'R$ 0,00', from:'from-blue-500', to:'to-indigo-600', glow:'shadow-blue-500/20', icon:<BarChart2 className="w-5 h-5"/>},
-//                 {label:'Avaliação',      value:'4.9 ★',                        from:'from-amber-500',  to:'to-yellow-600',  glow:'shadow-amber-500/20',  icon:<Star className="w-5 h-5"/>},
-//               ].map((s,i) => (
-//                 <div key={i} className={`rounded-2xl border p-5 ${card}`}>
-//                   <div className={`w-10 h-10 rounded-xl bg-gradient-to-br ${s.from} ${s.to} flex items-center justify-center text-white mb-3 shadow-lg ${s.glow}`}>{s.icon}</div>
-//                   <p className={`font-display font-bold text-xl leading-none ${txt}`}>{s.value}</p>
-//                   <p className={`text-xs mt-1.5 ${sub}`}>{s.label}</p>
-//                 </div>
-//               ))}
-//             </div>
+    if (r.orders.length === 0) {
+        return (
+            <EmptyState
+                theme={t}
+                icon={<Truck className="w-8 h-8" />}
+                title="Tudo entregue por aqui"
+                subtitle="Quando o admin atribuir um pedido para você, ele aparece nesta tela."
+            />
+        );
+    }
 
-//             {/* Per delivery breakdown grouped by day */}
-//             <div className={`rounded-2xl border overflow-hidden ${card}`}>
-//               <div className={`px-4 py-3 border-b ${bord} flex items-center gap-2`}>
-//                 <DollarSign className="w-4 h-4 text-green-400"/>
-//                 <h3 className={`font-display font-bold text-sm ${txt}`}>Comissão por Entrega</h3>
-//               </div>
-//               {deliveredOrders.length === 0
-//                 ? <p className={`p-6 text-center text-sm ${sub}`}>Nenhuma entrega concluída</p>
-//                 : <>
-//                     {historyGroups.map(group => (
-//                       <div key={group.date.toDateString()}>
-//                         <div className={`px-4 py-2 flex items-center justify-between ${dk?'bg-white/[0.02]':'bg-surface-50'}`}>
-//                           <span className={`text-xs font-bold ${sub}`}>{group.label} · {group.date.toLocaleDateString('pt-BR',{day:'2-digit',month:'short'})}</span>
-//                           <span className="text-green-400 text-xs font-bold">+{formatPrice(group.items.reduce((s,o:any)=>s+(o.deliveryCommission||+(o.total*0.05).toFixed(2)),0))}</span>
-//                         </div>
-//                         {group.items.map((o:any) => {
-//                           const comm = o.deliveryCommission || +(o.total * 0.05).toFixed(2);
-//                           return (
-//                             <div key={o.id} className={`flex items-center gap-3 px-4 py-3 border-t ${bord}`}>
-//                               <CheckCircle2 className="w-4 h-4 text-green-400 flex-shrink-0"/>
-//                               <div className="flex-1 min-w-0">
-//                                 <p className={`text-sm font-semibold ${txt}`}>#{o.id}</p>
-//                                 <p className={`text-[11px] ${sub}`}>{o.items.reduce((s:number,it:any)=>s+it.quantity,0)} itens · {o.updatedAt.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})}</p>
-//                               </div>
-//                               <div className="text-right flex-shrink-0">
-//                                 <p className="text-green-400 font-display font-bold text-sm">+{formatPrice(comm)}</p>
-//                                 <p className={`text-[10px] ${sub}`}>5% de {formatPrice(o.total)}</p>
-//                               </div>
-//                             </div>
-//                           );
-//                         })}
-//                       </div>
-//                     ))}
-//                     <div className={`flex items-center justify-between px-4 py-3 border-t ${bord} ${dk?'bg-green-500/5':'bg-green-50'}`}>
-//                       <span className={`font-display font-bold text-sm ${txt}`}>Total Geral</span>
-//                       <span className="font-display font-bold text-lg text-green-400">{formatPrice(totalEarnings)}</span>
-//                     </div>
-//                   </>
-//               }
-//             </div>
-//           </div>
-//         )}
+    return (
+        <div className="space-y-8 animate-fade-in">
+            {r.enRoute.length > 0 && (
+                <OrderSection
+                    theme={t}
+                    title="Em rota"
+                    subtitle="Confirme a entrega com o nome de quem recebeu"
+                    accent="bg-brand-500"
+                    orders={r.enRoute}
+                    Controller={Controller}
+                />
+            )}
 
-//         {/* ── PROFILE ── */}
-//         {tab==='profile' && (
-//           <div className="space-y-4">
-//             <div className={`rounded-2xl border overflow-hidden ${card}`}>
-//               <div className="h-20 bg-gradient-to-r from-brand-500 to-amber-500 relative">
-//                 <div className="absolute inset-0 opacity-20" style={{backgroundImage:'radial-gradient(circle, white 1px, transparent 1px)',backgroundSize:'24px 24px'}}/>
-//               </div>
-//               <div className="px-5 pb-5">
-//                 <div className="flex items-end gap-3 -mt-8 mb-4 flex-wrap">
-//                   <div className="relative">
-//                     <div className={`w-16 h-16 rounded-2xl bg-gradient-to-br from-brand-400 to-brand-700 flex items-center justify-center border-4 shadow-medium ${dk?'border-[#0d0d14]':'border-white'}`}>
-//                       <span className="text-white font-display font-bold text-2xl">{user?.name?.[0]}</span>
-//                     </div>
-//                     <button className="absolute -bottom-1 -right-1 w-6 h-6 bg-brand-500 rounded-xl flex items-center justify-center shadow"><Camera className="w-3 h-3 text-white"/></button>
-//                   </div>
-//                   <div className="mb-0.5 flex-1 min-w-0">
-//                     <p className={`font-display font-bold text-base leading-none ${txt}`}>{user?.name}</p>
-//                     <p className="text-brand-500 text-xs font-semibold mt-0.5">Entregador Parceiro · desde {user?.joinDate||'2022'}</p>
-//                   </div>
-//                   <button onClick={() => editingProfile ? (updateUser({...profileForm}), setEditingProfile(false)) : setEditingProfile(true)}
-//                     className="flex items-center gap-1.5 px-3 py-1.5 bg-brand-500 hover:bg-brand-600 text-white text-xs font-bold rounded-xl transition-all mb-1">
-//                     {editingProfile ? <><Check className="w-3.5 h-3.5"/> Salvar</> : <><Edit3 className="w-3.5 h-3.5"/> Editar</>}
-//                   </button>
-//                 </div>
+            {r.toDispatch.length > 0 && (
+                <OrderSection
+                    theme={t}
+                    title="Para sair"
+                    subtitle="Confira os itens e toque em “Saiu para entrega”"
+                    accent="bg-sky-500"
+                    orders={r.toDispatch}
+                    Controller={Controller}
+                />
+            )}
 
-//                 <div className="grid grid-cols-3 gap-2 mb-4">
-//                   {[{l:'Entregues',v:deliveredOrders.length},{l:'Avaliação',v:'4.9 ★'},{l:'Comissões',v:formatPrice(totalEarnings)}].map((s,i)=>(
-//                     <div key={i} className={`rounded-xl p-2.5 text-center ${dk?'bg-white/[0.04]':'bg-surface-50'}`}>
-//                       <p className={`font-display font-bold text-sm ${txt}`}>{s.v}</p>
-//                       <p className={`text-[10px] ${sub}`}>{s.l}</p>
-//                     </div>
-//                   ))}
-//                 </div>
+            <div className="md:hidden">
+                <p className={`text-center text-[11px] ${t.sub}`}>A lista atualiza sozinha a cada minuto.</p>
+            </div>
+        </div>
+    );
+}
 
-//                 <div className="grid grid-cols-2 gap-2">
-//                   {[
-//                     {icon:<Phone className="w-3.5 h-3.5"/>,  label:'Telefone', key:'phone',   val:user?.phone||'—'},
-//                     {icon:<Truck className="w-3.5 h-3.5"/>,  label:'Veículo',  key:'vehicle', val:user?.vehicle||'—'},
-//                     {icon:<MapPin className="w-3.5 h-3.5"/>, label:'Região',   key:'region',  val:user?.region||'—'},
-//                     {icon:<Mail className="w-3.5 h-3.5"/>,   label:'Email',    key:'_email',  val:user?.email||'—'},
-//                   ].map(f => (
-//                     <div key={f.key} className={`rounded-xl p-3 ${dk?'bg-white/[0.04]':'bg-surface-50'}`}>
-//                       <div className={`flex items-center gap-1.5 mb-1 text-brand-400`}>{f.icon}<span className={`text-[9px] uppercase tracking-wider font-bold ${sub}`}>{f.label}</span></div>
-//                       {editingProfile && !f.key.startsWith('_') ? (
-//                         <input value={(profileForm as any)[f.key]||''} onChange={e => setProfileForm(p=>({...p,[f.key]:e.target.value}))}
-//                           className={`w-full text-xs py-1 px-2 rounded-lg border focus:outline-none focus:border-brand-400 transition-colors ${inp}`}/>
-//                       ) : (
-//                         <p className={`text-xs font-medium truncate ${txt}`}>{f.key.startsWith('_')?f.val:(profileForm as any)[f.key]||f.val}</p>
-//                       )}
-//                     </div>
-//                   ))}
-//                 </div>
+function OrderSection({
+    theme: t,
+    title,
+    subtitle,
+    accent,
+    orders,
+    Controller,
+}: {
+    theme: DeliveryTheme;
+    title: string;
+    subtitle: string;
+    accent: string;
+    orders: DeliveryOrder[];
+    Controller: ControllerType;
+}) {
+    const r = Controller.result;
+    const a = Controller.action;
 
-//                 {editingProfile && (
-//                   <div className={`mt-2 rounded-xl p-3 ${dk?'bg-white/[0.04]':'bg-surface-50'}`}>
-//                     <p className={`text-[9px] uppercase tracking-wider font-bold ${sub} mb-1.5`}>Bio</p>
-//                     <textarea value={profileForm.bio} onChange={e => setProfileForm(p=>({...p,bio:e.target.value}))} rows={2}
-//                       className={`w-full text-xs py-1.5 px-2 rounded-lg border focus:outline-none focus:border-brand-400 transition-colors resize-none ${inp}`}/>
-//                   </div>
-//                 )}
-//               </div>
-//             </div>
+    return (
+        <section>
+            <div className="flex items-end justify-between gap-3 mb-3 px-1">
+                <div>
+                    <h2 className={`font-display font-bold text-lg flex items-center gap-2 ${t.txt}`}>
+                        <span className={`w-2 h-2 rounded-full ${accent}`} />
+                        {title}
+                        <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${t.soft} ${t.txt2}`}>{orders.length}</span>
+                    </h2>
+                    <p className={`text-xs mt-0.5 ${t.sub}`}>{subtitle}</p>
+                </div>
+            </div>
 
-//             {/* Notifications toggle */}
-//             <div className={`rounded-2xl border p-4 flex items-center justify-between ${card}`}>
-//               <div className="flex items-center gap-3">
-//                 <div className={`w-9 h-9 rounded-xl flex items-center justify-center ${dk?'bg-white/[0.06]':'bg-surface-100'}`}><Bell className="w-4 h-4 text-brand-400"/></div>
-//                 <div><p className={`text-sm font-medium ${txt}`}>Notificações de Entrega</p><p className={`text-xs ${sub}`}>Alertas de novos pedidos</p></div>
-//               </div>
-//               <button onClick={() => setNotifEnabled(!notifEnabled)}>
-//                 {notifEnabled ? <span className="text-2xl text-green-400">✓</span> : <span className={`text-2xl ${sub}`}>○</span>}
-//               </button>
-//             </div>
+            <div className="grid gap-3 lg:grid-cols-2">
+                {orders.map((order) => (
+                    <DeliveryOrderCard
+                        key={order.id}
+                        order={order}
+                        theme={t}
+                        showEarning={r.earningsEnabled}
+                        busy={r.busyId === order.id}
+                        onDispatch={(o) => a.setDispatchTarget(o)}
+                        onDeliver={(o) => a.setDeliverTarget(o)}
+                    />
+                ))}
+            </div>
+        </section>
+    );
+}
 
-//             {/* Theme toggle */}
-//             <div className={`rounded-2xl border p-4 flex items-center justify-between ${card}`}>
-//               <div className="flex items-center gap-3">
-//                 <div className={`w-9 h-9 rounded-xl flex items-center justify-center ${dk?'bg-white/[0.06]':'bg-surface-100'}`}>{dk?<Sun className="w-4 h-4 text-amber-400"/>:<Moon className="w-4 h-4 text-blue-400"/>}</div>
-//                 <div><p className={`text-sm font-medium ${txt}`}>{dk?'Modo Claro':'Modo Escuro'}</p><p className={`text-xs ${sub}`}>Alterar tema da interface</p></div>
-//               </div>
-//               <button onClick={toggleDarkMode} className="px-4 py-2 bg-brand-500 hover:bg-brand-600 text-white text-xs font-bold rounded-xl transition-all">Alternar</button>
-//             </div>
+/* ============================================================= */
+/* HISTÓRICO                                                     */
+/* ============================================================= */
 
-//             {/* Logout */}
-//             <button onClick={() => { logout(); navigateTo('home'); }}
-//               className="w-full py-3 bg-red-500/10 hover:bg-red-500/20 border border-red-500/20 text-red-400 font-bold text-sm rounded-2xl transition-all flex items-center justify-center gap-2">
-//               <LogOut className="w-4 h-4"/> Sair da Conta
-//             </button>
-//           </div>
-//         )}
+function HistoryTab({ history, theme: t, showEarning }: { history: DeliveryOrder[]; theme: DeliveryTheme; showEarning: boolean }) {
+    const groups = useMemo(() => groupByDay(history, (o) => o.deliveredAt), [history]);
 
-//       </div>
-//     </div>
-//   );
-// }
+    const weekStart = startOfWeek(new Date()).getTime();
+    const thisWeek = history.filter((o) => (toDate(o.deliveredAt)?.getTime() ?? 0) >= weekStart).length;
+    const today = groups.find((g) => g.label === 'Hoje')?.items.length ?? 0;
+
+    if (history.length === 0) {
+        return (
+            <EmptyState
+                theme={t}
+                icon={<History className="w-8 h-8" />}
+                title="Nenhuma entrega concluída"
+                subtitle="Suas entregas confirmadas aparecem aqui, separadas por dia."
+            />
+        );
+    }
+
+    return (
+        <div className="space-y-6 animate-fade-in">
+            <div className="grid grid-cols-3 gap-2 sm:gap-3">
+                <MiniStat theme={t} label="Hoje" value={today} tone="text-brand-500" />
+                <MiniStat theme={t} label="Esta semana" value={thisWeek} tone="text-sky-500" />
+                <MiniStat theme={t} label="Total" value={history.length} tone="text-emerald-500" />
+            </div>
+
+            {groups.map((group) => {
+                const dayEarning = group.items.reduce((sum, o) => sum + (o.earning ?? 0), 0);
+
+                return (
+                    <section key={group.key}>
+                        <div className="flex items-center gap-3 mb-2.5">
+                            <span
+                                className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold ${group.label === 'Hoje'
+                                    ? 'bg-brand-500/15 text-brand-500'
+                                    : group.label === 'Ontem'
+                                        ? 'bg-sky-500/15 text-sky-500'
+                                        : `${t.soft} ${t.txt2}`
+                                    }`}
+                            >
+                                <Calendar className="w-3.5 h-3.5" />
+                                {group.label}
+                            </span>
+                            <span className={`flex-1 h-px ${t.dark ? 'bg-white/[0.06]' : 'bg-surface-200'}`} />
+                            <span className={`text-xs font-semibold ${t.sub}`}>
+                                {group.items.length} {group.items.length === 1 ? 'entrega' : 'entregas'}
+                            </span>
+                            {showEarning && dayEarning > 0 && (
+                                <span className="text-xs font-bold text-emerald-500">+{formatPrice(dayEarning)}</span>
+                            )}
+                        </div>
+
+                        <div className={`rounded-3xl border overflow-hidden divide-y ${t.card} ${t.divide}`}>
+                            {group.items.map((order) => (
+                                <div key={order.id} className="flex items-center gap-3 px-4 py-3.5">
+                                    <div className="w-10 h-10 rounded-2xl bg-emerald-500/10 text-emerald-500 flex items-center justify-center flex-shrink-0">
+                                        <CheckCircle2 className="w-5 h-5" />
+                                    </div>
+                                    <div className="flex-1 min-w-0">
+                                        <p className={`font-display font-bold text-sm ${t.txt}`}>
+                                            #{order.number_Order}
+                                            <span className={`ml-2 font-body font-normal text-[11px] ${t.sub}`}>
+                                                {toDate(order.deliveredAt)?.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
+                                            </span>
+                                        </p>
+                                        <p className={`text-xs truncate ${t.txt2}`}>{addressLine(order.address)}</p>
+                                        {order.whoReceivedIt && (
+                                            <p className={`text-[11px] truncate ${t.sub}`}>Recebido por {order.whoReceivedIt}</p>
+                                        )}
+                                    </div>
+                                    {showEarning && order.earning != null && (
+                                        <span className="font-display font-bold text-sm text-emerald-500 flex-shrink-0">+{formatPrice(order.earning)}</span>
+                                    )}
+                                </div>
+                            ))}
+                        </div>
+                    </section>
+                );
+            })}
+        </div>
+    );
+}
+
+/* ============================================================= */
+/* GANHOS                                                        */
+/* ============================================================= */
+
+function EarningsTab({ Controller, theme: t }: { Controller: ControllerType; theme: DeliveryTheme }) {
+    const earnings = Controller.result.earnings;
+    const weeks = useMemo(() => groupEarningsByWeek(earnings?.entries ?? []), [earnings]);
+    const [openWeek, setOpenWeek] = useState<string | null>(null);
+
+    useEffect(() => {
+        if (weeks.length > 0 && openWeek === null) setOpenWeek(weeks[0].key);
+    }, [weeks, openWeek]);
+
+    if (!earnings?.enabled) return null;
+
+    const valueLabel =
+        earnings.mode === 'POR_DIA'
+            ? `${formatPrice(earnings.currentValue ?? 0)} por dia trabalhado`
+            : earnings.orderValueType === 'PERCENTUAL'
+                ? `${(earnings.currentValue ?? 0).toLocaleString('pt-BR')}% de cada pedido`
+                : `${formatPrice(earnings.currentValue ?? 0)} por entrega`;
+
+    const chartWeeks = weeks.slice(0, 8).reverse();
+    const maxWeek = Math.max(1, ...chartWeeks.map((w) => w.total));
+
+    return (
+        <div className="space-y-5 animate-fade-in">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <div className="relative overflow-hidden rounded-3xl p-5 bg-gradient-to-br from-emerald-500 to-emerald-700 text-white shadow-lg shadow-emerald-500/20">
+                    <Wallet className="absolute -right-3 -bottom-3 w-24 h-24 text-white/10" />
+                    <p className="text-xs font-semibold uppercase tracking-wider text-white/75">A receber</p>
+                    <p className="mt-1 font-display font-black text-3xl">{formatPrice(earnings.pendingTotal)}</p>
+                    <p className="mt-1 text-xs text-white/75">Aguardando a baixa do admin</p>
+                </div>
+                <div className={`rounded-3xl border p-5 ${t.card}`}>
+                    <p className={`text-xs font-semibold uppercase tracking-wider ${t.sub}`}>Já recebido</p>
+                    <p className={`mt-1 font-display font-bold text-2xl ${t.txt}`}>{formatPrice(earnings.paidTotal)}</p>
+                    <p className={`mt-1 text-xs ${t.sub}`}>Total das baixas</p>
+                </div>
+                <div className={`rounded-3xl border p-5 ${t.card}`}>
+                    <p className={`text-xs font-semibold uppercase tracking-wider ${t.sub}`}>Seu valor</p>
+                    <p className={`mt-1 font-display font-bold text-lg leading-snug ${t.txt}`}>{valueLabel}</p>
+                    <p className={`mt-1 text-xs ${t.sub}`}>Definido pelo admin</p>
+                </div>
+            </div>
+
+            {chartWeeks.length > 1 && (
+                <div className={`rounded-3xl border p-5 ${t.card}`}>
+                    <p className={`text-sm font-display font-bold ${t.txt}`}>Últimas semanas</p>
+                    <div className="mt-4 flex items-end gap-2 h-32">
+                        {chartWeeks.map((week) => (
+                            <div key={week.key} className="flex-1 flex flex-col items-center gap-1.5 h-full justify-end">
+                                <span className={`text-[10px] font-bold ${t.txt2}`}>{week.total > 0 ? formatPrice(week.total).replace('R$', '').trim() : ''}</span>
+                                <div
+                                    className="w-full max-w-[38px] rounded-t-xl bg-gradient-to-t from-brand-600 to-brand-400"
+                                    style={{ height: `${Math.max(6, (week.total / maxWeek) * 100)}%` }}
+                                    title={`${week.label}: ${formatPrice(week.total)}`}
+                                />
+                                <span className={`text-[10px] ${t.sub}`}>
+                                    {week.start.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })}
+                                </span>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            )}
+
+            {weeks.length === 0 ? (
+                <EmptyState
+                    theme={t}
+                    icon={<Wallet className="w-8 h-8" />}
+                    title="Nenhum ganho ainda"
+                    subtitle="Seus ganhos aparecem aqui assim que você concluir uma entrega."
+                />
+            ) : (
+                <div className="space-y-3">
+                    {weeks.map((week) => {
+                        const open = openWeek === week.key;
+                        return (
+                            <section key={week.key} className={`rounded-3xl border overflow-hidden ${t.card}`}>
+                                <button
+                                    type="button"
+                                    onClick={() => setOpenWeek(open ? '' : week.key)}
+                                    className={`w-full flex items-center gap-3 px-5 py-4 text-left transition ${t.hover}`}
+                                >
+                                    <div className="w-11 h-11 rounded-2xl bg-brand-500/10 text-brand-500 flex items-center justify-center flex-shrink-0">
+                                        <Calendar className="w-5 h-5" />
+                                    </div>
+                                    <div className="flex-1 min-w-0">
+                                        <p className={`font-display font-bold text-sm ${t.txt}`}>{week.label}</p>
+                                        <p className={`text-xs ${t.sub}`}>
+                                            {week.deliveries} {week.deliveries === 1 ? 'entrega' : 'entregas'}
+                                            {week.pending > 0 && <span className="text-amber-500"> · {formatPrice(week.pending)} a receber</span>}
+                                        </p>
+                                    </div>
+                                    <p className={`font-display font-bold ${t.txt}`}>{formatPrice(week.total)}</p>
+                                    <ChevronRight className={`w-4 h-4 transition-transform ${t.sub} ${open ? 'rotate-90' : ''}`} />
+                                </button>
+
+                                {open && (
+                                    <div className={`border-t divide-y ${t.bord} ${t.divide} animate-fade-in`}>
+                                        {week.entries.map((entry, index) => (
+                                            <EarningRow key={`${entry.kind}-${entry.orderId ?? entry.date}-${index}`} entry={entry} theme={t} />
+                                        ))}
+                                    </div>
+                                )}
+                            </section>
+                        );
+                    })}
+                </div>
+            )}
+        </div>
+    );
+}
+
+function EarningRow({ entry, theme: t }: { entry: DeliveryEarningEntry; theme: DeliveryTheme }) {
+    const date = toDate(entry.date);
+
+    return (
+        <div className="flex items-center gap-3 px-5 py-3">
+            <div className={`w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 ${entry.paid ? 'bg-emerald-500/10 text-emerald-500' : 'bg-amber-500/10 text-amber-500'}`}>
+                {entry.kind === 'DIA' ? <Calendar className="w-4 h-4" /> : <Package className="w-4 h-4" />}
+            </div>
+            <div className="flex-1 min-w-0">
+                <p className={`text-sm font-semibold ${t.txt}`}>
+                    {entry.kind === 'DIA'
+                        ? date?.toLocaleDateString('pt-BR', { weekday: 'long', day: '2-digit', month: '2-digit' })
+                        : `Pedido #${entry.orderNumber ?? entry.orderId}`}
+                </p>
+                <p className={`text-[11px] ${t.sub}`}>
+                    {entry.kind === 'DIA'
+                        ? `${entry.deliveries} ${entry.deliveries === 1 ? 'entrega' : 'entregas'}`
+                        : formatRelative(entry.date)}
+                    {entry.customTip && <span className="text-violet-500"> · gorjeta especial</span>}
+                </p>
+            </div>
+            <div className="text-right">
+                <p className={`font-display font-bold text-sm ${t.txt}`}>{formatPrice(entry.amount)}</p>
+                <span className={`text-[10px] font-bold uppercase tracking-wide ${entry.paid ? 'text-emerald-500' : 'text-amber-500'}`}>
+                    {entry.paid ? 'Pago' : 'A receber'}
+                </span>
+            </div>
+        </div>
+    );
+}
+
+/* ============================================================= */
+/* PERFIL                                                        */
+/* ============================================================= */
+
+function ProfileTab({ Controller, theme: t }: { Controller: ControllerType; theme: DeliveryTheme }) {
+    const r = Controller.result;
+    const a = Controller.action;
+    const profile = r.profile;
+
+    const [showPassword, setShowPassword] = useState(false);
+
+    const preview = useMemo(() => (r.avatarFile ? URL.createObjectURL(r.avatarFile) : null), [r.avatarFile]);
+    useEffect(() => () => {
+        if (preview) URL.revokeObjectURL(preview);
+    }, [preview]);
+
+    const since = toDate(profile?.insertDate);
+
+    return (
+        <div className="space-y-5 animate-fade-in">
+            {/* ── cartão do perfil ── */}
+            <section className={`rounded-3xl border overflow-hidden ${t.card}`}>
+                <div className="relative h-24 sm:h-28 bg-gradient-to-r from-brand-500 via-brand-600 to-amber-500">
+                    <div
+                        className="absolute inset-0 opacity-20"
+                        style={{ backgroundImage: 'radial-gradient(circle, white 1px, transparent 1px)', backgroundSize: '22px 22px' }}
+                    />
+                </div>
+
+                <div className="px-5 pb-5">
+                    <div className="flex items-end gap-4 -mt-10 flex-wrap">
+                        <div className="relative">
+                            <Avatar name={profile?.name} avatar={profile?.avatar} preview={preview} size="lg" dark={r.dark} />
+                            {r.editingProfile && (
+                                <label className="absolute -bottom-1 -right-1 w-8 h-8 rounded-xl bg-brand-500 text-white flex items-center justify-center shadow-brand cursor-pointer hover:bg-brand-600 transition">
+                                    <Camera className="w-4 h-4" />
+                                    <input
+                                        type="file"
+                                        accept="image/png,image/jpeg,image/webp"
+                                        className="hidden"
+                                        onChange={(e) => a.setAvatarFile(e.target.files?.[0] ?? null)}
+                                    />
+                                </label>
+                            )}
+                        </div>
+
+                        <div className="flex-1" />
+
+                        {!r.editingProfile ? (
+                            <button
+                                type="button"
+                                onClick={() => a.setEditingProfile(true)}
+                                className="flex items-center gap-1.5 h-10 px-4 rounded-xl bg-brand-500 hover:bg-brand-600 text-white text-xs font-bold shadow-brand transition"
+                            >
+                                <Edit3 className="w-3.5 h-3.5" /> Editar
+                            </button>
+                        ) : (
+                            <div className="flex gap-2">
+                                <button
+                                    type="button"
+                                    onClick={a.cancelEditProfile}
+                                    disabled={r.savingProfile}
+                                    className={`h-10 w-10 rounded-xl border flex items-center justify-center transition ${t.ghostBtn}`}
+                                    aria-label="Cancelar"
+                                >
+                                    <X className="w-4 h-4" />
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={a.saveProfile}
+                                    disabled={r.savingProfile}
+                                    className="flex items-center gap-1.5 h-10 px-4 rounded-xl bg-brand-500 hover:bg-brand-600 text-white text-xs font-bold shadow-brand transition disabled:opacity-60"
+                                >
+                                    {r.savingProfile ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Save className="w-3.5 h-3.5" />}
+                                    Salvar
+                                </button>
+                            </div>
+                        )}
+                    </div>
+
+                    <div className="mt-3 min-w-0">
+                            <p className={`font-display font-bold text-lg leading-tight truncate ${t.txt}`}>{profile?.name}</p>
+                            <p className="text-xs font-semibold text-brand-500">
+                                Entregador parceiro{since ? ` · desde ${since.toLocaleDateString('pt-BR', { month: 'short', year: 'numeric' })}` : ''}
+                            </p>
+                        </div>
+
+                    <div className="mt-5 grid grid-cols-3 gap-2">
+                        <MiniStat theme={t} label="Entregas" value={profile?.deliveredTotal ?? 0} tone={t.txt} />
+                        <MiniStat theme={t} label="Esta semana" value={profile?.deliveredThisWeek ?? 0} tone={t.txt} />
+                        <MiniStat theme={t} label="Hoje" value={profile?.deliveredToday ?? 0} tone={t.txt} />
+                    </div>
+
+                    <div className="mt-4 grid gap-2 sm:grid-cols-2">
+                        <ProfileField theme={t} icon={<UserIcon className="w-3.5 h-3.5" />} label="Nome" editing={r.editingProfile}
+                            value={r.profileForm.name} onChange={(v) => a.setProfileForm({ ...r.profileForm, name: v })} />
+                        <ProfileField theme={t} icon={<Phone className="w-3.5 h-3.5" />} label="Telefone" editing={r.editingProfile}
+                            value={r.profileForm.phone} placeholder="(82) 99999-9999" inputMode="tel"
+                            onChange={(v) => a.setProfileForm({ ...r.profileForm, phone: v })} />
+                        <ProfileField theme={t} icon={<Bike className="w-3.5 h-3.5" />} label="Transporte" editing={r.editingProfile}
+                            value={r.profileForm.transport} placeholder="Moto, bicicleta, carro..."
+                            onChange={(v) => a.setProfileForm({ ...r.profileForm, transport: v })} />
+                        <ProfileField theme={t} icon={<Mail className="w-3.5 h-3.5" />} label="E-mail" editing={false}
+                            value={profile?.email ?? ''} hint="Para trocar o e-mail, fale com o administrador." />
+                    </div>
+                </div>
+            </section>
+
+            {/* ── senha ── */}
+            <section className={`rounded-3xl border p-5 ${t.card}`}>
+                <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-2xl bg-violet-500/10 text-violet-500 flex items-center justify-center">
+                        <KeyRound className="w-5 h-5" />
+                    </div>
+                    <div className="flex-1">
+                        <p className={`font-display font-bold text-sm ${t.txt}`}>Alterar senha</p>
+                        <p className={`text-xs ${t.sub}`}>Por segurança, todos os aparelhos serão desconectados.</p>
+                    </div>
+                    <button type="button" onClick={() => setShowPassword((v) => !v)} className={`w-9 h-9 rounded-xl flex items-center justify-center ${t.txt2} ${t.hover}`} aria-label="Mostrar senhas">
+                        {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    </button>
+                </div>
+
+                <div className="mt-4 grid gap-3 sm:grid-cols-3">
+                    {([
+                        ['currentPassword', 'Senha atual'],
+                        ['newPassword', 'Nova senha'],
+                        ['confirmPassword', 'Confirmar nova senha'],
+                    ] as const).map(([key, label]) => (
+                        <div key={key}>
+                            <label className={`block text-[10px] font-bold uppercase tracking-wider mb-1.5 ${t.sub}`}>{label}</label>
+                            <input
+                                type={showPassword ? 'text' : 'password'}
+                                value={r.passwordForm[key]}
+                                autoComplete={key === 'currentPassword' ? 'current-password' : 'new-password'}
+                                onChange={(e) => a.setPasswordForm({ ...r.passwordForm, [key]: e.target.value })}
+                                className={`w-full h-11 px-3.5 rounded-xl border text-sm outline-none transition ${t.input} ${r.passwordErrors[key] ? 'border-red-500/60' : ''}`}
+                            />
+                            {r.passwordErrors[key] && <p className="mt-1 text-[11px] text-red-400">{r.passwordErrors[key]}</p>}
+                        </div>
+                    ))}
+                </div>
+
+                <button
+                    type="button"
+                    onClick={a.changePassword}
+                    disabled={r.savingPassword}
+                    className="mt-4 w-full sm:w-auto flex items-center justify-center gap-2 h-11 px-5 rounded-xl bg-violet-500 hover:bg-violet-600 text-white text-sm font-bold transition disabled:opacity-60"
+                >
+                    {r.savingPassword ? <Loader2 className="w-4 h-4 animate-spin" /> : <KeyRound className="w-4 h-4" />}
+                    Alterar senha
+                </button>
+            </section>
+
+            {/* ── preferências ── */}
+            <section className={`rounded-3xl border divide-y ${t.card} ${t.divide}`}>
+                <button type="button" onClick={a.toggleTheme} className={`w-full flex items-center gap-3 px-5 py-4 text-left transition ${t.hover} rounded-t-3xl`}>
+                    <div className={`w-10 h-10 rounded-2xl flex items-center justify-center ${t.soft}`}>
+                        {r.dark ? <Sun className="w-5 h-5 text-amber-400" /> : <Moon className="w-5 h-5 text-sky-500" />}
+                    </div>
+                    <div className="flex-1">
+                        <p className={`text-sm font-semibold ${t.txt}`}>{r.dark ? 'Modo claro' : 'Modo escuro'}</p>
+                        <p className={`text-xs ${t.sub}`}>Fica salvo neste aparelho</p>
+                    </div>
+                    <span className={`relative w-11 h-6 rounded-full transition ${r.dark ? 'bg-brand-500' : 'bg-surface-300'}`}>
+                        <span className={`absolute top-0.5 w-5 h-5 rounded-full bg-white shadow transition-all ${r.dark ? 'left-[22px]' : 'left-0.5'}`} />
+                    </span>
+                </button>
+                <button type="button" onClick={() => a.setLogoutOpen(true)} className="w-full flex items-center gap-3 px-5 py-4 text-left transition hover:bg-red-500/10 rounded-b-3xl">
+                    <div className="w-10 h-10 rounded-2xl bg-red-500/10 flex items-center justify-center">
+                        <LogOut className="w-5 h-5 text-red-400" />
+                    </div>
+                    <div className="flex-1">
+                        <p className="text-sm font-semibold text-red-400">Sair da conta</p>
+                        <p className={`text-xs ${t.sub}`}>Encerrar a sessão neste aparelho</p>
+                    </div>
+                </button>
+            </section>
+
+            {/* ── dispositivos ── */}
+            <section>
+                <p className={`flex items-center gap-2 text-xs font-bold uppercase tracking-wider mb-3 px-1 ${t.sub}`}>
+                    <Sparkles className="w-3.5 h-3.5" /> Segurança da conta
+                </p>
+                <ConnectedDevices />
+            </section>
+        </div>
+    );
+}
+
+/* ============================================================= */
+/* PEÇAS                                                         */
+/* ============================================================= */
+
+function Avatar({
+    name,
+    avatar,
+    preview,
+    size,
+    dark,
+}: {
+    name?: string | null;
+    avatar?: string | null;
+    preview?: string | null;
+    size: 'sm' | 'lg';
+    dark: boolean;
+}) {
+    const [failed, setFailed] = useState(false);
+    const src = preview ?? (avatar && !failed ? avatarUrl(avatar) : '');
+    const box = size === 'lg' ? 'w-20 h-20 rounded-3xl text-2xl border-4' : 'w-10 h-10 rounded-xl text-sm border-0';
+
+    return (
+        <div
+            className={`${box} ${dark ? 'border-[#0f0f16]' : 'border-white'} overflow-hidden bg-gradient-to-br from-brand-400 to-brand-700 flex items-center justify-center flex-shrink-0 shadow-brand`}
+        >
+            {src ? (
+                <img src={src} alt={name ?? 'Foto'} className="w-full h-full object-cover" onError={() => setFailed(true)} />
+            ) : (
+                <span className="text-white font-display font-bold">{initials(name)}</span>
+            )}
+        </div>
+    );
+}
+
+function HeroStat({ label, value, icon }: { label: string; value: number; icon: JSX.Element }) {
+    return (
+        <div className="rounded-2xl bg-white/15 border border-white/15 backdrop-blur-sm px-3 py-3">
+            <div className="flex items-center gap-1.5 text-white/75">
+                {icon}
+                <span className="text-[11px] font-semibold">{label}</span>
+            </div>
+            <p className="mt-1 font-display font-black text-2xl leading-none">{value}</p>
+        </div>
+    );
+}
+
+function MiniStat({ theme: t, label, value, tone }: { theme: DeliveryTheme; label: string; value: number | string; tone: string }) {
+    return (
+        <div className={`rounded-2xl px-3 py-3 text-center ${t.soft}`}>
+            <p className={`font-display font-bold text-xl leading-none ${tone}`}>{value}</p>
+            <p className={`mt-1 text-[10px] font-semibold uppercase tracking-wider ${t.sub}`}>{label}</p>
+        </div>
+    );
+}
+
+function ProfileField({
+    theme: t,
+    icon,
+    label,
+    value,
+    editing,
+    onChange,
+    placeholder,
+    hint,
+    inputMode,
+}: {
+    theme: DeliveryTheme;
+    icon: JSX.Element;
+    label: string;
+    value: string;
+    editing: boolean;
+    onChange?: (value: string) => void;
+    placeholder?: string;
+    hint?: string;
+    inputMode?: 'tel' | 'text';
+}) {
+    return (
+        <div className={`rounded-2xl p-3.5 ${t.soft}`}>
+            <div className="flex items-center gap-1.5 text-brand-500">
+                {icon}
+                <span className={`text-[10px] uppercase tracking-wider font-bold ${t.sub}`}>{label}</span>
+            </div>
+            {editing && onChange ? (
+                <input
+                    value={value}
+                    inputMode={inputMode}
+                    placeholder={placeholder}
+                    onChange={(e) => onChange(e.target.value)}
+                    className={`mt-1.5 w-full h-10 px-3 rounded-xl border text-sm outline-none transition ${t.input}`}
+                />
+            ) : (
+                <p className={`mt-1 text-sm font-medium truncate ${t.txt}`}>{value || '—'}</p>
+            )}
+            {hint && <p className={`mt-1 text-[10px] ${t.sub}`}>{hint}</p>}
+        </div>
+    );
+}
+
+function EmptyState({ theme: t, icon, title, subtitle }: { theme: DeliveryTheme; icon: JSX.Element; title: string; subtitle: string }) {
+    return (
+        <div className={`rounded-3xl border px-6 py-14 text-center animate-fade-in ${t.card}`}>
+            <div className="relative mx-auto w-16 h-16">
+                <div className="absolute inset-0 rounded-2xl bg-brand-500/20 blur-xl" />
+                <div className={`relative w-16 h-16 rounded-2xl flex items-center justify-center ${t.soft} text-brand-500`}>{icon}</div>
+            </div>
+            <p className={`mt-4 font-display font-bold text-base ${t.txt}`}>{title}</p>
+            <p className={`mt-1 text-sm max-w-xs mx-auto ${t.sub}`}>{subtitle}</p>
+        </div>
+    );
+}
+
+function LoadingList({ theme: t }: { theme: DeliveryTheme }) {
+    return (
+        <div className="grid gap-3 lg:grid-cols-2">
+            {[0, 1, 2, 3].map((i) => (
+                <div key={i} className={`rounded-3xl border p-5 animate-pulse ${t.card}`}>
+                    <div className="flex items-center gap-3">
+                        <div className={`w-11 h-11 rounded-2xl ${t.soft}`} />
+                        <div className="flex-1 space-y-2">
+                            <div className={`h-3 w-1/3 rounded ${t.soft}`} />
+                            <div className={`h-2.5 w-1/2 rounded ${t.soft}`} />
+                        </div>
+                    </div>
+                    <div className={`mt-4 h-16 rounded-2xl ${t.soft}`} />
+                    <div className={`mt-3 h-11 rounded-2xl ${t.soft}`} />
+                    <div className="mt-3 flex items-center gap-2">
+                        <Clock className={`w-3 h-3 ${t.sub}`} />
+                        <MapPin className={`w-3 h-3 ${t.sub}`} />
+                    </div>
+                </div>
+            ))}
+        </div>
+    );
+}

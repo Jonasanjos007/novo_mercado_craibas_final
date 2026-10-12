@@ -4,13 +4,16 @@ import { UseUserStore } from '../store/UseUserStore';
 export enum UserRole {
     ADMIN = 'ADMIN',
     CLIENTE = 'CLIENTE',
-    ENTREGADOR = 'ENTREGADOR'
+    ENTREGADOR = 'ENTREGADOR',
+    DELIVERY = 'DELIVERY'
 }
 
 export const RoleRoutes = {
     [UserRole.ADMIN]: { base: '/', home: '/' },
     [UserRole.CLIENTE]: { base: '/', home: '/' },
     [UserRole.ENTREGADOR]: { base: '/entregador', home: '/coletas' },
+    // Entregador vai direto para o portal de entregas
+    [UserRole.DELIVERY]: { base: '/', home: '/delivery' },
 };
 
 export const useRolePath = () => {

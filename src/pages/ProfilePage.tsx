@@ -2123,7 +2123,7 @@ export default function ProfilePage() {
 
                             <div className="relative text-center">
                               <h2 className="text-white font-black text-2xl tracking-wide drop-shadow-lg">
-                                Mercado Caribas
+                                Mercado Craibas
                               </h2>
 
                               <p className="text-white/80 text-xs tracking-widest uppercase">

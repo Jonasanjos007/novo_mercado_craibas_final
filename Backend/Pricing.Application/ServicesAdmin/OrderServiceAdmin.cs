@@ -25,20 +25,27 @@ namespace Mercado.Craibas.Application.ServicesAdmin
         private readonly IUnitOfWorkAdmin _unitOfWorkAdmin;
         private readonly IEmailService _email;
         private readonly INotificationService _notification;
+        private readonly IOrderStatusNotifier _statusNotifier;
 
 
-        public OrderServiceAdmin(IUnitOfWorkAdmin unitOfWorkAdmin,IEmailService email, INotificationService notification)
+        public OrderServiceAdmin(IUnitOfWorkAdmin unitOfWorkAdmin,IEmailService email, INotificationService notification, IOrderStatusNotifier statusNotifier)
         {
             _unitOfWorkAdmin = unitOfWorkAdmin;
             _email = email;
             _notification = notification;
+            _statusNotifier = statusNotifier;
         }
 
         public async Task<Result<List<OrderResponse>>> GetOrderAllListAdmin()
         {
             var OrderResponseList = new List<OrderResponse>();
 
+            // AsNoTracking: só leitura, o EF não precisa rastrear milhares de objetos.
+            // AsSplitQuery: uma consulta por lista (itens, imagens, variações) em vez de um
+            // único JOIN que multiplica imagens x variações de cada item (causava timeout).
             var orderResponseList = await _unitOfWorkAdmin.Query<Orders>()
+         .AsNoTracking()
+         .AsSplitQuery()
          .OrderByDescending(x => x.InsertDate)
          .Select(x => new OrderResponse
          {
@@ -56,6 +63,10 @@ namespace Mercado.Craibas.Application.ServicesAdmin
              Category = x.OrderLineItens.Select(i => i.Product.Product_Category.Category).FirstOrDefault(),
              WhoReceivedIt = x.WhoReceivedIt,
              CustomerDeliveryDate = x.CustomerDeliveryDate,
+             DeliveryName = x.User_Delivery != null
+                 ? x.User_Delivery.Name
+                 : (x.User_Admin_Delivery != null ? x.User_Admin_Delivery.Name : null),
+             DeliveryAssigneeType = x.Id_User_Delivery != null ? "DELIVERY" : (x.Id_User_Admin_Delivery != null ? "ADMIN" : null),
              Address = new AddressResponse
              {
                  Id = x.Address.Id,
@@ -225,72 +236,8 @@ namespace Mercado.Craibas.Application.ServicesAdmin
                         InsertDate = newdate
                     });
 
-            var layoutEmail = _email.EmailPedidoLayout(titulo: "Atualização do seu pedido", subtitulo: "Temos novidades sobre sua compra.", status: NewStatus,
-                  conteudoHtml: $@"
-                      <p style='margin:0;'>
-                          Olá, <strong>{UserConsumer.Name}</strong>!
-                      </p>
-                      <p style='margin:14px 0 0 0;'>Pedido<strong style='color:#f97316;'>#{Order.Id}</strong></p>
-                     <p style='margin:8px 0 0 0;'>Total:<strong>R$ {Order.Total_Value_Order.ToString("N2", new System.Globalization.CultureInfo("pt-BR"))}</strong></p>
-                  ",
-                   textoBotao: "Acompanhar pedido",
-                   linkBotao: $"https://mavihstudio.com.br/pedidos/orders",
-                    whoReceivedIt : WhoReceivedIt,customerDeliveryDate: newdate);
-
-            var enviado = await _email.EnviarEmailAsync(UserConsumer.Email, "Mercado Craibas", layoutEmail);
-
-            string mensagemNotificacao = NewStatus switch
-            {
-                "CONFIRMADO" =>
-                    $"Seu pedido Nº {Order.Number_Order} foi confirmado e já está sendo processado.",
-
-                "PREPARANDO" =>
-                    $"Seu pedido Nº {Order.Number_Order} está sendo preparado. Em breve teremos novas atualizações!",
-
-                "SAIU_PARA_ENTREGA" =>
-                    $"Seu pedido Nº {Order.Number_Order} saiu para entrega e está a caminho do endereço informado.",
-
-                "ENTREGUE" =>
-                    $"Seu pedido Nº {Order.Number_Order} foi entregue. Esperamos que você aproveite sua compra!",
-
-                "CANCELADO" =>
-                    $"Seu pedido Nº {Order.Number_Order} foi cancelado. Consulte os detalhes do pedido para mais informações.",
-
-                _ =>
-                    $"O status do seu pedido Nº {Order.Number_Order} foi atualizado."
-            };
-
-
-            string iconeNotificacao = NewStatus.ToString() switch
-            {
-                "CONFIRMADO" => "CircleCheck",
-                "PREPARANDO" => "Package",
-                "SAIU_PARA_ENTREGA" => "Truck",
-                "ENTREGUE" => "PackageCheck",
-                "CANCELADO" => "CircleX",
-                _ => "Bell"
-            };
-
-            var InsertNotificacao = await _notification.SendNotification(
-                      new NotificationRequest
-                      {
-                          Kind = "Novo status",
-                          Title = NewStatus == "ENTREGUE" ? "Pedido Entregue" : "Pedido atualizado",
-                          Description = mensagemNotificacao,
-                          Icone = iconeNotificacao,
-                          ActionUrl = "/orders",
-                          ReferenceId = Order.Id,
-                          ReferenceType = NewStatus == "ENTREGUE" ? "DELIVERY" : "ORDER",
-                          Role = "CLIENTE"
-                      },
-                      new List<NotificationUserRequest>
-                      {
-                         new NotificationUserRequest
-                         {
-                             UserId = UserConsumer.Id
-                         }
-                      }
-                  );
+            // E-mail + notificação para o cliente (mesmo aviso usado pelo portal de entregas)
+            var enviado = await _statusNotifier.NotifyCustomerAsync(Order.Id, NewStatus, WhoReceivedIt, newdate);
 
             if (!enviado)
             {

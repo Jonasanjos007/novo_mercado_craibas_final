@@ -1,3 +1,4 @@
+import { validatePasswordPolicy } from "../utils/passwordPolicy";
 import { useEffect, useState } from "react";
 import { useAuthStore } from "../context/AuthContext";
 import { useSessionStore } from "../store/SessionStore";
@@ -471,6 +472,12 @@ export const userProfileController = (): ProfileControllerReturn => {
 
             if (!temMaiuscula || !temMinuscula || !temNumero) {
                 errors.newPassword = 'A senha deve conter letras maiúsculas, minúsculas e números!';
+            }
+
+            // Regra única do sistema (inclui caractere especial)
+            const policyError = validatePasswordPolicy(newPassword);
+            if (!errors.newPassword && policyError) {
+                errors.newPassword = policyError;
             }
 
             // Senha nova diferente da atual

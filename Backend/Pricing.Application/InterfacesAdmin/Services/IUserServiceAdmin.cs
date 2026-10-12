@@ -12,6 +12,9 @@ namespace Mercado.Craibas.Application.InterfacesAdmin.Services
     public interface IUserServiceAdmin
     {
         Task<Result<bool>> PostEditeUserAdmin(UserAdminRequest User, int IdUser);
+
+        /// <summary>Admin cria um novo ADMIN ou DELIVERY. Retorna o nome do usuário criado.</summary>
+        Task<Result<string>> CreateUserAsync(AdminCreateUserRequest request, int adminId);
         Task<Result<bool>> PostEditeTemaAdmin(bool Tema, int IdUser);
         Task<Result<bool>> PostUpdateInfoSite(InfoSiteRequest request,int IdUserAdmin);
         Task<Result<bool>> PostUpdateTaxasBases(TaxasBasesRequest request);

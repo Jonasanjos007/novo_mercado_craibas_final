@@ -254,7 +254,7 @@ useEffect(() => {
                       <MenuItem icon={<Heart className="w-4 h-4" />} label="Favoritos" onClick={() => { navigate('/wishlist'); setUserMenuOpen(false); }} />
                     </>}
                     {user.role === 'ADMIN' && <MenuItem icon={<LayoutDashboard className="w-4 h-4" />} label="Painel Admin" onClick={() => { navigate('/admin'); setUserMenuOpen(false); }} />}
-                    {user.role === 'DELIVERY' && <MenuItem icon={<Truck className="w-4 h-4" />} label="Minhas Entregas" onClick={() => { navigate('/delivery-dashboard'); setUserMenuOpen(false); }} />}
+                    {user.role === 'DELIVERY' && <MenuItem icon={<Truck className="w-4 h-4" />} label="Minhas Entregas" onClick={() => { navigate('/delivery'); setUserMenuOpen(false); }} />}
                     <div className="border-t border-surface-100 mt-1 pt-1">
                       <MenuItem icon={<LogOut className="w-4 h-4" />} label="Sair" onClick={() => { logout(); setUserMenuOpen(false); }} danger />
                     </div>

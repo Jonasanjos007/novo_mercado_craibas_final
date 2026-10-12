@@ -136,3 +136,20 @@ export type RegistrationStep = 'Started' | 'PersonalDataCompleted' | 'EmailCompl
 export type UserRole = 'ADMIN' | 'CLIENTE' | 'DELIVERY';
 
 export type UserFilter = 'ALL' | UserRole;
+
+/** Admin cria um novo acesso (somente ADMIN ou DELIVERY). */
+export type AdminCreatableRole = 'ADMIN' | 'DELIVERY';
+
+export interface AdminCreateUser {
+    name: string;
+    email: string;
+    confirmEmail: string;
+    phone: string;
+    password: string;
+    confirmPassword: string;
+    role: AdminCreatableRole;
+    /** Somente DELIVERY. */
+    transport?: string;
+    /** Senha do admin logado (para criar outro ADMIN). */
+    adminPassword?: string;
+}

@@ -1,5 +1,5 @@
 import { api } from "../config/api";
-import { BaseSiteInterface, UserAdminAll } from "../models/User";
+import { AdminCreateUser, BaseSiteInterface, UserAdminAll } from "../models/User";
 import { TaxasBases } from "../models/SiteBases";
 
 import { makeResult, Result } from "../utils/Result";
@@ -88,6 +88,22 @@ export const UserServiceAdmin = {
             console.log(err.response);
             console.log(err.response?.data);
             return makeResult(false, {} as BaseSiteInterface, err.response?.data);
+        }
+    },
+    /** Cria um novo ADMIN ou DELIVERY. Retorna o nome do usuário criado. */
+    CreateUser: async (user: AdminCreateUser): Promise<Result<string>> => {
+        try {
+            const response = await api.post("/admin/User/CreateUser", user);
+            const { success, data, error } = response.data;
+
+            if (!success) {
+                return makeResult(false, '', error);
+            }
+
+            return makeResult(true, data ?? '', error);
+        } catch (err: any) {
+            console.log(err.response?.data);
+            return makeResult(false, '', err.response?.data);
         }
     },
     getUserTipo: async (): Promise<Result<UserAdminAll[]>> => {

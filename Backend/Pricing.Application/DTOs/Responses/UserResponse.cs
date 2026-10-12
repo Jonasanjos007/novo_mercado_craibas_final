@@ -18,7 +18,7 @@ public class UserResponse
     public string RefreshToken { get; set; } = default!;
     public DateTime? RefreshTokenExpiresAt { get; set; } = default!;
     public DateTime Insert_Date { get; set; } = default!;
-    public DateTime UpdateDate { get; set; } = default!;
+    public DateTime? UpdateDate { get; set; } = default!;
     public List<AddressResponse>? Address { get; set; }
     public Customize_ClienteResponse Customize { get; set; }
     public int TokenVersion { get; set; } = 1;

@@ -1,7 +1,9 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Search, Users, UserRound, ShieldCheck, Truck, UserPlus, MoreVertical, Eye, Pencil, LockKeyhole, UnlockKeyhole, Trash2, Mail, Phone, CalendarDays, X, CheckCircle2, UserCheck, UserX, ChevronDown, ShieldAlert, Activity, Plus, MapPin, ShoppingBag, Loader2, Turtle } from 'lucide-react';
+import ConfirmPopup from './ConfirmPopup';
+import { passwordCheckLabels, passwordChecks } from '../utils/passwordPolicy';
+import { Search, Users, UserRound, ShieldCheck, Truck, UserPlus, MoreVertical, Eye, Pencil, LockKeyhole, UnlockKeyhole, Trash2, Mail, Phone, CalendarDays, X, CheckCircle2, UserCheck, UserX, ChevronDown, ShieldAlert, Activity, Plus, MapPin, ShoppingBag, Loader2, Turtle, EyeOff } from 'lucide-react';
 import { useUserAdminController } from '../controller/useUserAdminController';
-import { User, UserAdminAll, UserFilter, UserRole } from '../models/User';
+import { AdminCreatableRole, User, UserAdminAll, UserFilter, UserRole } from '../models/User';
 import { UseUserAdminStore } from '../storeAdmin/UseUserAdminStore';
 import ConfirmAdminPopup from './ConfirmAdminPopup';
 import { Address } from '../models/Address';
@@ -55,11 +57,10 @@ export default function AdminUsersPage({
     const [users, setUsers] = useState<UserAdminAll[]>(UserAllAdmin);
     const [search, setSearch] = useState('');
     const [selectedUser, setSelectedUser] = useState<UserAdminAll | null>(null);
-    const [showCreateModal, setShowCreateModal] = useState(false);
+    const [showCreatePassword, setShowCreatePassword] = useState(false);
     const [loading, setLoading] = useState(false);
     const [loadingInfo, setLoadingInfo] = useState(false);
     const [loadingDelet, setLoadingDelete] = useState(false);
-    const [newUserRole, setNewUserRole] = useState<UserRole>('CLIENTE');
     const [DesactvUserSelectd, setDesactvUserSelectd] = useState({
         UserId: 0,
         role: '',
@@ -258,9 +259,7 @@ export default function AdminUsersPage({
 
                     <button
                         type="button"
-                        onClick={() =>
-                            setShowCreateModal(true)
-                        }
+                        onClick={() => Controller?.action.openCreate()}
                         className=" inline-flex items-center justify-center gap-2 px-5 py-3 rounded-xl bg-brand-500 hover:bg-brand-600 text-white text-sm font-bold shadow-brand transition-all hover:-translate-y-0.5 active:translate-y-0">
                         <UserPlus className="w-4 h-4" />
                         Novo usuário
@@ -1854,181 +1853,283 @@ export default function AdminUsersPage({
             )
             }
 
-            {showCreateModal && (
-                <div
-                    className=" fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm"
-                    onClick={() =>
-                        setShowCreateModal(false)
-                    }
-                >
+            {Controller?.result.showCreateModal && (() => {
+                const form = Controller.result.createForm;
+                const errors = Controller.result.createErrors;
+                const creating = Controller.result.creating;
+                const checks = passwordChecks(form.password);
+                const isDelivery = form.role === 'DELIVERY';
+
+                const fieldClass = (hasError?: string) =>
+                    `w-full px-4 py-3 rounded-xl ${inputBackground} border ${hasError ? 'border-red-400' : inputBorder} text-sm ${primaryText} outline-none focus:border-brand-400 focus:ring-2 focus:ring-brand-500/10 disabled:opacity-60`;
+                const labelClass = `block text-[10px] font-bold uppercase tracking-widest ${mutedText} mb-2`;
+                const errorText = (message?: string) => message ? <p className="mt-1.5 text-[11px] text-red-500">{message}</p> : null;
+
+                return (
                     <div
-                        className={` w-full max-w-md rounded-3xl ${cardBackground} border ${cardBorder} shadow-2xl overflow-hidden`}
-                        onClick={e =>
-                            e.stopPropagation()
-                        }
+                        className="fixed inset-0 z-50 flex items-end sm:items-center justify-center sm:p-4 bg-black/50 backdrop-blur-sm"
+                        onClick={() => Controller.action.closeCreate()}
                     >
                         <div
-                            className={`
-                                p-6
-                                border-b
-                                ${cardBorder}
-                            `}
+                            className={`w-full sm:max-w-xl max-h-[94vh] flex flex-col rounded-t-3xl sm:rounded-3xl ${cardBackground} border ${cardBorder} shadow-2xl overflow-hidden animate-slide-up`}
+                            onClick={e => e.stopPropagation()}
                         >
-                            <div className="flex items-center justify-between">
-                                <div className="flex items-center gap-3">
-                                    <div className=" w-10 h-10 rounded-xl bg-brand-500/10 flex items-center justify-center">
-                                        <UserPlus className="w-5 h-5 text-brand-500" />
+                            {/* ── topo ── */}
+                            <div className={`p-6 border-b ${cardBorder}`}>
+                                <div className="flex items-center justify-between">
+                                    <div className="flex items-center gap-3">
+                                        <div className="w-10 h-10 rounded-xl bg-brand-500/10 flex items-center justify-center">
+                                            <UserPlus className="w-5 h-5 text-brand-500" />
+                                        </div>
+                                        <div>
+                                            <h3 className={`font-display font-bold text-lg ${primaryText}`}>Novo usuário</h3>
+                                            <p className={`text-xs mt-0.5 ${mutedText}`}>Cadastre um novo acesso de entregador ou administrador.</p>
+                                        </div>
                                     </div>
+                                    <button
+                                        type="button"
+                                        onClick={() => Controller.action.closeCreate()}
+                                        className={`w-9 h-9 rounded-xl flex items-center justify-center ${mutedText} ${darkMode ? 'hover:bg-surface-800' : 'hover:bg-[#f0f2f5]'}`}
+                                    >
+                                        <X className="w-5 h-5" />
+                                    </button>
+                                </div>
+                            </div>
 
+                            {/* ── campos ── */}
+                            <div className="p-6 space-y-5 overflow-y-auto">
+                                {/* tipo */}
+                                <div>
+                                    <label className={labelClass}>Tipo de acesso</label>
+                                    <div className="grid grid-cols-2 gap-2">
+                                        {([
+                                            { role: 'DELIVERY' as AdminCreatableRole, label: 'Delivery', description: 'Portal de entregas', icon: Truck },
+                                            { role: 'ADMIN' as AdminCreatableRole, label: 'Administrador', description: 'Acesso total ao painel', icon: ShieldCheck },
+                                        ]).map(item => {
+                                            const Icon = item.icon;
+                                            const active = form.role === item.role;
+                                            return (
+                                                <button
+                                                    key={item.role}
+                                                    type="button"
+                                                    disabled={creating}
+                                                    onClick={() => Controller.action.setCreateRole(item.role)}
+                                                    className={`flex items-center gap-3 p-3 rounded-xl border text-left transition-all ${active ? darkMode ? 'border-brand-700 bg-brand-500/10' : 'border-brand-300 bg-brand-50' : `${softBorder} ${darkMode ? 'hover:bg-surface-800' : 'hover:bg-[#f7f8fa]'}`}`}
+                                                >
+                                                    <span className={`w-9 h-9 rounded-lg flex items-center justify-center ${active ? 'bg-brand-500 text-white' : `${mutedText} ${darkMode ? 'bg-surface-800' : 'bg-[#f0f2f5]'}`}`}>
+                                                        <Icon className="w-4 h-4" />
+                                                    </span>
+                                                    <span>
+                                                        <span className={`block text-sm font-bold ${active ? 'text-brand-500' : primaryText}`}>{item.label}</span>
+                                                        <span className={`block text-[11px] ${mutedText}`}>{item.description}</span>
+                                                    </span>
+                                                </button>
+                                            );
+                                        })}
+                                    </div>
+                                    {errorText(errors.role)}
+                                </div>
+
+                                {/* nome */}
+                                <div>
+                                    <label className={labelClass}>Nome completo</label>
+                                    <input
+                                        type="text"
+                                        value={form.name}
+                                        disabled={creating}
+                                        maxLength={150}
+                                        onChange={e => Controller.action.setCreateField('name', e.target.value)}
+                                        placeholder="Ex.: João da Silva"
+                                        className={fieldClass(errors.name)}
+                                    />
+                                    {errorText(errors.name)}
+                                </div>
+
+                                {/* e-mail */}
+                                <div className="grid sm:grid-cols-2 gap-4">
                                     <div>
-                                        <h3 className={` font-display font-bold text-lg ${primaryText}`}>
-                                            Novo usuário
-                                        </h3>
-
-                                        <p
-                                            className={`
-                                                text-xs
-                                                mt-0.5
-                                                ${mutedText}
-                                            `}
-                                        >
-                                            Cadastre um novo acesso.
-                                        </p>
+                                        <label className={labelClass}>E-mail</label>
+                                        <input
+                                            type="email"
+                                            value={form.email}
+                                            disabled={creating}
+                                            autoComplete="off"
+                                            onChange={e => Controller.action.setCreateField('email', e.target.value)}
+                                            placeholder="usuario@email.com"
+                                            className={fieldClass(errors.email)}
+                                        />
+                                        {errorText(errors.email)}
+                                    </div>
+                                    <div>
+                                        <label className={labelClass}>Confirmar e-mail</label>
+                                        <input
+                                            type="email"
+                                            value={form.confirmEmail}
+                                            disabled={creating}
+                                            autoComplete="off"
+                                            onPaste={e => e.preventDefault()}
+                                            onChange={e => Controller.action.setCreateField('confirmEmail', e.target.value)}
+                                            placeholder="Digite o e-mail novamente"
+                                            className={fieldClass(errors.confirmEmail)}
+                                        />
+                                        {errorText(errors.confirmEmail)}
                                     </div>
                                 </div>
 
+                                {/* telefone */}
+                                <div>
+                                    <label className={labelClass}>Telefone</label>
+                                    <input
+                                        type="tel"
+                                        inputMode="tel"
+                                        value={form.phone}
+                                        disabled={creating}
+                                        onChange={e => Controller.action.setCreateField('phone', e.target.value)}
+                                        placeholder="(82) 99999-9999"
+                                        className={fieldClass(errors.phone)}
+                                    />
+                                    {errorText(errors.phone)}
+                                </div>
+
+                                {/* transporte (somente delivery) */}
+                                {isDelivery && (
+                                    <div className="animate-fade-in">
+                                        <label className={labelClass}>Meio de transporte</label>
+                                        <div className="flex flex-wrap gap-2 mb-2">
+                                            {['Moto', 'Bicicleta', 'Carro', 'A pé'].map(option => (
+                                                <button
+                                                    key={option}
+                                                    type="button"
+                                                    disabled={creating}
+                                                    onClick={() => Controller.action.setCreateField('transport', option)}
+                                                    className={`px-3 py-1.5 rounded-lg border text-xs font-bold transition ${form.transport === option ? 'border-brand-400 bg-brand-500/10 text-brand-500' : `${softBorder} ${mutedText}`}`}
+                                                >
+                                                    {option}
+                                                </button>
+                                            ))}
+                                        </div>
+                                        <input
+                                            type="text"
+                                            value={form.transport ?? ''}
+                                            disabled={creating}
+                                            maxLength={50}
+                                            onChange={e => Controller.action.setCreateField('transport', e.target.value)}
+                                            placeholder="Ex.: Moto Honda CG"
+                                            className={fieldClass(errors.transport)}
+                                        />
+                                        {errorText(errors.transport)}
+                                        <p className={`mt-1.5 text-[11px] ${mutedText}`}>Os valores de pagamento do entregador ficam em Deliverys → Entregadores.</p>
+                                    </div>
+                                )}
+
+                                {/* senha */}
+                                <div className="grid sm:grid-cols-2 gap-4">
+                                    <div>
+                                        <label className={labelClass}>Senha</label>
+                                        <div className="relative">
+                                            <input
+                                                type={showCreatePassword ? 'text' : 'password'}
+                                                value={form.password}
+                                                disabled={creating}
+                                                autoComplete="new-password"
+                                                onChange={e => Controller.action.setCreateField('password', e.target.value)}
+                                                placeholder="Crie uma senha"
+                                                className={`${fieldClass(errors.password)} pr-11`}
+                                            />
+                                            <button
+                                                type="button"
+                                                onClick={() => setShowCreatePassword(v => !v)}
+                                                className={`absolute right-3 top-1/2 -translate-y-1/2 ${mutedText}`}
+                                                aria-label="Mostrar senha"
+                                            >
+                                                {showCreatePassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                                            </button>
+                                        </div>
+                                        {errorText(errors.password)}
+                                    </div>
+                                    <div>
+                                        <label className={labelClass}>Confirmar senha</label>
+                                        <input
+                                            type={showCreatePassword ? 'text' : 'password'}
+                                            value={form.confirmPassword}
+                                            disabled={creating}
+                                            autoComplete="new-password"
+                                            onChange={e => Controller.action.setCreateField('confirmPassword', e.target.value)}
+                                            placeholder="Repita a senha"
+                                            className={fieldClass(errors.confirmPassword)}
+                                        />
+                                        {errorText(errors.confirmPassword)}
+                                    </div>
+                                </div>
+
+                                <div className={`grid grid-cols-1 sm:grid-cols-2 gap-1.5 rounded-xl p-3 ${darkMode ? 'bg-surface-950' : 'bg-[#f7f8fa]'}`}>
+                                    {passwordCheckLabels.map(rule => {
+                                        const ok = checks[rule.key];
+                                        return (
+                                            <p key={rule.key} className={`flex items-center gap-1.5 text-[11px] ${ok ? 'text-emerald-500' : form.password ? 'text-red-400' : mutedText}`}>
+                                                <CheckCircle2 className="w-3.5 h-3.5" /> {rule.label}
+                                            </p>
+                                        );
+                                    })}
+                                    <p className={`flex items-center gap-1.5 text-[11px] ${form.confirmPassword && form.confirmPassword === form.password ? 'text-emerald-500' : form.confirmPassword ? 'text-red-400' : mutedText}`}>
+                                        <CheckCircle2 className="w-3.5 h-3.5" /> Senhas iguais
+                                    </p>
+                                </div>
+
+                                {form.role === 'ADMIN' && (
+                                    <div className="flex items-start gap-2.5 rounded-xl border border-amber-500/20 bg-amber-500/10 px-3.5 py-3">
+                                        <ShieldAlert className="w-4 h-4 text-amber-500 flex-shrink-0 mt-0.5" />
+                                        <p className={`text-xs ${darkMode ? 'text-amber-300' : 'text-amber-700'}`}>
+                                            Um administrador tem acesso total ao painel. Para confirmar, vamos pedir a <strong>sua senha</strong>.
+                                        </p>
+                                    </div>
+                                )}
+
+                                <p className={`text-[11px] ${mutedText}`}>
+                                    A conta já nasce ativa. Enviamos um e-mail de boas-vindas (sem a senha) para o endereço informado.
+                                </p>
+                            </div>
+
+                            {/* ── botões ── */}
+                            <div className={`flex gap-3 p-6 border-t ${cardBorder}`}>
                                 <button
                                     type="button"
-                                    onClick={() =>
-                                        setShowCreateModal(
-                                            false
-                                        )
-                                    }
-                                    className={` w-9 h-9 rounded-xl flex items-center justify-center ${mutedText} ${darkMode ? 'hover:bg-surface-800' : 'hover:bg-[#f0f2f5]'}
-                                    `}
+                                    disabled={creating}
+                                    onClick={() => Controller.action.closeCreate()}
+                                    className={`flex-1 px-4 py-3 rounded-xl border ${softBorder} text-sm font-bold ${secondaryText} ${darkMode ? 'hover:bg-surface-800' : 'hover:bg-[#f5f6f8]'} disabled:opacity-60`}
                                 >
-                                    <X className="w-5 h-5" />
+                                    Cancelar
+                                </button>
+                                <button
+                                    type="button"
+                                    disabled={creating}
+                                    onClick={() => Controller.action.handleCreateUser()}
+                                    className="flex-1 px-4 py-3 rounded-xl bg-brand-500 hover:bg-brand-600 text-white text-sm font-bold shadow-brand disabled:opacity-70"
+                                >
+                                    <span className="inline-flex items-center gap-2">
+                                        {creating ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
+                                        {creating ? 'Criando...' : 'Criar usuário'}
+                                    </span>
                                 </button>
                             </div>
                         </div>
-
-                        <div className="p-6 space-y-4">
-                            <div>
-                                <label
-                                    className={` block text-[10px] font-bold uppercase tracking-widest ${mutedText} mb-2`}
-                                >
-                                    Nome completo
-                                </label>
-
-                                <input
-                                    type="text"
-                                    placeholder="Ex.: João da Silva"
-                                    className={` w-full px-4 py-3 rounded-xl ${inputBackground} border ${inputBorder} text-sm ${primaryText} outline-none focus:border-brand-400 focus:ring-2 focus:ring-brand-500/10`}
-                                />
-                            </div>
-
-                            <div>
-                                <label
-                                    className={` block text-[10px] font-bold uppercase tracking-widest ${mutedText} mb-2`}
-                                >
-                                    E-mail
-                                </label>
-
-                                <input
-                                    type="email"
-                                    placeholder="usuario@email.com"
-                                    className={` w-full px-4 py-3 rounded-xl ${inputBackground} border ${inputBorder} text-sm ${primaryText} outline-none focus:border-brand-400 focus:ring-2 focus:ring-brand-500/10
-                                    `}
-                                />
-                            </div>
-
-                            <div>
-                                <label
-                                    className={`
-                                        block
-                                        text-[10px]
-                                        font-bold
-                                        uppercase
-                                        tracking-widest
-                                        ${mutedText}
-                                        mb-2
-                                    `}
-                                >
-                                    Tipo de usuário
-                                </label>
-
-                                <div className="grid grid-cols-3 gap-2">
-                                    {[
-                                        {
-                                            role: 'client' as UserRole,
-                                            label: 'Cliente',
-                                            icon: UserRound,
-                                        },
-                                        {
-                                            role: 'delivery' as UserRole,
-                                            label: 'Delivery',
-                                            icon: Truck,
-                                        },
-                                        {
-                                            role: 'admin' as UserRole,
-                                            label: 'Admin',
-                                            icon: ShieldCheck,
-                                        },
-                                    ].map(item => {
-                                        const Icon =
-                                            item.icon;
-
-                                        const active =
-                                            newUserRole === item.role;
-
-                                        return (
-                                            <button
-                                                key={item.role}
-                                                type="button"
-                                                onClick={() =>
-                                                    setNewUserRole(
-                                                        item.role
-                                                    )
-                                                }
-                                                className={` flex flex-col items-center justify-center gap-2 py-3 rounded-xl border text-xs transition-all ${active ? darkMode ? 'border-brand-700 bg-brand-500/10 text-brand-400' : 'border-brand-300 bg-brand-50 text-brand-600' : `${softBorder} ${mutedText} ${darkMode ? 'hover:bg-surface-800 hover:text-white' : 'hover:bg-[#f7f8fa] hover:text-[#20242b]'}`}`}
-                                            >
-                                                <Icon className="w-5 h-5" />
-
-                                                <span className="text-[10px] font-bold">
-                                                    {item.label}
-                                                </span>
-                                            </button>
-                                        );
-                                    })}
-                                </div>
-                            </div>
-                        </div>
-
-                        <div className="flex gap-3 p-6 pt-0">
-                            <button
-                                type="button"
-                                onClick={() =>
-                                    setShowCreateModal(false)
-                                }
-                                className={` flex-1 px-4 py-3 rounded-xl border ${softBorder} text-sm font-bold ${secondaryText} ${darkMode ? 'hover:bg-surface-800' : 'hover:bg-[#f5f6f8]'}`}
-                            >
-                                Cancelar
-                            </button>
-
-                            <button
-                                type="button"
-                                className="  flex-1  px-4  py-3  rounded-xl  bg-brand-500  hover:bg-brand-600  text-white  text-sm  font-bold  shadow-brand"
-                            >
-                                <span className="inline-flex items-center gap-2">
-                                    <Plus className="w-4 h-4" />
-                                    Criar usuário
-                                </span>
-                            </button>
-                        </div>
                     </div>
-                </div>
-            )
-            }
+                );
+            })()}
+
+            {/* Confirmação de senha para criar outro administrador */}
+            <ConfirmPopup
+                open={Controller?.result.adminPasswordOpen ?? false}
+                title="Confirme sua senha"
+                description={`Para criar o administrador ${Controller?.result.createForm.name ?? ''}, confirme que é você.`}
+                confirmText="Confirmar e criar"
+                icon={<ShieldCheck className="w-7 h-7 text-[#f97316]" />}
+                requirePassword
+                passwordError={Controller?.result.adminPasswordError}
+                loading={Controller?.result.creating}
+                onCancel={() => Controller?.action.cancelAdminPassword()}
+                onConfirm={(password) => Controller?.action.confirmAdminPassword(password)}
+            />
             <ConfirmAdminPopup
                 open={Controller?.result.showCouponModalActive ?? false}
                 title={Controller?.result.TitleCOnfirm}
