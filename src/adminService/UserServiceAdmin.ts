@@ -1,4 +1,7 @@
 import { api } from "../config/api";
+import { emptyPaged, UsersPage, UsersSummary } from "../models/Paged";
+
+export interface UsersPageQuery { page: number; pageSize: number; search?: string; role?: string; status?: string; }
 import { AdminCreateUser, BaseSiteInterface, UserAdminAll } from "../models/User";
 import { TaxasBases } from "../models/SiteBases";
 
@@ -104,6 +107,35 @@ export const UserServiceAdmin = {
         } catch (err: any) {
             console.log(err.response?.data);
             return makeResult(false, '', err.response?.data);
+        }
+    },
+    GetUsersPaged: async (q: UsersPageQuery): Promise<Result<UsersPage<UserAdminAll>>> => {
+        const fallback: UsersPage<UserAdminAll> = { ...emptyPaged<UserAdminAll>(), activeCount: 0, inactiveCount: 0 };
+        try {
+            const response = await api.get(`/admin/User/paged`, { params: { ...q } });
+            const { success, data, error } = response.data;
+            if (!success) {
+                return makeResult(false, fallback, error);
+            }
+
+            return makeResult(true, (data ?? fallback) as UsersPage<UserAdminAll>, error);
+        } catch (err: any) {
+            console.log(err.response?.data);
+            return makeResult(false, fallback, err.response?.data);
+        }
+    },
+    GetUsersSummary: async (): Promise<Result<UsersSummary | null>> => {
+        try {
+            const response = await api.get(`/admin/User/summary`);
+            const { success, data, error } = response.data;
+            if (!success) {
+                return makeResult(false, null, error);
+            }
+
+            return makeResult(true, (data ?? null) as UsersSummary | null, error);
+        } catch (err: any) {
+            console.log(err.response?.data);
+            return makeResult(false, null, err.response?.data);
         }
     },
     getUserTipo: async (): Promise<Result<UserAdminAll[]>> => {

@@ -105,6 +105,9 @@ export const useUserAdminController = (): UsersAdminControllerReturn => {
     useEffect(() => {
         const load = async () => {
             SetLoading(true);
+            // Tela abre sem filtros (mesma quantidade por página escolhida antes)
+            const { usersQuery } = UseUserAdminStore.getState();
+            UseUserAdminStore.setState({ usersQuery: { ...usersQuery, page: 1, search: '', role: 'ALL', status: 'all' } });
             await getUser();
             SetLoading(false);
         };

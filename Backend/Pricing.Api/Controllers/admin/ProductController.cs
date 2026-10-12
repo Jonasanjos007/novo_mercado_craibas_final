@@ -19,6 +19,16 @@ namespace Mercado.Api.Controllers.admin
             _service = service;
         }
 
+        /// <summary>Produtos paginados (filtros aplicados no banco antes de paginar).</summary>
+        [Authorize(Roles = "ADMIN")]
+        [HttpGet("paged")]
+        public async Task<IActionResult> GetProductsPaged([FromQuery] int page = 1, [FromQuery] int pageSize = 10, [FromQuery] string? search = null, [FromQuery] int? categoryId = null)
+        {
+            var result = await _service.GetProductsPagedAsync(page, pageSize, search, categoryId);
+
+            return result.ToActionResult();
+        }
+
         [Authorize]
         [HttpGet("listProductAdmin")]
         public async Task<IActionResult> listProductAdmin()

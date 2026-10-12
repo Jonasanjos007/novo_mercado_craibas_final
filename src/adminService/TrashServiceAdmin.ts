@@ -1,8 +1,43 @@
 import { api } from "../config/api";
 import { TrashBulkResult, TrashItem } from "../models/TrashItem";
 import { makeResult, Result } from "../utils/Result";
+import { emptyPaged, PagedResult, TrashSummary } from "../models/Paged";
+
+export interface TrashPageQuery { page: number; pageSize: number; search?: string; filter?: string; }
 
 export const TrashServiceAdmin = {
+    GetTrashPaged: async (q: TrashPageQuery): Promise<Result<PagedResult<TrashItem>>> => {
+        try {
+            const response = await api.get("/admin/trash/paged", { params: { ...q } });
+            const { success, data, error } = response.data;
+
+            if (!success) {
+                return makeResult(false, emptyPaged<TrashItem>(), error);
+            }
+
+            return makeResult(true, (data ?? emptyPaged<TrashItem>()) as PagedResult<TrashItem>, error);
+        } catch (err: any) {
+            console.log(err.response?.data);
+            return makeResult(false, emptyPaged<TrashItem>(), err.response?.data);
+        }
+    },
+
+    GetTrashSummary: async (): Promise<Result<TrashSummary | null>> => {
+        try {
+            const response = await api.get("/admin/trash/summary");
+            const { success, data, error } = response.data;
+
+            if (!success) {
+                return makeResult(false, null, error);
+            }
+
+            return makeResult(true, (data ?? null) as TrashSummary | null, error);
+        } catch (err: any) {
+            console.log(err.response?.data);
+            return makeResult(false, null, err.response?.data);
+        }
+    },
+
     GetTrash: async (): Promise<Result<TrashItem[]>> => {
         try {
             const response = await api.get("/admin/trash");

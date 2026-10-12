@@ -1,6 +1,7 @@
 ﻿using Baldan.Pricing.Application.Commons;
 using Mercado.Craibas.Application.DTOs.Requests;
 using Pricing.Api.DTOs.Responses;
+using Mercado.Craibas.Application.DTOs.Responses;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -15,6 +16,7 @@ namespace Mercado.Craibas.Application.InterfacesAdmin.Services
         Task<Result<bool>> PostEditProduct(ProductRequest product,int IdUser);
         Task<Result<bool>> DeleteProductId(int Id_Product, int IdUser, string? reason);
         Task<Result<List<ProductResponse>>> GetProductListAdmin();
+        Task<Result<ProductsPageResponse>> GetProductsPagedAsync(int page, int pageSize, string? search, int? categoryId);
 
     }
 }

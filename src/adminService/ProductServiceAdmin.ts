@@ -5,8 +5,26 @@ import { Logs } from "../models/Logs";
 import { OrderSave, Order } from "../models/Order";
 import { Category, Product, ProductAdmin } from "../models/Product";
 import { makeResult, Result } from "../utils/Result";
+import { emptyPaged, ProductsPage } from "../models/Paged";
+
+export interface ProductsPageQuery { page: number; pageSize: number; search?: string; categoryId?: number; }
 
 export const ProductServiceAdmin = {
+    GetProductsPaged: async (q: ProductsPageQuery): Promise<Result<ProductsPage<ProductAdmin>>> => {
+        const fallback: ProductsPage<ProductAdmin> = { ...emptyPaged<ProductAdmin>(), searchTotal: 0, countsByCategory: {} };
+        try {
+            const response = await api.get("/admin/Product/paged", { params: { ...q } });
+            const { success, data, error } = response.data;
+            if (!success) {
+                return makeResult(false, fallback, error);
+            }
+
+            return makeResult(true, (data ?? fallback) as ProductsPage<ProductAdmin>, error);
+        } catch (err: any) {
+            console.log(err.response?.data);
+            return makeResult(false, fallback, err.response?.data);
+        }
+    },
     PostSaveProductAdmin: async (formData: FormData): Promise<Result<ProductAdmin[]>> => {
         try {
             const response = await api.post("/admin/Product/PostSaveProduct", formData, {

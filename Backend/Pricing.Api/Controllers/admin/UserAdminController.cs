@@ -87,6 +87,24 @@ namespace Mercado.Api.Controllers.admin
 
             return result.ToActionResult();
         }
+        // ───────────── Paginação (filtros aplicados no banco antes de paginar) ─────────────
+
+        [HttpGet("paged")]
+        public async Task<IActionResult> GetUsersPaged([FromQuery] int page = 1, [FromQuery] int pageSize = 10, [FromQuery] string? search = null, [FromQuery] string? role = null, [FromQuery] string? status = null)
+        {
+            var result = await _service.GetUsersPagedAsync(page, pageSize, search, role, status);
+
+            return result.ToActionResult();
+        }
+
+        [HttpGet("summary")]
+        public async Task<IActionResult> GetUsersSummary()
+        {
+            var result = await _service.GetUsersSummaryAsync();
+
+            return result.ToActionResult();
+        }
+
         [Authorize]
         [HttpGet("GetUsersAll")]
         public async Task<IActionResult> GetUsersAll()

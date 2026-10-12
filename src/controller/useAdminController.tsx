@@ -171,7 +171,7 @@ export const useAdminController = (): AdminControllerReturn => {
     const { PostEditeUserAdmin } = UseUserAdminStore();
     const { LoadNotificationAll, Notification } = UseNotificationAdmin();
 
-    const { ordersAdmin, logs, Category, PostMensegeViaWhatsApp } = UseOrderAdminStore();
+    const { ordersAdmin, logs, Category, PostMensegeViaWhatsApp, dashboard } = UseOrderAdminStore();
     const { user } = UseUserStore();
     const { LoadOrders } = UseOrderStore();
     const notify = useNotification();
@@ -337,26 +337,20 @@ export const useAdminController = (): AdminControllerReturn => {
     };
     const now = new Date();
 
-    const totalRevenue = ordersAdmin.filter(o => {
-        if (o.order_Status === 'CANCELADO') return false;
-        const orderDate = new Date(o.insertDate);
-        return (
-            orderDate.getMonth() === now.getMonth() &&
-            orderDate.getFullYear() === now.getFullYear()
-        );
-    })
-        .reduce((s, o) => s + o.total_Value_Order, 0);
+    /*
+     * Os números do Dashboard agora vêm prontos do servidor (somados no banco),
+     * com as mesmas regras de antes: pedidos CANCELADO ficam de fora dos totais.
+     */
+    const monthPoint = (list: { year: number; month: number; count: number; total: number }[] | undefined, year: number, monthIndex: number) =>
+        list?.find(p => p.year === year && p.month === monthIndex + 1);
 
-    const currentMonthOrdersCount = ordersAdmin.filter(o => {
-        if (o.order_Status === 'CANCELADO') return false;
+    const dayKey = (date: Date) =>
+        `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
 
-        const orderDate = new Date(o.insertDate);
+    const currentMonthPoint = monthPoint(dashboard?.monthlyOrders, now.getFullYear(), now.getMonth());
+    const totalRevenue = currentMonthPoint?.total ?? 0;
 
-        return (
-            orderDate.getMonth() === now.getMonth() &&
-            orderDate.getFullYear() === now.getFullYear()
-        );
-    }).length;
+    const currentMonthOrdersCount = currentMonthPoint?.count ?? 0;
 
 
     const generateMonthlyRevenue = () => {
@@ -378,21 +372,10 @@ export const useAdminController = (): AdminControllerReturn => {
             });
         }
 
-        // Soma o faturamento
-        ordersAdmin
-            .filter(o => o.order_Status !== "CANCELADO")
-            .forEach(o => {
-                const orderDate = new Date(o.insertDate);
-
-                const item = monthlyRevenue.find(m =>
-                    m.year === orderDate.getFullYear() &&
-                    m.monthIndex === orderDate.getMonth()
-                );
-
-                if (item) {
-                    item.total += o.total_Value_Order;
-                }
-            });
+        // Soma o faturamento (calculado no banco)
+        monthlyRevenue.forEach(item => {
+            item.total = monthPoint(dashboard?.monthlyOrders, item.year, item.monthIndex)?.total ?? 0;
+        });
 
         // Calcula crescimento
         monthlyRevenue.forEach((item, index) => {
@@ -434,21 +417,10 @@ export const useAdminController = (): AdminControllerReturn => {
             });
         }
 
-        // Conta a quantidade de pedidos por mês
-        ordersAdmin
-            .filter(o => o.order_Status !== "CANCELADO")
-            .forEach(o => {
-                const orderDate = new Date(o.insertDate);
-
-                const item = monthlyOrders.find(m =>
-                    m.year === orderDate.getFullYear() &&
-                    m.monthIndex === orderDate.getMonth()
-                );
-
-                if (item) {
-                    item.total += 1;
-                }
-            });
+        // Conta a quantidade de pedidos por mês (calculado no banco)
+        monthlyOrders.forEach(item => {
+            item.total = monthPoint(dashboard?.monthlyOrders, item.year, item.monthIndex)?.count ?? 0;
+        });
 
         // Calcula crescimento
         monthlyOrders.forEach((item, index) => {
@@ -490,20 +462,10 @@ export const useAdminController = (): AdminControllerReturn => {
             });
         }
 
-        // Conta a quantidade de pedidos por mês
-        logs.filter(l => l.tipo == "Acesso" && l.nivel == "CLIENTE")
-            .forEach(l => {
-                const logDate = new Date(l.insertDate);
-
-                const item = monthlyLogs.find(m =>
-                    m.year === logDate.getFullYear() &&
-                    m.monthIndex === logDate.getMonth()
-                );
-
-                if (item) {
-                    item.total += 1;
-                }
-            });
+        // Acessos de clientes por mês (calculado no banco)
+        monthlyLogs.forEach(item => {
+            item.total = monthPoint(dashboard?.monthlyClientAccess, item.year, item.monthIndex)?.count ?? 0;
+        });
 
         // Calcula crescimento
         monthlyLogs.forEach((item, index) => {
@@ -553,22 +515,12 @@ export const useAdminController = (): AdminControllerReturn => {
             });
         }
 
-        // Agrupa os pedidos
-        ordersAdmin
-            .filter(o => o.order_Status !== "CANCELADO")
-            .forEach(o => {
-                const orderDate = new Date(o.insertDate);
-                orderDate.setHours(0, 0, 0, 0);
-
-                const item = dailyOrders.find(d =>
-                    d.date.getTime() === orderDate.getTime()
-                );
-
-                if (item) {
-                    item.quantity += 1;
-                    item.total += Number(o.total_Value_Order ?? 0); // valor do pedido
-                }
-            });
+        // Agrupa os pedidos (calculado no banco)
+        dailyOrders.forEach(item => {
+            const point = dashboard?.dailyOrders.find(p => p.date === dayKey(item.date));
+            item.quantity = point?.count ?? 0;
+            item.total = point?.total ?? 0;
+        });
 
         // Crescimento baseado na quantidade
         dailyOrders.forEach((item, index) => {
@@ -618,22 +570,12 @@ export const useAdminController = (): AdminControllerReturn => {
             });
         }
 
-        // Agrupa os pedidos
-        ordersAdmin
-            .filter(o => o.order_Status == "CANCELADO")
-            .forEach(o => {
-                const orderDate = new Date(o.insertDate);
-                orderDate.setHours(0, 0, 0, 0);
-
-                const item = dailyOrders.find(d =>
-                    d.date.getTime() === orderDate.getTime()
-                );
-
-                if (item) {
-                    item.quantity += 1;
-                    item.total += Number(o.total_Value_Order ?? 0); // valor do pedido
-                }
-            });
+        // Agrupa os pedidos cancelados (calculado no banco)
+        dailyOrders.forEach(item => {
+            const point = dashboard?.dailyCancelled.find(p => p.date === dayKey(item.date));
+            item.quantity = point?.count ?? 0;
+            item.total = point?.total ?? 0;
+        });
 
         // Crescimento baseado na quantidade
         dailyOrders.forEach((item, index) => {
@@ -658,26 +600,17 @@ export const useAdminController = (): AdminControllerReturn => {
     const generateCurrentMonthOrderDonut = () => {
         const now = new Date();
 
-        const currentMonthOrders = ordersAdmin.filter(order => {
-            const orderDate = new Date(order.insertDate);
+        // Pedidos do mês atual por status (contados no banco)
+        const byStatus = dashboard?.currentMonthByStatus ?? {};
+console.log("byStatus", byStatus);
+        const entregues = byStatus["ENTREGUE"] ?? 0;
+console.log("entregues", entregues);
 
-            return (
-                orderDate.getFullYear() === now.getFullYear() &&
-                orderDate.getMonth() === now.getMonth()
-            );
-        });
+        const preparando = byStatus["PREPARANDO"] ?? 0;
+console.log("preparando", preparando);
 
-        const entregues = currentMonthOrders.filter(
-            o => o.order_Status === "ENTREGUE"
-        ).length;
-
-        const preparando = currentMonthOrders.filter(
-            o => o.order_Status === "PREPARANDO"
-        ).length;
-
-        const cancelados = currentMonthOrders.filter(
-            o => o.order_Status === "CANCELADO"
-        ).length;
+        const cancelados = byStatus["CANCELADO"] ?? 0;
+console.log("cancelados", cancelados);
 
         return [
             {

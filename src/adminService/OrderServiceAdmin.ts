@@ -5,8 +5,48 @@ import { Logs } from "../models/Logs";
 import { OrderSave, Order, SendMessageViaWhatsAppResponse } from "../models/Order";
 import { Category, Product } from "../models/Product";
 import { makeResult, Result } from "../utils/Result";
+import { AdminDashboard, LogsSummary, OrderStatusSummary, PagedResult, emptyPaged } from "../models/Paged";
+
+/** Chamada GET simples no padrão { success, data, error }. */
+async function getData<T>(url: string, fallback: T, params?: Record<string, unknown>): Promise<Result<T>> {
+    try {
+        const response = await api.get(url, { params });
+        const { success, data, error } = response.data;
+
+        if (!success) {
+            return makeResult(false, fallback, error);
+        }
+
+        return makeResult(true, (data ?? fallback) as T, error);
+    } catch (err: any) {
+        console.log(err.response?.data);
+        return makeResult(false, fallback, err.response?.data);
+    }
+}
+
+export interface OrdersPageQuery { page: number; pageSize: number; search?: string; status?: string; }
+export interface LogsPageQuery { page: number; pageSize: number; search?: string; type?: string; level?: string; period?: string; }
 
 export const OrderServiceAdmin = {
+    // ── Paginação (filtros aplicados no banco antes de paginar) ──
+    GetOrdersPaged: (q: OrdersPageQuery): Promise<Result<PagedResult<Order>>> =>
+        getData("/admin/orders/paged", emptyPaged<Order>(), { ...q }),
+
+    GetOrdersSummary: (): Promise<Result<OrderStatusSummary>> =>
+        getData("/admin/orders/summary", { total: 0, byStatus: {} }),
+
+    GetDashboard: (): Promise<Result<AdminDashboard | null>> =>
+        getData<AdminDashboard | null>("/admin/orders/dashboard", null),
+
+    GetLogsPaged: (q: LogsPageQuery): Promise<Result<PagedResult<Logs>>> =>
+        getData("/admin/orders/logs/paged", emptyPaged<Logs>(), { ...q }),
+
+    GetLogsSummary: (): Promise<Result<LogsSummary>> =>
+        getData("/admin/orders/logs/summary", { total: 0, acessos: 0, administrativas: 0, today: 0, types: [], levels: [] }),
+
+    GetLogsByUser: (userId: number): Promise<Result<Logs[]>> =>
+        getData(`/admin/orders/logs/user/${userId}`, [] as Logs[]),
+
     GetOrderAllListAdmin: async (): Promise<Result<Order[]>> => {
         try {
             const response = await api.get("/admin/orders/GetAllOrderAdmin");

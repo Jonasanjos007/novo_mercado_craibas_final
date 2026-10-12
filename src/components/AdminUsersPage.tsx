@@ -9,6 +9,8 @@ import ConfirmAdminPopup from './ConfirmAdminPopup';
 import { Address } from '../models/Address';
 import { GeneralOrderInformation } from '../models/Order';
 import { Logs } from '../models/Logs';
+import { PaginationFooter } from './AdminPagination';
+import { useDebouncedValue } from '../utils/useDebouncedValue';
 import { UseOrderAdminStore } from '../storeAdmin/UseOrderAdminStore';
 import { configs } from '../utils';
 import { useNotification } from '../utils/NotificationCard';
@@ -52,9 +54,12 @@ export default function AdminUsersPage({
 }: AdminUsersPageProps) {
     const notify = useNotification();
     const Controller = useUserAdminController();
-    const { UserAllAdmin, GetUserAnddresAll, GetUserInfoOrdersAll, DeleteUserSelected } = UseUserAdminStore();
-    const { logs } = UseOrderAdminStore();
-    const [users, setUsers] = useState<UserAdminAll[]>(UserAllAdmin);
+    const {
+        UserAllAdmin, GetUserAnddresAll, GetUserInfoOrdersAll, DeleteUserSelected,
+        usersTotal, usersActiveCount, usersInactiveCount, usersLoading, usersQuery, usersSummary, SetUsersQuery,
+    } = UseUserAdminStore();
+    const { GetLogsByUser } = UseOrderAdminStore();
+    const [userLogs, setUserLogs] = useState<Logs[]>([]);
     const [search, setSearch] = useState('');
     const [selectedUser, setSelectedUser] = useState<UserAdminAll | null>(null);
     const [showCreatePassword, setShowCreatePassword] = useState(false);
@@ -77,26 +82,24 @@ export default function AdminUsersPage({
     const [AllLogs, setAllLogs] = useState<Logs[]>([]);
     const [loadingLogs, setLoadingLogs] = useState(false);
 
-    const stats = useMemo(() => {
-        const active = users.filter(user => user.ativo).length;
-        const inactive = users.filter(user => !user.ativo).length;
+    // Números dos cards calculados no banco
+    const stats = usersSummary;
 
-        return {
-            total: users.length,
-            active,
-            inactive,
-            admins: users.filter(user => user.role === 'ADMIN').length,
-            clients: users.filter(user => user.role === 'CLIENTE').length,
-            delivery: users.filter(user => user.role === 'DELIVERY').length,
-        };
-    }, [users]);
-
+    // Logs do usuário aberto: busca só os dele no servidor
+    const selectedUserId = selectedUser?.id;
     useEffect(() => {
-        setUsers(UserAllAdmin);
-    }, [UserAllAdmin]);
+        if (selectedUserId === undefined) { setUserLogs([]); return; }
+        let cancelled = false;
+        setUserLogs([]);
+        GetLogsByUser(selectedUserId).then(result => {
+            if (!cancelled && result.success) setUserLogs(result.data ?? []);
+        });
+        return () => { cancelled = true; };
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [selectedUserId]);
 
     const FilterLogsUserSelect = useMemo(() => {
-        return logs
+        return userLogs
             .filter(log => log.id_User === selectedUser?.id)
             .sort((a, b) => {
                 return (
@@ -104,7 +107,7 @@ export default function AdminUsersPage({
                     new Date(a.insertDate).getTime()
                 );
             });
-    }, [logs, selectedUser]);
+    }, [userLogs, selectedUser]);
     const LastAccessLog = useMemo(() => {
         return FilterLogsUserSelect
             .filter(log => log.tipo?.toUpperCase() === 'ACESSO')
@@ -115,32 +118,20 @@ export default function AdminUsersPage({
                 return dateB - dateA;
             })[0] ?? null;
     }, [FilterLogsUserSelect, selectedUser]);
-    const filteredUsers = useMemo(() => {
-        const term = search.trim().toLowerCase();
+    // Usuários da página atual: tipo, status e busca já aplicados no servidor (antes de paginar)
+    const filteredUsers = UserAllAdmin;
 
-        return users.filter(user => {
-            const matchesRole =
-                Controller?.result.userFilter === 'ALL' ||
-                user.role === Controller?.result.userFilter;
-
-            const matchesStatus =
-                Controller?.result.statusFilter === 'all' ||
-                (Controller?.result.statusFilter === 'ativo' && user.ativo) ||
-                (Controller?.result.statusFilter === 'inactive' && !user.ativo);
-
-            const matchesSearch =
-                !term ||
-                user.name?.toLowerCase().includes(term) ||
-                user.email?.toLowerCase().includes(term) ||
-                user.phone?.toLowerCase().includes(term);
-
-            return (
-                matchesRole &&
-                matchesStatus &&
-                matchesSearch
-            );
-        });
-    }, [users, Controller?.result.userFilter, Controller?.result.statusFilter, search,]);
+    // Filtros → servidor (a busca espera parar de digitar)
+    const debouncedSearch = useDebouncedValue(search);
+    const roleFilter = Controller?.result.userFilter ?? 'ALL';
+    const statusFilter = Controller?.result.statusFilter ?? 'all';
+    useEffect(() => {
+        const current = UseUserAdminStore.getState().usersQuery;
+        // Mesmo filtro que já está carregado: não busca de novo
+        if ((current.search ?? '') === debouncedSearch && current.role === roleFilter && current.status === statusFilter) return;
+        SetUsersQuery({ search: debouncedSearch, role: roleFilter, status: statusFilter, page: 1 });
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [debouncedSearch, roleFilter, statusFilter]);
 
     const OncloseCard = () => {
         setSelectedUser(null)
@@ -406,15 +397,15 @@ export default function AdminUsersPage({
                                     className={` appearance-none w-full lg:w-48 pl-4 pr-10 py-3 rounded-xl ${inputBackground} border ${inputBorder} text-sm font-semibold ${darkMode ? 'text-surface-200' : 'text-[#353b45]'} outline-none focus:border-brand-400 cursor-pointer`}
                                 >
                                     <option value="all">
-                                        {`Todos os status (${filteredUsers.length})`}
+                                        {`Todos os status (${usersTotal})`}
                                     </option>
 
                                     <option value="ativo">
-                                        {`Ativos (${filteredUsers.filter(User => User.ativo == true).length})`}
+                                        {`Ativos (${usersActiveCount})`}
                                     </option>
 
                                     <option value="inactive">
-                                        {`Inativos (${filteredUsers.filter(User => User.ativo == false).length})`}
+                                        {`Inativos (${usersInactiveCount})`}
                                     </option>
                                 </select>
 
@@ -480,7 +471,7 @@ export default function AdminUsersPage({
                             </h2>
 
                             <span className={` px-2 py-0.5 rounded-md ${darkMode ? 'bg-surface-800 text-surface-400' : 'bg-[#eceff3] text-[#68717e]'} text-[10px] font-bold`}>
-                                {filteredUsers.length}
+                                {usersTotal}
                             </span>
                         </div>
 
@@ -913,6 +904,19 @@ export default function AdminUsersPage({
                             </div>
                         </>
                     )}
+                </div>
+
+                {/* PAGINAÇÃO (tipo, status e busca aplicados no servidor antes de paginar) */}
+                <div className={`mt-4 rounded-2xl border px-4 py-4 md:px-6 ${cardBorder} ${cardBackground} shadow-soft`}>
+                    <PaginationFooter
+                        darkMode={darkMode}
+                        page={usersQuery.page}
+                        pageSize={usersQuery.pageSize}
+                        total={usersTotal}
+                        loading={usersLoading}
+                        onPageChange={(page) => SetUsersQuery({ page })}
+                        onPageSizeChange={(pageSize) => SetUsersQuery({ pageSize, page: 1 })}
+                    />
                 </div>
             </div>
 

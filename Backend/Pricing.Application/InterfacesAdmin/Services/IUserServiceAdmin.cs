@@ -19,6 +19,8 @@ namespace Mercado.Craibas.Application.InterfacesAdmin.Services
         Task<Result<bool>> PostUpdateInfoSite(InfoSiteRequest request,int IdUserAdmin);
         Task<Result<bool>> PostUpdateTaxasBases(TaxasBasesRequest request);
         Task<Result<List<UserAdminResponse>>> GetAllUsers();
+        Task<Result<UsersPageResponse>> GetUsersPagedAsync(int page, int pageSize, string? search, string? role, string? status);
+        Task<Result<UsersSummaryResponse>> GetUsersSummaryAsync();
         Task<Result<string>> DeactivateClient(int userIdCliente, string role, int IdAdmin);
         Task<Result<GeneralUserInformationResponse>> GetInforGeneral(int userIdCliente);
         Task<Result<List<AddressResponse>>> GetAddressesAll(int userIdCliente);

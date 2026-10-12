@@ -3,7 +3,10 @@ import { makeResult, Result } from "../utils/Result";
 import { Product, ProductAdmin } from "../models/Product";
 import { ProductsService } from "../service/ProductsService";
 import { ProductServiceAdmin } from "../adminService/ProductServiceAdmin";
-import { UserServiceAdmin } from "../adminService/UserServiceAdmin";
+import { UserServiceAdmin, UsersPageQuery } from "../adminService/UserServiceAdmin";
+import { DEFAULT_PAGE_SIZE, UsersSummary } from "../models/Paged";
+
+let usersRequest = 0;
 import { UseUserStore } from "../store/UseUserStore";
 import { UserService } from "../service/UserService";
 import { AdminCreateUser, BaseSiteInterface, UserAdminAll } from "../models/User";
@@ -27,11 +30,71 @@ interface UsertState {
     getUser: () => Promise<Result<boolean>>;
     CreateUser: (user: AdminCreateUser) => Promise<Result<string>>;
     BaseSiteInterface: BaseSiteInterface;
+    /** Usuários da página atual (filtros aplicados no servidor antes de paginar). */
     UserAllAdmin: UserAdminAll[];
+
+    // Paginação no servidor
+    usersTotal: number;
+    usersActiveCount: number;
+    usersInactiveCount: number;
+    usersLoading: boolean;
+    usersQuery: UsersPageQuery;
+    usersSummary: UsersSummary;
+    SetUsersQuery: (query: Partial<UsersPageQuery>) => Promise<Result<boolean>>;
+    LoadUsersPage: () => Promise<Result<boolean>>;
+    LoadUsersSummary: () => Promise<Result<boolean>>;
 }
 export const UseUserAdminStore = create<UsertState>((set, get) => ({
     BaseSiteInterface: {},
     UserAllAdmin: [],
+    usersTotal: 0,
+    usersActiveCount: 0,
+    usersInactiveCount: 0,
+    usersLoading: false,
+    usersQuery: { page: 1, pageSize: DEFAULT_PAGE_SIZE, search: '', role: 'ALL', status: 'all' },
+    usersSummary: { total: 0, active: 0, inactive: 0, admins: 0, clients: 0, delivery: 0 },
+
+    SetUsersQuery: async (query) => {
+        set({ usersQuery: { ...get().usersQuery, ...query } });
+        return get().LoadUsersPage();
+    },
+
+    LoadUsersPage: async () => {
+        const request = ++usersRequest;
+        set({ usersLoading: true });
+
+        const result = await UserServiceAdmin.GetUsersPaged(get().usersQuery);
+        if (request !== usersRequest) return makeResult(true, true);
+
+        set({ usersLoading: false });
+
+        if (!result.success || !result.data) {
+            set({ UserAllAdmin: [], usersTotal: 0, usersActiveCount: 0, usersInactiveCount: 0 });
+            return makeResult(false, false, result.error);
+        }
+
+        // Página além do fim (ex.: depois de excluir): volta para a última que existe
+        const lastPage = Math.max(1, Math.ceil(result.data.totalCount / get().usersQuery.pageSize));
+        if (result.data.items.length === 0 && get().usersQuery.page > lastPage) {
+            set({ usersQuery: { ...get().usersQuery, page: lastPage } });
+            return get().LoadUsersPage();
+        }
+
+        set({
+            UserAllAdmin: result.data.items,
+            usersTotal: result.data.totalCount,
+            usersActiveCount: result.data.activeCount,
+            usersInactiveCount: result.data.inactiveCount,
+        });
+        return makeResult(true, true);
+    },
+
+    LoadUsersSummary: async () => {
+        const result = await UserServiceAdmin.GetUsersSummary();
+        if (!result.success || !result.data) return makeResult(false, false, result.error);
+        set({ usersSummary: result.data });
+        return makeResult(true, true);
+    },
 
     CreateUser: async (user: AdminCreateUser): Promise<Result<string>> => {
         const result = await UserServiceAdmin.CreateUser(user);
@@ -102,14 +165,10 @@ export const UseUserAdminStore = create<UsertState>((set, get) => ({
         }
         return makeResult(false, {} as BaseSiteInterface, result.error);
     },
+    // Recarrega a página atual e os números dos cards (uma consulta cada)
     getUser: async (): Promise<Result<boolean>> => {
-        const result = await UserServiceAdmin.getUserTipo();
-
-        if (result.success) {
-            set({ UserAllAdmin: result.data });
-            return makeResult(true, true);
-        }
-        return makeResult(false, false, result.error);
+        const [page, summary] = await Promise.all([get().LoadUsersPage(), get().LoadUsersSummary()]);
+        return !page.success ? page : summary;
     },
     PostUpdateDesactiv: async (IdUser: number, role: string): Promise<Result<string>> => {
         const result = await UserServiceAdmin.postDasativUser(IdUser, role);

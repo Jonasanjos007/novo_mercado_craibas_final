@@ -1,4 +1,5 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { useDebouncedValue } from '../utils/useDebouncedValue';
 import {
     Search,
     Trash2,
@@ -278,6 +279,9 @@ export default function AdminTrashPage({
 
     const Controller = useTrashAdminController();
 
+    // Sem "items" (uso real): cada página é buscada no banco com a quantidade escolhida
+    const serverMode = !items;
+
     const sourceItems = items ?? Controller.result.items;
 
     /* ========================================================= */
@@ -285,8 +289,44 @@ export default function AdminTrashPage({
     /* ========================================================= */
 
     useEffect(() => {
+        if (serverMode) return;
         setPage(1);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [search, filter, pageSize]);
+
+    /* ========================================================= */
+    /* SERVIDOR: tipo e busca aplicados antes de paginar           */
+    /* ========================================================= */
+
+    const debouncedSearch = useDebouncedValue(search);
+    const serverPage = Controller.result.query.page;
+
+    useEffect(() => {
+        if (!serverMode) return;
+        const current = Controller.result.query;
+
+        // Mudou busca, tipo ou quantidade: volta para a página 1
+        if ((current.search ?? '') !== debouncedSearch || current.filter !== filter || current.pageSize !== pageSize) {
+            setPage(1);
+            Controller.action.SetQuery({ search: debouncedSearch, filter, pageSize, page: 1 });
+            return;
+        }
+
+        if (current.page !== page) {
+            Controller.action.SetQuery({ page });
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [serverMode, debouncedSearch, filter, pageSize, page]);
+
+    // Página ajustada pelo servidor (ex.: a última página ficou vazia depois de restaurar)
+    useEffect(() => {
+        if (serverMode && serverPage !== page) setPage(serverPage);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [serverPage]);
+
+    // Itens já vistos (para a seleção continuar valendo ao trocar de página)
+    const knownItems = useRef(new Map<string, TrashItem>());
+    sourceItems.forEach((item) => knownItems.current.set(getTrashKey(item), item));
 
     /* ========================================================= */
     /* CORES                                                       */
@@ -329,6 +369,9 @@ export default function AdminTrashPage({
     /* ========================================================= */
 
     const filteredItems = useMemo(() => {
+        // Servidor já devolve a página filtrada e na mesma ordem
+        if (serverMode) return sourceItems;
+
         const term = search.trim().toLowerCase();
 
         const matches = sourceItems.filter((item) => {
@@ -452,16 +495,20 @@ export default function AdminTrashPage({
                 new Date(a.deletedAt ?? 0).getTime()
             );
         });
-    }, [sourceItems, search, filter]);
+    }, [serverMode, sourceItems, search, filter]);
 
     /* ========================================================= */
     /* PAGINAÇÃO                                                   */
     /* ========================================================= */
 
+    const totalCount = serverMode
+        ? Controller.result.total
+        : filteredItems.length;
+
     const totalPages = Math.max(
         1,
         Math.ceil(
-            filteredItems.length / pageSize
+            totalCount / pageSize
         )
     );
 
@@ -471,20 +518,21 @@ export default function AdminTrashPage({
     const endIndex =
         startIndex + pageSize;
 
-    const paginatedItems =
-        filteredItems.slice(
+    const paginatedItems = serverMode
+        ? filteredItems
+        : filteredItems.slice(
             startIndex,
             endIndex
         );
 
     const showingFrom =
-        filteredItems.length === 0
+        totalCount === 0
             ? 0
             : startIndex + 1;
 
     const showingTo = Math.min(
         endIndex,
-        filteredItems.length
+        totalCount
     );
 
     /* ========================================================= */
@@ -493,12 +541,16 @@ export default function AdminTrashPage({
 
     const selectedItems = useMemo(
         () =>
-            sourceItems.filter((item) =>
-                selectedKeys.has(
-                    getTrashKey(item)
-                )
-            ),
-        [sourceItems, selectedKeys]
+            serverMode
+                ? Array.from(selectedKeys)
+                    .map((key) => knownItems.current.get(key))
+                    .filter((item): item is TrashItem => !!item)
+                : sourceItems.filter((item) =>
+                    selectedKeys.has(
+                        getTrashKey(item)
+                    )
+                ),
+        [serverMode, sourceItems, selectedKeys]
     );
 
     const allOnPageSelected =
@@ -847,7 +899,9 @@ export default function AdminTrashPage({
                         }
                         title="Excluídos"
                         value={
-                            sourceItems.length
+                            serverMode
+                                ? Controller.result.summary.total
+                                : sourceItems.length
                         }
                         description="registros na lixeira"
                         icon={
@@ -868,11 +922,13 @@ export default function AdminTrashPage({
                         }
                         title="Usuários"
                         value={
-                            sourceItems.filter(
-                                (x) =>
-                                    x.entityType ===
-                                    'USER'
-                            ).length
+                            serverMode
+                                ? Controller.result.summary.users
+                                : sourceItems.filter(
+                                    (x) =>
+                                        x.entityType ===
+                                        'USER'
+                                ).length
                         }
                         description="contas excluídas"
                         icon={
@@ -893,11 +949,13 @@ export default function AdminTrashPage({
                         }
                         title="Endereços"
                         value={
-                            sourceItems.filter(
-                                (x) =>
-                                    x.entityType ===
-                                    'ADDRESS'
-                            ).length
+                            serverMode
+                                ? Controller.result.summary.addresses
+                                : sourceItems.filter(
+                                    (x) =>
+                                        x.entityType ===
+                                        'ADDRESS'
+                                ).length
                         }
                         description="endereços excluídos"
                         icon={
@@ -918,13 +976,15 @@ export default function AdminTrashPage({
                         }
                         title="Pedidos"
                         value={
-                            sourceItems.filter(
-                                (x) =>
-                                    x.entityType ===
-                                    'ORDER' ||
-                                    x.entityType ===
-                                    'ORDER_ITEM'
-                            ).length
+                            serverMode
+                                ? Controller.result.summary.orders
+                                : sourceItems.filter(
+                                    (x) =>
+                                        x.entityType ===
+                                        'ORDER' ||
+                                        x.entityType ===
+                                        'ORDER_ITEM'
+                                ).length
                         }
                         description="registros relacionados"
                         icon={
@@ -1121,7 +1181,7 @@ export default function AdminTrashPage({
                 <div
                     className={`rounded-2xl border ${cardBorder} ${cardBackground} overflow-hidden`}
                 >
-                    {filteredItems.length ===
+                    {totalCount ===
                         0 ? (
                         <div className="py-20 text-center px-6">
                             <div
@@ -1493,7 +1553,7 @@ export default function AdminTrashPage({
                                                 className={`font-bold ${primaryText}`}
                                             >
                                                 {
-                                                    filteredItems.length
+                                                    totalCount
                                                 }
                                             </span>{' '}
                                             registros

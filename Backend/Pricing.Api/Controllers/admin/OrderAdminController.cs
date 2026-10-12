@@ -18,6 +18,62 @@ namespace Mercado.Api.Controllers.Admin
         {
             _service = service;
         }
+        // ───────────── Paginação (filtros aplicados no banco antes de paginar) ─────────────
+
+        [Authorize(Roles = "ADMIN")]
+        [HttpGet("paged")]
+        public async Task<IActionResult> GetOrdersPaged([FromQuery] int page = 1, [FromQuery] int pageSize = 10, [FromQuery] string? search = null, [FromQuery] string? status = null)
+        {
+            var result = await _service.GetOrdersPagedAsync(page, pageSize, search, status);
+
+            return result.ToActionResult();
+        }
+
+        [Authorize(Roles = "ADMIN")]
+        [HttpGet("summary")]
+        public async Task<IActionResult> GetOrdersSummary()
+        {
+            var result = await _service.GetOrdersSummaryAsync();
+
+            return result.ToActionResult();
+        }
+
+        [Authorize(Roles = "ADMIN")]
+        [HttpGet("dashboard")]
+        public async Task<IActionResult> GetDashboard()
+        {
+            var result = await _service.GetDashboardAsync();
+
+            return result.ToActionResult();
+        }
+
+        [Authorize(Roles = "ADMIN")]
+        [HttpGet("logs/paged")]
+        public async Task<IActionResult> GetLogsPaged([FromQuery] int page = 1, [FromQuery] int pageSize = 10, [FromQuery] string? search = null, [FromQuery] string? type = null, [FromQuery] string? level = null, [FromQuery] string? period = null)
+        {
+            var result = await _service.GetLogsPagedAsync(page, pageSize, search, type, level, period);
+
+            return result.ToActionResult();
+        }
+
+        [Authorize(Roles = "ADMIN")]
+        [HttpGet("logs/summary")]
+        public async Task<IActionResult> GetLogsSummary()
+        {
+            var result = await _service.GetLogsSummaryAsync();
+
+            return result.ToActionResult();
+        }
+
+        [Authorize(Roles = "ADMIN")]
+        [HttpGet("logs/user/{userId:int}")]
+        public async Task<IActionResult> GetLogsByUser(int userId)
+        {
+            var result = await _service.GetLogsByUserAsync(userId);
+
+            return result.ToActionResult();
+        }
+
         [Authorize]
         [HttpGet("GetAllOrderAdmin")]
         public async Task<IActionResult> GetAllOrderAdmin()

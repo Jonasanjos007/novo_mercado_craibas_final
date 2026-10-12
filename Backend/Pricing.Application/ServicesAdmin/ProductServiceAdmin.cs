@@ -12,6 +12,7 @@ using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Hosting;
 using Pricing.Api.DTOs.Responses;
+using Mercado.Craibas.Application.DTOs.Responses;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -19,6 +20,7 @@ using System.Text;
 using System.Text.Json;
 using System.Threading.Tasks;
 
+using Microsoft.EntityFrameworkCore;
 namespace Mercado.Craibas.Application.ServicesAdmin
 {
     public class ProductServiceAdmin : IProductServiceAdmin
@@ -92,29 +94,109 @@ namespace Mercado.Craibas.Application.ServicesAdmin
                 return Result<List<ProductResponse>>.Failure(Error.Failure("Produtos","Produtos não encontrados!"));
             }
 
+            // Antes: 3 consultas por produto. Agora: 3 consultas no total, mesmo resultado.
+            var productList = await BuildProductResponsesAsync(Products);
+
+            return Result<List<ProductResponse>>.Success(productList);
+        }
+
+        // ═════════════════════════ PAGINAÇÃO ═════════════════════════
+
+        /// <summary>
+        /// Produtos paginados. Mesmas regras da tela e da lista completa:
+        /// - só aparecem produtos não excluídos, com pelo menos uma variação e com categoria ativa;
+        /// - busca: nome contém o texto; categoria: igual à escolhida;
+        /// - ordem: mais recentes primeiro.
+        /// Também devolve os contadores dos chips de categoria (sobre a busca atual).
+        /// </summary>
+        public async Task<Result<ProductsPageResponse>> GetProductsPagedAsync(int page, int pageSize, string? search, int? categoryId)
+        {
+            page = Paging.Page(page);
+            pageSize = Paging.Size(pageSize);
+
+            var categories = _unitOfWorkAdmin.Query<Product_Category>().AsNoTracking();
+            var variants = _unitOfWorkAdmin.Query<Variante_Products>().AsNoTracking();
+
+            // Mesmas regras de "continue" da lista completa
+            var query = _unitOfWorkAdmin.Query<Product>()
+                .AsNoTracking()
+                .Where(x => x.Isdelete != true
+                            && variants.Any(v => v.Id_Product == x.Id && v.Isdelete != true)
+                            && categories.Any(c => c.Id == x.Id_Category && c.Isdelete != true));
+
+            // A tela usa toLowerCase().includes(...) sem trim: a busca vazia não filtra
+            var term = search ?? string.Empty;
+            if (term.Length > 0)
+                query = query.Where(x => x.Name.Contains(term));
+
+            // Chips: total da busca e total por categoria
+            var countsByCategory = await query
+                .GroupBy(x => x.Id_Category)
+                .Select(g => new { CategoryId = g.Key, Count = g.Count() })
+                .ToListAsync();
+
+            if (categoryId.HasValue)
+                query = query.Where(x => x.Id_Category == categoryId.Value);
+
+            var total = await query.CountAsync();
+
+            var pageProducts = await query
+                .OrderByDescending(x => x.InsertDate)
+                .ThenBy(x => x.Id)
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
+                .ToListAsync();
+
+            var items = await BuildProductResponsesAsync(pageProducts);
+
+            return Result<ProductsPageResponse>.Success(new ProductsPageResponse
+            {
+                Items = items,
+                TotalCount = total,
+                PageNumber = page,
+                PageSize = pageSize,
+                SearchTotal = countsByCategory.Sum(x => x.Count),
+                CountsByCategory = countsByCategory.ToDictionary(x => x.CategoryId, x => x.Count)
+            });
+        }
+
+        /// <summary>
+        /// Monta a resposta dos produtos com as mesmas regras de sempre
+        /// (pula produto sem variação ou sem categoria ativa), buscando
+        /// variações, imagens e categorias de uma vez só.
+        /// </summary>
+        private async Task<List<ProductResponse>> BuildProductResponsesAsync(List<Product> Products)
+        {
             var productList = new List<ProductResponse>();
+
+            if (Products.Count == 0)
+                return productList;
+
+            var ids = Products.Select(x => x.Id).Distinct().ToList();
+            var categoryIds = Products.Select(x => x.Id_Category).Distinct().ToList();
+
+            var allVariants = await _unitOfWorkAdmin.GetClassListAsyncWhere<Variante_Products>(x => ids.Contains(x.Id_Product) && x.Isdelete != true);
+            var allImages = await _unitOfWorkAdmin.GetClassListAsyncWhere<Imagens_Products>(x => ids.Contains(x.Id_Product) && x.Isdelete != true);
+            var allCategories = await _unitOfWorkAdmin.GetClassListAsyncWhere<Product_Category>(x => categoryIds.Contains(x.Id) && x.Isdelete != true);
+
+            var variantsByProduct = allVariants.GroupBy(x => x.Id_Product).ToDictionary(g => g.Key, g => g.ToList());
+            var imagesByProduct = allImages.GroupBy(x => x.Id_Product).ToDictionary(g => g.Key, g => g.ToList());
+            var categoriesById = allCategories.GroupBy(x => x.Id).ToDictionary(g => g.Key, g => g.First());
 
             foreach (var Product in Products)
             {
-                var variants = await _unitOfWorkAdmin.GetClassListAsyncWhere<Variante_Products>(x => x.Id_Product == Product.Id && x.Isdelete != true);
-
-                if (variants == null || !variants.Any())
+                if (!variantsByProduct.TryGetValue(Product.Id, out var variants) || variants.Count == 0)
                 {
                     continue;
                 }
 
-                var Imagens_Product = await _unitOfWorkAdmin.GetClassListAsyncWhere<Imagens_Products>(x => x.Id_Product == Product.Id && x.Isdelete != true);
+                var Imagens_Product = imagesByProduct.TryGetValue(Product.Id, out var images) ? images : new List<Imagens_Products>();
 
-                if (Imagens_Product is null)
+                if (!categoriesById.TryGetValue(Product.Id_Category, out var CategoryName))
                 {
                     continue;
                 }
 
-                var CategoryName = await _unitOfWorkAdmin.GetClassAsyncWhere<Product_Category>(x => x.Id == Product.Id_Category && x.Isdelete != true);
-                if (CategoryName is null)
-                {
-                    continue;
-                }
                 productList.Add(new ProductResponse
                 {
                     Id = Product.Id,
@@ -141,7 +223,8 @@ namespace Mercado.Craibas.Application.ServicesAdmin
 
                 });
             }
-            return Result<List<ProductResponse>>.Success(productList);
+
+            return productList;
         }
 
         public async Task<Result<bool>> PostSaveProduct(ProductRequest product)

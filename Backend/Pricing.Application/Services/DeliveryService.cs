@@ -293,7 +293,7 @@ namespace Mercado.Craibas.Application.Services
             {
                 Id_User = deliveryId,
                 Nivel = "Delivery",
-                Tipo = "Entrega",
+                Tipo = acao == "Entregou o pedido" ? "ENTREGUE" : "PEDIDO SAIU PARA ENTREGA",
                 Acao = acao,
                 Info = info,
                 Log = log,

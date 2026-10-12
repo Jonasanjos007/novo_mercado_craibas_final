@@ -1,16 +1,22 @@
 import { useCallback, useEffect, useState } from "react";
 import { TrashItem } from "../models/TrashItem";
+import { TrashPageQuery } from "../adminService/TrashServiceAdmin";
+import { DEFAULT_PAGE_SIZE, TrashSummary } from "../models/Paged";
 import { UseTrashAdminStore } from "../storeAdmin/UseTrashAdminStore";
 import { useNotification } from "../utils/NotificationCard";
 
 type TrashAdminControllerReturn = {
     result: {
         items: TrashItem[];
+        total: number;
+        query: TrashPageQuery;
+        summary: TrashSummary;
         LoadingTrash: boolean;
         LoadError: boolean;
     };
     action: {
         LoadTrash: () => Promise<void>;
+        SetQuery: (query: Partial<TrashPageQuery>) => Promise<void>;
         restoreItem: (item: TrashItem) => Promise<boolean>;
         purgeItem: (item: TrashItem) => Promise<boolean>;
         bulkAction: (items: TrashItem[], action: 'restore' | 'purge') => Promise<boolean>;
@@ -18,7 +24,10 @@ type TrashAdminControllerReturn = {
 };
 
 export const useTrashAdminController = (): TrashAdminControllerReturn => {
-    const { trashItems, LoadTrash: LoadTrashStore, RestoreTrashItem, PurgeTrashItem, BulkTrash } = UseTrashAdminStore();
+    const {
+        trashItems, trashTotal, trashQuery, trashSummary, SetTrashQuery,
+        LoadTrash: LoadTrashStore, RestoreTrashItem, PurgeTrashItem, BulkTrash,
+    } = UseTrashAdminStore();
     const notify = useNotification();
 
     const [LoadingTrash, setLoadingTrash] = useState(false);
@@ -45,8 +54,27 @@ export const useTrashAdminController = (): TrashAdminControllerReturn => {
     }, [LoadTrashStore]);
 
     useEffect(() => {
+        // Tela abre sem filtros, na primeira página
+        UseTrashAdminStore.setState({ trashQuery: { page: 1, pageSize: DEFAULT_PAGE_SIZE, search: '', filter: 'ALL' } });
         LoadTrash();
     }, [LoadTrash]);
+
+    // Troca de página / filtros: busca só a página no servidor
+    const SetQuery = useCallback(async (query: Partial<TrashPageQuery>) => {
+        setLoadingTrash(true);
+        try {
+            const result = await SetTrashQuery(query);
+            if (!result.success) {
+                notify.error(
+                    result.error?.error?.code ?? 'Lixeira',
+                    result.error?.error?.message ?? 'Não foi possível carregar a lixeira.'
+                );
+            }
+        } finally {
+            setLoadingTrash(false);
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [SetTrashQuery]);
 
     const restoreItem = async (item: TrashItem): Promise<boolean> => {
         const result = await RestoreTrashItem(item.id);
@@ -111,11 +139,15 @@ export const useTrashAdminController = (): TrashAdminControllerReturn => {
     return {
         result: {
             items: trashItems,
+            total: trashTotal,
+            query: trashQuery,
+            summary: trashSummary,
             LoadingTrash,
             LoadError,
         },
         action: {
             LoadTrash,
+            SetQuery,
             restoreItem,
             purgeItem,
             bulkAction,

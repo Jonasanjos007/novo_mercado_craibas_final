@@ -11,6 +11,7 @@ using Mercado.Craibas.Application.Interfaces;
 using Mercado.Craibas.Application.Interfaces.Services;
 using Mercado.Craibas.Application.InterfacesAdmin;
 using Mercado.Craibas.Application.InterfacesAdmin.Services;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Pricing.Api.DTOs.Responses;
 using System;
@@ -729,6 +730,149 @@ namespace Mercado.Craibas.Application.ServicesAdmin
                 );
             }
         }
+        // ═════════════════════════ PAGINAÇÃO ═════════════════════════
+
+        /// <summary>
+        /// Usuários paginados. Mesmas regras e mesma ordem da lista de hoje:
+        /// administradores, depois clientes, depois entregadores (sem excluídos).
+        /// Filtros (perfil, status e busca por nome/e-mail/telefone) aplicados antes de paginar.
+        /// </summary>
+        public async Task<Result<UsersPageResponse>> GetUsersPagedAsync(int page, int pageSize, string? search, string? role, string? status)
+        {
+            page = Paging.Page(page);
+            pageSize = Paging.Size(pageSize);
+
+            var term = Paging.Term(search);
+            var roleFilter = string.IsNullOrEmpty(role) || role == "ALL" ? null : role;
+            bool? ativo = status == "ativo" ? true : status == "inactive" ? false : null;
+
+            var admins = _unitOfWorkAdmin.Query<User_Admin>().AsNoTracking().Where(x => x.Isdelete != true);
+            var customers = _unitOfWorkAdmin.Query<User_Customer>().AsNoTracking().Where(x => x.Isdelete != true);
+            var deliveries = _unitOfWorkAdmin.Query<User_Delivery>().AsNoTracking().Where(x => x.Isdelete != true);
+
+            if (ativo.HasValue)
+            {
+                admins = admins.Where(x => x.Ativo == ativo.Value);
+                customers = customers.Where(x => x.Ativo == ativo.Value);
+                deliveries = deliveries.Where(x => x.Ativo == ativo.Value);
+            }
+
+            if (term != null)
+            {
+                admins = admins.Where(x => (x.Name != null && x.Name.Contains(term)) || (x.Email != null && x.Email.Contains(term)) || (x.Phone != null && x.Phone.Contains(term)));
+                customers = customers.Where(x => (x.Name != null && x.Name.Contains(term)) || (x.Email != null && x.Email.Contains(term)) || (x.Phone != null && x.Phone.Contains(term)));
+                deliveries = deliveries.Where(x => (x.Name != null && x.Name.Contains(term)) || (x.Email != null && x.Email.Contains(term)) || (x.Phone != null && x.Phone.Contains(term)));
+            }
+
+            var useAdmins = roleFilter == null || roleFilter == "ADMIN";
+            var useCustomers = roleFilter == null || roleFilter == "CLIENTE";
+            var useDeliveries = roleFilter == null || roleFilter == "DELIVERY";
+
+            // Contagens por tabela (para paginar em sequência: admins → clientes → entregadores)
+            var adminCount = useAdmins ? await admins.CountAsync() : 0;
+            var customerCount = useCustomers ? await customers.CountAsync() : 0;
+            var deliveryCount = useDeliveries ? await deliveries.CountAsync() : 0;
+
+            var activeCount =
+                (useAdmins ? await admins.CountAsync(x => x.Ativo) : 0) +
+                (useCustomers ? await customers.CountAsync(x => x.Ativo) : 0) +
+                (useDeliveries ? await deliveries.CountAsync(x => x.Ativo) : 0);
+
+            var total = adminCount + customerCount + deliveryCount;
+            var skip = (page - 1) * pageSize;
+            var items = new List<UserAdminResponse>();
+
+            // Fatia de cada tabela que cai dentro da página
+            async Task TakeSlice<T>(IQueryable<T> query, int count, Func<IQueryable<T>, IQueryable<UserAdminResponse>> project)
+            {
+                if (count == 0 || items.Count >= pageSize) return;
+
+                if (skip >= count) { skip -= count; return; }
+
+                var take = pageSize - items.Count;
+                var slice = await project(query).Skip(skip).Take(take).ToListAsync();
+                items.AddRange(slice);
+                skip = 0;
+            }
+
+            await TakeSlice(admins, adminCount, q => q.OrderBy(x => x.Id).Select(user => new UserAdminResponse
+            {
+                Id = user.Id,
+                Name = user.Name,
+                Email = user.Email,
+                Avatar = user.Avatar,
+                Role = ProfileEnum.ADMIN,
+                Ativo = user.Ativo,
+                Phone = user.Phone,
+                Insert_Date = user.InsertDate,
+                UpdateDate = user.UpdateDate
+            }));
+
+            await TakeSlice(customers, customerCount, q => q.OrderBy(x => x.Id).Select(user => new UserAdminResponse
+            {
+                Id = user.Id,
+                Name = user.Name,
+                Email = user.Email,
+                Avatar = user.Avatar,
+                Role = ProfileEnum.CLIENTE,
+                Ativo = user.Ativo,
+                Phone = user.Phone,
+                Insert_Date = user.InsertDate,
+                UpdateDate = user.UpdateDate
+            }));
+
+            await TakeSlice(deliveries, deliveryCount, q => q.OrderBy(x => x.Id).Select(user => new UserAdminResponse
+            {
+                Id = user.Id,
+                Name = user.Name,
+                Email = user.Email,
+                Avatar = user.Avatar,
+                Role = ProfileEnum.DELIVERY,
+                Ativo = user.Ativo,
+                Phone = user.Phone,
+                Insert_Date = user.InsertDate,
+                UpdateDate = user.UpdateDate
+            }));
+
+            return Result<UsersPageResponse>.Success(new UsersPageResponse
+            {
+                Items = items,
+                TotalCount = total,
+                PageNumber = page,
+                PageSize = pageSize,
+                ActiveCount = activeCount,
+                InactiveCount = total - activeCount
+            });
+        }
+
+        /// <summary>Cards da tela de usuários (sobre todos os usuários não excluídos).</summary>
+        public async Task<Result<UsersSummaryResponse>> GetUsersSummaryAsync()
+        {
+            var admins = _unitOfWorkAdmin.Query<User_Admin>().AsNoTracking().Where(x => x.Isdelete != true);
+            var customers = _unitOfWorkAdmin.Query<User_Customer>().AsNoTracking().Where(x => x.Isdelete != true);
+            var deliveries = _unitOfWorkAdmin.Query<User_Delivery>().AsNoTracking().Where(x => x.Isdelete != true);
+
+            var adminCount = await admins.CountAsync();
+            var customerCount = await customers.CountAsync();
+            var deliveryCount = await deliveries.CountAsync();
+
+            var active = await admins.CountAsync(x => x.Ativo)
+                         + await customers.CountAsync(x => x.Ativo)
+                         + await deliveries.CountAsync(x => x.Ativo);
+
+            var total = adminCount + customerCount + deliveryCount;
+
+            return Result<UsersSummaryResponse>.Success(new UsersSummaryResponse
+            {
+                Total = total,
+                Active = active,
+                Inactive = total - active,
+                Admins = adminCount,
+                Clients = customerCount,
+                Delivery = deliveryCount
+            });
+        }
+
         public async Task<Result<List<UserAdminResponse>>> GetAllUsers()
         {
             try

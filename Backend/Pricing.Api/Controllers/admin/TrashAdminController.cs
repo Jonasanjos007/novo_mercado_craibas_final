@@ -21,6 +21,23 @@ namespace Mercado.Api.Controllers.admin
             _service = service;
         }
 
+        /// <summary>Lixeira paginada (filtros aplicados antes de paginar).</summary>
+        [HttpGet("paged")]
+        public async Task<IActionResult> GetTrashPaged([FromQuery] int page = 1, [FromQuery] int pageSize = 10, [FromQuery] string? search = null, [FromQuery] string? filter = null)
+        {
+            var result = await _service.GetTrashPagedAsync(page, pageSize, search, filter);
+
+            return result.ToActionResult();
+        }
+
+        [HttpGet("summary")]
+        public async Task<IActionResult> GetTrashSummary()
+        {
+            var result = await _service.GetTrashSummaryAsync();
+
+            return result.ToActionResult();
+        }
+
         [HttpGet]
         public async Task<IActionResult> GetTrash()
         {

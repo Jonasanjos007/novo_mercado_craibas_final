@@ -36,18 +36,12 @@ namespace Mercado.Craibas.Application.ServicesAdmin
             _statusNotifier = statusNotifier;
         }
 
-        public async Task<Result<List<OrderResponse>>> GetOrderAllListAdmin()
-        {
-            var OrderResponseList = new List<OrderResponse>();
-
-            // AsNoTracking: só leitura, o EF não precisa rastrear milhares de objetos.
-            // AsSplitQuery: uma consulta por lista (itens, imagens, variações) em vez de um
-            // único JOIN que multiplica imagens x variações de cada item (causava timeout).
-            var orderResponseList = await _unitOfWorkAdmin.Query<Orders>()
-         .AsNoTracking()
-         .AsSplitQuery()
-         .OrderByDescending(x => x.InsertDate)
-         .Select(x => new OrderResponse
+        /// <summary>
+        /// Projeção da lista de pedidos do admin (mesmo formato de sempre).
+        /// Usada pela lista completa e pela lista paginada, para as duas devolverem o mesmo resultado.
+        /// </summary>
+        private static readonly System.Linq.Expressions.Expression<Func<Orders, OrderResponse>> OrderListProjection =
+         x => new OrderResponse
          {
              Id_Order = x.Id,
              Number_Order = x.Number_Order,
@@ -100,10 +94,291 @@ namespace Mercado.Craibas.Application.ServicesAdmin
                  Imagens = i.Product.Imagens_Products.ToList(),
                  variations = i.Product.Variante_Products.ToList()
              }).ToList()
-         }).ToListAsync();
+         };
+
+        public async Task<Result<List<OrderResponse>>> GetOrderAllListAdmin()
+        {
+            var OrderResponseList = new List<OrderResponse>();
+
+            // AsNoTracking: só leitura, o EF não precisa rastrear milhares de objetos.
+            // AsSplitQuery: uma consulta por lista (itens, imagens, variações) em vez de um
+            // único JOIN que multiplica imagens x variações de cada item (causava timeout).
+            var orderResponseList = await _unitOfWorkAdmin.Query<Orders>()
+         .AsNoTracking()
+         .AsSplitQuery()
+         .OrderByDescending(x => x.InsertDate)
+         .Select(OrderListProjection)
+         .ToListAsync();
 
             return Result<List<OrderResponse>>.Success(orderResponseList);
 
+        }
+
+        // ═════════════════════════ PAGINAÇÃO ═════════════════════════
+
+        /// <summary>
+        /// Lista de pedidos paginada. Mesmas regras da tela:
+        /// - busca: o número (Id) do pedido contém o texto digitado;
+        /// - status: igual ao status escolhido (comparação exata);
+        /// - ordem: mais recentes primeiro.
+        /// Filtros aplicados antes de paginar.
+        /// </summary>
+        public async Task<Result<PagedResult<OrderResponse>>> GetOrdersPagedAsync(int page, int pageSize, string? search, string? status)
+        {
+            page = Paging.Page(page);
+            pageSize = Paging.Size(pageSize);
+
+            var query = _unitOfWorkAdmin.Query<Orders>().AsNoTracking();
+
+            var term = search ?? string.Empty;
+            if (term.Length > 0)
+                query = query.Where(x => x.Id.ToString().Contains(term));
+
+            if (!string.IsNullOrEmpty(status) && status != "all")
+                query = query.Where(x => EF.Functions.Collate(x.Order_Status, Paging.ExactCollation) == status);
+
+            var total = await query.CountAsync();
+
+            var items = await query
+                .OrderByDescending(x => x.InsertDate)
+                .ThenByDescending(x => x.Id)
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
+                .AsSplitQuery()
+                .Select(OrderListProjection)
+                .ToListAsync();
+
+            return Result<PagedResult<OrderResponse>>.Success(new PagedResult<OrderResponse>(items, total, page, pageSize));
+        }
+
+        /// <summary>Contadores dos filtros de status (sobre todos os pedidos).</summary>
+        public async Task<Result<OrderStatusSummaryResponse>> GetOrdersSummaryAsync()
+        {
+            // Só a coluna de status (leve). A contagem é feita com comparação exata, igual à tela.
+            var statuses = await _unitOfWorkAdmin.Query<Orders>()
+                .AsNoTracking()
+                .Select(x => x.Order_Status)
+                .ToListAsync();
+
+            var byStatus = statuses
+                .GroupBy(x => x, StringComparer.Ordinal)
+                .Select(g => new { Status = g.Key, Count = g.Count() })
+                .ToList();
+
+            return Result<OrderStatusSummaryResponse>.Success(new OrderStatusSummaryResponse
+            {
+                Total = byStatus.Sum(x => x.Count),
+                ByStatus = byStatus
+                    .Where(x => x.Status != null)
+                    .ToDictionary(x => x.Status!, x => x.Count)
+            });
+        }
+
+        /// <summary>
+        /// Números do Dashboard calculados no banco (antes eram somados na tela com todos os pedidos/logs).
+        /// Mesmas regras: pedidos cancelados ficam de fora dos totais; acessos = logs "Acesso" de nível "CLIENTE"
+        /// dentro da mesma janela de 6 meses usada na tela de movimentação.
+        /// </summary>
+        public async Task<Result<AdminDashboardResponse>> GetDashboardAsync()
+        {
+            var now = DateTime.Now;
+            var firstMonth = new DateTime(now.Year, now.Month, 1).AddMonths(-6);
+            var firstDay = now.Date.AddDays(-8);
+
+            var orders = _unitOfWorkAdmin.Query<Orders>().AsNoTracking();
+
+            var monthly = await orders
+                .Where(x => x.InsertDate >= firstMonth
+                            && (x.Order_Status == null || EF.Functions.Collate(x.Order_Status, Paging.ExactCollation) != "CANCELADO"))
+                .GroupBy(x => new { x.InsertDate.Year, x.InsertDate.Month })
+                .Select(g => new DashboardMonthPoint
+                {
+                    Year = g.Key.Year,
+                    Month = g.Key.Month,
+                    Count = g.Count(),
+                    Total = g.Sum(x => x.Total_Value_Order)
+                })
+                .ToListAsync();
+
+            var daily = await orders
+                .Where(x => x.InsertDate >= firstDay
+                            && (x.Order_Status == null || EF.Functions.Collate(x.Order_Status, Paging.ExactCollation) != "CANCELADO"))
+                .GroupBy(x => x.InsertDate.Date)
+                .Select(g => new { Day = g.Key, Count = g.Count(), Total = g.Sum(x => x.Total_Value_Order) })
+                .ToListAsync();
+
+            var dailyCancelled = await orders
+                .Where(x => x.InsertDate >= firstDay
+                            && EF.Functions.Collate(x.Order_Status, Paging.ExactCollation) == "CANCELADO")
+                .GroupBy(x => x.InsertDate.Date)
+                .Select(g => new { Day = g.Key, Count = g.Count(), Total = g.Sum(x => x.Total_Value_Order) })
+                .ToListAsync();
+
+            // Mês atual por status (comparação exata, igual à tela)
+            var monthStart = new DateTime(now.Year, now.Month, 1);
+            var nextMonth = monthStart.AddMonths(1);
+
+            var currentMonthStatuses = await orders
+                .Where(x => x.InsertDate >= monthStart && x.InsertDate < nextMonth)
+                .Select(x => x.Order_Status)
+                .ToListAsync();
+
+            var currentMonthByStatus = currentMonthStatuses
+                .Where(x => x != null)
+                .GroupBy(x => x!, StringComparer.Ordinal)
+                .ToDictionary(g => g.Key, g => g.Count());
+
+            var logsFrom = now.AddMonths(-7);
+
+            var access = await _unitOfWorkAdmin.Query<Logs>()
+                .AsNoTracking()
+                .Where(x => x.InsertDate >= logsFrom
+                            &&  EF.Functions.Collate(x.Tipo, Paging.ExactCollation) == "ACESSO"
+                            && (EF.Functions.Collate(x.Nivel, Paging.ExactCollation) == "CLIENTE" || EF.Functions.Collate(x.Nivel, Paging.ExactCollation) == "DELIVERY")
+                            && x.Isdelete != true )
+                .GroupBy(x => new { x.InsertDate.Year, x.InsertDate.Month })
+                .Select(g => new DashboardMonthPoint
+                {
+                    Year = g.Key.Year,
+                    Month = g.Key.Month,
+                    Count = g.Count()
+                })
+                .ToListAsync();
+
+            return Result<AdminDashboardResponse>.Success(new AdminDashboardResponse
+            {
+                MonthlyOrders = monthly,
+                DailyOrders = daily
+                    .Select(x => new DashboardDayPoint { Date = x.Day.ToString("yyyy-MM-dd"), Count = x.Count, Total = x.Total })
+                    .ToList(),
+                DailyCancelled = dailyCancelled
+                    .Select(x => new DashboardDayPoint { Date = x.Day.ToString("yyyy-MM-dd"), Count = x.Count, Total = x.Total })
+                    .ToList(),
+                MonthlyClientAccess = access,
+                CurrentMonthByStatus = currentMonthByStatus
+            });
+        }
+
+        /// <summary>
+        /// Movimentação paginada. Mesma janela (últimos 6 meses) e mesmas regras da tela:
+        /// - busca: texto contido em log, ação, info, tipo, nível ou id do usuário;
+        /// - tipo e nível: comparação exata;
+        /// - período: hoje / últimos 7 dias / últimos 30 dias;
+        /// - ordem: mais recentes primeiro.
+        /// </summary>
+        public async Task<Result<PagedResult<Logs>>> GetLogsPagedAsync(int page, int pageSize, string? search, string? type, string? level, string? period)
+        {
+            page = Paging.Page(page);
+            pageSize = Paging.Size(pageSize);
+
+            var now = DateTime.Now;
+            var query = LogsWindow(now);
+
+            var term = Paging.Term(search);
+            if (term != null)
+            {
+                query = query.Where(x =>
+                    (x.Log != null && x.Log.Contains(term))
+                    || (x.Acao != null && x.Acao.Contains(term))
+                    || (x.Info != null && x.Info.Contains(term))
+                    || (x.Tipo != null && x.Tipo.Contains(term))
+                    || (x.Nivel != null && x.Nivel.Contains(term))
+                    || x.Id_User.ToString().Contains(term));
+            }
+
+            if (!string.IsNullOrEmpty(type) && type != "all")
+                query = query.Where(x => EF.Functions.Collate(x.Tipo, Paging.ExactCollation) == type);
+
+            if (!string.IsNullOrEmpty(level) && level != "all")
+                query = query.Where(x => EF.Functions.Collate(x.Nivel, Paging.ExactCollation) == level);
+
+            switch (period)
+            {
+                case "today":
+                    var startToday = now.Date;
+                    query = query.Where(x => x.InsertDate >= startToday);
+                    break;
+                case "7days":
+                    var from7 = now.AddDays(-7);
+                    query = query.Where(x => x.InsertDate >= from7);
+                    break;
+                case "30days":
+                    var from30 = now.AddDays(-30);
+                    query = query.Where(x => x.InsertDate >= from30);
+                    break;
+            }
+
+            var total = await query.CountAsync();
+
+            var items = await query
+                .OrderByDescending(x => x.InsertDate)
+                .ThenBy(x => x.Id)
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
+                .ToListAsync();
+
+            return Result<PagedResult<Logs>>.Success(new PagedResult<Logs>(items, total, page, pageSize));
+        }
+
+        /// <summary>Cards e filtros da movimentação (sobre todos os logs da janela).</summary>
+        public async Task<Result<LogsSummaryResponse>> GetLogsSummaryAsync()
+        {
+            var now = DateTime.Now;
+            var query = LogsWindow(now);
+            var startToday = now.Date;
+            var startTomorrow = startToday.AddDays(1);
+
+            var total = await query.CountAsync();
+            var acessos = await query.CountAsync(x => x.Tipo == "Acesso");
+            var administrativas = await query.CountAsync(x => x.Nivel == "ADMIN");
+            var today = await query.CountAsync(x => x.InsertDate >= startToday && x.InsertDate < startTomorrow);
+
+            // Só as colunas de tipo e nível (leve). Agrupadas com comparação exata, igual à tela.
+            var typeLevel = await query
+                .Select(x => new { x.Tipo, x.Nivel })
+                .ToListAsync();
+
+            var types = typeLevel
+                .Where(x => !string.IsNullOrEmpty(x.Tipo))
+                .GroupBy(x => x.Tipo, StringComparer.Ordinal)
+                .Select(g => new LogTypeCount { Tipo = g.Key, Count = g.Count() })
+                .ToList();
+
+            var levels = typeLevel
+                .Where(x => !string.IsNullOrEmpty(x.Nivel))
+                .Select(x => x.Nivel)
+                .Distinct(StringComparer.Ordinal)
+                .ToList();
+
+            return Result<LogsSummaryResponse>.Success(new LogsSummaryResponse
+            {
+                Total = total,
+                Acessos = acessos,
+                Administrativas = administrativas,
+                Today = today,
+                // Mesma ordem do .sort() da tela (ordinal)
+                Types = types.OrderBy(x => x.Tipo, StringComparer.Ordinal).ToList(),
+                Levels = levels.OrderBy(x => x, StringComparer.Ordinal).ToList()
+            });
+        }
+
+        /// <summary>Logs de um usuário (tela de usuários), mesma janela, mais recentes primeiro.</summary>
+        public async Task<Result<List<Logs>>> GetLogsByUserAsync(int userId)
+        {
+            var logs = await LogsWindow(DateTime.Now)
+                .Where(x => x.Id_User == userId)
+                .OrderByDescending(x => x.InsertDate)
+                .ThenBy(x => x.Id)
+                .ToListAsync();
+
+            return Result<List<Logs>>.Success(logs);
+        }
+
+        /// <summary>Mesma janela do GetAlllogs: últimos 6 meses.</summary>
+        private IQueryable<Logs> LogsWindow(DateTime now)
+        {
+            var from = now.AddMonths(-6);
+            return _unitOfWorkAdmin.Query<Logs>().AsNoTracking().Where(x => x.InsertDate >= from);
         }
 
         public async Task<Result<List<Logs>>> GetAlllogs()

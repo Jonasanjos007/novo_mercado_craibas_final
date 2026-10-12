@@ -1,4 +1,4 @@
-import { Activity, FolderPlus, LogIn, MessageCircle, Lock, Pencil, PlusCircle, RefreshCcw, Star, TicketCheck, TicketPlus, TicketX, Trash2, UserCheck, UserPlus, UserX } from "lucide-react";
+import { Activity, FolderPlus, LogIn, MessageCircle, Lock, Pencil, PlusCircle, RefreshCcw, Star, TicketCheck, TicketPlus, TicketX, Trash2, UserCheck, UserPlus, UserX, PackageCheck, CookingPot, Truck, PackageOpen, PackageX, UserRoundCheck, UserRoundX, Settings2, CircleDollarSign, HandCoins, BadgeCheck, BadgeX } from "lucide-react";
 
 export const formatPrice = (price: number): string => {
   return price.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
@@ -323,5 +323,92 @@ export const configs: Record<string, {
     icon: UserX,
     label: "Desativação de usuário",
   },
-
+  "ENTREGUE": {
+    text: "text-teal-400",
+    bg: "bg-teal-500/10",
+    border: "border-teal-500/20",
+    bar: "bg-teal-500",
+    icon: PackageCheck,
+    label: "Pedido entregue",
+  },
+  "PEDIDO SAIU PARA ENTREGA": {
+    text: "text-sky-400",
+    bg: "bg-sky-500/10",
+    border: "border-sky-500/20",
+    bar: "bg-sky-500",
+    icon: Truck,
+    label: "Saiu para entrega",
+  },
+  "PEDIDO RETIRADO PARA ENTREGA": {
+    text: "text-indigo-400",
+    bg: "bg-indigo-500/10",
+    border: "border-indigo-500/20",
+    bar: "bg-indigo-500",
+    icon: PackageOpen,
+    label: "Entregador retirou o pedido",
+  },
+  "PEDIDO DEVOLVIDO": {
+    text: "text-rose-400",
+    bg: "bg-rose-500/10",
+    border: "border-rose-500/20",
+    bar: "bg-rose-500",
+    icon: PackageX,
+    label: "Pedido devolvido",
+  },
+  "ENTREGA ATRIBUÍDA": {
+    text: "text-violet-400",
+    bg: "bg-violet-500/10",
+    border: "border-violet-500/20",
+    bar: "bg-violet-500",
+    icon: UserRoundCheck,
+    label: "Entrega atribuída ao entregador",
+  },
+  "ENTREGADOR REMOVIDO": {
+    text: "text-red-400",
+    bg: "bg-red-500/10",
+    border: "border-red-500/20",
+    bar: "bg-red-500",
+    icon: UserRoundX,
+    label: "Entregador removido do pedido",
+  },
+  "ALTEROU CONFIGURAÇÃO DE ENTREGAS": {
+    text: "text-orange-400",
+    bg: "bg-orange-500/10",
+    border: "border-orange-500/20",
+    bar: "bg-orange-500",
+    icon: Settings2,
+    label: "Alteração nas configurações de entregas",
+  },
+  "ALTEROU VALOR DO ENTREGADOR": {
+    text: "text-emerald-400",
+    bg: "bg-emerald-500/10",
+    border: "border-emerald-500/20",
+    bar: "bg-emerald-500",
+    icon: CircleDollarSign,
+    label: "Alteração no valor do entregador",
+  },
+  "ALTEROU GORJETA DO PEDIDO": {
+    text: "text-amber-400",
+    bg: "bg-amber-500/10",
+    border: "border-amber-500/20",
+    bar: "bg-amber-500",
+    icon: HandCoins,
+    label: "Alteração na gorjeta do pedido",
+  },
+  "DEU BAIXA NO ENTREGADOR": {
+    text: "text-teal-400",
+    bg: "bg-teal-500/10",
+    border: "border-teal-500/20",
+    bar: "bg-teal-500",
+    icon: BadgeCheck,
+    label: "Baixa de pagamento do entregador",
+  },
+  "ESTORNOU BAIXA DO ENTREGADOR": {
+    text: "text-rose-400",
+    bg: "bg-rose-500/10",
+    border: "border-rose-500/20",
+    bar: "bg-rose-500",
+    icon: BadgeX,
+    label: "Estorno da baixa de pagamento do entregador",
+  },
 };

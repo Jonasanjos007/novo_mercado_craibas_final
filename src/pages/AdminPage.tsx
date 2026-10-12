@@ -1,4 +1,6 @@
 import { useState, useRef, useEffect, useMemo } from 'react';
+import { PaginationFooter } from '../components/AdminPagination';
+import { useDebouncedValue } from '../utils/useDebouncedValue';
 import {
   LayoutDashboard, Package, ShoppingBag, Tag, Settings, LogOut,
   TrendingUp, TrendingDown, DollarSign, Bell, Search, Plus, Edit3,
@@ -86,11 +88,16 @@ export default function AdminPage() {
   const ControllerSettings = useSiteSettingsController();
 
   const Controller = useAdminController();
-  const { ordersAdmin, logs, Category, LoadLogsAdmin } = UseOrderAdminStore();
+  const {
+    ordersAdmin, logs, Category, LoadLogsAdmin,
+    ordersQuery, ordersTotal, ordersLoading, ordersSummary, SetOrdersQuery,
+    recentOrders, LoadRecentOrders,
+    logsQuery, logsTotal, logsLoading, logsSummary, SetLogsQuery,
+  } = UseOrderAdminStore();
   const { PostEditeTemaAdmin, BaseSiteInterface } = UseUserAdminStore();
   const { user, updateUser } = UseUserStore();
   const logout = useAuthStore((state) => state.logout);
-  const { products } = UseProductAdminStore();
+  const { products, productsPage, productsTotal, productsSearchTotal, productsCountsByCategory, productsLoading, productsQuery, SetProductsQuery } = UseProductAdminStore();
   const { orders } = UseOrderStore();
   const { navigatePages, navigateTo } = UseRouteStore();
   const { cupom } = UseCupomAdminStore();
@@ -565,38 +572,35 @@ export default function AdminPage() {
       .filter(p => p.id_category === category.id)
       .reduce((total, product) => total + (product.count_Sold ?? 0), 0),
   }));
-  const filteredProducts = products
-    .filter(p =>
-      p.name.toLowerCase().includes(productSearch.toLowerCase())
-    )
-    .filter(
-      p =>
-        ProductCategoryFilter === "all" ||
-        p.id_category === Number(ProductCategoryFilter)
-    )
-    .sort(
-      (a, b) =>
-        new Date(b.insertDate).getTime() - new Date(a.insertDate).getTime()
-    );
+  // Produtos da página atual: busca e categoria já aplicadas no servidor (antes de paginar)
+  const filteredProducts = productsPage;
 
-  const filteredProductsCategory = products
-    .filter(p =>
-      p.name.toLowerCase().includes(productSearch.toLowerCase())
-    ).sort(
-      (a, b) =>
-        new Date(b.insertDate).getTime() - new Date(a.insertDate).getTime()
-    );
-  const filteredOrders = ordersAdmin.filter(o => {
-    const ms = o.id_Order
-      .toString()
-      .includes(orderSearch);
+  // Chips: total da busca e total por categoria calculados no banco
+  const productCategoryCount = (categoryId: number) => productsCountsByCategory[categoryId] ?? 0;
 
-    const mst =
-      orderStatusFilter === "all" ||
-      o.order_Status === orderStatusFilter;
+  // Busca/categoria de produtos → servidor (a busca espera parar de digitar)
+  const debouncedProductSearch = useDebouncedValue(productSearch);
+  useEffect(() => {
+    const categoryId = ProductCategoryFilter === 'all' ? undefined : Number(ProductCategoryFilter);
+    const current = UseProductAdminStore.getState().productsQuery;
+    // Mesmo filtro que já está carregado: não busca de novo
+    if ((current.search ?? '') === debouncedProductSearch && current.categoryId === categoryId) return;
+    SetProductsQuery({ search: debouncedProductSearch, categoryId, page: 1 });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [debouncedProductSearch, ProductCategoryFilter]);
+  // Pedidos da página atual: busca e status já aplicados no servidor (antes de paginar)
+  const filteredOrders = ordersAdmin;
 
-    return ms && mst;
-  });
+  // Busca/status de pedidos → servidor (a busca espera parar de digitar)
+  const debouncedOrderSearch = useDebouncedValue(orderSearch);
+  useEffect(() => {
+    const current = UseOrderAdminStore.getState().ordersQuery;
+    // Mesmo filtro que já está carregado: não busca de novo
+    if ((current.search ?? '') === debouncedOrderSearch && current.status === orderStatusFilter) return;
+    SetOrdersQuery({ search: debouncedOrderSearch, status: orderStatusFilter, page: 1 });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [debouncedOrderSearch, orderStatusFilter]);
+
   const filteredCupom = cupom.filter(c => {
     // Pesquisa pelo código do cupom
     const matchSearch =
@@ -627,34 +631,26 @@ export default function AdminPage() {
     return matchSearch && matchStatus;
   });
 
-  const logTypes = Array.from(new Set(logs.map(item => item.tipo).filter(Boolean))).sort();
-  const logLevels = Array.from(new Set(logs.map(item => item.nivel).filter(Boolean))).sort();
-  const filteredLogs = logs
-    .filter(item => {
-      const search = logSearch.trim().toLowerCase();
-      const matchesSearch = !search || [item.log, item.acao, item.info, item.tipo, item.nivel, String(item.id_User)]
-        .some(value => String(value ?? '').toLowerCase().includes(search));
-      const matchesType = logTypeFilter === 'all' || item.tipo === logTypeFilter;
-      const matchesLevel = logLevelFilter === 'all' || item.nivel === logLevelFilter;
+  // Movimentação: tipos, níveis e contadores vêm do servidor (sobre todos os logs)
+  const logTypes = logsSummary.types.map(item => item.tipo);
+  const logLevels = logsSummary.levels;
+  const logTypeCount = (type: string) => logsSummary.types.find(item => item.tipo === type)?.count ?? 0;
 
-      const date = new Date(item.insertDate);
-      const now = new Date();
-      const startToday = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
-      const elapsedDays = (now.getTime() - date.getTime()) / 86400000;
-      const matchesPeriod = logPeriodFilter === 'all'
-        || (logPeriodFilter === 'today' && date.getTime() >= startToday)
-        || (logPeriodFilter === '7days' && elapsedDays <= 7)
-        || (logPeriodFilter === '30days' && elapsedDays <= 30);
+  // Logs da página atual: busca, tipo, nível e período já aplicados no servidor (antes de paginar)
+  const filteredLogs = logs;
 
-      return matchesSearch && matchesType && matchesLevel && matchesPeriod;
-    })
-    .sort((a, b) => new Date(b.insertDate).getTime() - new Date(a.insertDate).getTime());
+  const logsToday = logsSummary.today;
 
-  const logsToday = logs.filter(item => {
-    const date = new Date(item.insertDate);
-    const now = new Date();
-    return date.toDateString() === now.toDateString();
-  }).length;
+  // Filtros da movimentação → servidor (a busca espera parar de digitar)
+  const debouncedLogSearch = useDebouncedValue(logSearch);
+  useEffect(() => {
+    const current = UseOrderAdminStore.getState().logsQuery;
+    // Mesmo filtro que já está carregado: não busca de novo
+    if ((current.search ?? '') === debouncedLogSearch && current.type === logTypeFilter
+      && current.level === logLevelFilter && current.period === logPeriodFilter) return;
+    SetLogsQuery({ search: debouncedLogSearch, type: logTypeFilter, level: logLevelFilter, period: logPeriodFilter, page: 1 });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [debouncedLogSearch, logTypeFilter, logLevelFilter, logPeriodFilter]);
 
 
 
@@ -871,13 +867,12 @@ export default function AdminPage() {
   ];
   const [selectedStatus, setSelectedStatus] = useState('all');
 
-  const filteredOrdersStatus =
-    (selectedStatus === 'all'
-      ? ordersAdmin
-      : ordersAdmin.filter(order => order.order_Status === selectedStatus)
-    ).sort((a, b) =>
-      new Date(b.insertDate).getTime() - new Date(a.insertDate).getTime()
-    );
+  // 5 pedidos mais recentes do status escolhido (buscados no servidor)
+  const filteredOrdersStatus = recentOrders;
+  useEffect(() => {
+    LoadRecentOrders(selectedStatus);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedStatus]);
   return (
     <div className={`min-h-screen flex font-body ${bg}`}>
 
@@ -992,7 +987,7 @@ export default function AdminPage() {
                   <GraficoDay data={Controller?.action.generateLast7DaysOrders().map(item => ({ day: item.day, value: item.total })) ?? []} labels={revenueLabels} color="#f97316" darkMode={dk} valor={true} />
                 </div>
                 <div className={`rounded-2xl border p-4 md:p-5 ${card} flex flex-col`}>
-                  <h3 className={`font-display font-bold text-sm ${txt} mb-4`}>Status dos Pedidos</h3>
+                  <h3 className={`font-display font-bold text-sm ${txt} mb-4`}>Status dos Pedidos Mês Atual</h3>
                   <div className="flex items-center gap-3 flex-1">
                     <GraficoMediaCIrcule
                       segments={Controller?.action.generateCurrentMonthOrderDonut() ?? []}
@@ -1508,13 +1503,13 @@ export default function AdminPage() {
                       {
                         Filtro: 'Todos',
                         Category: 'all',
-                        Quantity: filteredProductsCategory.length,
+                        Quantity: productsSearchTotal,
                         icon: ShoppingBag,
                       },
                       ...Category.map(c => ({
                         Filtro: c.category.charAt(0).toUpperCase() + c.category.slice(1).toLowerCase(),
                         Category: c.id,
-                        Quantity: filteredProductsCategory.filter(p => p.id_category === c.id).length,
+                        Quantity: productCategoryCount(c.id),
                         icon: ShoppingBag,
                       })),
 
@@ -1972,6 +1967,19 @@ export default function AdminPage() {
                     );
                   })}
                 </div>
+              </div>
+
+              {/* PAGINAÇÃO (busca e categoria aplicadas no servidor antes de paginar) */}
+              <div className={`rounded-[24px] border px-4 py-4 md:px-6 mt-4 ${card}`}>
+                <PaginationFooter
+                  darkMode={dk}
+                  page={productsQuery.page}
+                  pageSize={productsQuery.pageSize}
+                  total={productsTotal}
+                  loading={productsLoading}
+                  onPageChange={(page) => SetProductsQuery({ page })}
+                  onPageSizeChange={(pageSize) => SetProductsQuery({ pageSize, page: 1 })}
+                />
               </div>
             </>
           )}
@@ -2805,44 +2813,44 @@ export default function AdminPage() {
                       {
                         v: 'all',
                         l: 'Todos',
-                        n: ordersAdmin.length,
+                        n: ordersSummary.total,
                         icon: ShoppingBag,
                       },
                       {
                         v: 'PENDENTE',
                         l: 'Pendentes',
-                        n: ordersAdmin.filter(o => o.order_Status === 'PENDENTE').length,
+                        n: ordersSummary.byStatus['PENDENTE'] ?? 0,
                         icon: Clock,
                       },
                       {
                         v: 'CONFIRMADO',
                         l: 'Confirmados',
-                        n: ordersAdmin.filter(o => o.order_Status === 'CONFIRMADO').length,
+                        n: ordersSummary.byStatus['CONFIRMADO'] ?? 0,
                         icon: CheckCircle2,
                       },
 
                       {
                         v: 'PREPARANDO',
                         l: 'Preparando',
-                        n: ordersAdmin.filter(o => o.order_Status === 'PREPARANDO').length,
+                        n: ordersSummary.byStatus['PREPARANDO'] ?? 0,
                         icon: Package,
                       },
                       {
                         v: 'SAIU_PARA_ENTREGA',
                         l: 'Em rota',
-                        n: ordersAdmin.filter(o => o.order_Status === 'SAIU_PARA_ENTREGA').length,
+                        n: ordersSummary.byStatus['SAIU_PARA_ENTREGA'] ?? 0,
                         icon: Truck,
                       },
                       {
                         v: 'ENTREGUE',
                         l: 'Entregues',
-                        n: ordersAdmin.filter(o => o.order_Status === 'ENTREGUE').length,
+                        n: ordersSummary.byStatus['ENTREGUE'] ?? 0,
                         icon: BadgeCheck,
                       },
                       {
                         v: 'CANCELADO',
                         l: 'Cancelados',
-                        n: ordersAdmin.filter(o => o.order_Status === 'CANCELADO').length,
+                        n: ordersSummary.byStatus['CANCELADO'] ?? 0,
                         icon: CircleX,
                       },
                     ].map(s => {
@@ -3720,6 +3728,19 @@ export default function AdminPage() {
                 ))}
 
               </div>
+
+              {/* PAGINAÇÃO (busca e status aplicados no servidor antes de paginar) */}
+              <div className={`rounded-[24px] border px-4 py-4 md:px-6 ${card}`}>
+                <PaginationFooter
+                  darkMode={dk}
+                  page={ordersQuery.page}
+                  pageSize={ordersQuery.pageSize}
+                  total={ordersTotal}
+                  loading={ordersLoading}
+                  onPageChange={(page) => SetOrdersQuery({ page })}
+                  onPageSizeChange={(pageSize) => SetOrdersQuery({ pageSize, page: 1 })}
+                />
+              </div>
             </div>
           )}
 
@@ -4205,10 +4226,10 @@ export default function AdminPage() {
 
               <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
                 {[
-                  { label: 'Total registrado', value: logs.length, icon: Activity, color: 'text-violet-400 bg-violet-500/10 border-violet-500/20' },
+                  { label: 'Total registrado', value: logsSummary.total, icon: Activity, color: 'text-violet-400 bg-violet-500/10 border-violet-500/20' },
                   { label: 'Movimentações hoje', value: logsToday, icon: CalendarDays, color: 'text-blue-400 bg-blue-500/10 border-blue-500/20' },
-                  { label: 'Acessos', value: logs.filter(item => item.tipo?.toLowerCase() === 'acesso').length, icon: User, color: 'text-emerald-400 bg-emerald-500/10 border-emerald-500/20' },
-                  { label: 'Administrativas', value: logs.filter(item => item.nivel?.toUpperCase() === 'ADMIN').length, icon: ShieldAlert, color: 'text-amber-400 bg-amber-500/10 border-amber-500/20' },
+                  { label: 'Acessos', value: logsSummary.acessos, icon: User, color: 'text-emerald-400 bg-emerald-500/10 border-emerald-500/20' },
+                  { label: 'Administrativas', value: logsSummary.administrativas, icon: ShieldAlert, color: 'text-amber-400 bg-amber-500/10 border-amber-500/20' },
                 ].map(summary => (
                   <div key={summary.label} className={`rounded-2xl border p-4 ${card}`}>
                     <div className={`flex h-9 w-9 items-center justify-center rounded-xl border ${summary.color}`}><summary.icon className="h-4 w-4" /></div>
@@ -4225,10 +4246,10 @@ export default function AdminPage() {
                     <p className={`text-xs font-bold ${txt}`}>Eventos por tipo</p>
                   </div>
                   <div className="flex flex-wrap gap-2">
-                    <button onClick={() => setLogTypeFilter('all')} className={`rounded-xl border px-3 py-2 text-[11px] font-bold transition-all ${logTypeFilter === 'all' ? 'border-brand-500 bg-brand-500 text-white' : `${bord} ${txt2}`}`}>Todos ({logs.length})</button>
+                    <button onClick={() => setLogTypeFilter('all')} className={`rounded-xl border px-3 py-2 text-[11px] font-bold transition-all ${logTypeFilter === 'all' ? 'border-brand-500 bg-brand-500 text-white' : `${bord} ${txt2}`}`}>Todos ({logsSummary.total})</button>
                     {logTypes.map(type => (
                       <button key={type} onClick={() => setLogTypeFilter(type)} className={`rounded-xl border px-3 py-2 text-[11px] font-bold transition-all ${logTypeFilter === type ? 'border-brand-500 bg-brand-500 text-white' : `${bord} ${txt2}`}`}>
-                        {type} ({logs.filter(item => item.tipo === type).length})
+                        {type} ({logTypeCount(type)})
                       </button>
                     ))}
                   </div>
@@ -4284,7 +4305,7 @@ export default function AdminPage() {
                     </button>
                   </div>
                 </div>
-                <p className={`mt-3 text-[10px] ${sub}`}>{filteredLogs.length} de {logs.length} registros encontrados</p>
+                <p className={`mt-3 text-[10px] ${sub}`}>{logsTotal} de {logsSummary.total} registros encontrados</p>
               </div>
 
               <div className="space-y-3">
@@ -4450,6 +4471,19 @@ export default function AdminPage() {
                     <p className={`mt-1 text-xs ${sub}`}>Altere ou limpe os filtros para visualizar outros registros.</p>
                   </div>
                 )}
+              </div>
+
+              {/* PAGINAÇÃO (filtros aplicados no servidor antes de paginar) */}
+              <div className={`rounded-[24px] border px-4 py-4 md:px-6 ${card}`}>
+                <PaginationFooter
+                  darkMode={dk}
+                  page={logsQuery.page}
+                  pageSize={logsQuery.pageSize}
+                  total={logsTotal}
+                  loading={logsLoading}
+                  onPageChange={(page) => SetLogsQuery({ page })}
+                  onPageSizeChange={(pageSize) => SetLogsQuery({ pageSize, page: 1 })}
+                />
               </div>
             </div>
           )}

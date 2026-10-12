@@ -7,6 +7,7 @@ using Mercado.Craibas.Application.DTOs.Responses;
 using Mercado.Craibas.Application.InterfacesAdmin;
 using Mercado.Craibas.Application.InterfacesAdmin.Services;
 
+using Microsoft.EntityFrameworkCore;
 namespace Mercado.Craibas.Application.ServicesAdmin
 {
     /// <summary>
@@ -38,9 +39,160 @@ namespace Mercado.Craibas.Application.ServicesAdmin
                 .GroupBy(x => x.ParentRecordId!.Value)
                 .ToDictionary(g => g.Key, g => g.ToList());
 
+            var response = BuildItems(parents, childrenByParent, await LoadOwnersAsync(parents));
+
+            return Result<List<TrashItemResponse>>.Success(response);
+        }
+
+        // ═════════════════════════ PAGINAÇÃO ═════════════════════════
+
+        /// <summary>
+        /// Lixeira paginada. Mesmas regras da tela:
+        /// - tipo: USER, ADDRESS, PRODUCT, CATEGORY, COUPON, ORDER (pedido + item) ou OTHER (o resto);
+        /// - busca: nome, dono (nome/e-mail/perfil), id, motivo, quem excluiu e os dados salvos;
+        /// - ordem: excluídos mais recentes primeiro.
+        /// Filtros aplicados antes de paginar.
+        /// </summary>
+        public async Task<Result<PagedResult<TrashItemResponse>>> GetTrashPagedAsync(int page, int pageSize, string? search, string? filter)
+        {
+            page = Paging.Page(page);
+            pageSize = Paging.Size(pageSize);
+
+            var query = ApplyTypeFilter(
+                _unitOfWorkAdmin.Query<DeletionRecords>()
+                    .AsNoTracking()
+                    .Where(x => x.Status == DeletionRecordStatusEnum.Deleted && x.ParentRecordId == null),
+                filter);
+
+            var ordered = query.OrderByDescending(x => x.DeletedAt).ThenBy(x => x.Id);
+            var term = search?.Trim().ToLowerInvariant();
+
+            // Sem busca: pagina direto no banco
+            if (string.IsNullOrEmpty(term))
+            {
+                var total = await query.CountAsync();
+                var pageParents = await ordered.Skip((page - 1) * pageSize).Take(pageSize).ToListAsync();
+
+                var items = await BuildPageAsync(pageParents);
+                return Result<PagedResult<TrashItemResponse>>.Success(new PagedResult<TrashItemResponse>(items, total, page, pageSize));
+            }
+
+            // Com busca: a busca olha os dados salvos (snapshot) do mesmo jeito que a tela fazia,
+            // então o filtro de texto é aplicado aqui e só a página é enviada.
+            var parents = await ordered.ToListAsync();
             var owners = await LoadOwnersAsync(parents);
 
-            var response = parents
+            var matches = parents
+                .Select(parent => new { Parent = parent, Item = Map(parent, owners) })
+                .Where(x => MatchesSearch(x.Item, term))
+                .Select(x => x.Parent)
+                .ToList();
+
+            var slice = matches.Skip((page - 1) * pageSize).Take(pageSize).ToList();
+            var pageItems = await BuildPageAsync(slice, owners);
+
+            return Result<PagedResult<TrashItemResponse>>.Success(new PagedResult<TrashItemResponse>(pageItems, matches.Count, page, pageSize));
+        }
+
+        /// <summary>Cards da Lixeira (sobre todos os itens excluídos).</summary>
+        public async Task<Result<TrashSummaryResponse>> GetTrashSummaryAsync()
+        {
+            var types = await _unitOfWorkAdmin.Query<DeletionRecords>()
+                .AsNoTracking()
+                .Where(x => x.Status == DeletionRecordStatusEnum.Deleted && x.ParentRecordId == null)
+                .Select(x => x.EntityType)
+                .ToListAsync();
+
+            return Result<TrashSummaryResponse>.Success(new TrashSummaryResponse
+            {
+                Total = types.Count,
+                Users = types.Count(x => x == EntityTypeDelete.Users),
+                Addresses = types.Count(x => x == EntityTypeDelete.Address),
+                Orders = types.Count(x => x == EntityTypeDelete.Order || x == EntityTypeDelete.OrderItem)
+            });
+        }
+
+        private static readonly EntityTypeDelete?[] MainTypes =
+        {
+            EntityTypeDelete.Users,
+            EntityTypeDelete.Address,
+            EntityTypeDelete.Product,
+            EntityTypeDelete.Category,
+            EntityTypeDelete.Coupon,
+            EntityTypeDelete.Order,
+            EntityTypeDelete.OrderItem
+        };
+
+        private static IQueryable<DeletionRecords> ApplyTypeFilter(IQueryable<DeletionRecords> query, string? filter) => filter switch
+        {
+            "USER" => query.Where(x => x.EntityType == EntityTypeDelete.Users),
+            "ADDRESS" => query.Where(x => x.EntityType == EntityTypeDelete.Address),
+            "PRODUCT" => query.Where(x => x.EntityType == EntityTypeDelete.Product),
+            "CATEGORY" => query.Where(x => x.EntityType == EntityTypeDelete.Category),
+            "COUPON" => query.Where(x => x.EntityType == EntityTypeDelete.Coupon),
+            "ORDER" => query.Where(x => x.EntityType == EntityTypeDelete.Order || x.EntityType == EntityTypeDelete.OrderItem),
+            "OTHER" => query.Where(x => x.EntityType == null || !MainTypes.Contains(x.EntityType)),
+            _ => query
+        };
+
+        /// <summary>Mesma busca que a tela fazia (texto em minúsculas contido em algum campo).</summary>
+        private static bool MatchesSearch(TrashItemResponse item, string term)
+        {
+            static bool Has(string? value, string t) => value != null && value.ToLowerInvariant().Contains(t);
+
+            if (Has(item.EntityName, term) || Has(item.UserName, term) || Has(item.UserEmail, term) || Has(item.UserRole, term)
+                || item.Id.ToString().Contains(term) || Has(item.Reason, term) || Has(item.DeletedByName, term))
+                return true;
+
+            if (item.Data == null)
+                return false;
+
+            var relaxed = new System.Text.Json.JsonSerializerOptions
+            {
+                Encoder = System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping
+            };
+
+            var dataText = string.Join(" ", item.Data.Values.Select(value => value.ValueKind switch
+            {
+                System.Text.Json.JsonValueKind.String => value.GetString() ?? string.Empty,
+                System.Text.Json.JsonValueKind.Null or System.Text.Json.JsonValueKind.Undefined => string.Empty,
+                System.Text.Json.JsonValueKind.True => "true",
+                System.Text.Json.JsonValueKind.False => "false",
+                System.Text.Json.JsonValueKind.Object or System.Text.Json.JsonValueKind.Array => System.Text.Json.JsonSerializer.Serialize(value, relaxed),
+                _ => value.GetRawText()
+            })).ToLowerInvariant();
+
+            return dataText.Contains(term);
+        }
+
+        /// <summary>Monta os itens de uma página (com o que foi excluído junto).</summary>
+        private async Task<List<TrashItemResponse>> BuildPageAsync(
+            List<DeletionRecords> parents,
+            Dictionary<(string Role, int Id), OwnerInfo>? owners = null)
+        {
+            if (parents.Count == 0)
+                return new List<TrashItemResponse>();
+
+            var parentIds = parents.Select(x => x.Id).ToList();
+
+            var children = await _unitOfWorkAdmin.GetClassListAsyncWhere<DeletionRecords>(
+                x => x.Status == DeletionRecordStatusEnum.Deleted && x.ParentRecordId != null && parentIds.Contains(x.ParentRecordId.Value));
+
+            var childrenByParent = children
+                .GroupBy(x => x.ParentRecordId!.Value)
+                .ToDictionary(g => g.Key, g => g.ToList());
+
+            owners ??= await LoadOwnersAsync(parents);
+
+            return BuildItems(parents, childrenByParent, owners);
+        }
+
+        private static List<TrashItemResponse> BuildItems(
+            List<DeletionRecords> parents,
+            Dictionary<int, List<DeletionRecords>> childrenByParent,
+            Dictionary<(string Role, int Id), OwnerInfo> owners)
+        {
+            return parents
                 .Select(parent =>
                 {
                     var children = childrenByParent.GetValueOrDefault(parent.Id) ?? new List<DeletionRecords>();
@@ -57,8 +209,6 @@ namespace Mercado.Craibas.Application.ServicesAdmin
                     return item;
                 })
                 .ToList();
-
-            return Result<List<TrashItemResponse>>.Success(response);
         }
 
         // ───────────────────────── RESTAURAR ─────────────────────────
