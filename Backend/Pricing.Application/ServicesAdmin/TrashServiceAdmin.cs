@@ -549,7 +549,7 @@ namespace Mercado.Craibas.Application.ServicesAdmin
                 Id_User = adminId,
                 Log = $"O administrador {nome} {detalhe}.\nData/Hora: {now:dd/MM/yyyy HH:mm:ss}",
                 Tipo = "LIXEIRA",
-                Nivel = "Admin",
+                Nivel = "ADMIN",
                 Acao = acao,
                 Info = $"{nome} {detalhe} em {now:dd/MM/yyyy HH:mm}.",
                 InsertDate = now

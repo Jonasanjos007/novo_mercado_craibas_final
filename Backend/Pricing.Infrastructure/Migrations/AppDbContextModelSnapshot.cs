@@ -1646,6 +1646,128 @@ namespace Mercado.Craibas.Infrastructure.Migrations
                     b.ToTable("NotificationUsers", (string)null);
                 });
 
+            modelBuilder.Entity("Mercado.Craibas.Application.Domain.Entities.Payment_Transactions", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<decimal>("Amount")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<string>("Card_Brand")
+                        .HasMaxLength(30)
+                        .HasColumnType("nvarchar(30)");
+
+                    b.Property<string>("Card_Last_Four")
+                        .HasMaxLength(4)
+                        .HasColumnType("nvarchar(4)");
+
+                    b.Property<string>("Error_Message")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<DateTime?>("Expires_At")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("External_Reference")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("nvarchar(64)");
+
+                    b.Property<int>("Id_Order")
+                        .HasColumnType("int");
+
+                    b.Property<int>("Id_User_Customer")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Idempotency_Key")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("nvarchar(64)");
+
+                    b.Property<DateTime>("InsertDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int?>("Installments")
+                        .HasColumnType("int");
+
+                    b.Property<bool?>("Isdelete")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("Last_Response")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime?>("Last_Sync_At")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime?>("Last_Webhook_At")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Method")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.Property<DateTime?>("Paid_At")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Pix_Qr_Code")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Pix_Qr_Code_Base64")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Pix_Ticket_Url")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<string>("Provider")
+                        .IsRequired()
+                        .HasMaxLength(30)
+                        .HasColumnType("nvarchar(30)");
+
+                    b.Property<string>("Provider_Order_Id")
+                        .HasMaxLength(64)
+                        .HasColumnType("nvarchar(64)");
+
+                    b.Property<string>("Provider_Payment_Id")
+                        .HasMaxLength(64)
+                        .HasColumnType("nvarchar(64)");
+
+                    b.Property<string>("Provider_Status")
+                        .HasMaxLength(40)
+                        .HasColumnType("nvarchar(40)");
+
+                    b.Property<string>("Provider_Status_Detail")
+                        .HasMaxLength(80)
+                        .HasColumnType("nvarchar(80)");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.Property<DateTime?>("UpdateDate")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Id_Order");
+
+                    b.HasIndex("Idempotency_Key")
+                        .IsUnique();
+
+                    b.HasIndex("Provider_Order_Id");
+
+                    b.HasIndex("Status", "Expires_At");
+
+                    b.ToTable("Payment_Transactions", (string)null);
+                });
+
             modelBuilder.Entity("Mercado.Craibas.Application.Domain.Entities.UserSession", b =>
                 {
                     b.Property<int>("Id")
@@ -2050,6 +2172,17 @@ namespace Mercado.Craibas.Infrastructure.Migrations
                         .IsRequired();
 
                     b.Navigation("Notification");
+                });
+
+            modelBuilder.Entity("Mercado.Craibas.Application.Domain.Entities.Payment_Transactions", b =>
+                {
+                    b.HasOne("Baldan.Pricing.Application.Domain.Entities.Orders", "Orders")
+                        .WithMany()
+                        .HasForeignKey("Id_Order")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Orders");
                 });
 
             modelBuilder.Entity("Baldan.Pricing.Application.Domain.Entities.Address", b =>

@@ -654,50 +654,41 @@ export default function CheckoutPage() {
               </div>
 
               {Controller?.result.payment === 'pix' && (
-                <div className="p-5 bg-green-50 rounded-2xl border border-green-200 text-center animate-fade-in">
-                  <div className="w-32 h-32 bg-white rounded-2xl mx-auto flex items-center justify-center mb-3 shadow-soft">
-                    <div className="grid grid-cols-5 gap-0.5">
-                      {Array.from({ length: 25 }).map((_, i) => (
-                        <div key={i} className={`w-4 h-4 rounded-sm ${Math.random() > 0.5 ? 'bg-surface-900' : 'bg-white'}`} />
-                      ))}
+                <div className="rounded-2xl border border-surface-100 bg-surface-50/70 p-5 animate-fade-in">
+                  <div className="flex items-start gap-3">
+                    <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0" style={{ color: colorConfig.hex, backgroundColor: `${colorConfig.hex}14` }}>
+                      <Zap className="w-5 h-5" />
+                    </div>
+                    <div className="min-w-0">
+                      <p className="font-display font-bold text-surface-900">PIX com aprovação na hora</p>
+                      <p className="text-sm text-surface-500 mt-0.5">
+                        Ao confirmar, geramos um QR Code exclusivo e o código copia e cola. O PIX vale por 24 horas e o pedido é confirmado assim que o banco aprovar.
+                      </p>
                     </div>
                   </div>
-                  <p className="font-display font-bold text-green-700 text-lg">{formatPrice(cart.subTotal ?? 0)}</p>
-                  <p className="text-green-600 font-body text-sm mt-1">Escaneie o QR Code ou copie a chave PIX</p>
-                  <div className="mt-3 flex items-center gap-2 bg-white rounded-xl p-2 border border-green-200">
-                    <span className="flex-1 text-xs text-surface-500 font-body truncate">00020126580014br.gov.bcb.pix0136...</span>
-                    <button className="px-3 py-1 bg-green-500 text-white text-xs font-display font-bold rounded-lg">Copiar</button>
+                  <div className="mt-4 flex items-center justify-between rounded-xl bg-white border border-surface-100 px-4 py-3">
+                    <span className="text-sm text-surface-500">Total no PIX</span>
+                    <span className="font-display font-bold text-surface-900 text-lg">{formatPrice(cart.subTotal ?? 0)}</span>
                   </div>
                 </div>
               )}
 
               {Controller?.result.payment === 'credit' && (
-                <div className="space-y-3 animate-fade-in">
-                  <div>
-                    <label className="block text-xs font-display font-semibold text-surface-600 mb-1.5">Número do cartão</label>
-                    <input value={cardData.number} onChange={e => setCardData({ ...cardData, number: e.target.value })}
-                      placeholder="0000 0000 0000 0000" maxLength={19}
-                      className="w-full px-3 py-2.5 border-2 border-surface-200 rounded-xl font-body text-sm focus:outline-none focus:border-brand-400 transition-colors" />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-display font-semibold text-surface-600 mb-1.5">Nome no cartão</label>
-                    <input value={cardData.name} onChange={e => setCardData({ ...cardData, name: e.target.value })}
-                      placeholder="JOÃO SILVA"
-                      className="w-full px-3 py-2.5 border-2 border-surface-200 rounded-xl font-body text-sm focus:outline-none focus:border-brand-400 transition-colors" />
-                  </div>
-                  <div className="grid grid-cols-2 gap-3">
-                    <div>
-                      <label className="block text-xs font-display font-semibold text-surface-600 mb-1.5">Validade</label>
-                      <input value={cardData.expiry} onChange={e => setCardData({ ...cardData, expiry: e.target.value })}
-                        placeholder="MM/AA" maxLength={5}
-                        className="w-full px-3 py-2.5 border-2 border-surface-200 rounded-xl font-body text-sm focus:outline-none focus:border-brand-400 transition-colors" />
+                <div className="rounded-2xl border border-surface-100 bg-surface-50/70 p-5 animate-fade-in">
+                  <div className="flex items-start gap-3">
+                    <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0" style={{ color: colorConfig.hex, backgroundColor: `${colorConfig.hex}14` }}>
+                      <Lock className="w-5 h-5" />
                     </div>
-                    <div>
-                      <label className="block text-xs font-display font-semibold text-surface-600 mb-1.5">CVV</label>
-                      <input value={cardData.cvv} onChange={e => setCardData({ ...cardData, cvv: e.target.value })}
-                        placeholder="123" maxLength={3}
-                        className="w-full px-3 py-2.5 border-2 border-surface-200 rounded-xl font-body text-sm focus:outline-none focus:border-brand-400 transition-colors" />
+                    <div className="min-w-0">
+                      <p className="font-display font-bold text-surface-900">Cartão de crédito ou débito</p>
+                      <p className="text-sm text-surface-500 mt-0.5">
+                        Na próxima tela você preenche o cartão no formulário seguro do Mercado Pago e escolhe as parcelas. Os dados do cartão não ficam salvos no site.
+                      </p>
                     </div>
+                  </div>
+                  <div className="mt-4 flex items-center justify-between rounded-xl bg-white border border-surface-100 px-4 py-3">
+                    <span className="text-sm text-surface-500">Total no cartão</span>
+                    <span className="font-display font-bold text-surface-900 text-lg">{formatPrice(cart.subTotal ?? 0)}</span>
                   </div>
                 </div>
               )}
@@ -715,7 +706,7 @@ export default function CheckoutPage() {
                   disabled={Controller?.result.loading}
                   className={`flex-1 py-3.5 ${ColorGlobalTema} hover:bg-green-700 disabled:bg-green-300 text-white font-display font-bold rounded-xl transition-all  flex items-center justify-center gap-2`}
                 >
-                  {Controller?.result.loading ? <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <><Check className="w-4 h-4" /> Confirmar Pedido</>}
+                  {Controller?.result.loading ? <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <><Check className="w-4 h-4" /> {Controller?.result.payment === 'pix' ? 'Confirmar e gerar PIX' : 'Confirmar e pagar com cartão'}</>}
                 </button>
               </div>
 

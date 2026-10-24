@@ -292,7 +292,7 @@ namespace Mercado.Craibas.Application.Services
             await _unitOfWork.InsertAsyncReturnId<Logs>(new Logs
             {
                 Id_User = deliveryId,
-                Nivel = "Delivery",
+                Nivel = "DELIVERY",
                 Tipo = acao == "Entregou o pedido" ? "ENTREGUE" : "PEDIDO SAIU PARA ENTREGA",
                 Acao = acao,
                 Info = info,

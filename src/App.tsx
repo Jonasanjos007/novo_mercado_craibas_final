@@ -6,6 +6,7 @@ import HomePage from './pages/HomePage';
 import AuthPage from './pages/AuthPage';
 import CheckoutPage from './pages/CheckoutPage';
 import OrdersPage from './pages/OrdersPage';
+import PaymentPage from './pages/PaymentPage';
 import CategoryPage from './pages/CategoryPage';
 import WishlistPage from './pages/WishlistPage';
 import FlashSalePage from './pages/FlashSalePage';
@@ -72,6 +73,7 @@ const {expired,modalType} = useSessionStore();
           <Route path="/category/:id" element={<CategoryPage />} />
           <Route path="/about" element={<AboutPage />} />
           <Route path="/search/:search" element={<CategoryPage />} />
+          <Route path="/search" element={<CategoryPage key="search" />} />
         </Route>
 
         <Route element={<ProtectedRoute allowedRoles={["CLIENTE"]} />}>
@@ -79,6 +81,7 @@ const {expired,modalType} = useSessionStore();
           <Route path="/addressPage/:Boleano" element={<AddressPage />} />
           <Route path="/profile" element={<ProfilePage />} />
           <Route path="/orders" element={<OrdersPage />} />
+          <Route path="/payment/:orderId" element={<PaymentPage />} />
 
           <Route element={<MainLayout />}>
             <Route path="/notifications" element={<NotificationsPage />} />

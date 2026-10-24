@@ -18,7 +18,11 @@ export const AuthRedirect = () => {
         const cleanHomePath = homePath.replace(/\/\//g, '/');
 
         const isPublicRoute = location.pathname === '/' || location.pathname === '/login';
-        const isAlreadyAtDestination = location.pathname.startsWith(cleanHomePath);
+        // Página inicial "/" (cliente e admin): só está no destino se estiver exatamente em "/".
+        // Antes, "/login".startsWith("/") era verdadeiro e o usuário logado ficava na tela de login.
+        const isAlreadyAtDestination = cleanHomePath === '/'
+            ? location.pathname === '/'
+            : location.pathname.startsWith(cleanHomePath);
 
         if (isPublicRoute && !isAlreadyAtDestination) {
             navigate(cleanHomePath, { replace: true });

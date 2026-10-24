@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { ShoppingCart, Search, User, Menu, X, ChevronDown, Package, LayoutDashboard, Truck, LogOut, Heart, Moon, Sun, Bell } from 'lucide-react';
 import { useStore } from '../context/store';
 import { categoryLabels, categoryIcons } from '../utils';
-import { Await, useNavigate } from 'react-router-dom';
+import { Await, useLocation, useNavigate } from 'react-router-dom';
 import { SlidersHorizontal } from 'lucide-react';
 import { Filter } from 'lucide-react';
 import { UseRouteStore } from '../store/UseRouteStore';
@@ -15,6 +15,9 @@ import { buildClientNotifications } from '../models/ClientNotification';
 import { UseNotificationAdmin } from '../storeAdmin/UseNotificationAdmin';
 import { useAuthStore } from '../context/AuthContext';
 import { UseUserAdminStore } from '../storeAdmin/UseUserAdminStore';
+import { useSearchAutocompleteController } from '../controller/useSearchAutocompleteController';
+import SearchAutocompletePanel, { SEARCH_LISTBOX_ID } from './SearchAutocompletePanel';
+import { SEARCH_MAX_LENGTH } from '../models/Search';
 export default function Header() {
   const navigate = useNavigate();
   const { searchQuery, setSearchQuery, wishlist } = useStore();
@@ -35,7 +38,16 @@ export default function Header() {
   const unreadNotifications = Notification.filter(item => item.isRead === false).length;
 
   const wishCount = wishlist.length;
-  const handleSearch = (e: React.FormEvent) => { e.preventDefault(); if (searchQuery.trim()) navigate('/search/search'); };
+  const location = useLocation();
+  const Search_ = useSearchAutocompleteController({ term: searchQuery, setTerm: setSearchQuery });
+  const handleSearch = (e: React.FormEvent) => { e.preventDefault(); Search_.action.submit(); };
+
+  // O campo mostra o termo da URL na página de resultados (recarregar, voltar e avançar).
+  useEffect(() => {
+    if (location.pathname === '/search') {
+      setSearchQuery(new URLSearchParams(location.search).get('q') ?? '');
+    }
+  }, [location.pathname, location.search]);
 
   useEffect(() => {
   let cancelled = false;
@@ -183,24 +195,55 @@ useEffect(() => {
 
         <form
           onSubmit={handleSearch}
+          role="search"
           className="order-3 w-full py-2 md:order-none md:flex-1 md:max-w-2xl md:mx-auto"
         >
+          <div ref={Search_.result.containerRef} className="relative">
           <div className="flex items-center bg-white rounded-xl overflow-hidden ring-1 ring-surface-700 focus-within:ring-2 focus-within:ring-[var(--color)] transition-all"
             style={{ "--color": colorConfig.hex, } as React.CSSProperties}>
             <input
+              ref={Search_.result.inputRef}
               type="text"
               value={searchQuery}
-              onChange={e => setSearchQuery(e.target.value)}
+              onChange={e => Search_.action.onInputChange(e.target.value)}
+              onFocus={Search_.action.onFocus}
+              onKeyDown={Search_.action.onKeyDown}
+              maxLength={SEARCH_MAX_LENGTH}
+              role="combobox"
+              aria-label="Buscar produtos"
+              aria-autocomplete="list"
+              aria-expanded={Search_.result.open}
+              aria-controls={SEARCH_LISTBOX_ID}
+              aria-activedescendant={Search_.result.activeOption?.id}
+              autoComplete="off"
+              enterKeyHint="search"
               placeholder="Buscar produtos, marcas..."
               className="flex-1 px-4 py-2.5 text-sm font-body text-surface-800 bg-transparent outline-none placeholder:text-surface-400"
             />
 
             <button
               type="submit"
+              aria-label="Buscar"
               className={`p-[14px] ${ColorGlobalTema} ${ColorGlobalHover} text-white transition-colors`}
             >
               <Search className="w-4 h-4" />
             </button>
+          </div>
+
+          {Search_.result.open && (
+            <SearchAutocompletePanel
+              term={searchQuery}
+              status={Search_.result.status}
+              data={Search_.result.data}
+              options={Search_.result.options}
+              activeIndex={Search_.result.activeIndex}
+              accentHex={colorConfig.hex}
+              onSelect={Search_.action.selectOption}
+              onHover={Search_.action.setActiveIndex}
+              onRetry={Search_.action.retry}
+            />
+          )}
+          <span className="sr-only" role="status" aria-live="polite">{Search_.result.liveMessage}</span>
           </div>
         </form>
 

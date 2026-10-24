@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { Bell, CalendarDays, Check, CheckCheck, ChevronRight, CircleCheck, CircleX, Clock, Clock3, CreditCard, History, Package, PackageCheck, Search, ShoppingCart, Truck, Lock } from 'lucide-react';
+import { Bell, CalendarDays, Check, CheckCheck, ChevronRight, CircleCheck, CircleX, Clock, Clock3, CreditCard, History, Package, PackageCheck, Search, ShoppingCart, Truck, Lock, QrCode, TimerOff, RotateCcw, AlertTriangle } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { buildClientNotifications, ClientNotificationKind } from '../models/ClientNotification';
 import { UseOrderStore } from '../store/UseOrderStore';
@@ -62,7 +62,7 @@ export default function NotificationsPage() {
 
 
   const weekDays = useMemo(() => Array.from({ length: 7 }, (_, index) => { const date = new Date(); date.setHours(0, 0, 0, 0); date.setDate(date.getDate() - index); return date; }), []);
-  const notificationIcons = { CircleCheck, Package, Truck, PackageCheck, CircleX, Bell, ShoppingCart, Clock, Lock };
+  const notificationIcons = { CircleCheck, Package, Truck, PackageCheck, CircleX, Bell, ShoppingCart, Clock, Lock, QrCode, TimerOff, RotateCcw, AlertTriangle };
 
   const filtered = useMemo(() => notifications.filter(item => {
     const date = new Date(item.insertDate);

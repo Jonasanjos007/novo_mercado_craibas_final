@@ -159,6 +159,16 @@ public class EmailService : IEmailService
                 statusIcone = "❌";
                 break;
 
+            case "PAGAMENTO_EXPIRADO":
+                statusTitulo = "O prazo do PIX terminou";
+                statusDescricao =
+                    "O PIX deste pedido venceu sem pagamento. Você pode gerar um novo PIX ou pagar com cartão em Meus pedidos.";
+                statusCor = "#b45309";
+                statusFundo = "#fffbeb";
+                statusBorda = "#fde68a";
+                statusIcone = "⌛";
+                break;
+
             default:
                 statusTitulo = "Atualização do seu pedido";
                 statusDescricao =

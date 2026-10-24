@@ -11,13 +11,15 @@ import { CartItensProduct } from "../models/CartItensProduct";
 import { UseCartStore } from "./UseCartStore";
 import { OrderServiceAdmin } from "../adminService/OrderServiceAdmin";
 import { UseProductStore } from "./UseProductStore";
+import { OrderCreated } from "../models/Payment";
 
 interface OrderState {
     LoadCupons: () => Promise<Result<boolean>>;
     Cupons: Cupom[];
     orders: Order[];
     Category: Category[];
-    SaveOrderUser: (Order: OrderSave) => Promise<Result<CartItensProduct | null>>;
+    /** Cria o pedido PENDENTE e devolve o id para seguir ao pagamento. */
+    SaveOrderUser: (Order: OrderSave) => Promise<Result<OrderCreated | null>>;
     LoadOrders: () => Promise<Result<boolean>>;
     LoadCategory: () => Promise<Result<boolean>>;
     PostRating: (formData: FormData) => Promise<Result<boolean>>;

@@ -355,6 +355,19 @@ export default function OrdersPage() {
                       </div>
 
                     </div>
+
+                    {/* Pagar (PIX ou cartão) */}
+                    {order.order_Status?.toUpperCase() !== 'CANCELADO' && (
+                      <button
+                        type="button"
+                        onClick={() => navigate(`/payment/${order.id_Order}`)}
+                        className="mt-4 w-full inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-xs sm:text-sm font-display font-bold text-white shadow-sm transition-all hover:brightness-110 active:scale-[0.98]"
+                        style={{ backgroundColor: colorConfig.hex, boxShadow: `0 8px 20px ${colorConfig.hex}33` }}
+                      >
+                        <CreditCard className="h-4 w-4" />
+                        Pagar agora · PIX ou cartão
+                      </button>
+                    )}
                   </div>
                 ) : order.order_Status === 'ENTREGUE' ? (
                   (() => {
@@ -706,6 +719,18 @@ export default function OrdersPage() {
                     </span>
                   )}
                 </div>
+
+                {selectedOrder.status_Pay === "PENDENTE" && selectedOrder.order_Status?.toUpperCase() !== "CANCELADO" && (
+                  <button
+                    type="button"
+                    onClick={() => navigate(`/payment/${selectedOrder.id_Order}`)}
+                    className="w-full inline-flex items-center justify-center gap-2 rounded-xl px-4 py-3 text-sm font-display font-bold text-white shadow-sm transition-all hover:brightness-110 active:scale-[0.98]"
+                    style={{ backgroundColor: colorConfig.hex, boxShadow: `0 8px 20px ${colorConfig.hex}33` }}
+                  >
+                    <CreditCard className="h-4 w-4" />
+                    Pagar agora · PIX ou cartão
+                  </button>
+                )}
 
                 {/* Steps de progresso */}
                 {selectedOrder.order_Status !== "cancelado" && selectedOrder.status_Pay !== "PENDENTE" && (

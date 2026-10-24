@@ -4,6 +4,7 @@ import { Cupom } from "../models/Cupom";
 import { OrderSave, Order, RatingResponse } from "../models/Order";
 import { Product } from "../models/Product";
 import { makeResult, Result } from "../utils/Result";
+import { OrderCreated } from "../models/Payment";
 
 export const OrderService = {
     GetCupomSearch: async (): Promise<Result<Cupom[]>> => {
@@ -38,7 +39,7 @@ export const OrderService = {
             return makeResult(false, [], err.response?.data);
         }
     },
-    PostOrder: async (Order: OrderSave): Promise<Result<Order | null>> => {
+    PostOrder: async (Order: OrderSave): Promise<Result<OrderCreated | null>> => {
         try {
             const response = await api.post("/v1/order/PostSaveOrder", Order);
             console.log("response.data teste", response.data)

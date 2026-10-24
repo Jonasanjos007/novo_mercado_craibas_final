@@ -1,4 +1,4 @@
-import { Activity, FolderPlus, LogIn, MessageCircle, Lock, Pencil, PlusCircle, RefreshCcw, Star, TicketCheck, TicketPlus, TicketX, Trash2, UserCheck, UserPlus, UserX, PackageCheck, CookingPot, Truck, PackageOpen, PackageX, UserRoundCheck, UserRoundX, Settings2, CircleDollarSign, HandCoins, BadgeCheck, BadgeX } from "lucide-react";
+import { Activity, FolderPlus, LogIn, MessageCircle, Lock, Pencil, PlusCircle, RefreshCcw, Star, TicketCheck, TicketPlus, TicketX, Trash2, UserCheck, UserPlus, UserX, PackageCheck, CookingPot, Truck, PackageOpen, PackageX, UserRoundCheck, UserRoundX, Settings2, CircleDollarSign, HandCoins, BadgeCheck, BadgeX, Wallet } from "lucide-react";
 
 export const formatPrice = (price: number): string => {
   return price.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
@@ -212,6 +212,14 @@ export const configs: Record<string, {
     bar: "bg-blue-500",
     icon: LogIn,
     label: "Acesso ao sistema",
+  },
+  "PAGAMENTO": {
+    text: "text-emerald-400",
+    bg: "bg-emerald-500/10",
+    border: "border-emerald-500/20",
+    bar: "bg-emerald-500",
+    icon: Wallet,
+    label: "Pagamento",
   },
   "ATUALIZAR STATUS": {
     text: "text-cyan-400",

@@ -155,7 +155,7 @@ namespace Mercado.Craibas.Application.ServicesAdmin
                                 $"Banners adicionados: {nomesBanners.Count}\n" +
                                 $"Data/Hora: {dataLog:dd/MM/yyyy HH:mm:ss}",
                             Tipo = "NOVA CATEGORIA",
-                            Nivel = "Admin",
+                            Nivel = "ADMIN",
                             Acao = "Criou uma categoria",
                             Info =
                                 $"{User.Name} criou a categoria '{category.Name}' " +
@@ -502,7 +502,7 @@ namespace Mercado.Craibas.Application.ServicesAdmin
                                 $"Data/Hora: {dataLog:dd/MM/yyyy HH:mm:ss}",
 
                             Tipo = "Edicao",
-                            Nivel = "Admin",
+                            Nivel = "ADMIN",
                             Acao = "Editou a categoria",
 
                             Info =
@@ -734,7 +734,7 @@ namespace Mercado.Craibas.Application.ServicesAdmin
                             Id_User = user.Id,
                             Log = logDetalhado,
                             Tipo = "EXCLUSAO CUPOM",
-                            Nivel = "Admin",
+                            Nivel = "ADMIN",
                             Acao = acaoLog,
                             Info =
                                 action == "move"

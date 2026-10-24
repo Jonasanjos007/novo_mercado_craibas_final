@@ -6,15 +6,19 @@ using Baldan.Pricing.Application.Interfaces;
 using Baldan.Pricing.Application.Interfaces.Repositories;
 using Baldan.Pricing.Application.Services;
 using Mercado.Craibas.Application.Interfaces;
+using Mercado.Craibas.Application.Interfaces.Payment;
 using Mercado.Craibas.Application.Interfaces.Repositories;
 using Mercado.Craibas.Application.Interfaces.Services;
 using Mercado.Craibas.Application.InterfacesAdmin;
 using Mercado.Craibas.Application.InterfacesAdmin.Services;
+using Mercado.Craibas.Application.Payments;
+using Mercado.Craibas.Application.Search;
 using Mercado.Craibas.Application.Services;
 using Mercado.Craibas.Application.ServicesAdmin;
 using Mercado.Craibas.Infrastructure;
 using Mercado.Craibas.Infrastructure.Data;
 using Mercado.Craibas.Infrastructure.Data.Context;
+using Mercado.Craibas.Infrastructure.Data.Interceptors;
 using Mercado.Craibas.Infrastructure.Repositories;
 using Mercado.Craibas.Infrastructure.RepositoriesAdmin;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -39,11 +43,14 @@ namespace Pricing.Api
             builder.Services.AddSwaggerGen();
 
             // DbContext - SQL
-            builder.Services.AddDbContext<AppDbContext>(options =>
+            builder.Services.AddDbContext<AppDbContext>((serviceProvider, options) =>
             {
                 options.UseSqlServer(
                     builder.Configuration.GetConnectionString("Default")
                 );
+
+                // Busca de produtos: descarta o índice em memória quando produtos/categorias são salvos
+                options.AddInterceptors(serviceProvider.GetRequiredService<ProductSearchInvalidationInterceptor>());
             });
 
             // CORS
@@ -384,6 +391,21 @@ namespace Pricing.Api
             //builder.Services.AddScoped<IDashboardRepository, DashboardRepository>();
             //builder.Services.AddScoped<IDashboardService, DashboardService>();
             builder.Services.AddMemoryCache();
+
+            // Busca de produtos (índice em memória + ranking). Pesos opcionais em "ProductSearch" no appsettings.
+            builder.Services.Configure<ProductSearchOptions>(builder.Configuration.GetSection(ProductSearchOptions.SectionName));
+            builder.Services.AddSingleton<ProductSearchIndexProvider>();
+            builder.Services.AddSingleton<IProductSearchIndexProvider>(sp => sp.GetRequiredService<ProductSearchIndexProvider>());
+            builder.Services.AddSingleton<IProductSearchIndexInvalidator>(sp => sp.GetRequiredService<ProductSearchIndexProvider>());
+            builder.Services.AddSingleton<ProductSearchInvalidationInterceptor>();
+            builder.Services.AddScoped<IProductSearchService, ProductSearchService>();
+
+            // Pagamento (Mercado Pago · API Orders). Credenciais na seção "MercadoPago" do appsettings.
+            builder.Services.Configure<MercadoPagoOptions>(builder.Configuration.GetSection(MercadoPagoOptions.SectionName));
+            builder.Services.AddHttpClient<IMercadoPagoClient, MercadoPagoClient>(client => client.Timeout = TimeSpan.FromSeconds(30));
+            builder.Services.AddScoped<IPaymentNotifier, PaymentNotifier>();
+            builder.Services.AddScoped<IPaymentService, PaymentService>();
+            builder.Services.AddHostedService<PaymentExpirationWorker>();
             //Trocar DI
             builder.Services.AddApplication();
             builder.Services.AddControllers().AddJsonOptions(options =>

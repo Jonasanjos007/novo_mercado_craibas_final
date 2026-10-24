@@ -38,6 +38,7 @@ public class AppDbContext : DbContext
     public DbSet<DeliverySettings> DeliverySettings => Set<DeliverySettings>();
     public DbSet<DeliveryPayout> DeliveryPayouts => Set<DeliveryPayout>();
     public DbSet<DeliveryPayoutItem> DeliveryPayoutItems => Set<DeliveryPayoutItem>();
+    public DbSet<Payment_Transactions> Payment_Transactions => Set<Payment_Transactions>();
 
 
     public AppDbContext(DbContextOptions<AppDbContext> options)

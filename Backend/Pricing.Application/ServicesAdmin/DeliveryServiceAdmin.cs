@@ -870,7 +870,7 @@ namespace Mercado.Craibas.Application.ServicesAdmin
             await _unitOfWorkAdmin.InsertAsyncReturnObjeto(new Logs
             {
                 Id_User = adminId,
-                Nivel = "Admin",
+                Nivel = "ADMIN",
                 Tipo = acao == "Entregou o pedido" ? "ENTREGUE" : acao == "Saiu para entrega" ? "PEDIDO SAIU PARA ENTREGA" : acao == "Pegou pedido para entregar" ? "PEDIDO RETIRADO PARA ENTREGA" 
                 : acao == "Soltou pedido" ? "PEDIDO DEVOLVIDO" : acao == "Atribuiu entrega" || acao == "Trocou entregador" ? "ENTREGA ATRIBUÍDA" : acao == "Removeu entregador" ? "ENTREGADOR REMOVIDO" 
                 : acao == "Alterou configuração de entregas" ? "ALTEROU CONFIGURAÇÃO DE ENTREGAS" : acao == "Alterou valor do entregador" ? "ALTEROU VALOR DO ENTREGADOR" : acao == "Alterou gorjeta do pedido" ? "ALTEROU GORJETA DO PEDIDO" 

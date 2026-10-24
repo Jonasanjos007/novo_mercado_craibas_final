@@ -188,7 +188,7 @@ namespace Mercado.Craibas.Application.ServicesAdmin
                       (role == ProfileEnum.DELIVERY ? $" | Transporte: {transport}" : string.Empty) +
                       $" | Data/Hora: {now:dd/MM/yyyy HH:mm:ss}",
                 Tipo = "CADASTRO",
-                Nivel = "Admin",
+                Nivel = "ADMIN",
                 Acao = $"Cadastrou um novo {roleLabel}",
                 Info = $"{admin.Name} cadastrou o {roleLabel} {name} em {now:dd/MM/yyyy HH:mm}.",
                 InsertDate = now
@@ -427,13 +427,7 @@ namespace Mercado.Craibas.Application.ServicesAdmin
                      new Logs
                      {
                          Id_User = IdUser,
-                         Log =
-                             $"O administrador {usuarioAtual.Name} realizou uma edição no usuário. " +
-                             $"As informações cadastrais e configurações do usuário foram atualizadas.",
-                         Tipo = "Edicao",
-                        Nivel = "Admin",
-                         Acao =
-                             $"Edição do usuário realizada por {usuarioAtual.Name}. " +
+                         Log =  $"Edição do usuário realizada por {usuarioAtual.Name}. " +
                              $"Usuário editado: {User.Name}. " +
                              $"Alterações: " +
                              $"Nome: '{nomeAnterior}' → '{User.Name}' | " +
@@ -441,6 +435,11 @@ namespace Mercado.Craibas.Application.ServicesAdmin
                              $"Telefone: '{telefoneAnterior}' → '{User.Telefone}' | " +
                              $"Avatar: '{avatarAnterior ?? "Nenhum"}' → '{nomeArquivoAvatar ?? "Nenhum"}' | " +
                              $"Tema: '{User.Tema}'",
+                         Tipo = "Edicao",
+                        Nivel = "ADMIN",
+                         Acao =
+                             $"O administrador {usuarioAtual.Name} realizou uma edição no usuário. " +
+                             $"As informações cadastrais e configurações do usuário foram atualizadas.",
                          Info =
                              $"Administrador responsável: {usuarioAtual.Name} | " +
                              $"ID do administrador/usuário: {IdUser} | " +
@@ -666,7 +665,7 @@ namespace Mercado.Craibas.Application.ServicesAdmin
                                     : "Nenhuma alteração identificada.")} \n" +
                                 $"Data/Hora: {DateTime.Now:dd/MM/yyyy HH:mm:ss}",
                             Tipo = "Edicao",
-                            Nivel = "Admin",
+                            Nivel = "ADMIN",
                             Acao = "Editou as informações do site",
                             Info =
                                 $"{user.Name} editou as informações do site " +
@@ -1081,7 +1080,7 @@ namespace Mercado.Craibas.Application.ServicesAdmin
                     Tipo = novoStatus == "Ativo"
                         ? "ATIVAÇÃO USUÁRIO"
                         : "DESATIVAÇÃO USUÁRIO",
-                    Nivel = "Admin",
+                    Nivel = "ADMIN",
                     Acao = acao,
                     Info =
                         $"{user.Name} {acao.ToLower()} '{nomeUsuario}' " +

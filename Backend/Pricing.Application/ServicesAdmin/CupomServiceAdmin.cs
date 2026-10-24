@@ -168,7 +168,7 @@ namespace Mercado.Craibas.Application.ServicesAdmin
                             $"Categorias vinculadas: {cupomRequest.CategoryIds?.Count ?? 0}\n" +
                             $"Data/Hora: {dataLog:dd/MM/yyyy HH:mm:ss}",
                         Tipo = "NOVO CUPOM",
-                        Nivel = "Admin",
+                        Nivel = "ADMIN",
                         Acao = "Adicionou um novo cupom",
                         Info =
                             $"{User.Name} criou o cupom '{InsertCupom.Name_Cupom}' " +
@@ -561,7 +561,7 @@ namespace Mercado.Craibas.Application.ServicesAdmin
                                 : "Nenhuma alteração identificada.")}\n" +
                             $"Data/Hora: {dataLog:dd/MM/yyyy HH:mm:ss}",
                         Tipo = "Edicao",
-                        Nivel = "Admin",
+                        Nivel = "ADMIN",
                         Acao = "Editou o cupom",
 
                         Info =
@@ -705,7 +705,7 @@ namespace Mercado.Craibas.Application.ServicesAdmin
                             $"Categorias vinculadas excluídas: {Coupon_Category.Count}\n" +
                             $"Data/Hora: {dataLog:dd/MM/yyyy HH:mm:ss}",
                         Tipo = "EXCLUSAO CUPOM",
-                        Nivel = "Admin",
+                        Nivel = "ADMIN",
                         Acao = "Excluiu o cupom",
                         Info =
                             $"{User.Name} excluiu o cupom '{coupon.Name_Cupom}' " +
@@ -787,7 +787,7 @@ namespace Mercado.Craibas.Application.ServicesAdmin
                             $"Ação realizada: {active} o cupom\n" +
                             $"Data/Hora: {dataLog:dd/MM/yyyy HH:mm:ss}",
                         Tipo = "ATIVAÇÃO CUPOM",
-                        Nivel = "Admin",
+                        Nivel = "ADMIN",
                         Acao = active + " o cupom",
                         Info =
                             $"{User.Name} {active.ToLower()} o cupom '{coupon.Name_Cupom}' " +

@@ -505,7 +505,7 @@ namespace Mercado.Craibas.Application.ServicesAdmin
                                 : "Nenhuma alteração identificada.")}",
                    
                         Tipo = "Atualizar status",
-                        Nivel = "Admin",
+                        Nivel = "ADMIN",
                         Acao = "Atualizou o status do pedido",
                         Info =$"{User.Name} atualizou o pedido #{Order.Number_Order} " + $"de '{statusAnterior}' para '{NewStatus}' " + $"em {newdate:dd/MM/yyyy HH:mm}.",
                         InsertDate = newdate
@@ -570,7 +570,7 @@ namespace Mercado.Craibas.Application.ServicesAdmin
                             $"Telefone: {userConsumer?.Phone ?? "Não informado"}\n" +
                             $"Data/Hora: {dataLog:dd/MM/yyyy HH:mm:ss}",
                         Tipo = "AVISOU O CLIENTE VIA WHATSAPP",
-                        Nivel = "Admin",
+                        Nivel = "ADMIN",
                         Acao = "Avisou o cliente via WhatsApp",
                         Info =
                             $"{user.Name} avisou o cliente sobre o status do pedido " +

@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react';
-import { SlidersHorizontal, X, ArrowLeft, Search, ChevronLeft, ChevronRight, ShoppingBag, ArrowUp } from 'lucide-react';
+import { SlidersHorizontal, X, ArrowLeft, Search, ChevronLeft, ChevronRight, ShoppingBag, ArrowUp, AlertCircle, Loader2, Sparkles } from 'lucide-react';
 import { useStore } from '../context/store';
 import ProductCard from '../components/ProductCard';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { UseRouteStore } from '../store/UseRouteStore';
 import { UseProductStore } from '../store/UseProductStore';
 import { UseUserStore } from '../store/UseUserStore';
@@ -11,17 +11,29 @@ import Loading from '../components/Loading';
 import { useCategoryController } from '../controller/useCategoryController';
 import { UseOrderStore } from '../store/UseOrderStore';
 import { getColorConfig } from '../types/Colors';
+import { UseSearchStore } from '../store/UseSearchStore';
+import { buildSearchUrl, SEARCH_PAGE_SIZE, SearchSort } from '../models/Search';
 
-type SortOption = 'relevancia' | 'menor-preco' | 'maior-preco' | 'avaliacao' | 'mais-vendidos';
+type SortOption = SearchSort;
+
+/** Faixa de preço inicial (sem filtro). */
+const DEFAULT_PRICE_RANGE: [number, number] = [0, 1005000];
 
 export default function CategoryPage() {
   const noScrollbar = '[&::-webkit-scrollbar]:hidden';
   const noScrollbarStyle: React.CSSProperties = { scrollbarWidth: 'none' };
 
-  const Controller = useCategoryController();
+  const location = useLocation();
+  const [searchParams] = useSearchParams();
+  // Busca por termo: /search?q=... (o termo vem da URL: funciona ao recarregar, voltar e avançar)
+  const searchTerm = location.pathname === '/search' ? (searchParams.get('q') ?? '').trim() : '';
+  const isSearchMode = searchTerm.length > 0;
+
+  const Controller = useCategoryController(!isSearchMode);
   const { Category } = UseOrderStore();
   const { products } = UseProductStore();
-  const { searchQuery, selectedCategory } = UseRouteStore();
+  const { selectedCategory } = UseRouteStore();
+  const { results, totalCount, correctedQuery, isPartialMatch, status: searchStatus, errorMessage, lastQuery, SearchProducts } = UseSearchStore();
   const { ColorGlobalTema, ColorGlobalText, ColorGlobalHoverText, NameColorGlobal } = UseUserStore();
   const colorConfig = getColorConfig(NameColorGlobal);
   const { id, search } = useParams<{ id?: string; search?: string }>();
@@ -32,23 +44,19 @@ export default function CategoryPage() {
   const [bannerIndex, setBannerIndex] = useState(0);
   const [sort, setSort] = useState<SortOption>('relevancia');
   const [filterOpen, setFilterOpen] = useState(false);
-  const [priceRange, setPriceRange] = useState<[number, number]>([0, 1005000]);
+  const [priceRange, setPriceRange] = useState<[number, number]>(DEFAULT_PRICE_RANGE);
   const [ratingFilter, setRatingFilter] = useState(0);
   const [freeShippingOnly, setFreeShippingOnly] = useState(false);
   const [badgeFilter, setBadgeFilter] = useState<string>('');
   const [showScrollTop, setShowScrollTop] = useState(false);
 
   const navigate = useNavigate();
-  const isSearch = !id && search === 'search';
-  const query = searchQuery.toLowerCase();
+  // "Ver todos" (/search/search) e /search sem termo: catálogo completo, sem busca por termo
+  const isAllProducts = !id && !isSearchMode && (search === 'search' || location.pathname === '/search');
+  // Catálogo e categorias continuam filtrando a lista carregada; a busca por termo é feita no servidor
   let filtered = products.filter(p => {
-    if (isSearch) {
-      return (
-        p.name.toLowerCase().includes(query) ||
-        p.description.toLowerCase().includes(query) ||
-        p.tags.split(",").some(t => t.trim().toLowerCase().includes(query)) ||
-        (Category.find(c => c.id === p.id_category)?.category.toLowerCase().includes(query) ?? false)
-      );
+    if (isAllProducts) {
+      return true;
     }
 
     return selectedCategoryData
@@ -98,15 +106,57 @@ export default function CategoryPage() {
     if (sort === 'mais-vendidos') return b.count_Sold - a.count_Sold;
     return 0;
   });
+  // Na busca, limpar volta para "sem limite de preço" (no catálogo continua como antes)
+  const resetPriceRange: [number, number] = isSearchMode ? DEFAULT_PRICE_RANGE : [0, 15000];
+
+  // Busca no servidor: refaz a primeira página sempre que o termo, a ordenação ou um filtro mudam
+  const searchQueryParams = {
+    q: searchTerm,
+    pageSize: SEARCH_PAGE_SIZE,
+    sort,
+    minPrice: priceRange[0] > 0 ? priceRange[0] : undefined,
+    maxPrice: priceRange[1] !== DEFAULT_PRICE_RANGE[1] ? priceRange[1] : undefined,
+    minRating: ratingFilter > 0 ? ratingFilter : undefined,
+    freeShipping: freeShippingOnly || undefined,
+    badge: badgeFilter || undefined,
+  };
+  const searchKey = JSON.stringify(searchQueryParams);
+  const keyOf = (q: typeof lastQuery) => {
+    if (!q) return '';
+    const { page: _page, ...rest } = q;
+    return JSON.stringify({ ...searchQueryParams, ...rest });
+  };
+  useEffect(() => {
+    if (!isSearchMode) return;
+    // Voltando de um produto para a mesma busca: mantém o que já foi carregado
+    const current = UseSearchStore.getState();
+    if (current.status === 'success' && keyOf(current.lastQuery) === searchKey) return;
+    void SearchProducts({ ...searchQueryParams, page: 1 });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isSearchMode, searchKey]);
+
+  const loadMoreResults = () => {
+    if (!lastQuery || searchStatus === 'loadingMore') return;
+    void SearchProducts({ ...lastQuery, page: Math.floor(results.length / lastQuery.pageSize) + 1 }, true);
+  };
+  const retrySearch = () => { void SearchProducts({ ...searchQueryParams, page: 1 }); };
+  const hasActiveFilters = freeShippingOnly || ratingFilter > 0 || !!badgeFilter
+    || priceRange[0] !== resetPriceRange[0] || priceRange[1] !== resetPriceRange[1];
+  const searchLoadingFirst = isSearchMode && (lastQuery?.q !== searchTerm || (searchStatus === 'loading' && results.length === 0));
+  const visibleProducts = isSearchMode ? (searchLoadingFirst ? [] : results) : sorted;
+  const visibleCount = isSearchMode ? totalCount : sorted.length;
+
   const clearFilters = () => {
-    setPriceRange([0, 15000]);
+    setPriceRange(resetPriceRange);
     setRatingFilter(0);
     setFreeShippingOnly(false);
     setBadgeFilter('');
   };
-  const pageTitle = isSearch
-    ? `Resultados para "${searchQuery}"`
-    : selectedCategoryData?.category
+  const pageTitle = isSearchMode
+    ? `Resultados para "${searchTerm}"`
+    : isAllProducts
+      ? 'Todos os Produtos'
+      : selectedCategoryData?.category
       ? selectedCategoryData.category.charAt(0).toUpperCase() +
       selectedCategoryData.category.slice(1)
       : 'Todos os Produtos';
@@ -127,11 +177,36 @@ export default function CategoryPage() {
             </button>
             <div>
               <h1 className="font-display font-bold text-surface-900 text-xl">{pageTitle}</h1>
-              <p className="text-surface-400 font-body text-xs">{sorted.length} {sorted.length === 1 ? 'produto encontrado' : 'produtos encontrados'}</p>
+              <p className="text-surface-400 font-body text-xs">
+                {searchLoadingFirst ? 'Buscando produtos…' : `${visibleCount} ${visibleCount === 1 ? 'produto encontrado' : 'produtos encontrados'}`}
+              </p>
             </div>
           </div>
 
-          {!isSearch && selectedCategoryData && (
+          {/* Busca: correção de digitação e resultados parecidos */}
+          {isSearchMode && !searchLoadingFirst && searchStatus !== 'error' && (correctedQuery || isPartialMatch) && totalCount > 0 && (
+            <div className="flex items-start gap-2 mb-3 px-3 py-2.5 rounded-xl bg-surface-50 border border-surface-100 text-sm font-body text-surface-600">
+              <Sparkles className="w-4 h-4 mt-0.5 shrink-0" style={{ color: colorConfig.hex }} />
+              <p>
+                {correctedQuery && (
+                  <>
+                    Mostrando resultados para{' '}
+                    <button
+                      type="button"
+                      onClick={() => navigate(buildSearchUrl(correctedQuery))}
+                      className="font-semibold text-surface-900 underline-offset-2 hover:underline"
+                    >
+                      “{correctedQuery}”
+                    </button>
+                    .{' '}
+                  </>
+                )}
+                {isPartialMatch && 'Nenhum produto tem todos os termos; estes são os mais parecidos.'}
+              </p>
+            </div>
+          )}
+
+          {!isSearchMode && !isAllProducts && selectedCategoryData && (
             <>
               {/* Outras categorias */}
               <div className={`flex gap-4 overflow-x-auto pb-2 -mx-4  px-4 snap-x snap-mandatory md:grid md:grid-cols-8 md:gap-3 md:overflow-visible md:mx-0 md:px-0 ${noScrollbar}`} style={noScrollbarStyle}>
@@ -237,7 +312,7 @@ export default function CategoryPage() {
               <FilterChip label={badgeFilter} onRemove={() => setBadgeFilter('')} />
             )}
             {(priceRange[0] > 0 || priceRange[1] < 15000) && (
-              <FilterChip label={`R$${priceRange[0]} - R$${priceRange[1]}`} onRemove={() => setPriceRange([0, 15000])} />
+              <FilterChip label={`R$${priceRange[0]} - R$${priceRange[1]}`} onRemove={() => setPriceRange(resetPriceRange)} />
             )}
           </div>
         </div>
@@ -318,19 +393,55 @@ export default function CategoryPage() {
 
         {/* Products grid */}
         <div className="flex-1">
-          {sorted.length === 0 ? (
+          {isSearchMode && searchStatus === 'error' && !searchLoadingFirst ? (
             <div className="text-center py-20">
-              <Search className="w-16 h-16 text-surface-200 mx-auto mb-4" />
-              <h2 className="font-display font-bold text-surface-700 text-xl mb-2">Nenhum produto encontrado</h2>
-              <p className="text-surface-400 font-body text-sm mb-4">Tente outros filtros ou termos de busca</p>
-              <button onClick={() => { setFreeShippingOnly(false); setRatingFilter(0); setBadgeFilter(''); setPriceRange([0, 15000]); }} className={`px-5 py-2.5 ${ColorGlobalTema} text-white font-display font-bold rounded-xl shadow-brand text-sm`}>
-                Limpar Filtros
+              <AlertCircle className="w-16 h-16 text-surface-200 mx-auto mb-4" />
+              <h2 className="font-display font-bold text-surface-700 text-xl mb-2">Não foi possível carregar os resultados</h2>
+              <p className="text-surface-400 font-body text-sm mb-4">{errorMessage || 'Verifique sua conexão e tente novamente.'}</p>
+              <button onClick={retrySearch} className={`px-5 py-2.5 ${ColorGlobalTema} text-white font-display font-bold rounded-xl shadow-brand text-sm`}>
+                Tentar novamente
               </button>
             </div>
-          ) : (
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
-              {sorted.map(p => <ProductCard key={p.id} product={p} />)}
+          ) : searchLoadingFirst ? null : visibleProducts.length === 0 ? (
+            <div className="text-center py-20">
+              <Search className="w-16 h-16 text-surface-200 mx-auto mb-4" />
+              <h2 className="font-display font-bold text-surface-700 text-xl mb-2">
+                {isSearchMode ? `Nenhum produto encontrado para “${searchTerm}”` : 'Nenhum produto encontrado'}
+              </h2>
+              <p className="text-surface-400 font-body text-sm mb-4">
+                {isSearchMode ? 'Confira a ortografia ou tente termos mais gerais.' : 'Tente outros filtros ou termos de busca'}
+              </p>
+              {(!isSearchMode || hasActiveFilters) && (
+                <button onClick={() => { setFreeShippingOnly(false); setRatingFilter(0); setBadgeFilter(''); setPriceRange(resetPriceRange); }} className={`px-5 py-2.5 ${ColorGlobalTema} text-white font-display font-bold rounded-xl shadow-brand text-sm`}>
+                  Limpar Filtros
+                </button>
+              )}
             </div>
+          ) : (
+            <>
+              <div className={`grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 transition-opacity ${isSearchMode && searchStatus === 'loading' ? 'opacity-60 pointer-events-none' : ''}`}>
+                {visibleProducts.map(p => <ProductCard key={p.id} product={p} />)}
+              </div>
+
+              {/* Busca: paginação no servidor ("Carregar mais") */}
+              {isSearchMode && (
+                <div className="flex flex-col items-center gap-3 mt-8">
+                  <p className="text-surface-400 font-body text-xs">
+                    Mostrando {results.length} de {totalCount} {totalCount === 1 ? 'produto' : 'produtos'}
+                  </p>
+                  {results.length < totalCount && (
+                    <button
+                      onClick={loadMoreResults}
+                      disabled={searchStatus === 'loadingMore'}
+                      className="flex items-center gap-2 px-6 py-2.5 rounded-xl border-2 border-surface-200 bg-white text-sm font-display font-semibold text-surface-700 hover:border-surface-300 transition-all disabled:opacity-60"
+                    >
+                      {searchStatus === 'loadingMore' && <Loader2 className="w-4 h-4 animate-spin" />}
+                      {searchStatus === 'loadingMore' ? 'Carregando…' : 'Carregar mais produtos'}
+                    </button>
+                  )}
+                </div>
+              )}
+            </>
           )}
         </div>
         {showScrollTop && (
@@ -344,7 +455,7 @@ export default function CategoryPage() {
         )}
       </div>
       <Loading
-        loading={Controller?.result?.Loading || false}
+        loading={(Controller?.result?.Loading || false) || searchLoadingFirst}
         message={"Carregando..."}
         subMessage={"Melhores Produtos"}
       />

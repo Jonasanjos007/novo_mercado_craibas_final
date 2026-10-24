@@ -661,7 +661,7 @@ namespace Mercado.Craibas.Application.ServicesAdmin
                                     : "Nenhuma alteração identificada.")}\n" +
                                 $"Data/Hora: {dataLog:dd/MM/yyyy HH:mm:ss}",
                             Tipo = "EDICAO",
-                            Nivel = "Admin",
+                            Nivel = "ADMIN",
                             Acao = "Editou o produto",
                             Info =
                                 $"{user.Name} editou o produto '{product.Name}' " +

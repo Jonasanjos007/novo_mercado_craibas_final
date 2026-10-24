@@ -113,12 +113,13 @@ export const useLoginController = () => {
                 console.log('User logged in:', user);
                 saveUser(user);
                 notify.success("Sucesso", "Bem-vindo!" + " " + user.name);
+                // replace: a tela de login sai do histórico (voltar não retorna ao login)
                 if (user.role === 'ADMIN') {
-                    navigate("/admin");
+                    navigate("/admin", { replace: true });
                 } else if (user.role === 'DELIVERY') {
-                    navigate("/delivery");
+                    navigate("/delivery", { replace: true });
                 } else {
-                    navigate("/");
+                    navigate("/", { replace: true });
                 }
             },
             (err) => {

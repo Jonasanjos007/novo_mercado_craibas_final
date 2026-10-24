@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { useStore } from "../context/store";
 import { Address } from "../models/Address";
 import { useNotification } from "../utils/NotificationCard";
@@ -114,9 +115,14 @@ export const useCheckoutController = (): CheckoutControllerReturn => {
 
 
 
+    const navigate = useNavigate();
+
+    /**
+     * Cria o pedido (PENDENTE, valor conferido no servidor) e segue para a tela de pagamento:
+     * PIX já abre com o QR Code; cartão abre o formulário seguro do Mercado Pago.
+     */
     const handlePlaceOrder = async () => {
         setLoading(true);
-        await new Promise(r => setTimeout(r, 1500));
 
         const OrderSave: OrderSave =
         {
@@ -147,13 +153,19 @@ export const useCheckoutController = (): CheckoutControllerReturn => {
             return;
         }
         await LoadNotificationAll();
-        notify.success("Pedido realizado com sucesso!", "success");
         clearCart();
-        // const payLabel = payment === 'pix' ? 'PIX' : payment === 'credit' ? `Cartão •••• ${cardData.number.slice(-4) || '4242'}` : 'Boleto Bancário';
-        // const placed = placeOrder(payLabel);
-        // setOrder(placed);
-        setStep('success');
         setLoading(false);
+
+        const created = result.data;
+        if (!created?.id_Order) {
+            // Servidor antigo (sem o id do pedido): mantém a tela de pedido realizado.
+            notify.success("Pedido realizado", "Finalize o pagamento em Meus pedidos.");
+            setStep('success');
+            return;
+        }
+
+        notify.success("Pedido realizado", payment === 'pix' ? "Agora é só pagar o PIX." : "Agora é só informar o cartão.");
+        navigate(`/payment/${created.id_Order}?method=${payment === 'pix' ? 'pix' : 'credit'}${payment === 'pix' ? '&auto=1' : ''}`, { replace: true });
     };
 
     const handleApllyCupom = async (CodCupom: string) => {

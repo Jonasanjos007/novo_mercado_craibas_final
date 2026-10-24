@@ -872,7 +872,7 @@ public class AuthService : IAuthService
             Id_User = user.Id,
             Log = "Alterou a senha da conta",
             Tipo = "Alteração de senha",
-            Nivel = "Cliente",
+            Nivel = "CLIENTE",
             Acao = $"Usuário Id = {user.Id} do email {user.Email} alterou a senha da própria conta",
             Info = $"Alteração de senha realizada em {DateTime.Now:dd/MM/yyyy HH:mm:ss}",
             InsertDate = DateTime.Now

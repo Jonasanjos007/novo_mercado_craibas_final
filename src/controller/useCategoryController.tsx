@@ -18,7 +18,11 @@ type CategoryControllerReturn = {
     }
 } | null;
 
-export const useCategoryController = (): CategoryControllerReturn => {
+/**
+ * @param loadProductsList false na busca por termo: os resultados vêm do servidor
+ *                         e o catálogo inteiro não precisa ser baixado.
+ */
+export const useCategoryController = (loadProductsList: boolean = true): CategoryControllerReturn => {
     const { loadProducts, products } = UseProductStore();
     const { LoadCategory, Category } = UseOrderStore();
     const notify = useNotification();
@@ -27,12 +31,13 @@ export const useCategoryController = (): CategoryControllerReturn => {
 
         const load = async () => {
             SetLoading(true);
-            if (!products.length) await GetListProducts();
+            if (loadProductsList && !products.length) await GetListProducts();
             if (!Category.length) await LoadCategory();
             SetLoading(false);
         };
         load();
-    }, []);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [loadProductsList]);
     const GetListProducts = async () => {
         const result = await loadProducts();
         // SetLoading(false);

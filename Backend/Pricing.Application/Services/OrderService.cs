@@ -24,15 +24,17 @@ public class OrderService : IOrderService
     private readonly IEmailService _email;
     private readonly INotificationService _notification;
     private readonly IConfiguration _configuration;
+    private readonly IProductService _productService;
 
 
 
-    public OrderService(IUnitOfWork unitOfWork, IEmailService email, INotificationService notification, IConfiguration configuration)
+    public OrderService(IUnitOfWork unitOfWork, IEmailService email, INotificationService notification, IConfiguration configuration, IProductService productService)
     {
         _unitOfWork = unitOfWork;
         _email = email;
         _notification = notification;
         _configuration = configuration;
+        _productService = productService;
     }
     private string GetImagesFolder(string subPasta)
     {
@@ -63,11 +65,11 @@ public class OrderService : IOrderService
 
         return pastaDestino;
     }
-    public async Task<Result<bool>> PostSaveOrder(int userId, OrderSaveRequest Order)
+    public async Task<Result<OrderCreatedResponse>> PostSaveOrder(int userId, OrderSaveRequest Order)
     {
         if (userId == 0 || userId == null)
         {
-            return Result<bool>.Failure(Error.Failure("Pedido", "Erro ao salvar o pedido. Sua sessão expirou. Faça login novamente."));
+            return Result<OrderCreatedResponse>.Failure(Error.Failure("Pedido", "Erro ao salvar o pedido. Sua sessão expirou. Faça login novamente."));
         }
         try
         {
@@ -77,23 +79,23 @@ public class OrderService : IOrderService
                 var cupom = await _unitOfWork.GetClassByIdAnyType<Cupom, int?>(Order.Id_Cupom, "Id");
 
                 if (cupom == null)
-                    return Result<bool>.Failure(Error.Failure("Cupom", "Código inválido."));
+                    return Result<OrderCreatedResponse>.Failure(Error.Failure("Cupom", "Código inválido."));
 
                 // Ativo
                 if (!cupom.Active)
-                    return Result<bool>.Failure(Error.Failure("Cupom", "Cupom inativo."));
+                    return Result<OrderCreatedResponse>.Failure(Error.Failure("Cupom", "Cupom inativo."));
 
                 // Ainda não iniciou
                 if (DateTime.Now < cupom.Date_Start)
-                    return Result<bool>.Failure(Error.Failure("Cupom", "Este cupom ainda não iniciou."));
+                    return Result<OrderCreatedResponse>.Failure(Error.Failure("Cupom", "Este cupom ainda não iniciou."));
 
                 // Expirado
                 if (DateTime.Now > cupom.Date_End)
-                    return Result<bool>.Failure(Error.Failure("Cupom", "Este cupom expirou."));
+                    return Result<OrderCreatedResponse>.Failure(Error.Failure("Cupom", "Este cupom expirou."));
 
                 // Quantidade total
                 if (cupom.Quantity_Used >= cupom.Quantity_Uses)
-                    return Result<bool>.Failure(Error.Failure("Cupom", "Cupom esgotado."));
+                    return Result<OrderCreatedResponse>.Failure(Error.Failure("Cupom", "Cupom esgotado."));
 
                 // Utilizações do usuário
                 var couponUses = await _unitOfWork.Query<Coupon_Use>().Where(x => x.Id_Cupom == cupom.Id && x.Id_User == userId).ToListAsync();
@@ -104,30 +106,67 @@ public class OrderService : IOrderService
                     var hasOrders = await _unitOfWork.Query<Orders>().AnyAsync(x => x.Id_User_Customer == userId && x.Id_Cupom == cupom.Id && x.Isdelete != true);
 
                     if (hasOrders)
-                        return Result<bool>.Failure(Error.Failure("Cupom", "Cupom válido apenas para primeira compra."));
+                        return Result<OrderCreatedResponse>.Failure(Error.Failure("Cupom", "Cupom válido apenas para primeira compra."));
                 }
 
                 // Limite por usuário
                 if (couponUses.Count >= cupom.Per_User_Limit)
-                    return Result<bool>.Failure(Error.Failure("Cupom", "Você atingiu o limite de utilizações."));
+                    return Result<OrderCreatedResponse>.Failure(Error.Failure("Cupom", "Você atingiu o limite de utilizações."));
 
                 var cart = await _unitOfWork.GetClassById<Cart>(userId, "Id_User_Customer");
 
                 if (cart == null)
-                    return Result<bool>.Failure(Error.Failure("Carrinho", "Carrinho vazio."));
+                    return Result<OrderCreatedResponse>.Failure(Error.Failure("Carrinho", "Carrinho vazio."));
 
                 var cartItems = await _unitOfWork.Query<Cart_Item>().Where(x => x.Id_Cart == cart.Id).Include(x => x.Product).ThenInclude(x => x.Product_Category).ToListAsync();
 
                 if (!cartItems.Any())
-                    return Result<bool>.Failure(Error.Failure("Carrinho", "Carrinho vazio."));
+                    return Result<OrderCreatedResponse>.Failure(Error.Failure("Carrinho", "Carrinho vazio."));
 
                 var subtotal = cartItems.Sum(x => x.Quantity * x.Product.Price_Unit);
 
                 if (subtotal < cupom.Minimum_Value)
                 {
-                    return Result<bool>.Failure(Error.Failure("Cupom", $"Pedido mínimo de R$ {cupom.Minimum_Value:N2}"));
+                    return Result<OrderCreatedResponse>.Failure(Error.Failure("Cupom", $"Pedido mínimo de R$ {cupom.Minimum_Value:N2}"));
                 }
             }
+            // Pagamento: valor e forma conferidos no servidor.
+            // O total cobrado vem do carrinho calculado aqui (preços do banco, cupom e frete),
+            // o mesmo cálculo que a tela mostra. Se o valor enviado for diferente, o pedido é recusado.
+            var paymentTerms = (Order.Payment_terms ?? "").Trim().ToLowerInvariant();
+            if (paymentTerms != "pix" && paymentTerms != "credit")
+                return Result<OrderCreatedResponse>.Failure(Error.Validation("Pagamento", "Escolha PIX ou cartão para continuar."));
+
+            if (Order.Address == null || Order.Address.Id <= 0)
+                return Result<OrderCreatedResponse>.Failure(Error.Validation("Pedido", "Escolha o endereço de entrega."));
+
+            if (Order.Products == null || Order.Products.Count == 0)
+                return Result<OrderCreatedResponse>.Failure(Error.Validation("Carrinho", "Carrinho vazio."));
+
+            var serverCart = await _productService.GetProductCartList(userId);
+            if (!serverCart.IsSuccess || serverCart.Value == null || serverCart.Value.CartItensProduct.Count == 0)
+                return Result<OrderCreatedResponse>.Failure(Error.Validation("Carrinho", "Carrinho vazio."));
+
+            if (serverCart.Value.ErroCupom == true)
+                return Result<OrderCreatedResponse>.Failure(Error.Validation("Cupom", string.IsNullOrWhiteSpace(serverCart.Value.Menssege) ? "O cupom aplicado não é mais válido. Revise o pedido." : serverCart.Value.Menssege));
+
+            var serverTotal = Math.Round(serverCart.Value.SubTotal ?? 0, 2, MidpointRounding.AwayFromZero);
+            var serverQuantity = serverCart.Value.CartItensProduct.Sum(x => x.Quantity);
+            var clientQuantity = Order.Products.Sum(x => x.Quantity);
+
+            if (serverTotal <= 0
+                || Math.Abs(serverTotal - Math.Round(Order.Total_Value_Order, 2, MidpointRounding.AwayFromZero)) > 0.01
+                || serverQuantity != clientQuantity)
+            {
+                return Result<OrderCreatedResponse>.Failure(Error.Validation("Pedido",
+                    $"Os valores do seu carrinho foram atualizados (preço, frete ou cupom). O total correto é R$ {serverTotal.ToString("N2", new System.Globalization.CultureInfo("pt-BR"))}. Revise o pedido e confirme novamente."));
+            }
+
+            Order.Total_Value_Order = serverTotal;
+            Order.ShippingCost = serverCart.Value.ShippingCost;
+            Order.Payment_terms = paymentTerms;
+            Order.Status_Pay = "PENDENTE";
+
             var random = Random.Shared.Next(1000, 9999);
             string numeroPedido = $"PED-{DateTime.Now:yyyyMMdd}-{random}";
 
@@ -178,7 +217,7 @@ public class OrderService : IOrderService
 
             if (InsertOrderId.Id == 0)
             {
-                return Result<bool>.Failure(Error.Failure("Pedido", "Erro ao salvar o pedido. Entre em contato com suporte!"));
+                return Result<OrderCreatedResponse>.Failure(Error.Failure("Pedido", "Erro ao salvar o pedido. Entre em contato com suporte!"));
             }
             var InsertOrderLineItens = new OrderLineItens();
             foreach (var OrderLine in Order.Products)
@@ -211,7 +250,7 @@ public class OrderService : IOrderService
 
                 if(GetCart == null)
                 {
-                    return Result<bool>.Failure(Error.Failure("Carrnho", "Erro ao Esvaziar o carrinho. Entre em contato com suporte!"));
+                    return Result<OrderCreatedResponse>.Failure(Error.Failure("Carrnho", "Erro ao Esvaziar o carrinho. Entre em contato com suporte!"));
                 }
 
                 //var CartEmpty = await _unitOfWork.DeleteAllByColumnAsync<Cart_Item>( "Id_Cart", GetCart.Id);
@@ -297,11 +336,17 @@ public class OrderService : IOrderService
         }
      });
 
-            return Result<bool>.Success(true);
+            return Result<OrderCreatedResponse>.Success(new OrderCreatedResponse
+            {
+                Id_Order = InsertOrderId.Id,
+                Number_Order = InsertOrderId.Number_Order,
+                Total_Value_Order = InsertOrderId.Total_Value_Order,
+                Payment_Terms = InsertOrderId.Payment_terms,
+            });
         }
         catch (Exception ex)
         {
-            return Result<bool>.Failure(Error.Failure("Pedido", ex.Message));
+            return Result<OrderCreatedResponse>.Failure(Error.Failure("Pedido", ex.Message));
         }
     }
     public async Task<Result<List<OrderResponse>>> GetOrderAll(int userId)
