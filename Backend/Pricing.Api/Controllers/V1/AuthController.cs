@@ -4,6 +4,8 @@ using Baldan.Pricing.Application.Domain.Auth;
 using Mercado.Craibas.Application.DTOs.Requests;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
+using Pricing.Api.Security;
 using Microsoft.AspNetCore.Mvc.ModelBinding;
 using Pricing.Api.DTOs.Requests;
 using Pricing.Api.DTOs.Responses;
@@ -18,15 +20,28 @@ public class AuthController : ControllerBase
     private const string RefreshTokenCookieName = "refreshToken";
     private const string RefreshTokenCookiePath = "/api/v1/auth";
     private readonly IAuthService _service;
+    private readonly LoginAttemptGuard _loginGuard;
 
-    public AuthController(IAuthService service)
+    public AuthController(IAuthService service, LoginAttemptGuard loginGuard)
     {
         _service = service;
+        _loginGuard = loginGuard;
     }
 
+    [EnableRateLimiting(RateLimitPolicies.Login)]
     [HttpPost("login")]
     public async Task<IActionResult> Login([FromBody] LoginRequest request)
     {
+        if (request is null || string.IsNullOrWhiteSpace(request.Email) || string.IsNullOrWhiteSpace(request.Password))
+        {
+            return Baldan.Pricing.Application.Commons.Error.Validation("Credências", "Informe e-mail e senha.").ToActionResult();
+        }
+
+        if (_loginGuard.IsLocked(request?.Email))
+        {
+            return Baldan.Pricing.Application.Commons.Error.Validation("Credências",
+                $"Muitas tentativas de login. Por segurança, aguarde {(int)LoginAttemptGuard.LockTime.TotalMinutes} minutos e tente novamente.").ToActionResult();
+        }
 
         var result = await _service.LoginAsync(
             request,
@@ -36,7 +51,12 @@ public class AuthController : ControllerBase
 
         if (result.IsSuccess)
         {
+            _loginGuard.Reset(request.Email);
             SetRefreshTokenCookie(result.Value);
+        }
+        else
+        {
+            _loginGuard.RegisterFailure(request?.Email);
         }
 
         return result.ToActionResult();
@@ -92,6 +112,7 @@ public class AuthController : ControllerBase
     /// Desconecta um dispositivo. Exige a senha (vale 10 minutos depois de confirmada).
     /// </summary>
     [Authorize]
+    [EnableRateLimiting(RateLimitPolicies.Login)]
     [HttpPost("sessions/{sessionId:int}/revoke")]
     public async Task<IActionResult> RevokeSession(
         int sessionId,
@@ -111,6 +132,7 @@ public class AuthController : ControllerBase
     /// Desconecta todos os outros dispositivos. Exige a senha.
     /// </summary>
     [Authorize]
+    [EnableRateLimiting(RateLimitPolicies.Login)]
     [HttpPost("sessions/revoke-others")]
     public async Task<IActionResult> RevokeOtherSessions(
         [FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Allow)] ConfirmPasswordRequest? request)
@@ -151,6 +173,7 @@ public class AuthController : ControllerBase
         };
     }
     [Authorize]
+    [EnableRateLimiting(RateLimitPolicies.Login)]
     [HttpPost("ChangePassword")]
     public async Task<IActionResult> ChangePassword(ChangePasswordRequest request)
     {

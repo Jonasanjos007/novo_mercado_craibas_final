@@ -46,9 +46,13 @@ public sealed class PaymentService : IPaymentService
     private readonly MercadoPagoOptions _options;
     private readonly ILogger<PaymentService> _logger;
 
+    private readonly Mercado.Craibas.Application.Services.IOrderStockService _stock;
+
     public PaymentService(IUnitOfWork unitOfWork, IMercadoPagoClient mp, IPaymentNotifier notifier,
-        IOptions<MercadoPagoOptions> options, ILogger<PaymentService> logger)
+        IOptions<MercadoPagoOptions> options, ILogger<PaymentService> logger,
+        Mercado.Craibas.Application.Services.IOrderStockService stock)
     {
+        _stock = stock;
         _unitOfWork = unitOfWork;
         _mp = mp;
         _notifier = notifier;
@@ -401,6 +405,63 @@ public sealed class PaymentService : IPaymentService
     }
 
     // ════════════════════════════════════════════════════════════════════════
+    // Cancelamento e devolução (estorno)
+    // ════════════════════════════════════════════════════════════════════════
+
+    public async Task<RefundOutcome> RefundApprovedPaymentAsync(int orderId, string reason)
+    {
+        var tx = await _unitOfWork.Query<Payment_Transactions>().AsNoTracking()
+            .Where(x => x.Id_Order == orderId && x.Status == PaymentStatus.Aprovado && x.Isdelete != true)
+            .OrderByDescending(x => x.Id)
+            .FirstOrDefaultAsync();
+
+        if (tx == null || string.IsNullOrEmpty(tx.Provider_Order_Id))
+            return RefundOutcome.NoOnlinePayment;
+
+        // Chave fixa por transação: se o estorno for pedido duas vezes, o Mercado Pago não estorna em dobro.
+        var result = await _mp.RefundOrderAsync(tx.Provider_Order_Id, $"refund-{tx.Idempotency_Key}");
+        if (!result.Success)
+        {
+            _logger.LogWarning("Estorno recusado pelo Mercado Pago (pedido {OrderId}, order {MpOrder}): {Code} {Message}",
+                orderId, tx.Provider_Order_Id, result.ErrorCode, result.ErrorMessage);
+            return RefundOutcome.Failed;
+        }
+
+        var now = DateTime.Now;
+        var raw = MercadoPagoClient.Truncate(result.RawBody, 8000);
+        var detail = MercadoPagoClient.Truncate($"estorno: {reason}", 80);
+        await _unitOfWork.Query<Payment_Transactions>().Where(x => x.Id == tx.Id)
+            .ExecuteUpdateAsync(s => s
+                .SetProperty(x => x.Status, PaymentStatus.Estornado)
+                .SetProperty(x => x.Provider_Status, result.Order != null ? result.Order.Status : "refunded")
+                .SetProperty(x => x.Provider_Status_Detail, detail)
+                .SetProperty(x => x.Last_Response, raw)
+                .SetProperty(x => x.Last_Sync_At, now)
+                .SetProperty(x => x.UpdateDate, now));
+
+        _logger.LogInformation("Pagamento do pedido {OrderId} estornado no Mercado Pago ({Reason}).", orderId, reason);
+        return RefundOutcome.Refunded;
+    }
+
+    public Task<bool> HasPaymentInAnalysisAsync(int orderId)
+        => _unitOfWork.Query<Payment_Transactions>().AnyAsync(x => x.Id_Order == orderId && x.Status == PaymentStatus.EmAnalise);
+
+    public async Task CancelOpenPixAsync(int orderId)
+    {
+        var open = await _unitOfWork.Query<Payment_Transactions>().AsNoTracking()
+            .Where(x => x.Id_Order == orderId && x.Status == PaymentStatus.Pendente)
+            .ToListAsync();
+        var now = DateTime.Now;
+        foreach (var tx in open)
+        {
+            if (!string.IsNullOrEmpty(tx.Provider_Order_Id))
+                await _mp.CancelOrderAsync(tx.Provider_Order_Id, Guid.NewGuid().ToString());
+            await _unitOfWork.Query<Payment_Transactions>().Where(x => x.Id == tx.Id && x.Status == PaymentStatus.Pendente)
+                .ExecuteUpdateAsync(s => s.SetProperty(x => x.Status, PaymentStatus.Cancelado).SetProperty(x => x.UpdateDate, now));
+        }
+    }
+
+    // ════════════════════════════════════════════════════════════════════════
     // Núcleo: sincronização e troca de status
     // ════════════════════════════════════════════════════════════════════════
 
@@ -552,6 +613,10 @@ public sealed class PaymentService : IPaymentService
         order.Status_Pay = OrderPaymentValues.Confirmado;
         order.Order_Status = newOrderStatus;
         order.Payment_terms = payTerms;
+
+        // Pedido confirmado: tira do estoque a quantidade vendida (uma vez só por pedido).
+        try { await _stock.DeductAsync(order.Id); }
+        catch (Exception ex) { _logger.LogError(ex, "Falha ao baixar o estoque do pedido {OrderId}.", order.Id); }
 
         // PIX que ficou aberto para o mesmo pedido: cancela lá e aqui, para não receber duas vezes.
         var openPix = await _unitOfWork.Query<Payment_Transactions>().AsNoTracking()

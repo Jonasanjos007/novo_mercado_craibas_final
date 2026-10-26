@@ -465,6 +465,17 @@ namespace Mercado.Craibas.Infrastructure.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
+                    b.Property<string>("Cancel_Reason")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<DateTime?>("Canceled_At")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Canceled_By")
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
                     b.Property<DateTime?>("CustomerDeliveryDate")
                         .HasColumnType("datetime2");
 
@@ -526,11 +537,32 @@ namespace Mercado.Craibas.Infrastructure.Migrations
                     b.Property<string>("Payment_terms")
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<string>("Return_Admin_Note")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<string>("Return_Reason")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<DateTime?>("Return_Requested_At")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Return_Status")
+                        .HasMaxLength(30)
+                        .HasColumnType("nvarchar(30)");
+
+                    b.Property<DateTime?>("Return_Updated_At")
+                        .HasColumnType("datetime2");
+
                     b.Property<double?>("ShippingCost")
                         .HasColumnType("float");
 
                     b.Property<string>("Status_Pay")
                         .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime?>("Stock_Deducted_At")
+                        .HasColumnType("datetime2");
 
                     b.Property<double>("Total_Value_Order")
                         .HasColumnType("float");
@@ -558,6 +590,8 @@ namespace Mercado.Craibas.Infrastructure.Migrations
                     b.HasIndex("Id_User_Customer");
 
                     b.HasIndex("Id_User_Delivery");
+
+                    b.HasIndex("Return_Status");
 
                     b.ToTable("Orders", (string)null);
                 });

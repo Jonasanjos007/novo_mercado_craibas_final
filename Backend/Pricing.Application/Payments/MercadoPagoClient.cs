@@ -39,6 +39,10 @@ public sealed class MercadoPagoClient : IMercadoPagoClient
     public Task<MpApiResult> CancelOrderAsync(string orderId, string idempotencyKey, CancellationToken ct = default)
         => SendAsync(HttpMethod.Post, $"/v1/orders/{Uri.EscapeDataString(orderId)}/cancel", null, idempotencyKey, ct);
 
+    // Estorno total: a doc pede o corpo vazio (sem valor). Prazo: até 180 dias após a aprovação.
+    public Task<MpApiResult> RefundOrderAsync(string orderId, string idempotencyKey, CancellationToken ct = default)
+        => SendAsync(HttpMethod.Post, $"/v1/orders/{Uri.EscapeDataString(orderId)}/refund", null, idempotencyKey, ct);
+
     private async Task<MpApiResult> SendAsync(HttpMethod method, string path, string? body, string? idempotencyKey, CancellationToken ct)
     {
         if (string.IsNullOrWhiteSpace(_options.AccessToken))

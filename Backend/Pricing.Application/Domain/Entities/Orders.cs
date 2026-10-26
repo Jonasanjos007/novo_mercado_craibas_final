@@ -43,6 +43,24 @@ namespace Baldan.Pricing.Application.Domain.Entities
         public DateTime? Estimated_Delivery_Date { get; set; }
         public DateTime? CustomerDeliveryDate { get; set; }
         public string? WhoReceivedIt { get; set; }
+        /// <summary>Quando o estoque deste pedido foi baixado (na confirmação). Nulo = ainda não baixou.</summary>
+        public DateTime? Stock_Deducted_At { get; set; }
+
+        // ── Cancelamento pelo cliente ──────────────────────────────────────────
+        /// <summary>Motivo informado no cancelamento.</summary>
+        public string? Cancel_Reason { get; set; }
+        public DateTime? Canceled_At { get; set; }
+        /// <summary>Quem cancelou: CLIENTE ou ADMIN.</summary>
+        public string? Canceled_By { get; set; }
+
+        // ── Devolução (direito de arrependimento: 7 dias após a entrega) ───────
+        /// <summary>Nulo = sem devolução. EM_ANALISE, AGUARDANDO_COLETA, DEVOLVIDO ou CANCELADA.</summary>
+        public string? Return_Status { get; set; }
+        public string? Return_Reason { get; set; }
+        public DateTime? Return_Requested_At { get; set; }
+        public DateTime? Return_Updated_At { get; set; }
+        /// <summary>Observação do admin ao mudar a devolução (aparece para o cliente).</summary>
+        public string? Return_Admin_Note { get; set; }
         public ICollection<OrderLineItens> OrderLineItens { get; set; } = [];
         public ICollection<Coupon_Use> Coupon_Uses { get; set; } = [];
 

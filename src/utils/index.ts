@@ -1,4 +1,4 @@
-import { Activity, FolderPlus, LogIn, MessageCircle, Lock, Pencil, PlusCircle, RefreshCcw, Star, TicketCheck, TicketPlus, TicketX, Trash2, UserCheck, UserPlus, UserX, PackageCheck, CookingPot, Truck, PackageOpen, PackageX, UserRoundCheck, UserRoundX, Settings2, CircleDollarSign, HandCoins, BadgeCheck, BadgeX, Wallet } from "lucide-react";
+import { Activity, FolderPlus, LogIn, MessageCircle, Lock, Pencil, PlusCircle, RefreshCcw, Star, TicketCheck, TicketPlus, TicketX, Trash2, UserCheck, UserPlus, UserX, PackageCheck, CookingPot, Truck, PackageOpen, PackageX, UserRoundCheck, UserRoundX, Settings2, CircleDollarSign, HandCoins, BadgeCheck, BadgeX, Wallet, RotateCcw } from "lucide-react";
 
 export const formatPrice = (price: number): string => {
   return price.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
@@ -78,6 +78,24 @@ export const cupomStatusLabels: Record<string, string> = {
   expired: "Vencidos",
   all: "Todos",
 };
+
+/** Andamento da devolução (pedido entregue). */
+export const returnStatusLabels: Record<string, string> = {
+  EM_ANALISE: 'Em análise de devolução',
+  AGUARDANDO_COLETA: 'Buscar produto',
+  DEVOLVIDO: 'Devolvido',
+  CANCELADA: 'Devolução cancelada',
+};
+
+export const returnStatusColors: Record<string, string> = {
+  EM_ANALISE: 'bg-amber-50 text-amber-700 border border-amber-200',
+  AGUARDANDO_COLETA: 'bg-blue-50 text-blue-700 border border-blue-200',
+  DEVOLVIDO: 'bg-green-50 text-green-700 border border-green-200',
+  CANCELADA: 'bg-red-50 text-red-700 border border-red-200',
+};
+
+/** Dias para pedir devolução depois da entrega (direito de arrependimento). */
+export const RETURN_WINDOW_DAYS = 7;
 
 export const orderStatusColors: Record<string, string> = {
   PENDENTE: 'text-yellow-600 bg-yellow-50',
@@ -212,6 +230,14 @@ export const configs: Record<string, {
     bar: "bg-blue-500",
     icon: LogIn,
     label: "Acesso ao sistema",
+  },
+  "PÓS-VENDA": {
+    text: "text-orange-400",
+    bg: "bg-orange-500/10",
+    border: "border-orange-500/20",
+    bar: "bg-orange-500",
+    icon: RotateCcw,
+    label: "Cancelamento e devolução",
   },
   "PAGAMENTO": {
     text: "text-emerald-400",

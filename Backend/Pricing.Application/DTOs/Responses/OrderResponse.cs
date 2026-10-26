@@ -37,5 +37,18 @@ namespace Mercado.Craibas.Application.DTOs.Responses
 
         /// <summary>DELIVERY, ADMIN ou null.</summary>
         public string? DeliveryAssigneeType { get; set; }
+
+        // ── Cancelamento e devolução ───────────────────────────────────────────
+        public string? Cancel_Reason { get; set; }
+        public DateTime? Canceled_At { get; set; }
+        /// <summary>CLIENTE ou ADMIN.</summary>
+        public string? Canceled_By { get; set; }
+        /// <summary>Nulo = sem devolução. EM_ANALISE, AGUARDANDO_COLETA, DEVOLVIDO ou CANCELADA.</summary>
+        public string? Return_Status { get; set; }
+        public string? Return_Reason { get; set; }
+        public DateTime? Return_Requested_At { get; set; }
+        public string? Return_Admin_Note { get; set; }
+        /// <summary>Até quando o cliente pode pedir devolução (7 dias após a entrega).</summary>
+        public DateTime? Return_Deadline { get; set; }
     }
 }

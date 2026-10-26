@@ -9,7 +9,7 @@ using System.Threading.Tasks;
 
 namespace backend.controllers.v1;
 
-//[Authorize]
+[Authorize(Roles = "ADMIN")]
 [ApiController]
 [Route("api/v1/email")]
 public class EmailController : ControllerBase

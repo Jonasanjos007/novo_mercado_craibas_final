@@ -39,6 +39,26 @@ export const OrderService = {
             return makeResult(false, [], err.response?.data);
         }
     },
+    /** Cliente cancela o pedido (PENDENTE ou CONFIRMADO). */
+    CancelOrder: async (orderId: number, reason: string): Promise<Result<boolean>> => {
+        try {
+            const response = await api.post(`/v1/order/${orderId}/cancel`, { reason });
+            const { success, error } = response.data;
+            return makeResult(success, !!success, error);
+        } catch (err: any) {
+            return makeResult(false, false, err.response?.data);
+        }
+    },
+    /** Cliente pede devolução (pedido entregue, até 7 dias). */
+    RequestReturn: async (orderId: number, reason: string): Promise<Result<boolean>> => {
+        try {
+            const response = await api.post(`/v1/order/${orderId}/return`, { reason });
+            const { success, error } = response.data;
+            return makeResult(success, !!success, error);
+        } catch (err: any) {
+            return makeResult(false, false, err.response?.data);
+        }
+    },
     PostOrder: async (Order: OrderSave): Promise<Result<OrderCreated | null>> => {
         try {
             const response = await api.post("/v1/order/PostSaveOrder", Order);

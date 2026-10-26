@@ -96,7 +96,8 @@ namespace Mercado.Craibas.Application.Services
             // Primeira compra
             if (cupom.First_Order_Only)
             {
-                var hasOrders = await _unitOfWork.Query<Orders>().AnyAsync(x => x.Id_User_Customer == userId && x.Id_Cupom == cupom.Id && x.Isdelete != true);
+                // Primeira compra = o cliente não tem outro pedido (cancelados não contam).
+                var hasOrders = await _unitOfWork.Query<Orders>().AnyAsync(x => x.Id_User_Customer == userId && x.Isdelete != true && x.Order_Status != "CANCELADO");
 
                 if (hasOrders)
                     return Result<bool>.Failure(Error.Failure("Cupom", "Cupom válido apenas para primeira compra."));

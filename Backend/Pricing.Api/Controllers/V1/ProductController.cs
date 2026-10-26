@@ -29,7 +29,7 @@ namespace Mercado.Api.Controllers.V1
 
             return result.ToActionResult();
         }
-        [Authorize]
+        [Authorize(Roles = "CLIENTE")]
         [HttpPost("postCartSave")]
         public async Task<IActionResult> PostCartSave([FromBody] CartItensRequest Cart_Itens)
         {
@@ -39,24 +39,24 @@ namespace Mercado.Api.Controllers.V1
 
             return result.ToActionResult();
         }
-        [Authorize]
+        [Authorize(Roles = "CLIENTE")]
         [HttpPost("postCartUpdate")]
         public async Task<IActionResult> PostCartUpdate([FromBody] CartItensRequest Cart_Itens)
         {
-            var result = await _service.PostCartItensUpdate(Cart_Itens.Id,Cart_Itens.Quantity,Cart_Itens.Operador,Cart_Itens.NewQuantity);
+            var result = await _service.PostCartItensUpdate(User.GetUserId(), Cart_Itens.Id,Cart_Itens.Quantity,Cart_Itens.Operador,Cart_Itens.NewQuantity);
 
             return result.ToActionResult();
         }
-        [Authorize]
+        [Authorize(Roles = "CLIENTE")]
         [HttpPost("PostUpdateQuantity")]
         public async Task<IActionResult> PostUpdateQuantity([FromBody] UpdateQuantityRequest request)
         {
-            var result = await _service.PostCartItensUpdate(request.Cart_Itens_Id, request.Quantity, request.Operador,null);
+            var result = await _service.PostCartItensUpdate(User.GetUserId(), request.Cart_Itens_Id, request.Quantity, request.Operador,null);
 
             return result.ToActionResult();
         }
 
-        [Authorize]
+        [Authorize(Roles = "CLIENTE")]
         [HttpGet("GetProductCart")]
         public async Task<IActionResult> GetProductCart()
         {
@@ -66,13 +66,13 @@ namespace Mercado.Api.Controllers.V1
 
             return result.ToActionResult();
         }
-        [Authorize]
+        [Authorize(Roles = "CLIENTE")]
         [HttpDelete("DeleteProductCart/{Cart_Itens_Id}")]
         public async Task<IActionResult> DeleteProductCart(int Cart_Itens_Id)
         {
 
 
-            var result = await _service.DeleteProductCartList(Cart_Itens_Id);
+            var result = await _service.DeleteProductCartList(User.GetUserId(), Cart_Itens_Id);
 
             return result.ToActionResult();
         }
@@ -83,7 +83,7 @@ namespace Mercado.Api.Controllers.V1
 
             return result.ToActionResult();
         }
-        [Authorize]
+        [Authorize(Roles = "CLIENTE")]
         [HttpPost("PostFavoriteSave")]
         public async Task<IActionResult> PostFavoriteSave([FromBody] int Id_Product)
         {
@@ -93,7 +93,7 @@ namespace Mercado.Api.Controllers.V1
 
             return result.ToActionResult();
         }
-        [Authorize]
+        [Authorize(Roles = "CLIENTE")]
         [HttpGet("GetAllFavorites")]
         public async Task<IActionResult> GetAllFavorites()
         {
@@ -104,11 +104,11 @@ namespace Mercado.Api.Controllers.V1
             return result.ToActionResult();
         }
 
-        [Authorize]
+        [Authorize(Roles = "CLIENTE")]
         [HttpDelete("DeleteOneFavorite/{IdProduct}")]
         public async Task<IActionResult> DeleteOneFavorite(int IdProduct)
         {
-            var result = await _service.DeleteFavorites(IdProduct);
+            var result = await _service.DeleteFavorites(User.GetUserId(), IdProduct);
 
             return result.ToActionResult();
         }

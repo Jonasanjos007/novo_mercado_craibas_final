@@ -35,6 +35,17 @@ public static class OrderPaymentValues
     public const string Cancelado = "CANCELADO";
 }
 
+/// <summary>Resultado de um pedido de estorno.</summary>
+public enum RefundOutcome
+{
+    /// <summary>Estornado no Mercado Pago.</summary>
+    Refunded,
+    /// <summary>O pedido não tem pagamento online aprovado (ex.: pago fora do site): estorno manual.</summary>
+    NoOnlinePayment,
+    /// <summary>O Mercado Pago não fez o estorno (tente de novo ou estorne pelo painel).</summary>
+    Failed,
+}
+
 /// <summary>Converte o status do Mercado Pago no status interno e na mensagem para o cliente.</summary>
 public static class PaymentStatusMapper
 {

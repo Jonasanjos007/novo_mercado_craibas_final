@@ -47,6 +47,52 @@ export interface Order {
     /** Quem está entregando (entregador ou admin). */
     deliveryName?: string | null;
     deliveryAssigneeType?: 'DELIVERY' | 'ADMIN' | null;
+
+    // Cancelamento e devolução
+    cancel_Reason?: string | null;
+    canceled_At?: string | null;
+    /** CLIENTE ou ADMIN */
+    canceled_By?: string | null;
+    /** Nulo = sem devolução. */
+    return_Status?: ReturnStatus | null;
+    return_Reason?: string | null;
+    return_Requested_At?: string | null;
+    return_Admin_Note?: string | null;
+    /** Até quando o cliente pode pedir devolução (7 dias após a entrega). */
+    return_Deadline?: string | null;
+}
+
+/** Andamento da devolução (Orders.Return_Status). */
+export type ReturnStatus = 'EM_ANALISE' | 'AGUARDANDO_COLETA' | 'DEVOLVIDO' | 'CANCELADA';
+
+/** Linha da aba "Devoluções" do admin. */
+export interface OrderReturnAdmin {
+    id_Order: number;
+    number_Order: string;
+    customer_Name: string;
+    customer_Phone?: string | null;
+    customer_Email?: string | null;
+    total_Value_Order: number;
+    payment_terms: string;
+    status_Pay: string;
+    return_Status: ReturnStatus;
+    return_Reason?: string | null;
+    return_Admin_Note?: string | null;
+    return_Requested_At?: string | null;
+    return_Updated_At?: string | null;
+    delivered_At?: string | null;
+    items: number;
+    first_Product?: string | null;
+    first_Image?: string | null;
+    address?: string | null;
+    /** Pagamento online: estorno automático ao marcar como devolvido. */
+    online_Refund: boolean;
+}
+
+export interface OrderReturnsAdmin {
+    items: OrderReturnAdmin[];
+    byStatus: Record<string, number>;
+    open: number;
 }
 export interface SendMessageViaWhatsAppResponse {
     idOrder: number;

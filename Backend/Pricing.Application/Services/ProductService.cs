@@ -9,6 +9,7 @@ using Mercado.Craibas.Application.DTOs.Responses;
 using Mercado.Craibas.Application.Interfaces.Repositories;
 using Mercado.Craibas.Application.Interfaces.Services;
 using Pricing.Api.DTOs.Responses;
+using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -170,6 +171,22 @@ namespace Mercado.Craibas.Application.Services
                 );
             }
 
+            if (cartProduto.Quantity > MaxCartQuantity)
+            {
+                return Result<bool>.Failure(Error.Validation("Carrinho", $"Quantidade máxima por produto: {MaxCartQuantity}."));
+            }
+
+            // Segurança: o produto precisa existir e a variação precisa ser dele.
+            var productExists = await _unitOfWork.GetClassAsyncWhere<Product>(x => x.Id == cartProduto.Product.Id && x.Isdelete != true);
+            var variantId = cartProduto.SelectedVariation.Id.Value;
+            var variantOk = productExists != null && await _unitOfWork.GetClassAsyncWhere<Variante_Products>(
+                x => x.Id == variantId && x.Id_Product == cartProduto.Product.Id && x.Isdelete != true) != null;
+
+            if (!variantOk)
+            {
+                return Result<bool>.Failure(Error.Validation("Carrinho", "Produto ou variação indisponível."));
+            }
+
             var cart = await _unitOfWork.GetClassById<Cart>(
                 userid,
                 "Id_User_Customer"
@@ -213,22 +230,47 @@ namespace Mercado.Craibas.Application.Services
             return Result<bool>.Success(true);
         }
 
-        public async Task<Result<bool>> PostCartItensUpdate(int Id,int Quantity,string Soma_Sub,int? NewQunatity)
+        /// <summary>Quantidade máxima de um mesmo produto no carrinho.</summary>
+        private const int MaxCartQuantity = 999;
+
+        public async Task<Result<bool>> PostCartItensUpdate(int userId, int Id,int Quantity,string Soma_Sub,int? NewQunatity)
         {
-            int? QuantityTotal = Quantity;
+            // Segurança: o item precisa ser do carrinho do usuário logado e a conta parte
+            // da quantidade gravada no banco (não da que veio da tela).
+            var cartItem = await FindOwnCartItem(userId, Id);
+            if (cartItem == null)
+            {
+                return Result<bool>.Failure(Error.Validation("Carrinho", "Item não encontrado no seu carrinho."));
+            }
+
+            int QuantityTotal;
 
             if (Soma_Sub == "Soma")
             {
-                QuantityTotal = (QuantityTotal ?? 1) + NewQunatity ?? 1;
+                var add = NewQunatity ?? 1;
+                if (add < 1 || add > MaxCartQuantity)
+                {
+                    return Result<bool>.Failure(Error.Validation("Carrinho", "Quantidade inválida."));
+                }
+                QuantityTotal = cartItem.Quantity + add;
             }
             else
             {
-                QuantityTotal = (QuantityTotal ?? 1) - 1;
+                QuantityTotal = cartItem.Quantity - 1;
+            }
+
+            if (QuantityTotal < 1)
+            {
+                return Result<bool>.Failure(Error.Validation("Carrinho", "A quantidade mínima é 1. Para tirar o produto, use remover."));
+            }
+            if (QuantityTotal > MaxCartQuantity)
+            {
+                return Result<bool>.Failure(Error.Validation("Carrinho", $"Quantidade máxima por produto: {MaxCartQuantity}."));
             }
 
             var insert_cart_itens = await _unitOfWork.UpdateFieldsAsync<Cart_Item>(filters: new Dictionary<string, object>
         {
-                { "Id", Id }
+                { "Id", cartItem.Id }
         },
 
         fieldsToUpdate: new Dictionary<string, object>
@@ -351,8 +393,9 @@ namespace Mercado.Craibas.Application.Services
                 }
                 if(cupomValido && getCupom.First_Order_Only)
                 {
-                    var OrderQuantity = await _unitOfWork.GetClassListAsyncWhere<Coupon_Use>(x => x.Id_User == Id_Customer && x.Id_Cupom == getCupom.Id && x.Isdelete != true);
-                    if(OrderQuantity.Count() > 0)
+                    // Primeira compra = o cliente não tem outro pedido (cancelados não contam).
+                    var jaComprou = await _unitOfWork.Query<Orders>().AnyAsync(x => x.Id_User_Customer == Id_Customer && x.Isdelete != true && x.Order_Status != "CANCELADO");
+                    if(jaComprou)
                     {
                         ErroCupom = true;
                         message = "Este cupom é válido apenas para a primeira compra e foi removido do carrinho.";
@@ -595,9 +638,16 @@ namespace Mercado.Craibas.Application.Services
                     WhereApplyCoupon = WhereApplyCoupon
                 });
         }
-        public async Task<Result<bool>>DeleteProductCartList(int Id_Customer)
+        public async Task<Result<bool>>DeleteProductCartList(int userId, int cartItemId)
         {
-            var Delete = await _productRepository.DeleteByColumnAsync<Cart_Item>("Id", Id_Customer);
+            // Segurança: só remove item do carrinho do próprio usuário.
+            var cartItem = await FindOwnCartItem(userId, cartItemId);
+            if (cartItem == null)
+            {
+                return Result<bool>.Failure(Error.Validation("Carrinho", "Item não encontrado no seu carrinho."));
+            }
+
+            var Delete = await _productRepository.DeleteByColumnAsync<Cart_Item>("Id", cartItem.Id);
 
             if(!Delete)
             {
@@ -653,7 +703,7 @@ namespace Mercado.Craibas.Application.Services
             catch (Exception ex)
             {
                 return Result<List<RatingAllProducts>>.Failure(
-                    Error.Failure("Avaliação", ex.Message)
+                    Error.Failure("Avaliação", "Não foi possível carregar as avaliações.")
                 );
             }
         }
@@ -703,14 +753,17 @@ namespace Mercado.Craibas.Application.Services
         
         }
 
-        public async Task<Result<bool>> DeleteFavorites(int IdProduct)
+        public async Task<Result<bool>> DeleteFavorites(int userId, int IdProduct)
         {
-            if (IdProduct <= 0)
+            if (IdProduct <= 0 || userId <= 0)
             {
                 return Result<bool>.Failure(Error.Failure("Favoritos","Erro ao remover dos favoritos."));
             }
 
-            var favorites = await _unitOfWork.DeleteByColumnAsyncGlolbal<Favorite>("ProductId",IdProduct);
+            // Segurança: remove só o favorito do usuário logado (antes apagava o de qualquer pessoa).
+            var favorites = await _unitOfWork.Query<Favorite>()
+                .Where(x => x.UserId == userId && x.ProductId == IdProduct)
+                .ExecuteDeleteAsync() > 0;
 
             if (!favorites)
             {
@@ -718,6 +771,17 @@ namespace Mercado.Craibas.Application.Services
             }
 
             return Result<bool>.Success(true);
+        }
+
+        /// <summary>Item do carrinho do usuário logado (null se não for dele).</summary>
+        private async Task<Cart_Item?> FindOwnCartItem(int userId, int cartItemId)
+        {
+            if (userId <= 0 || cartItemId <= 0) return null;
+
+            var cart = await _unitOfWork.GetClassById<Cart>(userId, "Id_User_Customer");
+            if (cart == null) return null;
+
+            return await _unitOfWork.GetClassAsyncWhere<Cart_Item>(x => x.Id == cartItemId && x.Id_Cart == cart.Id && x.Isdelete != true);
         }
     }
 }

@@ -20,6 +20,10 @@ interface OrderState {
     Category: Category[];
     /** Cria o pedido PENDENTE e devolve o id para seguir ao pagamento. */
     SaveOrderUser: (Order: OrderSave) => Promise<Result<OrderCreated | null>>;
+    /** Cancela o pedido e recarrega a lista. */
+    CancelOrderUser: (orderId: number, reason: string) => Promise<Result<boolean>>;
+    /** Pede devolução e recarrega a lista. */
+    RequestReturnUser: (orderId: number, reason: string) => Promise<Result<boolean>>;
     LoadOrders: () => Promise<Result<boolean>>;
     LoadCategory: () => Promise<Result<boolean>>;
     PostRating: (formData: FormData) => Promise<Result<boolean>>;
@@ -52,6 +56,16 @@ export const UseOrderStore = create<OrderState>((set, get) => ({
         set({ orders: result.data || [] });
         return makeResult(true, true);
 
+    },
+    CancelOrderUser: async (orderId, reason) => {
+        const result = await OrderService.CancelOrder(orderId, reason);
+        if (result.success) await get().LoadOrders();
+        return result;
+    },
+    RequestReturnUser: async (orderId, reason) => {
+        const result = await OrderService.RequestReturn(orderId, reason);
+        if (result.success) await get().LoadOrders();
+        return result;
     },
     SaveOrderUser: async (orderData: OrderSave) => {
         const { user } = UseUserStore.getState();

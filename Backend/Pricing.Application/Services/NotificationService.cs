@@ -86,7 +86,7 @@ namespace Mercado.Craibas.Application.Services
             }
             catch (Exception ex)
             {
-                return Result<bool>.Failure(Error.Failure("Notificação",ex.Message));
+                return Result<bool>.Failure(Error.Failure("Notificação", "Não foi possível criar a notificação."));
             }
         }
 
@@ -134,11 +134,11 @@ namespace Mercado.Craibas.Application.Services
             catch (Exception ex)
             {
                 return Result<List<NotificationResponse>>.Failure(
-                    Error.Failure("Notificação", ex.Message)
+                    Error.Failure("Notificação", "Não foi possível carregar as notificações.")
                 );
             }
         }
-        public async Task<Result<bool>> PostNotificationRead(int notificationUserIdRead,string role)
+        public async Task<Result<bool>> PostNotificationRead(int notificationUserIdRead,string role, int userId)
         {
             if (notificationUserIdRead <= 0)
             {
@@ -153,7 +153,9 @@ namespace Mercado.Craibas.Application.Services
                 var UpdateNotifyVRead = await _unitOfWork.UpdateFieldsAsync<NotificationUser>(filters: new Dictionary<string, object>
                       {
                               { "Id", notificationUserIdRead},
-                              { "Role", role}
+                              { "Role", role},
+                              // Segurança: só marca como lida a notificação do próprio usuário.
+                              { "UserId", userId}
                       },
 
                         fieldsToUpdate: new Dictionary<string, object>
@@ -167,7 +169,7 @@ namespace Mercado.Craibas.Application.Services
             }
             catch (Exception ex)
             {
-                return Result<bool>.Failure(Error.Failure("Notificação", ex.Message));
+                return Result<bool>.Failure(Error.Failure("Notificação", "Não foi possível atualizar a notificação."));
             }
         }
         public async Task<Result<bool>> PostAllNotificationRead(int UserId,string role)
@@ -200,7 +202,7 @@ namespace Mercado.Craibas.Application.Services
             }
             catch (Exception ex)
             {
-                return Result<bool>.Failure(Error.Failure("Notificação", ex.Message));
+                return Result<bool>.Failure(Error.Failure("Notificação", "Não foi possível atualizar as notificações."));
             }
         }
     }

@@ -8,6 +8,7 @@ using Pricing.Api.Extensions;
 namespace Mercado.Api.Controllers.admin
 {
     [ApiController]
+    [Authorize(Roles = "ADMIN")]
     [Route("api/admin/Product")]
 
     public class ProductController : ControllerBase

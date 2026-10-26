@@ -5,6 +5,7 @@ using Mercado.Craibas.Application.Interfaces.Services;
 using Mercado.Craibas.Application.Payments;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using Pricing.Api.Extensions;
 
 namespace backend.controllers.v1;
@@ -33,7 +34,7 @@ public class PaymentController : ControllerBase
     [HttpGet("config")]
     public IActionResult GetConfig() => Result<Mercado.Craibas.Application.DTOs.Responses.PaymentConfigResponse>.Success(_service.GetConfig()).ToActionResult();
 
-    [Authorize]
+    [Authorize(Roles = "CLIENTE")]
     [HttpGet("order/{orderId:int}")]
     public async Task<IActionResult> GetOrderPayment(int orderId)
     {
@@ -41,7 +42,8 @@ public class PaymentController : ControllerBase
         return result.ToActionResult();
     }
 
-    [Authorize]
+    [Authorize(Roles = "CLIENTE")]
+    [EnableRateLimiting(Pricing.Api.Security.RateLimitPolicies.Payment)]
     [HttpPost("pix")]
     public async Task<IActionResult> CreatePix([FromBody] CreatePixPaymentRequest request)
     {
@@ -49,7 +51,8 @@ public class PaymentController : ControllerBase
         return result.ToActionResult();
     }
 
-    [Authorize]
+    [Authorize(Roles = "CLIENTE")]
+    [EnableRateLimiting(Pricing.Api.Security.RateLimitPolicies.PaymentCard)]
     [HttpPost("card")]
     public async Task<IActionResult> CreateCard([FromBody] CreateCardPaymentRequest request)
     {

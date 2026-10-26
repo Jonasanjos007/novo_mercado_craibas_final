@@ -27,6 +27,8 @@ import {
 } from 'lucide-react';
 import { Calendar, Hash } from 'lucide-react';
 import { useStore } from '../context/store';
+import OrderAfterSaleActions, { OrderAfterSalePopups } from '../components/OrderAfterSaleActions';
+import { useOrderAfterSaleController } from '../controller/useOrderAfterSaleController';
 import { badgeColors, badgeLabels, formatPrice, orderStatusLabels, orderStatusColors, orderStatusSteps } from '../utils';
 import { useNavigate } from 'react-router-dom';
 import ProfileCard from '../components/ProfileCard';
@@ -56,6 +58,7 @@ type ProfileTab = 'overview' | 'orders' | 'wishlist' | 'addresses' | 'security' 
 export default function ProfilePage() {
   const Controller = userProfileController();
   const { orders, Category, LoadCategory } = UseOrderStore();
+  const AfterSale = useOrderAfterSaleController();
   const navigate = useNavigate();
   const { favorites, products, loadProducts, GetfavoriteAll, DeleteOneFavorite } = UseProductStore();
   const { wishlist } = useStore();
@@ -63,6 +66,10 @@ export default function ProfilePage() {
   // const address = UseAddressStore((state) => state.address);
   const { address } = UseAddressStore();
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
+  // Depois de cancelar/devolver a lista é recarregada: mantém os detalhes abertos atualizados.
+  useEffect(() => {
+    setSelectedOrder(current => current ? (orders.find(o => o.id_Order === current.id_Order) ?? current) : current);
+  }, [orders]);
   const [reviewTarget, setReviewTarget] = useState<{ product: ProductSaveOrder; order: Order } | null>(null);
   const { updateUser, user, NameColorGlobal, ColorGlobalTema, ColorGlobalHover, ColorGlobalText, ColorGlobalHoverText } = UseUserStore();
   const logout = useAuthStore((state) => state.logout);
@@ -358,6 +365,7 @@ export default function ProfilePage() {
     <div className="min-h-screen bg-[#f5f5f7]">
       {/* Header */}
       <Headerpages title="Meu Perfil" showSecure={false} />
+      <OrderAfterSalePopups controller={AfterSale} />
       <div className="max-w-6xl mx-auto px-4 py-6">
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
 
@@ -1112,6 +1120,16 @@ export default function ProfilePage() {
 
                           </div>
 
+                          {/* Cancelar pedido / devolução */}
+                          <div className="px-4 pb-3 sm:px-5 empty:hidden">
+                            <OrderAfterSaleActions
+                              order={order}
+                              accentHex={colorConfig.hex}
+                              onCancel={AfterSale.action.openCancel}
+                              onReturn={AfterSale.action.openReturn}
+                            />
+                          </div>
+
                           <div className="flex items-center justify-between border-t border-surface-100 bg-surface-50/40 px-4 py-3 sm:px-5">
 
                             <span className="text-[10px] text-surface-400 sm:text-xs">
@@ -1186,6 +1204,15 @@ export default function ProfilePage() {
                         </span>
                       )}
                     </div>
+
+                    {/* Cancelar pedido / devolução */}
+                    <OrderAfterSaleActions
+                      order={selectedOrder}
+                      accentHex={colorConfig.hex}
+                      onCancel={AfterSale.action.openCancel}
+                      onReturn={AfterSale.action.openReturn}
+                      variant="full"
+                    />
 
                     {/* Steps de progresso */}
                     {selectedOrder.order_Status !== "cancelado" && selectedOrder.status_Pay !== "PENDENTE" && (

@@ -9,6 +9,7 @@ using Mercado.Craibas.Application.Interfaces.Repositories;
 using Mercado.Craibas.Application.Interfaces.Services;
 using Mercado.Craibas.Application.InterfacesAdmin;
 using Mercado.Craibas.Application.InterfacesAdmin.Services;
+using Mercado.Craibas.Application.Services;
 using Microsoft.EntityFrameworkCore;
 using Pricing.Api.DTOs.Responses;
 using System;
@@ -26,10 +27,12 @@ namespace Mercado.Craibas.Application.ServicesAdmin
         private readonly IEmailService _email;
         private readonly INotificationService _notification;
         private readonly IOrderStatusNotifier _statusNotifier;
+        private readonly IOrderStockService _stock;
 
 
-        public OrderServiceAdmin(IUnitOfWorkAdmin unitOfWorkAdmin,IEmailService email, INotificationService notification, IOrderStatusNotifier statusNotifier)
+        public OrderServiceAdmin(IUnitOfWorkAdmin unitOfWorkAdmin,IEmailService email, INotificationService notification, IOrderStatusNotifier statusNotifier, IOrderStockService stock)
         {
+            _stock = stock;
             _unitOfWorkAdmin = unitOfWorkAdmin;
             _email = email;
             _notification = notification;
@@ -57,6 +60,16 @@ namespace Mercado.Craibas.Application.ServicesAdmin
              Category = x.OrderLineItens.Select(i => i.Product.Product_Category.Category).FirstOrDefault(),
              WhoReceivedIt = x.WhoReceivedIt,
              CustomerDeliveryDate = x.CustomerDeliveryDate,
+             Cancel_Reason = x.Cancel_Reason,
+             Canceled_At = x.Canceled_At,
+             Canceled_By = x.Canceled_By,
+             Return_Status = x.Return_Status,
+             Return_Reason = x.Return_Reason,
+             Return_Requested_At = x.Return_Requested_At,
+             Return_Admin_Note = x.Return_Admin_Note,
+             Return_Deadline = x.Order_Status == "ENTREGUE"
+                 ? (x.CustomerDeliveryDate ?? x.UpdateDate ?? x.InsertDate).AddDays(7)
+                 : (DateTime?)null,
              DeliveryName = x.User_Delivery != null
                  ? x.User_Delivery.Name
                  : (x.User_Admin_Delivery != null ? x.User_Admin_Delivery.Name : null),
@@ -414,6 +427,13 @@ namespace Mercado.Craibas.Application.ServicesAdmin
                 return Result<bool>.Failure(Error.Failure("Pedido", "Pedido não encontrado!"));
             }
 
+            // Só os status conhecidos pela loja (evita gravar texto qualquer no pedido).
+            NewStatus = (NewStatus ?? "").Trim().ToUpperInvariant();
+            if (NewStatus is not ("PENDENTE" or "CONFIRMADO" or "PREPARANDO" or "SAIU_PARA_ENTREGA" or "ENTREGUE" or "CANCELADO"))
+            {
+                return Result<bool>.Failure(Error.Failure("Status", "Status inválido!"));
+            }
+
             var statusAnterior = Order.Order_Status;
             var dataEntregaAnterior = Order.CustomerDeliveryDate;
 
@@ -451,7 +471,17 @@ namespace Mercado.Craibas.Application.ServicesAdmin
                                 { "Id", Id_Order }
                         },
 
-                      fieldsToUpdate: new Dictionary<string, object>
+                      fieldsToUpdate: NewStatus == "ENTREGUE" && Order.CustomerDeliveryDate == null
+                      // Entregue sem "quem recebeu": grava a data da entrega mesmo assim
+                      // (é dela que conta o prazo de 7 dias da devolução).
+                      ? new Dictionary<string, object>
+                      {
+                             {"Order_Status",NewStatus },
+                             {"NotifyViaWhatsApp",true },
+                             {"UpdateDate",newdate },
+                             {"CustomerDeliveryDate", newdate }
+                      }
+                      : new Dictionary<string, object>
                       {
                              {"Order_Status",NewStatus },
                              {"NotifyViaWhatsApp",true },
@@ -461,9 +491,21 @@ namespace Mercado.Craibas.Application.ServicesAdmin
             }
             
 
-            if (Update_StatusOrder == null)
+            if (!Update_StatusOrder)
             {
                 return Result<bool>.Failure(Error.Failure("Status", "Erro ao atualizar status!"));
+            }
+
+            // Estoque: pedido confirmado (ou já em andamento) baixa a quantidade vendida;
+            // pedido cancelado devolve o que tinha sido baixado. Cada um acontece uma vez só.
+            var stockMessage = "";
+            if (NewStatus is "CONFIRMADO" or "PREPARANDO" or "SAIU_PARA_ENTREGA" or "ENTREGUE")
+            {
+                if (await _stock.DeductAsync(Id_Order)) stockMessage = "Estoque baixado (itens vendidos retirados do estoque).\n";
+            }
+            else if (NewStatus == "CANCELADO")
+            {
+                if (await _stock.RestockAsync(Id_Order)) stockMessage = "Estoque devolvido (pedido cancelado).\n";
             }
 
 
@@ -475,6 +517,11 @@ namespace Mercado.Craibas.Application.ServicesAdmin
                 alteracoes.Add(
                     $"Status: '{statusAnterior}' → '{NewStatus}'\n"
                 );
+            }
+
+            if (stockMessage != "")
+            {
+                alteracoes.Add(stockMessage);
             }
 
             if (NewStatus == "ENTREGUE" && WhoReceivedIt is not null)

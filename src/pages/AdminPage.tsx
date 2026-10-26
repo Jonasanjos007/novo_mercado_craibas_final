@@ -34,7 +34,7 @@ import {
   Upload
 } from 'lucide-react';
 import { useStore } from '../context/store';
-import { formatPrice, orderStatusLabels, orderStatusLabelsAtualize, orderStatusColors, categoryLabels, badgeLabels, badgeLabel, cupomStatusLabels, configs } from '../utils';
+import { formatPrice, orderStatusLabels, orderStatusLabelsAtualize, orderStatusColors, categoryLabels, badgeLabels, badgeLabel, cupomStatusLabels, configs, returnStatusLabels, returnStatusColors } from '../utils';
 import { useAdminController } from '../controller/useAdminController';
 import { UseOrderStore } from '../store/UseOrderStore';
 import { UseOrderAdminStore } from '../storeAdmin/UseOrderAdminStore';
@@ -68,6 +68,9 @@ import AdminMyDeliveriesPage from '../components/AdminMyDeliveriesPage';
 import AdminDeliverersPage from '../components/AdminDeliverersPage';
 import { Bike } from 'lucide-react';
 import { useSiteSettingsController } from '../controller/useSiteSettingsController';
+import AdminReturnsPanel from '../components/AdminReturnsPanel';
+import { UseReturnsAdminStore } from '../storeAdmin/UseReturnsAdminStore';
+import { RotateCcw } from 'lucide-react';
 
 
 
@@ -114,6 +117,9 @@ export default function AdminPage() {
   const [productSearch, setProductSearch] = useState('');
   const [orderSearch, setOrderSearch] = useState('');
   const [orderStatusFilter, setOrderStatusFilter] = useState('all');
+  // Aba "Devoluções" dentro de Pedidos.
+  const [showReturns, setShowReturns] = useState(false);
+  const { Returns: returnsData, LoadReturns } = UseReturnsAdminStore();
   const [logSearch, setLogSearch] = useState('');
   const [logTypeFilter, setLogTypeFilter] = useState('all');
   const [logLevelFilter, setLogLevelFilter] = useState('all');
@@ -669,6 +675,12 @@ export default function AdminPage() {
   // const openEditPromo = (pr: Promotion) => { setEditingCoupon(pr); setNewPromo({ ...pr }); Controller?.action.setShowCouponModal(true); };
 
   const dk = user?.customize?.tema ?? false;
+
+  // Contador de devoluções em aberto no chip "Devoluções".
+  useEffect(() => {
+    if (tab === 'orders') LoadReturns();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tab]);
   const bg = dk ? 'bg-[#0a0a0f]' : 'bg-[#f0f0f5]';
   const sidebar = dk ? 'bg-[#0d0d14] border-white/[0.06]' : 'bg-white border-surface-200';
   const card = dk ? 'bg-[#0d0d14] border-white/[0.06]' : 'bg-white border-surface-200';
@@ -2854,13 +2866,13 @@ export default function AdminPage() {
                         icon: CircleX,
                       },
                     ].map(s => {
-                      const active = orderStatusFilter === s.v;
+                      const active = !showReturns && orderStatusFilter === s.v;
                       const Icon = s.icon;
 
                       return (
                         <button
                           key={s.v}
-                          onClick={() => setOrderStatusFilter(s.v)}
+                          onClick={() => { setShowReturns(false); setOrderStatusFilter(s.v); }}
                           className={`flex items-center gap-2 h-10 px-4 rounded-2xl whitespace-nowrap border transition-all duration-300 flex-shrink-0 ${active
                             ? 'bg-brand-500 border-brand-500 text-white shadow-lg shadow-brand-500/20'
                             : `${bord} ${txt2}
@@ -2884,10 +2896,32 @@ export default function AdminPage() {
                         </button>
                       );
                     })}
+
+                    {/* DEVOLUÇÕES */}
+                    <button
+                      onClick={() => setShowReturns(true)}
+                      className={`relative flex items-center gap-2 h-10 px-4 rounded-2xl whitespace-nowrap border transition-all duration-300 flex-shrink-0 ${showReturns
+                        ? 'bg-amber-500 border-amber-500 text-white shadow-lg shadow-amber-500/20'
+                        : `${bord} ${txt2} ${dk ? 'bg-white/[0.04] hover:bg-white/[0.07]' : 'bg-white hover:bg-surface-50'}`
+                        }`}
+                    >
+                      <RotateCcw className="w-3.5 h-3.5" />
+                      <span className="text-xs font-bold">Devoluções</span>
+                      <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${showReturns ? 'bg-white/20' : returnsData.open > 0 ? 'bg-amber-500 text-white' : dk ? 'bg-white/10' : 'bg-surface-100'}`}>
+                        {returnsData.open}
+                      </span>
+                      {!showReturns && returnsData.open > 0 && (
+                        <span className="absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full bg-amber-500 animate-pulse" />
+                      )}
+                    </button>
                   </div>
                 </div>
               </div>
 
+              {showReturns ? (
+                <AdminReturnsPanel darkMode={dk} />
+              ) : (
+              <>
               {/* DESKTOP TABLE */}
               <div className={` hidden lg:block w-full rounded-[30px] border backdrop-blur-2xl shadow-[0_10px_40px_rgba(0,0,0,0.08)] ${card}`} >
                 {/* SCROLL SUPERIOR */}
@@ -3019,6 +3053,16 @@ export default function AdminPage() {
                   ${orderStatusColors[o.order_Status]}`}>
                               {orderStatusLabels[o.order_Status]}
                             </span>
+                            {o.return_Status && (
+                              <button
+                                type="button"
+                                onClick={() => setShowReturns(true)}
+                                className={`mt-1.5 flex items-center gap-1 text-[10px] font-bold px-2.5 py-1 rounded-full whitespace-nowrap ${returnStatusColors[o.return_Status] ?? ''}`}
+                              >
+                                <RotateCcw className="w-3 h-3" />
+                                {returnStatusLabels[o.return_Status] ?? o.return_Status}
+                              </button>
+                            )}
                           </td>
                           {/* =====================DATA====================== */}
                           <td className={` min-w-[140px] px-4 xl:px-6 py-5 text-xs font-medium whitespace-nowrap ${sub}`} >
@@ -3319,6 +3363,16 @@ export default function AdminPage() {
                               <span className={` text-[10px] font-black px-3 py-1 rounded-full border whitespace-nowrap ${orderStatusColors[o.order_Status]}`} >
                                 {orderStatusLabels[o.order_Status]}
                               </span>
+                              {o.return_Status && (
+                                <button
+                                  type="button"
+                                  onClick={() => setShowReturns(true)}
+                                  className={`flex items-center gap-1 text-[10px] font-bold px-2.5 py-1 rounded-full whitespace-nowrap ${returnStatusColors[o.return_Status] ?? ''}`}
+                                >
+                                  <RotateCcw className="w-3 h-3" />
+                                  {returnStatusLabels[o.return_Status] ?? o.return_Status}
+                                </button>
+                              )}
 
                             </div>
 
@@ -3741,6 +3795,8 @@ export default function AdminPage() {
                   onPageSizeChange={(pageSize) => SetOrdersQuery({ pageSize, page: 1 })}
                 />
               </div>
+              </>
+              )}
             </div>
           )}
 

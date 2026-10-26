@@ -8,6 +8,7 @@ using System.Xml;
 namespace Mercado.Api.Controllers.Admin
 {
     [ApiController]
+    [Authorize(Roles = "ADMIN")]
     [Route("api/admin/cupom")]
     public class CupomAdminController : ControllerBase
     {

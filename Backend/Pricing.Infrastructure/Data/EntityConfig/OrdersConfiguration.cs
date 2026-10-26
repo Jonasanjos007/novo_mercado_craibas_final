@@ -76,6 +76,14 @@ namespace Mercado.Craibas.Infrastructure.Configurations
                .IsRequired()
                .HasDefaultValue(false);
 
+            // Cancelamento e devolução
+            builder.Property(x => x.Cancel_Reason).HasMaxLength(500);
+            builder.Property(x => x.Canceled_By).HasMaxLength(20);
+            builder.Property(x => x.Return_Status).HasMaxLength(30);
+            builder.Property(x => x.Return_Reason).HasMaxLength(500);
+            builder.Property(x => x.Return_Admin_Note).HasMaxLength(500);
+            builder.HasIndex(x => x.Return_Status);
+
 
         }
     }

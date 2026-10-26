@@ -13,7 +13,7 @@ namespace Mercado.Craibas.Application.Interfaces.Services
     {
         Task<Result<bool>> SendNotification(NotificationRequest notification, List<NotificationUserRequest> notificationUsers);
         Task<Result<List<NotificationResponse>>> GetAllNotifications(int userId, string Role);
-        Task<Result<bool>> PostNotificationRead(int notificationUserIdRead, string role);
+        Task<Result<bool>> PostNotificationRead(int notificationUserIdRead, string role, int userId);
         Task<Result<bool>> PostAllNotificationRead(int UserId, string role);
     }
 }

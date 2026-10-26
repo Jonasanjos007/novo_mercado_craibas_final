@@ -73,7 +73,18 @@ public class OrderService : IOrderService
         }
         try
         {
-            
+            // Segurança: tudo que define o que é cobrado e entregue vem do carrinho do servidor
+            // (itens, quantidades, preços, cupom e frete). Da tela usamos só a forma de pagamento
+            // e o endereço (que precisa ser do próprio cliente).
+            if (Order == null)
+                return Result<OrderCreatedResponse>.Failure(Error.Validation("Pedido", "Dados do pedido não informados."));
+
+            var serverCart = await _productService.GetProductCartList(userId);
+            if (!serverCart.IsSuccess || serverCart.Value == null || serverCart.Value.CartItensProduct.Count == 0)
+                return Result<OrderCreatedResponse>.Failure(Error.Validation("Carrinho", "Carrinho vazio."));
+
+            Order.Id_Cupom = serverCart.Value.Id_Cupom;
+
             if(Order.Id_Cupom is not null)
             {
                 var cupom = await _unitOfWork.GetClassByIdAnyType<Cupom, int?>(Order.Id_Cupom, "Id");
@@ -103,7 +114,8 @@ public class OrderService : IOrderService
                 // Primeira compra
                 if (cupom.First_Order_Only)
                 {
-                    var hasOrders = await _unitOfWork.Query<Orders>().AnyAsync(x => x.Id_User_Customer == userId && x.Id_Cupom == cupom.Id && x.Isdelete != true);
+                    // Primeira compra = o cliente não tem outro pedido (cancelados não contam).
+                    var hasOrders = await _unitOfWork.Query<Orders>().AnyAsync(x => x.Id_User_Customer == userId && x.Isdelete != true && x.Order_Status != "CANCELADO");
 
                     if (hasOrders)
                         return Result<OrderCreatedResponse>.Failure(Error.Failure("Cupom", "Cupom válido apenas para primeira compra."));
@@ -143,9 +155,15 @@ public class OrderService : IOrderService
             if (Order.Products == null || Order.Products.Count == 0)
                 return Result<OrderCreatedResponse>.Failure(Error.Validation("Carrinho", "Carrinho vazio."));
 
-            var serverCart = await _productService.GetProductCartList(userId);
-            if (!serverCart.IsSuccess || serverCart.Value == null || serverCart.Value.CartItensProduct.Count == 0)
-                return Result<OrderCreatedResponse>.Failure(Error.Validation("Carrinho", "Carrinho vazio."));
+            // Endereço precisa ser do próprio cliente.
+            var addressId = Order.Address.Id;
+            var ownAddress = await _unitOfWork.GetClassAsyncWhere<Address>(x => x.Id == addressId && x.Id_User_Customer == userId && x.Isdelete != true);
+            if (ownAddress == null)
+                return Result<OrderCreatedResponse>.Failure(Error.Validation("Pedido", "Endereço de entrega inválido. Escolha um dos seus endereços."));
+
+            // Quantidades do carrinho precisam ser válidas (nada de zero ou negativo).
+            if (serverCart.Value.CartItensProduct.Any(x => x.Quantity < 1 || x.Quantity > 999 || x.Product == null || x.SelectedVariation == null))
+                return Result<OrderCreatedResponse>.Failure(Error.Validation("Carrinho", "Há um item inválido no carrinho. Remova e adicione o produto novamente."));
 
             if (serverCart.Value.ErroCupom == true)
                 return Result<OrderCreatedResponse>.Failure(Error.Validation("Cupom", string.IsNullOrWhiteSpace(serverCart.Value.Menssege) ? "O cupom aplicado não é mais válido. Revise o pedido." : serverCart.Value.Menssege));
@@ -164,11 +182,36 @@ public class OrderService : IOrderService
 
             Order.Total_Value_Order = serverTotal;
             Order.ShippingCost = serverCart.Value.ShippingCost;
+            // Mesmos cálculos que a tela fazia, agora com os valores do servidor.
+            Order.Discont = (serverCart.Value.Total ?? 0) - ((serverCart.Value.SubTotal ?? 0) - (serverCart.Value.ShippingCost ?? 0));
+            Order.Discont_Percentage = serverCart.Value.Discount ?? 0;
+            Order.Total_Value_OrderCupom = serverCart.Value.Total;
+            Order.Discount_Type = serverCart.Value.Discount_Type ?? "";
+
+            // Cupom: reserva 1 uso de forma atômica (dois pedidos ao mesmo tempo não passam do limite).
+            if (Order.Id_Cupom is not null)
+            {
+                var cupomId = Order.Id_Cupom;
+                var reserved = await _unitOfWork.Query<Cupom>()
+                    .Where(c => c.Id == cupomId && (c.Quantity_Uses == null || (c.Quantity_Used ?? 0) < c.Quantity_Uses))
+                    .ExecuteUpdateAsync(s => s.SetProperty(c => c.Quantity_Used, c => (c.Quantity_Used ?? 0) + 1));
+                if (reserved == 0)
+                    return Result<OrderCreatedResponse>.Failure(Error.Validation("Cupom", "Cupom esgotado."));
+            }
             Order.Payment_terms = paymentTerms;
             Order.Status_Pay = "PENDENTE";
 
-            var random = Random.Shared.Next(1000, 9999);
-            string numeroPedido = $"PED-{DateTime.Now:yyyyMMdd}-{random}";
+            // Número do pedido sem repetir no mesmo dia (antes dois pedidos podiam sair com o mesmo número).
+            string numeroPedido = "";
+            for (var tentativa = 0; tentativa < 20; tentativa++)
+            {
+                var random = Random.Shared.Next(1000, 10000);
+                numeroPedido = $"PED-{DateTime.Now:yyyyMMdd}-{random}";
+                if (!await _unitOfWork.Query<Orders>().AnyAsync(x => x.Number_Order == numeroPedido))
+                    break;
+                if (tentativa == 19)
+                    numeroPedido = $"PED-{DateTime.Now:yyyyMMdd}-{Guid.NewGuid().ToString("N")[..6].ToUpperInvariant()}";
+            }
 
             var OrderSave = new Orders();
             var OrderLineItens = new OrderLineItens();
@@ -220,23 +263,26 @@ public class OrderService : IOrderService
                 return Result<OrderCreatedResponse>.Failure(Error.Failure("Pedido", "Erro ao salvar o pedido. Entre em contato com suporte!"));
             }
             var InsertOrderLineItens = new OrderLineItens();
-            foreach (var OrderLine in Order.Products)
+            // Segurança: itens gravados a partir do carrinho do servidor (antes vinham da tela).
+            foreach (var CartLine in serverCart.Value.CartItensProduct)
             {
+                var priceUnic = CartLine.Product.Price_Unic ?? 0;
+                var originPrice = CartLine.Product.Origin_Price ?? 0;
 
                 OrderLineItens = new OrderLineItens
                 {
                     Id_Order = InsertOrderId.Id,
-                    Id_Product = OrderLine.Id,
-                    Name_Product = OrderLine.Name,
-                    Id_Variante_Product = OrderLine.Variations.Id,
-                    Variante_Name = OrderLine.Variations.Name,
-                    Variante_Type = OrderLine.Variations.Type,
-                    Quantity = OrderLine.Quantity,
-                    Total_Price = (OrderLine.Price_Unic * Order.Discont),
-                    Origin_Price = OrderLine.Origin_Price,
-                    Price_Unit = OrderLine.Price_Unic,
+                    Id_Product = CartLine.Product.Id,
+                    Name_Product = CartLine.Product.Name,
+                    Id_Variante_Product = CartLine.SelectedVariation.Id,
+                    Variante_Name = CartLine.SelectedVariation.Name,
+                    Variante_Type = CartLine.SelectedVariation.Type,
+                    Quantity = CartLine.Quantity,
+                    Total_Price = (priceUnic * Order.Discont),
+                    Origin_Price = originPrice,
+                    Price_Unit = priceUnic,
                     Evaluated = false,
-                    Discont = (OrderLine.Origin_Price - OrderLine.Price_Unic) * OrderLine.Quantity,
+                    Discont = (originPrice - priceUnic) * CartLine.Quantity,
                     Isdelete = false
                 };
 
@@ -279,15 +325,7 @@ public class OrderService : IOrderService
 
                     await _unitOfWork.InsertAsyncReturnId(CouponUsed);
 
-                await _unitOfWork.UpdateFieldsAsync<Cupom>(filters: new Dictionary<string, object>
-                      {
-                              { "Id", OrderSave.Id_Cupom }
-                      },
-
-                      fieldsToUpdate: new Dictionary<string, object>
-                      {
-                                 { "Quantity_Used", cupom.Quantity_Used += 1  }
-                      });
+                // (o uso do cupom já foi reservado de forma atômica antes de criar o pedido)
                 await _unitOfWork.UpdateFieldsAsync<Cart>(filters: new Dictionary<string, object>
                       {
                               { "Id_User_Customer",userId  }
@@ -346,7 +384,9 @@ public class OrderService : IOrderService
         }
         catch (Exception ex)
         {
-            return Result<OrderCreatedResponse>.Failure(Error.Failure("Pedido", ex.Message));
+            // Segurança: o detalhe técnico fica só no log do servidor.
+            Console.WriteLine($"ERRO PostSaveOrder (usuário {userId}): {ex}");
+            return Result<OrderCreatedResponse>.Failure(Error.Failure("Pedido", "Não foi possível salvar o pedido agora. Tente novamente em instantes."));
         }
     }
     public async Task<Result<List<OrderResponse>>> GetOrderAll(int userId)
@@ -380,6 +420,16 @@ public class OrderService : IOrderService
                     .FirstOrDefault(),
                 WhoReceivedIt = x.WhoReceivedIt,
                 CustomerDeliveryDate = x.CustomerDeliveryDate,
+                Cancel_Reason = x.Cancel_Reason,
+                Canceled_At = x.Canceled_At,
+                Canceled_By = x.Canceled_By,
+                Return_Status = x.Return_Status,
+                Return_Reason = x.Return_Reason,
+                Return_Requested_At = x.Return_Requested_At,
+                Return_Admin_Note = x.Return_Admin_Note,
+                Return_Deadline = x.Order_Status == "ENTREGUE"
+                    ? (x.CustomerDeliveryDate ?? x.UpdateDate ?? x.InsertDate).AddDays(7)
+                    : (DateTime?)null,
                 Address = new AddressResponse
                 {
                     Id = x.Address.Id,
@@ -530,6 +580,12 @@ public class OrderService : IOrderService
                 return Result<bool>.Failure(Error.Failure("Avaliação","Produto não encontrado neste pedido."));
             }
 
+            // Só avalia produto de pedido entregue (a tela já mostra o botão só nesse caso).
+            if (!string.Equals(order.Order_Status, "ENTREGUE", StringComparison.OrdinalIgnoreCase))
+            {
+                return Result<bool>.Failure(Error.Failure("Avaliação","Você pode avaliar depois que o pedido for entregue."));
+            }
+
             if (orderItem.Evaluated)
             {
                 return Result<bool>.Failure(Error.Failure("Avaliação","Este produto já foi avaliado."));
@@ -676,7 +732,7 @@ public class OrderService : IOrderService
         }
         catch (Exception ex)
         {
-            return Result<bool>.Failure(Error.Failure("Avaliação",ex.Message));
+            return Result<bool>.Failure(Error.Failure("Avaliação", "Não foi possível salvar a avaliação. Tente novamente."));
         }
     }
     public async Task<Result<bool>> PostUpdateEditeAssessment(int userId,ProductReviewEditerequest review)
@@ -753,6 +809,9 @@ public class OrderService : IOrderService
                     .Split(';', StringSplitOptions.RemoveEmptyEntries)
                     .Select(x => Path.GetFileName(x.Trim()))
                     .Where(x => !string.IsNullOrWhiteSpace(x))
+                    // Segurança: só pode manter arquivos que já eram desta avaliação
+                    // (impede apontar/apagar mídia de avaliações de outras pessoas).
+                    .Where(x => midiasAntigas.Contains(x, StringComparer.OrdinalIgnoreCase))
                     .ToList();
 
             // ==========================================
@@ -947,7 +1006,7 @@ public class OrderService : IOrderService
         }
         catch (Exception ex)
         {
-            return Result<bool>.Failure(Error.Failure("Avaliação",ex.Message));
+            return Result<bool>.Failure(Error.Failure("Avaliação", "Não foi possível salvar a avaliação. Tente novamente."));
         }
     } 
     public async Task<Result<RatingResponse>> GetAssessment(int userId, int IdProduct,int IdOrder)
@@ -981,7 +1040,7 @@ public class OrderService : IOrderService
         }
         catch (Exception ex)
         {
-            return Result<RatingResponse>.Failure(Error.Failure("Avaliação", ex.Message));
+            return Result<RatingResponse>.Failure(Error.Failure("Avaliação", "Não foi possível carregar a avaliação."));
         }
     }
 

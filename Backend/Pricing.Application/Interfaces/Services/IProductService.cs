@@ -15,12 +15,12 @@ namespace Mercado.Craibas.Application.Interfaces.Services
         Task<Result<List<ProductResponse>>> GetProductList();
         Task<Result<bool>> PostCartItensSave(CartItensRequest CartProduto,int userid);
         Task<Result<CartUserResponse>> GetProductCartList(int Id_Customer);
-        Task<Result<bool>> PostCartItensUpdate(int Id, int Quantity, string Soma_Sub, int? NewQunatity);
-        Task<Result<bool>> DeleteProductCartList(int Id_Customer);
+        Task<Result<bool>> PostCartItensUpdate(int userId, int Id, int Quantity, string Soma_Sub, int? NewQunatity);
+        Task<Result<bool>> DeleteProductCartList(int userId, int cartItemId);
         Task<Result<List<RatingAllProducts>>> GetAssessmentAllProduct(int IdProduct);
         Task<Result<bool>> PostFavoriteSave(int UserId, int IdProduct);
         Task<Result<List<FavoritesResponse>>> GetAllFavorites(int UserId);
-        Task<Result<bool>> DeleteFavorites(int IdProduct);
+        Task<Result<bool>> DeleteFavorites(int userId, int IdProduct);
 
     }
 }

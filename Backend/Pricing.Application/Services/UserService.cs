@@ -352,7 +352,8 @@ public class UserService : IUserService
 
         var Update_Address = await _unitOfWork.UpdateFieldsAsync<Address>(filters: new Dictionary<string, object>
         {
-                { "Id", NewAnddress.Id }
+                { "Id", NewAnddress.Id },
+                { "Id_User_Customer", NewAnddress.Id_User_Customer }
         },
 
        fieldsToUpdate: new Dictionary<string, object>
@@ -383,7 +384,13 @@ public class UserService : IUserService
         var user = await _unitOfWork.GetClassAsyncWhere<User_Customer>(X => X.Id == DeleteAddress.Id_User_Customer && X.Isdelete != true);
 
         // Cópia do endereço antes da exclusão (Lixeira)
-        var addressBefore = await _unitOfWork.GetClassAsyncWhere<Address>(x => x.Id == DeleteAddress.Id && x.Isdelete != true);
+        var addressBefore = await _unitOfWork.GetClassAsyncWhere<Address>(x => x.Id == DeleteAddress.Id && x.Id_User_Customer == DeleteAddress.Id_User_Customer && x.Isdelete != true);
+
+        // Segurança: só exclui endereço do próprio cliente.
+        if (addressBefore == null)
+        {
+            return Result<bool>.Failure(Error.Failure("Endereço", "Error ao Remover Endereço"));
+        }
 
         //var DeleteAddres = await _unitOfWork.DeleteByColumnAsyncGlolbal<Address>("Id", DeleteAddress.Id);
 
@@ -878,6 +885,12 @@ public class UserService : IUserService
         if (user.PasswordHash != "." || user.PasswordHash == null)
         {
             return Result<RegisterPasswordResponse>.Failure(Error.Failure("Usuário não encontrado", "Senha ja existe acesse na tela de login."));
+        }
+
+        // Segurança: a senha só pode ser criada depois que o e-mail foi confirmado com o código.
+        if (user.RegistrationStatus != RegistrationStatusEnum.EmailCompleted.ToString() || string.IsNullOrWhiteSpace(user.Email))
+        {
+            return Result<RegisterPasswordResponse>.Failure(Error.Failure("Cadastro", "Confirme seu e-mail antes de criar a senha."));
         }
       
         // 2. Validar senha (regra única do sistema)

@@ -9,6 +9,12 @@ package-lock.json
 .vs/
 **/.vs/
 
+# Configuração com senhas e chaves: NUNCA enviar ao GitHub.
+# Use appsettings.example.json como modelo.
+Backend/Pricing.Api/appsettings.json
+Backend/Pricing.Api/appsettings.*.json
+!Backend/Pricing.Api/appsettings.example.json
+
 # Build
 bin/
 obj/

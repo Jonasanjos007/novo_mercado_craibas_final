@@ -9,14 +9,35 @@ using System.Security.Claims;
 namespace Mercado.Api.Controllers.Admin
 {
     [ApiController]
+    [Authorize(Roles = "ADMIN")]
     [Route("api/admin/orders")]
     public class OrderAdminController : ControllerBase
     {
         private readonly IOrderAdminService _service;
+        private readonly Mercado.Craibas.Application.Services.IOrderAfterSaleService _afterSale;
 
-        public OrderAdminController(IOrderAdminService service)
+        public OrderAdminController(IOrderAdminService service, Mercado.Craibas.Application.Services.IOrderAfterSaleService afterSale)
         {
             _service = service;
+            _afterSale = afterSale;
+        }
+
+        // ───────────── Devoluções ─────────────
+
+        /// <summary>Pedidos de devolução. filter: open (padrão), all, EM_ANALISE, AGUARDANDO_COLETA, DEVOLVIDO, CANCELADA.</summary>
+        [HttpGet("returns")]
+        public async Task<IActionResult> GetReturns([FromQuery] string? filter = "open")
+        {
+            var result = await _afterSale.GetReturnsAsync(filter);
+            return result.ToActionResult();
+        }
+
+        /// <summary>Muda o andamento da devolução (AGUARDANDO_COLETA, DEVOLVIDO ou CANCELADA).</summary>
+        [HttpPost("returns/{orderId:int}/status")]
+        public async Task<IActionResult> UpdateReturnStatus(int orderId, [FromBody] UpdateReturnStatusRequest request)
+        {
+            var result = await _afterSale.UpdateReturnStatusAsync(User.GetUserId(), orderId, request?.Status ?? "", request?.Note);
+            return result.ToActionResult();
         }
         // ───────────── Paginação (filtros aplicados no banco antes de paginar) ─────────────
 
@@ -92,13 +113,15 @@ namespace Mercado.Api.Controllers.Admin
 
             if (role != "ADMIN")
             {
-                return null;
+                return Forbid();
             }
 
             var result = await _service.GetAlllogs();
 
             return result.ToActionResult();
         }
+        // Lista de categorias é pública (menu do site).
+        [AllowAnonymous]
         [HttpGet("GetCategoryAllListAdmin")]
         public async Task<IActionResult> GetCategoryAllListAdmin()
         {

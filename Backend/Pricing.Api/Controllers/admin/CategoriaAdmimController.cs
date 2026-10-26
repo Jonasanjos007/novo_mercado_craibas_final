@@ -7,6 +7,8 @@ using Pricing.Api.Extensions;
 namespace Mercado.Api.Controllers.admin
 {
     [ApiController]
+    // Segurança: só administradores (o perfil vem do token, não da tela).
+    [Authorize(Roles = "ADMIN")]
     [Route("api/admin/category")]
     public class CategoriaAdmimController : ControllerBase
     {

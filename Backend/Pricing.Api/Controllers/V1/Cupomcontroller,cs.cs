@@ -28,6 +28,7 @@ public class Cupomcontroller : ControllerBase
         return result.ToActionResult();
     }
 
+    [Authorize(Roles = "CLIENTE")]
     [HttpPost("ApplyCupom")]
     public async Task<IActionResult> ApplyCupom([FromBody] string Cod_Cupom)
     {
@@ -37,6 +38,7 @@ public class Cupomcontroller : ControllerBase
         return result.ToActionResult();
     }
 
+    [Authorize(Roles = "CLIENTE")]
     [HttpPost("RemoveApllyCupom")]
     public async Task<IActionResult> RemoveApllyCupom()
     {

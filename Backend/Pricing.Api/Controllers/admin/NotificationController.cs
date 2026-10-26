@@ -36,7 +36,7 @@ namespace Mercado.Api.Controllers.admin
            
             var role = User.FindFirst(ClaimTypes.Role)?.Value;
 
-            var result = await _service.PostNotificationRead(Id, role);
+            var result = await _service.PostNotificationRead(Id, role, User.GetUserId());
 
             return result.ToActionResult();
         }

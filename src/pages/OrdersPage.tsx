@@ -7,7 +7,9 @@ import { UseOrderStore } from '../store/UseOrderStore';
 import { useOrdersController } from '../controller/useOrdersController';
 import { getColorConfig } from '../types/Colors';
 import Headerpages from '../components/Headerpages';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+import OrderAfterSaleActions, { OrderAfterSalePopups } from '../components/OrderAfterSaleActions';
+import { useOrderAfterSaleController } from '../controller/useOrderAfterSaleController';
 import { Order } from '../models/Order';
 import { Cupom } from '../models/Cupom';
 import Loading from '../components/Loading';
@@ -17,11 +19,16 @@ import { ProductSaveOrder } from '../models/Product';
 
 export default function OrdersPage() {
   const Controller = useOrdersController();
+  const AfterSale = useOrderAfterSaleController();
   const navigate = useNavigate();
   const { orders } = UseOrderStore();
   const { Cupons } = UseOrderStore();
 
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
+  // Depois de cancelar/devolver a lista é recarregada: mantém os detalhes abertos atualizados.
+  useEffect(() => {
+    setSelectedOrder(current => current ? (orders.find(o => o.id_Order === current.id_Order) ?? current) : current);
+  }, [orders]);
   const [selectedCupom, setSelectedCupom] = useState<Cupom | null>(null);
   const [reviewTarget, setReviewTarget] = useState<{ product: ProductSaveOrder; order: Order } | null>(null);
   const [hoveredProduct, setHoveredProduct] = useState<number | null>(null);
@@ -55,6 +62,7 @@ export default function OrdersPage() {
     <div className="min-h-screen bg-surface-50 pb-10">
 
       <Headerpages title="Meus Pedidos" showSecure={false} />
+      <OrderAfterSalePopups controller={AfterSale} />
       <div className="bg-white border-b border-surface-100 sticky top-0 z-20">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 py-5">
 
@@ -289,6 +297,14 @@ export default function OrdersPage() {
                       />
                     </button>
                   </div>
+
+                  {/* Cancelar pedido / devolução */}
+                  <OrderAfterSaleActions
+                    order={order}
+                    accentHex={colorConfig.hex}
+                    onCancel={AfterSale.action.openCancel}
+                    onReturn={AfterSale.action.openReturn}
+                  />
 
                   <Loading
                     loading={Controller?.result.Loading || false}
@@ -731,6 +747,15 @@ export default function OrdersPage() {
                     Pagar agora · PIX ou cartão
                   </button>
                 )}
+
+                {/* Cancelar pedido / devolução */}
+                <OrderAfterSaleActions
+                  order={selectedOrder}
+                  accentHex={colorConfig.hex}
+                  onCancel={AfterSale.action.openCancel}
+                  onReturn={AfterSale.action.openReturn}
+                  variant="full"
+                />
 
                 {/* Steps de progresso */}
                 {selectedOrder.order_Status !== "cancelado" && selectedOrder.status_Pay !== "PENDENTE" && (

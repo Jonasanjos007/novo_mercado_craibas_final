@@ -14,7 +14,9 @@ import {
     setStoredSession,
 } from "./authStorage";
 
-const baseURL = "http://192.168.15.11:5022/api";
+// Endereço da API. Em produção defina VITE_API_URL (ex.: https://api.seusite.com.br/api) no .env;
+// sem ele continua usando o endereço da rede local.
+const baseURL = (import.meta as unknown as { env?: Record<string, string | undefined> }).env?.VITE_API_URL || "http://192.168.15.11:5022/api";
 
 export const api = axios.create({
     baseURL,

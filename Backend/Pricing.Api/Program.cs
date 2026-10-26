@@ -25,6 +25,7 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Pricing.Infrastructure.Repositories;
+using Pricing.Api.Security;
 using System.Text;
 
 
@@ -37,8 +38,12 @@ namespace Pricing.Api
         {
             var builder = WebApplication.CreateBuilder(args);
 
+            // Segurança: não anuncia o servidor (Kestrel) nas respostas.
+            builder.WebHost.ConfigureKestrel(options => options.AddServerHeader = false);
+
             // Controllers + Swagger
-            builder.Services.AddControllers();
+            // UploadValidationFilter: confere extensão, tamanho e conteúdo real de todo arquivo enviado.
+            builder.Services.AddControllers(options => options.Filters.Add<UploadValidationFilter>());
             builder.Services.AddEndpointsApiExplorer();
             builder.Services.AddSwaggerGen();
 
@@ -384,6 +389,8 @@ namespace Pricing.Api
             builder.Services.AddScoped<IDeletionRecordService, DeletionRecordService>();
             builder.Services.AddScoped<ITrashServiceAdmin, TrashServiceAdmin>();
             builder.Services.AddScoped<IOrderStatusNotifier, OrderStatusNotifier>();
+            builder.Services.AddScoped<IOrderStockService, OrderStockService>();
+            builder.Services.AddScoped<IOrderAfterSaleService, OrderAfterSaleService>();
             builder.Services.AddScoped<IDeliveryService, DeliveryService>();
             builder.Services.AddScoped<IDeliveryServiceAdmin, DeliveryServiceAdmin>();
             builder.Services.AddScoped<IPasswordHasher, PasswordHasher>();
@@ -406,6 +413,9 @@ namespace Pricing.Api
             builder.Services.AddScoped<IPaymentNotifier, PaymentNotifier>();
             builder.Services.AddScoped<IPaymentService, PaymentService>();
             builder.Services.AddHostedService<PaymentExpirationWorker>();
+
+            // Segurança: limites de tentativas (login, cadastro, pagamento) e limite geral por IP.
+            builder.Services.AddAppRateLimiting(builder.Configuration);
             //Trocar DI
             builder.Services.AddApplication();
             builder.Services.AddControllers().AddJsonOptions(options =>
@@ -423,8 +433,26 @@ namespace Pricing.Api
             }
             app.UseCors("AllowFrontend");
 
+            // Segurança: cabeçalhos de proteção em todas as respostas da API.
+            app.Use(async (context, next) =>
+            {
+                var headers = context.Response.Headers;
+                headers["X-Content-Type-Options"] = "nosniff";
+                headers["X-Frame-Options"] = "DENY";
+                headers["Referrer-Policy"] = "no-referrer";
+                headers["Permissions-Policy"] = "camera=(), microphone=(), geolocation=(), payment=()";
+                await next();
+            });
+
+            // HSTS só vale em HTTPS e fora do ambiente de desenvolvimento.
+            if (!app.Environment.IsDevelopment())
+            {
+                app.UseHsts();
+            }
+
             app.UseMiddleware<ExceptionMiddleware>();
             app.UseAuthentication();
+            app.UseRateLimiter();
             app.UseAuthorization();
             app.MapControllers();
 
