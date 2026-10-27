@@ -1,6 +1,5 @@
 namespace Mercado.Craibas.Application.DTOs.Responses
 {
-    /// <summary>Pedido como aparece no portal de entregas.</summary>
     public class DeliveryOrderResponse
     {
         public int Id { get; set; }
@@ -23,17 +22,15 @@ namespace Mercado.Craibas.Application.DTOs.Responses
         public string? CustomerPhone { get; set; }
         public AddressResponse? Address { get; set; }
         public List<DeliveryOrderItemResponse> Items { get; set; } = new();
-
-        /// <summary>NONE, DELIVERY ou ADMIN.</summary>
         public string AssigneeType { get; set; } = "NONE";
         public int? AssigneeId { get; set; }
         public string? AssigneeName { get; set; }
 
-        /// <summary>O pedido está com quem fez a requisição.</summary>
         public bool IsMine { get; set; }
-
-        /// <summary>Ganho do entregador neste pedido (só quando a gorjeta está ativa).</summary>
         public double? Earning { get; set; }
+        public string Kind { get; set; } = "ENTREGA";
+        public string? ReturnReason { get; set; }
+        public bool CancelRequested { get; set; }
     }
 
     public class DeliveryOrderItemResponse
@@ -43,23 +40,19 @@ namespace Mercado.Craibas.Application.DTOs.Responses
         public int Quantity { get; set; }
     }
 
-    /// <summary>Uma linha de ganho: um pedido ou um dia.</summary>
     public class DeliveryEarningEntryResponse
     {
-        /// <summary>PEDIDO ou DIA.</summary>
         public string Kind { get; set; } = "PEDIDO";
 
         public int? OrderId { get; set; }
         public string? OrderNumber { get; set; }
         public double? OrderTotal { get; set; }
 
-        /// <summary>Data da entrega (pedido) ou o dia trabalhado.</summary>
         public DateTime Date { get; set; }
 
         public int Deliveries { get; set; }
         public double Amount { get; set; }
 
-        /// <summary>O admin definiu uma gorjeta específica para este pedido.</summary>
         public bool CustomTip { get; set; }
 
         public bool Paid { get; set; }
@@ -67,14 +60,12 @@ namespace Mercado.Craibas.Application.DTOs.Responses
         public int? PayoutId { get; set; }
     }
 
-    /// <summary>Ganhos do entregador.</summary>
     public class DeliveryEarningsResponse
     {
         public bool Enabled { get; set; }
         public string? Mode { get; set; }
         public string? OrderValueType { get; set; }
 
-        /// <summary>Valor que vale para este entregador (já com o valor próprio, se tiver).</summary>
         public double? CurrentValue { get; set; }
 
         public double PendingTotal { get; set; }
@@ -83,7 +74,6 @@ namespace Mercado.Craibas.Application.DTOs.Responses
         public List<DeliveryEarningEntryResponse> Entries { get; set; } = new();
     }
 
-    /// <summary>Perfil do entregador.</summary>
     public class DeliveryProfileResponse
     {
         public int Id { get; set; }
@@ -100,7 +90,6 @@ namespace Mercado.Craibas.Application.DTOs.Responses
         public int DeliveredThisWeek { get; set; }
     }
 
-    /// <summary>Entregador na tela do admin.</summary>
     public class DeliveryDriverAdminResponse
     {
         public int Id { get; set; }
@@ -121,7 +110,6 @@ namespace Mercado.Craibas.Application.DTOs.Responses
         public int PendingItems { get; set; }
         public double PaidAmount { get; set; }
 
-        /// <summary>Valores próprios (null = usa o geral).</summary>
         public double? CommissionDelivers { get; set; }
         public double? DailyRate { get; set; }
     }
@@ -138,7 +126,6 @@ namespace Mercado.Craibas.Application.DTOs.Responses
         public string? UpdatedByName { get; set; }
     }
 
-    /// <summary>O que falta pagar para um entregador.</summary>
     public class DeliveryPayablesResponse
     {
         public bool Enabled { get; set; }
@@ -149,7 +136,6 @@ namespace Mercado.Craibas.Application.DTOs.Responses
         public List<DeliveryEarningEntryResponse> Entries { get; set; } = new();
     }
 
-    /// <summary>Baixa (pagamento) feita.</summary>
     public class DeliveryPayoutResponse
     {
         public int Id { get; set; }

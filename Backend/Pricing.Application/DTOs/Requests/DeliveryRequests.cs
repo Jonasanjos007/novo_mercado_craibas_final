@@ -62,6 +62,9 @@ namespace Mercado.Craibas.Application.DTOs.Requests
         /// <summary>Modo por dia: dias pagos.</summary>
         public List<DateTime> WorkDates { get; set; } = new();
 
+        /// <summary>Modo por pedido: coletas de devolução pagas (id do pedido).</summary>
+        public List<int> PickupOrderIds { get; set; } = new();
+
         public string? Note { get; set; }
     }
 

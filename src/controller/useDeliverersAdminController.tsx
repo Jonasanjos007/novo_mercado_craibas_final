@@ -23,7 +23,7 @@ const defaultSettings: DeliverySettings = {
 
 /** Chave única de um item a pagar (pedido ou dia). */
 export const entryKey = (entry: DeliveryEarningEntry) =>
-    entry.kind === 'DIA' ? `D:${entry.date.slice(0, 10)}` : `P:${entry.orderId}`;
+    entry.kind === 'DIA' ? `D:${entry.date.slice(0, 10)}` : entry.kind === 'COLETA' ? `C:${entry.orderId}` : `P:${entry.orderId}`;
 
 const parseMoney = (value: string): number | null => {
     let clean = value.replace(/\s/g, '').replace(/^R\$/, '').replace('%', '');
@@ -324,6 +324,7 @@ export const useDeliverersAdminController = () => {
             const result = await store.CreatePayout({
                 deliveryId: payablesTarget.id,
                 orderIds: selectedEntries.filter((e) => e.kind === 'PEDIDO' && e.orderId).map((e) => e.orderId as number),
+                pickupOrderIds: selectedEntries.filter((e) => e.kind === 'COLETA' && e.orderId).map((e) => e.orderId as number),
                 workDates: selectedEntries.filter((e) => e.kind === 'DIA').map((e) => e.date.slice(0, 10)),
                 note: payoutNote.trim() || undefined,
             });

@@ -13,5 +13,9 @@ namespace Mercado.Craibas.Application.DTOs.Responses
         public string StoreImageIcone { get; set; }
         public double? ShippingCost { get; set; }
         public double? TimeframeBusinessDays { get; set; }
+        /// <summary>Telefone/WhatsApp da loja (só dígitos, com DDI).</summary>
+        public string? PhoneSupport { get; set; }
+        /// <summary>E-mail de contato da loja.</summary>
+        public string? EmailSupport { get; set; }
     }
 }

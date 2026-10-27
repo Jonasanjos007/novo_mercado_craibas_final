@@ -17,6 +17,12 @@ interface OrderState {
     LoadCupons: () => Promise<Result<boolean>>;
     Cupons: Cupom[];
     orders: Order[];
+    /** true enquanto a lista de pedidos está sendo buscada. */
+    ordersLoading: boolean;
+    /** true depois que a lista chegou pelo menos uma vez (antes disso não dá para dizer "nenhum pedido"). */
+    ordersLoaded: boolean;
+    /** true quando a última busca falhou (a tela mostra "tentar de novo" em vez de "nenhum pedido"). */
+    ordersFailed: boolean;
     Category: Category[];
     /** Cria o pedido PENDENTE e devolve o id para seguir ao pagamento. */
     SaveOrderUser: (Order: OrderSave) => Promise<Result<OrderCreated | null>>;
@@ -33,9 +39,16 @@ interface OrderState {
 
 }
 
+// Várias telas pedem a lista ao mesmo tempo (cabeçalho, Meus Pedidos, Perfil):
+// só a resposta do pedido mais recente vale, para uma resposta antiga não apagar a lista.
+let ordersRequest = 0;
+
 export const UseOrderStore = create<OrderState>((set, get) => ({
     Cupons: [],
     orders: [],
+    ordersLoading: false,
+    ordersLoaded: false,
+    ordersFailed: false,
     Category: [],
     LoadCupons: async (): Promise<Result<boolean>> => {
         const result = await OrderService.GetCupomSearch();
@@ -48,12 +61,18 @@ export const UseOrderStore = create<OrderState>((set, get) => ({
 
     },
     LoadOrders: async (): Promise<Result<boolean>> => {
+        const request = ++ordersRequest;
+        set({ ordersLoading: true });
         const result = await OrderService.GetOrderAllList();
+        // Chegou depois de uma busca mais nova: ignora (a mais nova decide a lista).
+        if (request !== ordersRequest) {
+            return result.success ? makeResult(true, true) : makeResult(false, false, result.error);
+        }
         if (!result.success) {
-            set({ orders: [] });
+            set({ orders: [], ordersLoading: false, ordersLoaded: true, ordersFailed: true });
             return makeResult(false, false, result.error);
         }
-        set({ orders: result.data || [] });
+        set({ orders: result.data || [], ordersLoading: false, ordersLoaded: true, ordersFailed: false });
         return makeResult(true, true);
 
     },

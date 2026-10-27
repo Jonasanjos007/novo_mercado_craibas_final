@@ -22,11 +22,13 @@ namespace Mercado.Craibas.Application.Services
 
         private readonly IUnitOfWork _unitOfWork;
         private readonly IOrderStatusNotifier _statusNotifier;
+        private readonly IOrderAfterSaleService _afterSale;
 
-        public DeliveryService(IUnitOfWork unitOfWork, IOrderStatusNotifier statusNotifier)
+        public DeliveryService(IUnitOfWork unitOfWork, IOrderStatusNotifier statusNotifier, IOrderAfterSaleService afterSale)
         {
             _unitOfWork = unitOfWork;
             _statusNotifier = statusNotifier;
+            _afterSale = afterSale;
         }
 
         public async Task<Result<List<DeliveryOrderResponse>>> GetMyOrdersAsync(int deliveryId)
@@ -41,6 +43,14 @@ namespace Mercado.Craibas.Application.Services
 
             var orders = await DeliveryOrderProjection.Project(query).ToListAsync();
 
+            // Coletas de devolução atribuídas a ele
+            var pickups = await DeliveryOrderProjection.ProjectPickups(
+                    DeliveryOrderProjection.OpenPickups(_unitOfWork.Query<Orders>().AsNoTracking())
+                        .Where(x => x.Return_Id_User_Delivery == deliveryId)
+                        .OrderBy(x => x.Return_AssignedAt ?? x.Return_Requested_At))
+                .ToListAsync();
+            orders.AddRange(pickups);
+
             foreach (var order in orders)
                 order.IsMine = true;
 
@@ -51,6 +61,12 @@ namespace Mercado.Craibas.Application.Services
 
         public async Task<Result<bool>> DispatchAsync(int deliveryId, int orderId)
         {
+            if (await _afterSale.IsPickupAsync(orderId))
+                return await _afterSale.DispatchPickupAsync("DELIVERY", deliveryId, orderId);
+
+            if (await _unitOfWork.Query<Orders>().AnyAsync(x => x.Id == orderId && x.Id_User_Delivery == deliveryId && x.Cancel_Status == "SOLICITADO"))
+                return Result<bool>.Failure(Error.Conflict("Delivery.CancelRequested", "O cliente pediu o cancelamento deste pedido. Aguarde a loja responder antes de sair para entrega."));
+
             var now = DateTime.Now;
 
             var updated = await _unitOfWork.Query<Orders>()
@@ -81,6 +97,9 @@ namespace Mercado.Craibas.Application.Services
 
         public async Task<Result<bool>> DeliverAsync(int deliveryId, int orderId, DeliverOrderRequest request)
         {
+            if (await _afterSale.IsPickupAsync(orderId))
+                return await _afterSale.CollectPickupAsync("DELIVERY", deliveryId, orderId, request?.WhoReceivedIt);
+
             var whoReceivedIt = request?.WhoReceivedIt?.Trim();
 
             if (string.IsNullOrWhiteSpace(whoReceivedIt) || whoReceivedIt.Length < 2)
@@ -130,6 +149,18 @@ namespace Mercado.Craibas.Application.Services
 
             var orders = await DeliveryOrderProjection.Project(query).ToListAsync();
 
+            // Coletas feitas por ele
+            var pickups = await DeliveryOrderProjection.ProjectPickups(
+                    DeliveryOrderProjection.CollectedPickups(_unitOfWork.Query<Orders>().AsNoTracking())
+                        .Where(x => x.Return_Id_User_Delivery == deliveryId)
+                        .OrderByDescending(x => x.Return_CollectedAt)
+                        .Take(HistoryLimit))
+                .ToListAsync();
+            orders = orders.Concat(pickups)
+                .OrderByDescending(x => x.DeliveredAt ?? x.InsertDate)
+                .Take(HistoryLimit)
+                .ToList();
+
             foreach (var order in orders)
                 order.IsMine = true;
 
@@ -142,12 +173,12 @@ namespace Mercado.Craibas.Application.Services
 
                 var amounts = ledger.Pending.Concat(ledger.Paid)
                     .Where(x => x.OrderId.HasValue)
-                    .GroupBy(x => x.OrderId!.Value)
+                    .GroupBy(x => (x.Kind == "COLETA" ? "C" : "P") + x.OrderId!.Value)
                     .ToDictionary(g => g.Key, g => g.First().Amount);
 
                 foreach (var order in orders)
                 {
-                    if (amounts.TryGetValue(order.Id, out var amount))
+                    if (amounts.TryGetValue((order.Kind == "COLETA" ? "C" : "P") + order.Id, out var amount))
                         order.Earning = amount;
                 }
             }
@@ -201,7 +232,9 @@ namespace Mercado.Craibas.Application.Services
 
             var activeOrders = await mine.CountAsync(x =>
                 x.Order_Status == DeliveryOrderStatus.Preparando
-                || x.Order_Status == DeliveryOrderStatus.SaiuParaEntrega);
+                || x.Order_Status == DeliveryOrderStatus.SaiuParaEntrega)
+                + await DeliveryOrderProjection.OpenPickups(_unitOfWork.Query<Orders>().AsNoTracking())
+                    .CountAsync(x => x.Return_Id_User_Delivery == deliveryId);
 
             var delivered = mine.Where(x => x.Order_Status == DeliveryOrderStatus.Entregue);
 
@@ -259,7 +292,9 @@ namespace Mercado.Craibas.Application.Services
 
             foreach (var order in orders)
             {
-                tips.TryGetValue(order.Id, out var tip);
+                // Coleta não tem gorjeta própria: vale o valor por pedido do entregador.
+                double? tip = null;
+                if (order.Kind != "COLETA") tips.TryGetValue(order.Id, out tip);
                 order.Earning = DeliveryLedger.OrderAmount(settings, delivery?.CommissionDelivers, order.Total_Value_Order, tip);
             }
         }

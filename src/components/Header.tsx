@@ -334,7 +334,7 @@ useEffect(() => {
           ))} */}
           <div className="mx-1 h-4 w-px bg-surface-700" />
           <NavBtn active={Pages === 'flash-sale'} colorConfig={colorConfig.hex} Color={ColorGlobalTema} ColorText={ColorGlobalText} HoverText={ColorGlobalHover} onClick={() => { navigatePages('flash-sale', null, null); navigate('/flash-sale') }} label="⚡ Relâmpago" highlight />
-          <NavBtn active={Pages === 'brands'} Color={ColorGlobalTema} ColorText={ColorGlobalText} HoverText={ColorGlobalHover} onClick={() => { navigatePages('brands', null, null); navigate('/brands') }} label="⭐ Marcas" />
+          <NavBtn active={Pages === 'brands'} Color={ColorGlobalTema} ColorText={ColorGlobalText} HoverText={ColorGlobalHover} onClick={() => { navigatePages('brands', null, null); navigate('/brands') }} label="🔥 Achadinhos" />
           <NavBtn active={Pages === 'about'} Color={ColorGlobalTema} ColorText={ColorGlobalText} HoverText={ColorGlobalHover} onClick={() => { navigatePages('about', null, null); navigate('/about') }} label="ℹ️ Sobre" />
         </div>
       </nav>
@@ -350,7 +350,7 @@ useEffect(() => {
             <button onClick={() => { navigate('/flash-sale'); setMenuOpen(false); }} className={`flex items-center gap-2 p-3 rounded-xl  text-surface-300 hover:bg-brand-500/30 transition-all text-sm`} style={{
               background: `${colorConfig.hex}22`
             }}>⚡ Relâmpago</button>
-            <button onClick={() => { navigatePages('brands', null, null); navigate('/brands') }} className="flex items-center gap-2 p-3 rounded-xl bg-surface-800 text-surface-300 hover:bg-surface-700 transition-all text-sm">⭐ Marcas </button>
+            <button onClick={() => { navigatePages('brands', null, null); navigate('/brands') }} className="flex items-center gap-2 p-3 rounded-xl bg-surface-800 text-surface-300 hover:bg-surface-700 transition-all text-sm">🔥 Achadinhos </button>
             <button onClick={() => { navigate('/about'); setMenuOpen(false); }} className="flex items-center gap-2 p-3 rounded-xl bg-surface-800 text-surface-300 hover:bg-surface-700 transition-all text-sm">ℹ️ Sobre Nós</button>
           </div>
         </div>

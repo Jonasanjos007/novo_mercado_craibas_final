@@ -34,7 +34,7 @@ import {
   Upload
 } from 'lucide-react';
 import { useStore } from '../context/store';
-import { formatPrice, orderStatusLabels, orderStatusLabelsAtualize, orderStatusColors, categoryLabels, badgeLabels, badgeLabel, cupomStatusLabels, configs, returnStatusLabels, returnStatusColors } from '../utils';
+import { formatPrice, orderStatusLabels, orderStatusLabelsAtualize, orderStatusColors, categoryLabels, badgeLabels, badgeLabel, cupomStatusLabels, configs, returnStatusLabels, returnStatusColors, cancelStatusLabels, cancelStatusColors } from '../utils';
 import { useAdminController } from '../controller/useAdminController';
 import { UseOrderStore } from '../store/UseOrderStore';
 import { UseOrderAdminStore } from '../storeAdmin/UseOrderAdminStore';
@@ -69,8 +69,11 @@ import AdminDeliverersPage from '../components/AdminDeliverersPage';
 import { Bike } from 'lucide-react';
 import { useSiteSettingsController } from '../controller/useSiteSettingsController';
 import AdminReturnsPanel from '../components/AdminReturnsPanel';
+import AdminCancellationsPanel from '../components/AdminCancellationsPanel';
+import { UseCancellationsAdminStore } from '../storeAdmin/UseCancellationsAdminStore';
 import { UseReturnsAdminStore } from '../storeAdmin/UseReturnsAdminStore';
 import { RotateCcw } from 'lucide-react';
+import { formatPhoneInput } from '../utils/contact';
 
 
 
@@ -120,6 +123,11 @@ export default function AdminPage() {
   // Aba "Devoluções" dentro de Pedidos.
   const [showReturns, setShowReturns] = useState(false);
   const { Returns: returnsData, LoadReturns } = UseReturnsAdminStore();
+  // Aba "Cancelamentos" dentro de Pedidos (pedidos pagos que o cliente quer cancelar).
+  const [showCancels, setShowCancels] = useState(false);
+  const { Cancellations: cancelsData, LoadCancellations } = UseCancellationsAdminStore();
+  const openReturns = () => { setShowCancels(false); setShowReturns(true); };
+  const openCancels = () => { setShowReturns(false); setShowCancels(true); };
   const [logSearch, setLogSearch] = useState('');
   const [logTypeFilter, setLogTypeFilter] = useState('all');
   const [logLevelFilter, setLogLevelFilter] = useState('all');
@@ -678,7 +686,7 @@ export default function AdminPage() {
 
   // Contador de devoluções em aberto no chip "Devoluções".
   useEffect(() => {
-    if (tab === 'orders') LoadReturns();
+    if (tab === 'orders') { LoadReturns(); LoadCancellations(); }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tab]);
   const bg = dk ? 'bg-[#0a0a0f]' : 'bg-[#f0f0f5]';
@@ -2866,13 +2874,13 @@ export default function AdminPage() {
                         icon: CircleX,
                       },
                     ].map(s => {
-                      const active = !showReturns && orderStatusFilter === s.v;
+                      const active = !showReturns && !showCancels && orderStatusFilter === s.v;
                       const Icon = s.icon;
 
                       return (
                         <button
                           key={s.v}
-                          onClick={() => { setShowReturns(false); setOrderStatusFilter(s.v); }}
+                          onClick={() => { setShowReturns(false); setShowCancels(false); setOrderStatusFilter(s.v); }}
                           className={`flex items-center gap-2 h-10 px-4 rounded-2xl whitespace-nowrap border transition-all duration-300 flex-shrink-0 ${active
                             ? 'bg-brand-500 border-brand-500 text-white shadow-lg shadow-brand-500/20'
                             : `${bord} ${txt2}
@@ -2897,9 +2905,27 @@ export default function AdminPage() {
                       );
                     })}
 
+                    {/* CANCELAMENTOS (aguardando aprovação) */}
+                    <button
+                      onClick={openCancels}
+                      className={`relative flex items-center gap-2 h-10 px-4 rounded-2xl whitespace-nowrap border transition-all duration-300 flex-shrink-0 ${showCancels
+                        ? 'bg-red-500 border-red-500 text-white shadow-lg shadow-red-500/20'
+                        : `${bord} ${txt2} ${dk ? 'bg-white/[0.04] hover:bg-white/[0.07]' : 'bg-white hover:bg-surface-50'}`
+                        }`}
+                    >
+                      <CircleX className="w-3.5 h-3.5" />
+                      <span className="text-xs font-bold">Cancelamentos</span>
+                      <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${showCancels ? 'bg-white/20' : cancelsData.open > 0 ? 'bg-red-500 text-white' : dk ? 'bg-white/10' : 'bg-surface-100'}`}>
+                        {cancelsData.open}
+                      </span>
+                      {!showCancels && cancelsData.open > 0 && (
+                        <span className="absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full bg-red-500 animate-pulse" />
+                      )}
+                    </button>
+
                     {/* DEVOLUÇÕES */}
                     <button
-                      onClick={() => setShowReturns(true)}
+                      onClick={openReturns}
                       className={`relative flex items-center gap-2 h-10 px-4 rounded-2xl whitespace-nowrap border transition-all duration-300 flex-shrink-0 ${showReturns
                         ? 'bg-amber-500 border-amber-500 text-white shadow-lg shadow-amber-500/20'
                         : `${bord} ${txt2} ${dk ? 'bg-white/[0.04] hover:bg-white/[0.07]' : 'bg-white hover:bg-surface-50'}`
@@ -2919,7 +2945,9 @@ export default function AdminPage() {
               </div>
 
               {showReturns ? (
-                <AdminReturnsPanel darkMode={dk} />
+                <AdminReturnsPanel darkMode={dk} onOpenDeliveries={() => setTab('deliverers')} />
+              ) : showCancels ? (
+                <AdminCancellationsPanel darkMode={dk} />
               ) : (
               <>
               {/* DESKTOP TABLE */}
@@ -3053,10 +3081,20 @@ export default function AdminPage() {
                   ${orderStatusColors[o.order_Status]}`}>
                               {orderStatusLabels[o.order_Status]}
                             </span>
+                            {(o.cancel_Status === 'SOLICITADO' || o.cancel_Status === 'RECUSADO') && (
+                              <button
+                                type="button"
+                                onClick={openCancels}
+                                className={`mt-1.5 flex items-center gap-1 text-[10px] font-bold px-2.5 py-1 rounded-full whitespace-nowrap ${cancelStatusColors[o.cancel_Status] ?? ''}`}
+                              >
+                                <CircleX className="w-3 h-3" />
+                                {cancelStatusLabels[o.cancel_Status] ?? o.cancel_Status}
+                              </button>
+                            )}
                             {o.return_Status && (
                               <button
                                 type="button"
-                                onClick={() => setShowReturns(true)}
+                                onClick={openReturns}
                                 className={`mt-1.5 flex items-center gap-1 text-[10px] font-bold px-2.5 py-1 rounded-full whitespace-nowrap ${returnStatusColors[o.return_Status] ?? ''}`}
                               >
                                 <RotateCcw className="w-3 h-3" />
@@ -3363,10 +3401,20 @@ export default function AdminPage() {
                               <span className={` text-[10px] font-black px-3 py-1 rounded-full border whitespace-nowrap ${orderStatusColors[o.order_Status]}`} >
                                 {orderStatusLabels[o.order_Status]}
                               </span>
+                              {(o.cancel_Status === 'SOLICITADO' || o.cancel_Status === 'RECUSADO') && (
+                                <button
+                                  type="button"
+                                  onClick={openCancels}
+                                  className={`flex items-center gap-1 text-[10px] font-bold px-2.5 py-1 rounded-full whitespace-nowrap ${cancelStatusColors[o.cancel_Status] ?? ''}`}
+                                >
+                                  <CircleX className="w-3 h-3" />
+                                  {cancelStatusLabels[o.cancel_Status] ?? o.cancel_Status}
+                                </button>
+                              )}
                               {o.return_Status && (
                                 <button
                                   type="button"
-                                  onClick={() => setShowReturns(true)}
+                                  onClick={openReturns}
                                   className={`flex items-center gap-1 text-[10px] font-bold px-2.5 py-1 rounded-full whitespace-nowrap ${returnStatusColors[o.return_Status] ?? ''}`}
                                 >
                                   <RotateCcw className="w-3 h-3" />
@@ -4970,6 +5018,65 @@ export default function AdminPage() {
                         <ToggleLeft className="w-9 h-9 text-surface-300 dark:text-surface-600" />
                       )}
                     </button>
+                  </div>
+
+                  {/* CONTATOS DA LOJA (aparecem no site: Sobre Nós, suporte) */}
+                  <div className="lg:col-span-2 grid grid-cols-1 sm:grid-cols-2 gap-5">
+                    <div className="min-w-0">
+                      <label className={`block text-xs font-bold uppercase tracking-wider mb-2 ${sub}`}>
+                        Telefone / WhatsApp da loja
+                      </label>
+                      <div className="relative">
+                        <Phone className={`absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 ${sub}`} />
+                        <input
+                          value={ControllerSettings?.result.settingsFormSite.phoneSupport ?? ''}
+                          onChange={(e) =>
+                            ControllerSettings?.action.setSettingsFormSite((s) => ({
+                              ...s,
+                              phoneSupport: formatPhoneInput(e.target.value),
+                            }))
+                          }
+                          inputMode="tel"
+                          placeholder="(82) 99999-9999"
+                          className={`w-full pl-10 pr-4 py-2.5 border rounded-xl text-sm outline-none transition-colors ${inp}`}
+                        />
+                      </div>
+                      {ControllerSettings?.result.infoErrors.phoneSupport ? (
+                        <p className="mt-1 flex items-center gap-1 text-xs text-red-500">
+                          ⚠ {ControllerSettings.result.infoErrors.phoneSupport}
+                        </p>
+                      ) : (
+                        <p className={`mt-1 text-[11px] ${sub}`}>Usado nos botões de ligar e de WhatsApp do site.</p>
+                      )}
+                    </div>
+
+                    <div className="min-w-0">
+                      <label className={`block text-xs font-bold uppercase tracking-wider mb-2 ${sub}`}>
+                        E-mail de contato
+                      </label>
+                      <div className="relative">
+                        <Mail className={`absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 ${sub}`} />
+                        <input
+                          type="email"
+                          value={ControllerSettings?.result.settingsFormSite.emailSupport ?? ''}
+                          onChange={(e) =>
+                            ControllerSettings?.action.setSettingsFormSite((s) => ({
+                              ...s,
+                              emailSupport: e.target.value,
+                            }))
+                          }
+                          placeholder="contato@sualoja.com.br"
+                          className={`w-full pl-10 pr-4 py-2.5 border rounded-xl text-sm outline-none transition-colors ${inp}`}
+                        />
+                      </div>
+                      {ControllerSettings?.result.infoErrors.emailSupport ? (
+                        <p className="mt-1 flex items-center gap-1 text-xs text-red-500">
+                          ⚠ {ControllerSettings.result.infoErrors.emailSupport}
+                        </p>
+                      ) : (
+                        <p className={`mt-1 text-[11px] ${sub}`}>Aparece na página Sobre Nós para o cliente falar com a loja.</p>
+                      )}
+                    </div>
                   </div>
 
                   {/* LOGO + IMAGEM DA LOJA */}

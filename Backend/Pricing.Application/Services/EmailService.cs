@@ -199,6 +199,46 @@ public class EmailService : IEmailService
                 statusIcone = "❌";
                 break;
 
+            case "DEVOLUCAO_EM_COLETA":
+                statusTitulo = "Saímos para buscar o produto";
+                statusDescricao =
+                    "Nosso entregador está a caminho para buscar o produto da devolução. Deixe-o separado, por favor.";
+                statusCor = "#7c3aed";
+                statusFundo = "#f5f3ff";
+                statusBorda = "#ddd6fe";
+                statusIcone = "🚚";
+                break;
+
+            case "DEVOLUCAO_COLETADO":
+                statusTitulo = "Produto coletado";
+                statusDescricao =
+                    "Buscamos o produto da sua devolução. Assim que a loja conferir, concluímos a devolução e o estorno.";
+                statusCor = "#0891b2";
+                statusFundo = "#ecfeff";
+                statusBorda = "#a5f3fc";
+                statusIcone = "📦";
+                break;
+
+            case "CANCELAMENTO_SOLICITADO":
+                statusTitulo = "Cancelamento em andamento";
+                statusDescricao =
+                    "Recebemos seu pedido de cancelamento. A loja vai analisar e você recebe a resposta por aqui.";
+                statusCor = "#d97706";
+                statusFundo = "#fffbeb";
+                statusBorda = "#fde68a";
+                statusIcone = "⏳";
+                break;
+
+            case "CANCELAMENTO_RECUSADO":
+                statusTitulo = "Cancelamento não aprovado";
+                statusDescricao =
+                    "A loja não pôde aprovar o cancelamento deste pedido. Veja a explicação abaixo.";
+                statusCor = "#dc2626";
+                statusFundo = "#fef2f2";
+                statusBorda = "#fecaca";
+                statusIcone = "⚠️";
+                break;
+
             case "PAGAMENTO_EXPIRADO":
                 statusTitulo = "O prazo do PIX terminou";
                 statusDescricao =

@@ -8,8 +8,14 @@ import { RETURN_WINDOW_DAYS } from "../utils";
 /** Regras da tela (o servidor confere tudo de novo). */
 export const canCancelOrder = (order: Order) => {
     const status = (order.order_Status ?? '').toUpperCase();
+    // Já existe um pedido de cancelamento (em andamento, recusado ou aprovado): não mostra o botão.
+    if (order.cancel_Status) return false;
     return status === 'PENDENTE' || status === 'CONFIRMADO';
 };
+
+/** Pedido pago: o cancelamento vai para a aprovação da loja. */
+export const isPaidOrder = (order: Order) =>
+    (order.order_Status ?? '').toUpperCase() === 'CONFIRMADO' || (order.status_Pay ?? '').toUpperCase() === 'CONFIRMADO';
 
 /** Prazo final para pedir devolução (7 dias após a entrega). */
 export const returnDeadline = (order: Order): Date | null => {
@@ -48,8 +54,11 @@ export const useOrderAfterSaleController = () => {
             notify.error(result.error?.error?.code || 'Pedido', result.error?.error?.message || 'Não foi possível cancelar o pedido.');
             return;
         }
-        const paid = (cancelTarget.order_Status ?? '').toUpperCase() === 'CONFIRMADO';
-        notify.success('Pedido cancelado', paid ? 'O valor pago será estornado na mesma forma de pagamento.' : 'Seu pedido foi cancelado.');
+        if (isPaidOrder(cancelTarget)) {
+            notify.success('Cancelamento em andamento', 'A loja vai analisar seu pedido. Se aprovado, o valor é estornado na mesma forma de pagamento.');
+        } else {
+            notify.success('Pedido cancelado', 'Seu pedido foi cancelado.');
+        }
         setCancelTarget(null);
         LoadNotificationAll();
     };

@@ -465,9 +465,23 @@ namespace Mercado.Craibas.Infrastructure.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
+                    b.Property<string>("Cancel_Admin_Note")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<DateTime?>("Cancel_Decided_At")
+                        .HasColumnType("datetime2");
+
                     b.Property<string>("Cancel_Reason")
                         .HasMaxLength(500)
                         .HasColumnType("nvarchar(500)");
+
+                    b.Property<DateTime?>("Cancel_Requested_At")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Cancel_Status")
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
 
                     b.Property<DateTime?>("Canceled_At")
                         .HasColumnType("datetime2");
@@ -541,6 +555,21 @@ namespace Mercado.Craibas.Infrastructure.Migrations
                         .HasMaxLength(500)
                         .HasColumnType("nvarchar(500)");
 
+                    b.Property<DateTime?>("Return_AssignedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime?>("Return_CollectedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime?>("Return_DispatchedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int?>("Return_Id_User_Admin_Delivery")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("Return_Id_User_Delivery")
+                        .HasColumnType("int");
+
                     b.Property<string>("Return_Reason")
                         .HasMaxLength(500)
                         .HasColumnType("nvarchar(500)");
@@ -554,6 +583,10 @@ namespace Mercado.Craibas.Infrastructure.Migrations
 
                     b.Property<DateTime?>("Return_Updated_At")
                         .HasColumnType("datetime2");
+
+                    b.Property<string>("Return_WhoHanded")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
 
                     b.Property<double?>("ShippingCost")
                         .HasColumnType("float");
@@ -581,6 +614,8 @@ namespace Mercado.Craibas.Infrastructure.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("Cancel_Status");
+
                     b.HasIndex("Id_Address");
 
                     b.HasIndex("Id_Cupom");
@@ -590,6 +625,10 @@ namespace Mercado.Craibas.Infrastructure.Migrations
                     b.HasIndex("Id_User_Customer");
 
                     b.HasIndex("Id_User_Delivery");
+
+                    b.HasIndex("Return_Id_User_Admin_Delivery");
+
+                    b.HasIndex("Return_Id_User_Delivery");
 
                     b.HasIndex("Return_Status");
 
@@ -1070,6 +1109,10 @@ namespace Mercado.Craibas.Infrastructure.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
+                    b.Property<string>("EmailSupport")
+                        .HasMaxLength(150)
+                        .HasColumnType("nvarchar(150)");
+
                     b.Property<DateTime>("InsertDate")
                         .HasColumnType("datetime2");
 
@@ -1379,6 +1422,11 @@ namespace Mercado.Craibas.Infrastructure.Migrations
 
                     b.Property<DateTime>("InsertDate")
                         .HasColumnType("datetime2");
+
+                    b.Property<bool>("Is_Return_Pickup")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(false);
 
                     b.Property<bool?>("Isdelete")
                         .HasColumnType("bit");
@@ -2023,9 +2071,23 @@ namespace Mercado.Craibas.Infrastructure.Migrations
                         .HasForeignKey("Id_User_Delivery")
                         .OnDelete(DeleteBehavior.Restrict);
 
+                    b.HasOne("Baldan.Pricing.Application.Domain.Entities.User_Admin", "Return_User_Admin_Delivery")
+                        .WithMany()
+                        .HasForeignKey("Return_Id_User_Admin_Delivery")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("Baldan.Pricing.Application.Domain.Entities.User_Delivery", "Return_User_Delivery")
+                        .WithMany()
+                        .HasForeignKey("Return_Id_User_Delivery")
+                        .OnDelete(DeleteBehavior.Restrict);
+
                     b.Navigation("Address");
 
                     b.Navigation("Cupom");
+
+                    b.Navigation("Return_User_Admin_Delivery");
+
+                    b.Navigation("Return_User_Delivery");
 
                     b.Navigation("User_Admin_Delivery");
 

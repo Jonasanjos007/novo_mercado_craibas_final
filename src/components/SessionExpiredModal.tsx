@@ -17,6 +17,8 @@ import { useSessionStore, SessionModalType } from "../store/SessionStore";
 import { UseUserStore } from "../store/UseUserStore";
 import { getColorConfig } from "../types/Colors";
 import { useAuthStore } from "../context/AuthContext";
+import { UseUserAdminStore } from "../storeAdmin/UseUserAdminStore";
+import { storeWhatsAppUrl } from "../utils/contact";
 
 interface Props {
     open: boolean;
@@ -115,6 +117,7 @@ export default function SessionExpiredModal({ open, type }: Props) {
     const navigate = useNavigate();
     const { close } = useSessionStore();
     const { NameColorGlobal } = UseUserStore();
+    const { BaseSiteInterface } = UseUserAdminStore();
     const brand = getColorConfig(NameColorGlobal).hex;
     const loginRef = useRef<HTMLButtonElement>(null);
     const logout = useAuthStore((state) => state.logout);
@@ -143,9 +146,9 @@ export default function SessionExpiredModal({ open, type }: Props) {
     const openSupport = () => {
         if (!config.supportMessage) return;
 
-        const url = `https://wa.me/${SUPPORT_WHATSAPP}?text=${encodeURIComponent(
-            config.supportMessage
-        )}`;
+        // Número da loja configurado no admin (Configurações do site); sem ele, usa o padrão.
+        const url = storeWhatsAppUrl(BaseSiteInterface?.phoneSupport, config.supportMessage)
+            ?? `https://wa.me/${SUPPORT_WHATSAPP}?text=${encodeURIComponent(config.supportMessage)}`;
 
         window.open(url, "_blank", "noopener,noreferrer");
     };

@@ -20,6 +20,9 @@ namespace Mercado.Craibas.Infrastructure.Persistence.Configurations
                .IsRequired()
                .HasMaxLength(150);
 
+            builder.Property(x => x.EmailSupport)
+               .HasMaxLength(150);
+
             builder.Property(x => x.StoreImage)
                 .HasMaxLength(500);
 

@@ -395,6 +395,9 @@ public class OrderService : IOrderService
         var orderResponseList = await _unitOfWork.Query<Orders>()
             .Where(x => x.Id_User_Customer == userId && x.Isdelete != true)
             .OrderByDescending(x => x.InsertDate)
+            // Uma consulta por lista (itens, imagens, variações) em vez de uma consulta gigante
+            // que repete o pedido para cada combinação (deixava "Meus Pedidos" lento).
+            .AsSplitQuery()
             .Select(x => new OrderResponse
             {
                 Id_Order = x.Id,
@@ -430,6 +433,9 @@ public class OrderService : IOrderService
                 Return_Deadline = x.Order_Status == "ENTREGUE"
                     ? (x.CustomerDeliveryDate ?? x.UpdateDate ?? x.InsertDate).AddDays(7)
                     : (DateTime?)null,
+                Cancel_Status = x.Cancel_Status,
+                Cancel_Requested_At = x.Cancel_Requested_At,
+                Cancel_Admin_Note = x.Cancel_Admin_Note,
                 Address = new AddressResponse
                 {
                     Id = x.Address.Id,
@@ -478,9 +484,13 @@ public class OrderService : IOrderService
             .ToListAsync();
 
 
+        // Taxas da loja: busca uma vez só (antes era uma consulta por pedido).
+        var fees = orderResponseList.Any(o => o.Id_Cupom != null)
+            ? await _unitOfWork.GetClassAsyncWhere<BaseRates>(x => x.Isdelete != true)
+            : null;
+
         foreach (var order in orderResponseList)
         {
-            var fees = await _unitOfWork.GetClassAsyncWhere<BaseRates>(x => x.Isdelete != true);
 
             if (order.Id_Cupom == null)
                 continue;
@@ -528,14 +538,14 @@ public class OrderService : IOrderService
                                 product.ValorDicont = product.Price_Unic * product.Quantity * (cupom.Discount / 100d);
                             }
                         }
-                        order.ShippingCost = fees.ShippingCost;
+                        order.ShippingCost = fees?.ShippingCost ?? order.ShippingCost;
                     }
 
                     break;
 
                 case DiscountType.FixedValue:
                     order.Discont = cupom.Discount;
-                    order.ShippingCost = fees.ShippingCost;
+                    order.ShippingCost = fees?.ShippingCost ?? order.ShippingCost;
                     break;
 
                 case DiscountType.FreeShipping:
@@ -584,6 +594,12 @@ public class OrderService : IOrderService
             if (!string.Equals(order.Order_Status, "ENTREGUE", StringComparison.OrdinalIgnoreCase))
             {
                 return Result<bool>.Failure(Error.Failure("Avaliação","Você pode avaliar depois que o pedido for entregue."));
+            }
+
+            // Produto em devolução (ou devolvido) não pode ser avaliado.
+            if (OrderReturnStatus.BlocksReview(order.Return_Status))
+            {
+                return Result<bool>.Failure(Error.Failure("Avaliação","Este pedido está em devolução, então os produtos não podem ser avaliados."));
             }
 
             if (orderItem.Evaluated)
@@ -763,6 +779,13 @@ public class OrderService : IOrderService
             if (orderItem == null)
             {
                 return Result<bool>.Failure(Error.Failure("Avaliação","Produto não encontrado neste pedido."));
+            }
+
+            // Produto em devolução (ou devolvido) não pode ter a avaliação alterada.
+            var returnStatus = await _unitOfWork.Query<Orders>().Where(x => x.Id == review.OrderId).Select(x => x.Return_Status).FirstOrDefaultAsync();
+            if (OrderReturnStatus.BlocksReview(returnStatus))
+            {
+                return Result<bool>.Failure(Error.Failure("Avaliação","Este pedido está em devolução, então os produtos não podem ser avaliados."));
             }
 
             // ==========================================

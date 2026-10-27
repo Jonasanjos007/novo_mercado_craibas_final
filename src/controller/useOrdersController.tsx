@@ -47,11 +47,12 @@ export const useOrdersController = (): OrdersControllerReturn => {
     useEffect(() => {
 
         const load = async () => {
+            // Os pedidos aparecem assim que chegam; cupons e produtos carregam junto, sem segurar a tela.
             SetLoading(true);
+            const others = Promise.all([GetListCupom(), GetListProduct()]);
             await GetListOrders();
-            await GetListCupom();
-            await GetListProduct();
             SetLoading(false);
+            await others;
         };
         load();
     }, [navigate]);

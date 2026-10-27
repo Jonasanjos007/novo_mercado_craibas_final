@@ -70,6 +70,9 @@ namespace Mercado.Craibas.Application.ServicesAdmin
              Return_Deadline = x.Order_Status == "ENTREGUE"
                  ? (x.CustomerDeliveryDate ?? x.UpdateDate ?? x.InsertDate).AddDays(7)
                  : (DateTime?)null,
+             Cancel_Status = x.Cancel_Status,
+             Cancel_Requested_At = x.Cancel_Requested_At,
+             Cancel_Admin_Note = x.Cancel_Admin_Note,
              DeliveryName = x.User_Delivery != null
                  ? x.User_Delivery.Name
                  : (x.User_Admin_Delivery != null ? x.User_Admin_Delivery.Name : null),
@@ -506,6 +509,12 @@ namespace Mercado.Craibas.Application.ServicesAdmin
             else if (NewStatus == "CANCELADO")
             {
                 if (await _stock.RestockAsync(Id_Order)) stockMessage = "Estoque devolvido (pedido cancelado).\n";
+                // Havia um pedido de cancelamento do cliente esperando: o admin cancelou, então fica aprovado.
+                await _unitOfWorkAdmin.Query<Orders>()
+                    .Where(x => x.Id == Id_Order && x.Cancel_Status == "SOLICITADO")
+                    .ExecuteUpdateAsync(s => s
+                        .SetProperty(x => x.Cancel_Status, "APROVADO")
+                        .SetProperty(x => x.Cancel_Decided_At, (DateTime?)newdate));
             }
 
 

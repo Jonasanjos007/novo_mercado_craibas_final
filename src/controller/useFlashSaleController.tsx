@@ -20,7 +20,7 @@ type FlashSaleControllerReturn = {
 
 export const useFlashSaleController = (): FlashSaleControllerReturn => {
     const { loadProducts } = UseProductStore();
-    const { LoadCategory } = UseOrderStore();
+    const { LoadCategory, LoadCupons } = UseOrderStore();
 
     const notify = useNotification();
     const [Loading, SetLoading] = useState(false);
@@ -30,6 +30,8 @@ export const useFlashSaleController = (): FlashSaleControllerReturn => {
             SetLoading(true);
             await GetListProducts();
             await GetListCategory();
+            // Cupom marcado como "oferta relâmpago" no admin (contador e código da página).
+            await LoadCupons();
             SetLoading(false);
         };
         load();

@@ -21,11 +21,13 @@ namespace Mercado.Craibas.Application.ServicesAdmin
 
         private readonly IUnitOfWorkAdmin _unitOfWorkAdmin;
         private readonly IOrderStatusNotifier _statusNotifier;
+        private readonly IOrderAfterSaleService _afterSale;
 
-        public DeliveryServiceAdmin(IUnitOfWorkAdmin unitOfWorkAdmin, IOrderStatusNotifier statusNotifier)
+        public DeliveryServiceAdmin(IUnitOfWorkAdmin unitOfWorkAdmin, IOrderStatusNotifier statusNotifier, IOrderAfterSaleService afterSale)
         {
             _unitOfWorkAdmin = unitOfWorkAdmin;
             _statusNotifier = statusNotifier;
+            _afterSale = afterSale;
         }
 
         // ═════════════════════════ Minhas entregas ═════════════════════════
@@ -41,10 +43,17 @@ namespace Mercado.Craibas.Application.ServicesAdmin
 
             var orders = await DeliveryOrderProjection.Project(query).ToListAsync();
 
+            // Coletas de devolução entram no mesmo quadro (Kind = COLETA).
+            var pickups = await DeliveryOrderProjection.ProjectPickups(
+                    DeliveryOrderProjection.OpenPickups(_unitOfWorkAdmin.Query<Orders>().AsNoTracking())
+                        .OrderBy(x => x.Return_Requested_At))
+                .ToListAsync();
+            orders.AddRange(pickups);
+
             foreach (var order in orders)
                 order.IsMine = order.AssigneeType == "ADMIN" && order.AssigneeId == adminId;
 
-            return Result<List<DeliveryOrderResponse>>.Success(orders);
+            return Result<List<DeliveryOrderResponse>>.Success(orders.OrderBy(x => x.InsertDate).ToList());
         }
 
         public async Task<Result<List<DeliveryOrderResponse>>> GetMyHistoryAsync(int adminId)
@@ -59,14 +68,29 @@ namespace Mercado.Craibas.Application.ServicesAdmin
 
             var orders = await DeliveryOrderProjection.Project(query).ToListAsync();
 
+            // Coletas feitas por este admin
+            var pickups = await DeliveryOrderProjection.ProjectPickups(
+                    DeliveryOrderProjection.CollectedPickups(_unitOfWorkAdmin.Query<Orders>().AsNoTracking())
+                        .Where(x => x.Return_Id_User_Admin_Delivery == adminId)
+                        .OrderByDescending(x => x.Return_CollectedAt)
+                        .Take(HistoryLimit))
+                .ToListAsync();
+            orders.AddRange(pickups);
+
             foreach (var order in orders)
                 order.IsMine = true;
 
-            return Result<List<DeliveryOrderResponse>>.Success(orders);
+            return Result<List<DeliveryOrderResponse>>.Success(orders
+                .OrderByDescending(x => x.DeliveredAt ?? x.InsertDate)
+                .Take(HistoryLimit)
+                .ToList());
         }
 
         public async Task<Result<bool>> TakeAsync(int adminId, int orderId, TakeDeliveryOrderRequest request)
         {
+            if (await _afterSale.IsPickupAsync(orderId))
+                return await _afterSale.TakePickupAsync(adminId, orderId, request?.Force == true);
+
             var admin = await GetAdminAsync(adminId);
             if (admin == null)
                 return Result<bool>.Failure(Error.NotFound("Admin.NotFound", "Administrador não encontrado."));
@@ -122,6 +146,9 @@ namespace Mercado.Craibas.Application.ServicesAdmin
 
         public async Task<Result<bool>> ReleaseAsync(int adminId, int orderId)
         {
+            if (await _afterSale.IsPickupAsync(orderId))
+                return await _afterSale.ReleasePickupAsync(adminId, orderId);
+
             var admin = await GetAdminAsync(adminId);
             if (admin == null)
                 return Result<bool>.Failure(Error.NotFound("Admin.NotFound", "Administrador não encontrado."));
@@ -151,9 +178,15 @@ namespace Mercado.Craibas.Application.ServicesAdmin
 
         public async Task<Result<bool>> DispatchAsync(int adminId, int orderId)
         {
+            if (await _afterSale.IsPickupAsync(orderId))
+                return await _afterSale.DispatchPickupAsync("ADMIN", adminId, orderId);
+
             var admin = await GetAdminAsync(adminId);
             if (admin == null)
                 return Result<bool>.Failure(Error.NotFound("Admin.NotFound", "Administrador não encontrado."));
+
+            if (await CancelRequestedAsync(orderId))
+                return Result<bool>.Failure(Error.Conflict("Delivery.CancelRequested", "O cliente pediu o cancelamento deste pedido. Responda em Pedidos › Cancelamentos antes de sair para entrega."));
 
             var now = DateTime.Now;
 
@@ -185,6 +218,9 @@ namespace Mercado.Craibas.Application.ServicesAdmin
 
         public async Task<Result<bool>> DeliverAsync(int adminId, int orderId, DeliverOrderRequest request)
         {
+            if (await _afterSale.IsPickupAsync(orderId))
+                return await _afterSale.CollectPickupAsync("ADMIN", adminId, orderId, request?.WhoReceivedIt);
+
             var admin = await GetAdminAsync(adminId);
             if (admin == null)
                 return Result<bool>.Failure(Error.NotFound("Admin.NotFound", "Administrador não encontrado."));
@@ -249,6 +285,19 @@ namespace Mercado.Craibas.Application.ServicesAdmin
                 .Select(g => new { DeliveryId = g.Key.Id_User_Delivery!.Value, Status = g.Key.Order_Status, Count = g.Count() })
                 .ToListAsync();
 
+            // Coletas de devolução em aberto também ocupam o entregador.
+            var activePickups = await DeliveryOrderProjection.OpenPickups(_unitOfWorkAdmin.Query<Orders>().AsNoTracking())
+                .Where(x => x.Return_Id_User_Delivery != null)
+                .GroupBy(x => new { x.Return_Id_User_Delivery, x.Return_Status })
+                .Select(g => new
+                {
+                    DeliveryId = g.Key.Return_Id_User_Delivery!.Value,
+                    Status = g.Key.Return_Status == "EM_COLETA" ? DeliveryOrderStatus.SaiuParaEntrega : DeliveryOrderStatus.Preparando,
+                    Count = g.Count()
+                })
+                .ToListAsync();
+            active.AddRange(activePickups);
+
             var delivered = await assigned
                 .Where(x => x.Order_Status == DeliveryOrderStatus.Entregue)
                 .GroupBy(x => x.Id_User_Delivery)
@@ -296,6 +345,9 @@ namespace Mercado.Craibas.Application.ServicesAdmin
 
         public async Task<Result<bool>> AssignAsync(int adminId, int orderId, AssignDeliveryRequest request)
         {
+            if (await _afterSale.IsPickupAsync(orderId))
+                return await _afterSale.AssignPickupAsync(adminId, orderId, request?.DeliveryId ?? 0);
+
             var admin = await GetAdminAsync(adminId);
             if (admin == null)
                 return Result<bool>.Failure(Error.NotFound("Admin.NotFound", "Administrador não encontrado."));
@@ -351,6 +403,9 @@ namespace Mercado.Craibas.Application.ServicesAdmin
 
         public async Task<Result<bool>> UnassignAsync(int adminId, int orderId)
         {
+            if (await _afterSale.IsPickupAsync(orderId))
+                return await _afterSale.UnassignPickupAsync(adminId, orderId);
+
             var admin = await GetAdminAsync(adminId);
             if (admin == null)
                 return Result<bool>.Failure(Error.NotFound("Admin.NotFound", "Administrador não encontrado."));
@@ -622,10 +677,14 @@ namespace Mercado.Craibas.Application.ServicesAdmin
                 else
                 {
                     var ids = (request.OrderIds ?? new List<int>()).Distinct().ToList();
+                    var pickupIds = (request.PickupOrderIds ?? new List<int>()).Distinct().ToList();
                     selected = pending.Where(x => x.Kind == "PEDIDO" && x.OrderId.HasValue && ids.Contains(x.OrderId.Value)).ToList();
+                    var selectedPickups = pending.Where(x => x.Kind == "COLETA" && x.OrderId.HasValue && pickupIds.Contains(x.OrderId.Value)).ToList();
 
-                    if (ids.Count == 0 || selected.Count != ids.Count)
+                    if (ids.Count + pickupIds.Count == 0 || selected.Count != ids.Count || selectedPickups.Count != pickupIds.Count)
                         return Result<DeliveryPayoutResponse>.Failure(Error.Conflict("Delivery.PayablesChanged", "Alguns pedidos já foram pagos ou mudaram. Atualize a lista."));
+
+                    selected.AddRange(selectedPickups);
                 }
 
                 var now = DateTime.Now;
@@ -648,6 +707,7 @@ namespace Mercado.Craibas.Application.ServicesAdmin
                         ReferenceDate = x.Date,
                         Deliveries = x.Deliveries,
                         Amount = x.Amount,
+                        Is_Return_Pickup = x.Kind == "COLETA",
                         InsertDate = now
                     }).ToList()
                 };
@@ -765,7 +825,8 @@ namespace Mercado.Craibas.Application.ServicesAdmin
                         i.WorkDate,
                         i.ReferenceDate,
                         i.Deliveries,
-                        i.Amount
+                        i.Amount,
+                        i.Is_Return_Pickup
                     }).ToList()
                 })
                 .ToListAsync();
@@ -797,7 +858,7 @@ namespace Mercado.Craibas.Application.ServicesAdmin
                     .OrderByDescending(i => i.ReferenceDate)
                     .Select(i => new DeliveryEarningEntryResponse
                     {
-                        Kind = i.Id_Order.HasValue ? "PEDIDO" : "DIA",
+                        Kind = i.Is_Return_Pickup ? "COLETA" : (i.Id_Order.HasValue ? "PEDIDO" : "DIA"),
                         OrderId = i.Id_Order,
                         OrderNumber = i.OrderNumber,
                         Date = i.ReferenceDate,
@@ -809,6 +870,9 @@ namespace Mercado.Craibas.Application.ServicesAdmin
                     }).ToList()
             }).ToList();
         }
+
+        private Task<bool> CancelRequestedAsync(int orderId) =>
+            _unitOfWorkAdmin.Query<Orders>().AnyAsync(x => x.Id == orderId && x.Cancel_Status == "SOLICITADO");
 
         private Task<User_Admin?> GetAdminAsync(int adminId) =>
             _unitOfWorkAdmin.GetClassAsyncWhere<User_Admin>(x => x.Id == adminId && x.Isdelete != true);

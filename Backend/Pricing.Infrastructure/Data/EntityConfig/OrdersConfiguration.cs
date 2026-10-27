@@ -83,6 +83,20 @@ namespace Mercado.Craibas.Infrastructure.Configurations
             builder.Property(x => x.Return_Reason).HasMaxLength(500);
             builder.Property(x => x.Return_Admin_Note).HasMaxLength(500);
             builder.HasIndex(x => x.Return_Status);
+            builder.Property(x => x.Cancel_Status).HasMaxLength(20);
+            builder.Property(x => x.Cancel_Admin_Note).HasMaxLength(500);
+            builder.HasIndex(x => x.Cancel_Status);
+
+            // Coleta da devolução
+            builder.Property(x => x.Return_WhoHanded).HasMaxLength(100);
+            builder.HasOne(x => x.Return_User_Delivery)
+               .WithMany()
+               .HasForeignKey(x => x.Return_Id_User_Delivery)
+               .OnDelete(DeleteBehavior.Restrict);
+            builder.HasOne(x => x.Return_User_Admin_Delivery)
+               .WithMany()
+               .HasForeignKey(x => x.Return_Id_User_Admin_Delivery)
+               .OnDelete(DeleteBehavior.Restrict);
 
 
         }

@@ -50,5 +50,10 @@ namespace Mercado.Craibas.Application.DTOs.Responses
         public string? Return_Admin_Note { get; set; }
         /// <summary>Até quando o cliente pode pedir devolução (7 dias após a entrega).</summary>
         public DateTime? Return_Deadline { get; set; }
+        /// <summary>Pedido de cancelamento: SOLICITADO (em andamento), RECUSADO ou APROVADO.</summary>
+        public string? Cancel_Status { get; set; }
+        public DateTime? Cancel_Requested_At { get; set; }
+        /// <summary>Resposta da loja ao pedido de cancelamento.</summary>
+        public string? Cancel_Admin_Note { get; set; }
     }
 }

@@ -60,10 +60,18 @@ export interface Order {
     return_Admin_Note?: string | null;
     /** Até quando o cliente pode pedir devolução (7 dias após a entrega). */
     return_Deadline?: string | null;
+    /** Pedido de cancelamento de pedido pago: SOLICITADO (em andamento), RECUSADO ou APROVADO. */
+    cancel_Status?: CancelStatus | null;
+    cancel_Requested_At?: string | null;
+    /** Resposta da loja ao pedido de cancelamento. */
+    cancel_Admin_Note?: string | null;
 }
 
 /** Andamento da devolução (Orders.Return_Status). */
-export type ReturnStatus = 'EM_ANALISE' | 'AGUARDANDO_COLETA' | 'DEVOLVIDO' | 'CANCELADA';
+export type ReturnStatus = 'EM_ANALISE' | 'AGUARDANDO_COLETA' | 'EM_COLETA' | 'COLETADO' | 'DEVOLVIDO' | 'CANCELADA';
+
+/** Pedido de cancelamento (Orders.Cancel_Status). */
+export type CancelStatus = 'SOLICITADO' | 'RECUSADO' | 'APROVADO';
 
 /** Linha da aba "Devoluções" do admin. */
 export interface OrderReturnAdmin {
@@ -87,6 +95,43 @@ export interface OrderReturnAdmin {
     address?: string | null;
     /** Pagamento online: estorno automático ao marcar como devolvido. */
     online_Refund: boolean;
+    /** Quem vai buscar o produto. */
+    pickup_Assignee_Type: 'NONE' | 'DELIVERY' | 'ADMIN';
+    pickup_Assignee_Name?: string | null;
+    pickup_Dispatched_At?: string | null;
+    pickup_Collected_At?: string | null;
+    pickup_Who_Handed?: string | null;
+}
+
+/** Linha da aba "Cancelamentos" do admin. */
+export interface OrderCancelAdmin {
+    id_Order: number;
+    number_Order: string;
+    customer_Name: string;
+    customer_Phone?: string | null;
+    customer_Email?: string | null;
+    total_Value_Order: number;
+    payment_terms: string;
+    status_Pay: string;
+    order_Status: string;
+    cancel_Status: CancelStatus;
+    cancel_Reason?: string | null;
+    cancel_Admin_Note?: string | null;
+    cancel_Requested_At?: string | null;
+    cancel_Decided_At?: string | null;
+    order_Date: string;
+    items: number;
+    first_Product?: string | null;
+    first_Image?: string | null;
+    address?: string | null;
+    online_Refund: boolean;
+    delivery_Assignee_Name?: string | null;
+}
+
+export interface OrderCancelsAdmin {
+    items: OrderCancelAdmin[];
+    byStatus: Record<string, number>;
+    open: number;
 }
 
 export interface OrderReturnsAdmin {

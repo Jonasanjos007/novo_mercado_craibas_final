@@ -106,6 +106,10 @@ export interface InfoSiteInterface {
     ImageNewIcone?: boolean;
 
     ImageNew?: boolean;
+    /** Telefone/WhatsApp da loja (como o admin digitou). */
+    phoneSupport?: string;
+    /** E-mail de contato da loja. */
+    emailSupport?: string;
 };
 export interface BaseRatesInterface {
     timeframeBusinessDays: number;
@@ -117,6 +121,10 @@ export interface BaseSiteInterface {
     storeImageIcone?: string;
     shippingCost?: number;
     timeframeBusinessDays?: number;
+    /** Telefone/WhatsApp da loja: só dígitos, com DDI (ex.: 5582999999999). */
+    phoneSupport?: string | null;
+    /** E-mail de contato da loja. */
+    emailSupport?: string | null;
 }
 export interface UserAdminAll {
     id?: number;

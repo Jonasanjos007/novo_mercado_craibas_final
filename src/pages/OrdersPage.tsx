@@ -1,6 +1,6 @@
-import { Package, MapPin, ChevronRight, ArrowLeft, Hash, Calendar, CreditCard, BadgePercent, ShoppingCart, X, Ticket, TicketPercent, ShoppingBag, Star, Loader2, Clock, PackageCheck, UserCheck } from 'lucide-react';
+import { Package, MapPin, ChevronRight, ArrowLeft, Hash, Calendar, CreditCard, BadgePercent, ShoppingCart, X, Ticket, TicketPercent, ShoppingBag, Star, Loader2, Clock, PackageCheck, UserCheck, RotateCcw } from 'lucide-react';
 import { useStore } from '../context/store';
-import { formatPrice, orderStatusLabels, orderStatusColors, orderStatusSteps } from '../utils';
+import { formatPrice, orderStatusLabels, orderStatusColors, orderStatusSteps, returnBlocksReview, returnStatusLabels } from '../utils';
 import { useNavigate } from 'react-router-dom';
 import { UseUserStore } from '../store/UseUserStore';
 import { UseOrderStore } from '../store/UseOrderStore';
@@ -8,7 +8,7 @@ import { useOrdersController } from '../controller/useOrdersController';
 import { getColorConfig } from '../types/Colors';
 import Headerpages from '../components/Headerpages';
 import { useEffect, useState } from 'react';
-import OrderAfterSaleActions, { OrderAfterSalePopups } from '../components/OrderAfterSaleActions';
+import OrderAfterSaleActions, { OrderAfterSalePopups, ReturnProgress } from '../components/OrderAfterSaleActions';
 import { useOrderAfterSaleController } from '../controller/useOrderAfterSaleController';
 import { Order } from '../models/Order';
 import { Cupom } from '../models/Cupom';
@@ -21,7 +21,9 @@ export default function OrdersPage() {
   const Controller = useOrdersController();
   const AfterSale = useOrderAfterSaleController();
   const navigate = useNavigate();
-  const { orders } = UseOrderStore();
+  const { orders, ordersLoaded, ordersLoading, ordersFailed, LoadOrders } = UseOrderStore();
+  // Antes da primeira resposta (ou recarregando sem nada na tela) mostra o carregamento, não "nenhum pedido".
+  const waitingOrders = !ordersLoaded || (ordersLoading && orders.length === 0);
   const { Cupons } = UseOrderStore();
 
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
@@ -63,6 +65,12 @@ export default function OrdersPage() {
 
       <Headerpages title="Meus Pedidos" showSecure={false} />
       <OrderAfterSalePopups controller={AfterSale} />
+      {/* Primeira carga usa o esqueleto da lista; o aviso de tela cheia fica para as ações (ex.: abrir avaliação). */}
+      <Loading
+        loading={(Controller?.result.Loading || false) && !waitingOrders}
+        message="Carregando Pedidos..."
+        subMessage="Aguarde..."
+      />
       <div className="bg-white border-b border-surface-100 sticky top-0 z-20">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 py-5">
 
@@ -75,7 +83,7 @@ export default function OrdersPage() {
               </h1>
 
               <p className="text-sm text-surface-400 mt-1">
-                {orders.length} {orders.length === 1 ? "pedido realizado" : "pedidos realizados"}
+                {waitingOrders ? "Carregando seus pedidos..." : `${orders.length} ${orders.length === 1 ? "pedido realizado" : "pedidos realizados"}`}
               </p>
             </div>
 
@@ -116,29 +124,79 @@ export default function OrdersPage() {
       </div>
 
       <div className="max-w-3xl mx-auto px-4 py-6 space-y-4">
-        {filteredOrders.length === 0 ? (
+        {waitingOrders ? (
+          <div className="space-y-4" aria-busy="true" aria-label="Carregando pedidos">
+            {[0, 1, 2].map(i => (
+              <div key={i} className="animate-pulse rounded-3xl bg-white p-5 shadow-soft">
+                <div className="flex items-center justify-between gap-4">
+                  <div className="space-y-2">
+                    <div className="h-4 w-36 rounded-lg bg-surface-100" />
+                    <div className="h-3 w-24 rounded-lg bg-surface-100" />
+                  </div>
+                  <div className="h-7 w-24 rounded-full bg-surface-100" />
+                </div>
+                <div className="mt-5 flex gap-3">
+                  <div className="h-16 w-16 rounded-2xl bg-surface-100" />
+                  <div className="h-16 w-16 rounded-2xl bg-surface-100" />
+                  <div className="flex-1 space-y-2 pt-2">
+                    <div className="h-3 w-3/4 rounded-lg bg-surface-100" />
+                    <div className="h-3 w-1/2 rounded-lg bg-surface-100" />
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : ordersFailed && orders.length === 0 ? (
+          <div className="flex flex-col items-center justify-center px-6 py-14 text-center">
+            <div className="mb-5 flex h-16 w-16 items-center justify-center rounded-2xl bg-red-50">
+              <Package className="h-8 w-8 text-red-400" />
+            </div>
+            <h3 className="font-display text-lg font-bold text-surface-800">Não foi possível carregar seus pedidos</h3>
+            <p className="mt-2 max-w-sm text-sm leading-relaxed text-surface-400">
+              Pode ter sido uma falha rápida de conexão. Seus pedidos estão salvos, é só tentar de novo.
+            </p>
+            <button
+              type="button"
+              onClick={() => { void LoadOrders(); }}
+              className={`mt-6 inline-flex items-center gap-2 rounded-xl px-5 py-3 text-sm font-bold text-white shadow-sm transition-all hover:opacity-90 active:scale-95 ${colorConfig.class}`}
+            >
+              Tentar de novo
+            </button>
+          </div>
+        ) : filteredOrders.length === 0 ? (
           <div className="flex flex-col items-center justify-center px-6 py-14 text-center">
             <div className="mb-5 flex h-16 w-16 items-center justify-center rounded-2xl bg-surface-100">
               <ShoppingCart className="h-8 w-8 text-surface-400" />
             </div>
 
             <h3 className="font-display text-lg font-bold text-surface-800">
-              Você ainda não fez nenhum pedido
+              {orders.length > 0 ? "Nenhum pedido com este status" : "Você ainda não fez nenhum pedido"}
             </h3>
 
             <p className="mt-2 max-w-sm text-sm leading-relaxed text-surface-400">
-              Faça seu primeiro pedido e ele aparecerá aqui para você acompanhar
-              todos os detalhes da sua compra.
+              {orders.length > 0
+                ? "Escolha outro filtro acima para ver os seus outros pedidos."
+                : "Faça seu primeiro pedido e ele aparecerá aqui para você acompanhar todos os detalhes da sua compra."}
             </p>
 
-            <button
-              type="button"
-              onClick={() => navigate("/")}
-              className={`mt-6 inline-flex items-center gap-2 rounded-xl px-5 py-3 text-sm font-bold text-white shadow-sm transition-all hover:opacity-90 active:scale-95 ${colorConfig.class}`}
-            >
-              <ShoppingCart className="h-4 w-4" />
-              Fazer meu primeiro pedido
-            </button>
+            {orders.length > 0 ? (
+              <button
+                type="button"
+                onClick={() => setStatusFilter("TODOS")}
+                className={`mt-6 inline-flex items-center gap-2 rounded-xl px-5 py-3 text-sm font-bold text-white shadow-sm transition-all hover:opacity-90 active:scale-95 ${colorConfig.class}`}
+              >
+                Ver todos os pedidos
+              </button>
+            ) : (
+              <button
+                type="button"
+                onClick={() => navigate("/")}
+                className={`mt-6 inline-flex items-center gap-2 rounded-xl px-5 py-3 text-sm font-bold text-white shadow-sm transition-all hover:opacity-90 active:scale-95 ${colorConfig.class}`}
+              >
+                <ShoppingCart className="h-4 w-4" />
+                Fazer meu primeiro pedido
+              </button>
+            )}
           </div>) : (
           filteredOrders.map(order => {
             const statusIdx = orderStatusSteps.indexOf(order.order_Status);
@@ -306,11 +364,6 @@ export default function OrdersPage() {
                     onReturn={AfterSale.action.openReturn}
                   />
 
-                  <Loading
-                    loading={Controller?.result.Loading || false}
-                    message="Carregando Pedidos..."
-                    subMessage="Aguarde..."
-                  />
                 </div>
                 {isPending ? (
                   <div className="border-b border-surface-100 bg-surface-50/40 px-5 py-4">
@@ -384,6 +437,24 @@ export default function OrdersPage() {
                         Pagar agora · PIX ou cartão
                       </button>
                     )}
+                  </div>
+                ) : returnBlocksReview(order.return_Status) ? (
+                  // Pedido em devolução: mostra só o andamento da devolução (sem avaliação nem etapas da entrega).
+                  <div className="px-5 py-4 border-b border-surface-100 bg-surface-50/70">
+                    <div className="flex items-center gap-3">
+                      <div className="shrink-0 w-10 h-10 rounded-xl bg-white border border-surface-200 shadow-sm flex items-center justify-center">
+                        <RotateCcw className="w-4 h-4" style={{ color: colorConfig.hex }} />
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <p className="text-xs sm:text-sm font-bold text-surface-800">Pedido em devolução</p>
+                        <p className="text-[10px] sm:text-[11px] text-surface-400 mt-0.5">
+                          {returnStatusLabels[order.return_Status ?? ''] ?? order.return_Status}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="mt-2">
+                      <ReturnProgress status={order.return_Status ?? ''} accentHex={colorConfig.hex} />
+                    </div>
                   </div>
                 ) : order.order_Status === 'ENTREGUE' ? (
                   (() => {
@@ -629,8 +700,8 @@ export default function OrdersPage() {
                                     <span>Comprar novamente</span>
                                   </button>
 
-                                  {/* Avaliação */}
-                                  {!item.evaluated ? (
+                                  {/* Avaliação (some quando o pedido está em devolução) */}
+                                  {returnBlocksReview(order.return_Status) ? null : !item.evaluated ? (
                                     <button
                                       type="button"
                                       onClick={() =>
@@ -757,8 +828,15 @@ export default function OrdersPage() {
                   variant="full"
                 />
 
+                {/* Em devolução: andamento da devolução no lugar das etapas da entrega */}
+                {returnBlocksReview(selectedOrder.return_Status) && (
+                  <div className="px-3 bg-surface-50 rounded-2xl">
+                    <ReturnProgress status={selectedOrder.return_Status ?? ''} accentHex={colorConfig.hex} />
+                  </div>
+                )}
+
                 {/* Steps de progresso */}
-                {selectedOrder.order_Status !== "cancelado" && selectedOrder.status_Pay !== "PENDENTE" && (
+                {!returnBlocksReview(selectedOrder.return_Status) && selectedOrder.order_Status !== "cancelado" && selectedOrder.status_Pay !== "PENDENTE" && (
                   <div className="px-1 py-3 bg-surface-50 rounded-2xl">
                     <div className="flex items-center justify-between relative px-3">
                       <div className="absolute left-0 right-0 h-0.5 bg-surface-200 top-3.5 mx-7" />
@@ -1002,8 +1080,8 @@ export default function OrdersPage() {
                             Comprar novamente
                           </button>
 
-                          {/* Avaliação */}
-                          {selectedOrder.order_Status === "ENTREGUE" && (
+                          {/* Avaliação (some quando o pedido está em devolução) */}
+                          {selectedOrder.order_Status === "ENTREGUE" && !returnBlocksReview(selectedOrder.return_Status) && (
                             <>
                               {!item.evaluated ? (
                                 <button

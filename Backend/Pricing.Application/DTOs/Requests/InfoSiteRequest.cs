@@ -12,6 +12,10 @@ namespace Mercado.Craibas.Application.DTOs.Requests
         public string StoreName { get; set; }
         public IFormFile StoreImage { get; set; }
         public IFormFile StoreImageIcone { get; set; }
+        /// <summary>Telefone/WhatsApp da loja. Vazio = mantém o atual.</summary>
+        public string? PhoneSupport { get; set; }
+        /// <summary>E-mail de contato da loja. Vazio = mantém o atual.</summary>
+        public string? EmailSupport { get; set; }
 
     }
 }

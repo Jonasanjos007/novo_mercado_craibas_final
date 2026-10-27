@@ -129,7 +129,7 @@ export default function ProductCard({ product, compact = false }: ProductCardPro
           {product.count_Sold! > 1000 && <span className="text-[10px] text-surface-400 font-body ml-auto">{(product.count_Sold! / 1000).toFixed(1)}k vendidos</span>}
         </div>
         <div>
-          {product.origin_Price &&
+          {!!product.origin_Price && product.origin_Price > product.price_Unic &&
             <p className="text-[10px] text-surface-400 font-body line-through leading-none">
               {formatPrice(product.origin_Price)}
             </p>}

@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { CheckCircle2, Clock, Loader2, MapPin, MessageCircle, PackageX, RotateCcw, Truck, XCircle } from 'lucide-react';
+import { ArrowRight, CheckCircle2, Clock, Hand, Loader2, MapPin, MessageCircle, PackageCheck, PackageX, RotateCcw, Truck, UserRound, XCircle } from 'lucide-react';
 import { OrderReturnAdmin, ReturnStatus } from '../models/Order';
 import { formatPrice, returnStatusColors, returnStatusLabels } from '../utils';
 import { useAdminReturnsController, whatsAppReturnLink } from '../controller/useAdminReturnsController';
@@ -10,19 +10,29 @@ const formatDateTime = (value?: string | null) =>
     value ? new Date(value).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', year: '2-digit', hour: '2-digit', minute: '2-digit' }) : '—';
 
 /** O que cada andamento permite (o servidor confere de novo). */
+// Devolvido (= estorno) só com o produto coletado ou trazido pelo cliente.
 const nextActions: Record<string, ReturnStatus[]> = {
-    EM_ANALISE: ['AGUARDANDO_COLETA', 'DEVOLVIDO', 'CANCELADA'],
+    EM_ANALISE: ['AGUARDANDO_COLETA', 'CANCELADA'],
     AGUARDANDO_COLETA: ['DEVOLVIDO', 'CANCELADA'],
+    EM_COLETA: ['CANCELADA'],
+    COLETADO: ['DEVOLVIDO'],
 };
 
-const actionStyle: Record<string, { label: string; icon: typeof Truck; cls: string }> = {
-    AGUARDANDO_COLETA: { label: 'Buscar produto', icon: Truck, cls: 'bg-blue-500 hover:bg-blue-600 text-white' },
-    DEVOLVIDO: { label: 'Devolvido', icon: CheckCircle2, cls: 'bg-green-600 hover:bg-green-700 text-white' },
-    CANCELADA: { label: 'Cancelar devolução', icon: XCircle, cls: 'bg-red-50 hover:bg-red-100 text-red-600 border border-red-200' },
+const actionStyle = (current: string, target: string): { label: string; icon: typeof Truck; cls: string } => {
+    switch (target) {
+        case 'AGUARDANDO_COLETA':
+            return { label: 'Aprovar coleta', icon: Truck, cls: 'bg-blue-500 hover:bg-blue-600 text-white' };
+        case 'DEVOLVIDO':
+            return current === 'COLETADO'
+                ? { label: 'Conferido: devolver e estornar', icon: CheckCircle2, cls: 'bg-green-600 hover:bg-green-700 text-white' }
+                : { label: 'Cliente trouxe na loja', icon: CheckCircle2, cls: 'bg-green-600 hover:bg-green-700 text-white' };
+        default:
+            return { label: 'Recusar devolução', icon: XCircle, cls: 'bg-red-50 hover:bg-red-100 text-red-600 border border-red-200' };
+    }
 };
 
 /** Aba "Devoluções" do admin: lista, contato pelo WhatsApp e mudança de andamento. */
-export default function AdminReturnsPanel({ darkMode = false }: { darkMode?: boolean }) {
+export default function AdminReturnsPanel({ darkMode = false, onOpenDeliveries }: { darkMode?: boolean; onOpenDeliveries?: () => void }) {
     const Controller = useAdminReturnsController();
     const { Returns, ReturnsFilter: filter, LoadingReturns, pending, saving } = Controller.result;
     const dk = darkMode;
@@ -42,7 +52,9 @@ export default function AdminReturnsPanel({ darkMode = false }: { darkMode?: boo
     const tabs: { v: ReturnsFilter; l: string; n: number }[] = [
         { v: 'open', l: 'Abertas', n: Returns.open },
         { v: 'EM_ANALISE', l: 'Em análise', n: by['EM_ANALISE'] ?? 0 },
-        { v: 'AGUARDANDO_COLETA', l: 'Buscar produto', n: by['AGUARDANDO_COLETA'] ?? 0 },
+        { v: 'AGUARDANDO_COLETA', l: 'Coleta aprovada', n: by['AGUARDANDO_COLETA'] ?? 0 },
+        { v: 'EM_COLETA', l: 'Saiu p/ coleta', n: by['EM_COLETA'] ?? 0 },
+        { v: 'COLETADO', l: 'Coletadas', n: by['COLETADO'] ?? 0 },
         { v: 'DEVOLVIDO', l: 'Devolvidas', n: by['DEVOLVIDO'] ?? 0 },
         { v: 'CANCELADA', l: 'Canceladas', n: by['CANCELADA'] ?? 0 },
         { v: 'all', l: 'Todas', n: Object.values(by).reduce((a, b) => a + b, 0) },
@@ -54,25 +66,25 @@ export default function AdminReturnsPanel({ darkMode = false }: { darkMode?: boo
         switch (pending.status) {
             case 'AGUARDANDO_COLETA':
                 return {
-                    title: 'Buscar produto?',
-                    description: `A devolução do pedido #${o.number_Order} será aprovada e o cliente avisado de que vamos buscar o produto.`,
+                    title: 'Aprovar a coleta?',
+                    description: `A devolução do pedido #${o.number_Order} será aprovada e o cliente avisado. A coleta entra em Entregas: escolha um entregador ou pegue para você buscar.`,
                     confirmText: 'Aprovar coleta', color: 'brand' as const, requireReason: false,
                     icon: <Truck className="w-8 h-8 text-blue-400" />,
                 };
             case 'DEVOLVIDO':
                 return {
-                    title: 'Confirmar devolução?',
+                    title: 'Concluir a devolução?',
                     description: o.online_Refund
-                        ? `O produto do pedido #${o.number_Order} voltou para a loja. O valor de ${formatPrice(o.total_Value_Order)} será estornado automaticamente no Mercado Pago e o estoque devolvido.`
-                        : `O produto do pedido #${o.number_Order} voltou para a loja. O pagamento não foi online: faça a devolução de ${formatPrice(o.total_Value_Order)} ao cliente manualmente. O estoque será devolvido.`,
-                    confirmText: 'Marcar como devolvido', color: 'green' as const, requireReason: false,
+                        ? `Confira o produto do pedido #${o.number_Order}. Ao concluir, o valor de ${formatPrice(o.total_Value_Order)} é estornado no Mercado Pago, o estoque volta e o pedido fica como Devolvido e estornado.`
+                        : `Confira o produto do pedido #${o.number_Order}. O pagamento não foi online: devolva ${formatPrice(o.total_Value_Order)} ao cliente manualmente. O estoque volta e o pedido fica como Devolvido.`,
+                    confirmText: 'Devolver e estornar', color: 'green' as const, requireReason: false,
                     icon: <CheckCircle2 className="w-8 h-8 text-green-500" />,
                 };
             default:
                 return {
-                    title: 'Cancelar devolução?',
-                    description: `A devolução do pedido #${o.number_Order} será recusada e o pedido continua entregue. Explique o motivo ao cliente.`,
-                    confirmText: 'Cancelar devolução', color: 'red' as const, requireReason: true,
+                    title: 'Recusar a devolução?',
+                    description: `A devolução do pedido #${o.number_Order} será recusada, a coleta sai das entregas e o pedido continua entregue. Explique o motivo ao cliente.`,
+                    confirmText: 'Recusar devolução', color: 'red' as const, requireReason: true,
                     icon: <XCircle className="w-8 h-8 text-red-400" />,
                 };
         }
@@ -144,6 +156,7 @@ export default function AdminReturnsPanel({ darkMode = false }: { darkMode?: boo
                             dk={dk}
                             classes={{ txt, txt2, sub, soft }}
                             onAction={Controller.action.open}
+                            onOpenDeliveries={onOpenDeliveries}
                         />
                     ))}
                 </div>
@@ -152,11 +165,12 @@ export default function AdminReturnsPanel({ darkMode = false }: { darkMode?: boo
     );
 }
 
-function ReturnCard({ order: o, dk, classes, onAction }: {
+function ReturnCard({ order: o, dk, classes, onAction, onOpenDeliveries }: {
     order: OrderReturnAdmin;
     dk: boolean;
     classes: { txt: string; txt2: string; sub: string; soft: string };
     onAction: (order: OrderReturnAdmin, status: ReturnStatus) => void;
+    onOpenDeliveries?: () => void;
 }) {
     const { txt, txt2, sub, soft } = classes;
     const wa = whatsAppReturnLink(o);
@@ -205,6 +219,32 @@ function ReturnCard({ order: o, dk, classes, onAction }: {
                 )}
             </div>
 
+            {/* Coleta (funciona como uma entrega) */}
+            {['AGUARDANDO_COLETA', 'EM_COLETA', 'COLETADO'].includes(o.return_Status) && (
+                <div className={`mt-3 flex flex-wrap items-center gap-2 rounded-xl border px-3 py-2 ${soft}`}>
+                    {o.return_Status === 'COLETADO' ? (
+                        <span className={`flex items-center gap-1.5 text-[11px] font-semibold ${txt2}`}>
+                            <PackageCheck className="w-3.5 h-3.5 text-cyan-500 shrink-0" />
+                            Coletado {formatDateTime(o.pickup_Collected_At)}{o.pickup_Assignee_Name ? ` por ${o.pickup_Assignee_Name}` : ''}{o.pickup_Who_Handed ? ` · entregue por ${o.pickup_Who_Handed}` : ''}
+                        </span>
+                    ) : o.pickup_Assignee_Type === 'NONE' ? (
+                        <span className="flex items-center gap-1.5 text-[11px] font-semibold text-amber-600">
+                            <Hand className="w-3.5 h-3.5 shrink-0" /> Coleta sem responsável
+                        </span>
+                    ) : (
+                        <span className={`flex items-center gap-1.5 text-[11px] font-semibold ${txt2}`}>
+                            {o.return_Status === 'EM_COLETA' ? <Truck className="w-3.5 h-3.5 text-violet-500 shrink-0" /> : <UserRound className="w-3.5 h-3.5 shrink-0" />}
+                            {o.return_Status === 'EM_COLETA' ? 'A caminho com ' : 'Com '}{o.pickup_Assignee_Name}{o.pickup_Assignee_Type === 'ADMIN' ? ' (admin)' : ''}
+                        </span>
+                    )}
+                    {o.return_Status !== 'COLETADO' && onOpenDeliveries && (
+                        <button type="button" onClick={onOpenDeliveries} className="ml-auto inline-flex items-center gap-1 text-[11px] font-bold text-brand-500 hover:text-brand-600">
+                            {o.pickup_Assignee_Type === 'NONE' ? 'Escolher entregador' : 'Ver nas entregas'} <ArrowRight className="w-3 h-3" />
+                        </button>
+                    )}
+                </div>
+            )}
+
             <div className="mt-auto pt-4 grid grid-cols-2 sm:flex sm:flex-wrap gap-2">
                 {wa ? (
                     <a
@@ -219,7 +259,7 @@ function ReturnCard({ order: o, dk, classes, onAction }: {
                     <span className={`inline-flex items-center justify-center h-10 sm:h-9 px-3 rounded-xl text-[11px] border ${soft} ${sub} ${actions.length % 2 === 0 ? 'col-span-2 sm:col-span-1' : ''}`}>Sem telefone</span>
                 )}
                 {actions.map(status => {
-                    const a = actionStyle[status];
+                    const a = actionStyle(o.return_Status, status);
                     const Icon = a.icon;
                     return (
                         <button

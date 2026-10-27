@@ -27,9 +27,10 @@ import {
 } from 'lucide-react';
 import { Calendar, Hash } from 'lucide-react';
 import { useStore } from '../context/store';
-import OrderAfterSaleActions, { OrderAfterSalePopups } from '../components/OrderAfterSaleActions';
+import OrderAfterSaleActions, { OrderAfterSalePopups, ReturnProgress } from '../components/OrderAfterSaleActions';
 import { useOrderAfterSaleController } from '../controller/useOrderAfterSaleController';
-import { badgeColors, badgeLabels, formatPrice, orderStatusLabels, orderStatusColors, orderStatusSteps } from '../utils';
+import { badgeColors, badgeLabels, formatPrice, orderStatusLabels, orderStatusColors, orderStatusSteps, returnBlocksReview, returnStatusLabels } from '../utils';
+import { RotateCcw as ReturnIcon } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import ProfileCard from '../components/ProfileCard';
 import { Address } from '../models/Address';
@@ -848,6 +849,24 @@ export default function ProfilePage() {
                                   </button>
                                 )}
                               </div>
+                            ) : returnBlocksReview(order.return_Status) ? (
+                              // Pedido em devolução: mostra só o andamento da devolução (sem avaliação nem etapas da entrega).
+                              <div className="px-5 py-4 border-b border-surface-100 bg-surface-50/70">
+                                <div className="flex items-center gap-3">
+                                  <div className="shrink-0 w-10 h-10 rounded-xl bg-white border border-surface-200 shadow-sm flex items-center justify-center">
+                                    <ReturnIcon className="w-4 h-4" style={{ color: colorConfig.hex }} />
+                                  </div>
+                                  <div className="min-w-0 flex-1">
+                                    <p className="text-xs sm:text-sm font-bold text-surface-800">Pedido em devolução</p>
+                                    <p className="text-[10px] sm:text-[11px] text-surface-400 mt-0.5">
+                                      {returnStatusLabels[order.return_Status ?? ''] ?? order.return_Status}
+                                    </p>
+                                  </div>
+                                </div>
+                                <div className="mt-2">
+                                  <ReturnProgress status={order.return_Status ?? ''} accentHex={colorConfig.hex} />
+                                </div>
+                              </div>
                             ) : order.order_Status === 'ENTREGUE' ? (
                               (() => {
                                 const allEvaluated = order.products.every(p => p.evaluated);
@@ -1075,8 +1094,8 @@ export default function ProfilePage() {
                                         Comprar novamente
                                       </button>
 
-                                      {/* Avaliação */}
-                                      {!isEvaluated ? (
+                                      {/* Avaliação (some quando o pedido está em devolução) */}
+                                      {returnBlocksReview(order.return_Status) ? null : !isEvaluated ? (
                                         <button
                                           type="button"
                                           onClick={() =>
@@ -1214,8 +1233,15 @@ export default function ProfilePage() {
                       variant="full"
                     />
 
+                    {/* Em devolução: andamento da devolução no lugar das etapas da entrega */}
+                    {returnBlocksReview(selectedOrder.return_Status) && (
+                      <div className="px-3 bg-surface-50 rounded-2xl">
+                        <ReturnProgress status={selectedOrder.return_Status ?? ''} accentHex={colorConfig.hex} />
+                      </div>
+                    )}
+
                     {/* Steps de progresso */}
-                    {selectedOrder.order_Status !== "cancelado" && selectedOrder.status_Pay !== "PENDENTE" && (
+                    {!returnBlocksReview(selectedOrder.return_Status) && selectedOrder.order_Status !== "cancelado" && selectedOrder.status_Pay !== "PENDENTE" && (
                       <div className="px-1 py-3 bg-surface-50 rounded-2xl">
                         <div className="flex items-center justify-between relative px-3">
                           <div className="absolute left-0 right-0 h-0.5 bg-surface-200 top-3.5 mx-7" />
@@ -1411,7 +1437,7 @@ export default function ProfilePage() {
                               </button>
 
                               {/* Avaliação */}
-                              {selectedOrder.order_Status === "ENTREGUE" && (
+                              {selectedOrder.order_Status === "ENTREGUE" && !returnBlocksReview(selectedOrder.return_Status) && (
                                 <>
                                   {!item.evaluated ? (
                                     <button

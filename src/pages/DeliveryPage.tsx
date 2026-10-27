@@ -245,9 +245,9 @@ export default function DeliveryPage() {
             {/* ───────────── POPUPS ───────────── */}
             <ConfirmAdminPopup
                 open={!!r.dispatchTarget}
-                title="Saiu para entrega?"
-                description={r.dispatchTarget ? `O pedido #${r.dispatchTarget.number_Order} vai para "Em rota" e o cliente recebe o aviso de que a entrega está a caminho.` : ''}
-                confirmText="Sim, saí para entregar"
+                title={r.dispatchTarget?.kind === 'COLETA' ? 'Saiu para coleta?' : 'Saiu para entrega?'}
+                description={r.dispatchTarget ? (r.dispatchTarget.kind === 'COLETA' ? `Coleta da devolução #${r.dispatchTarget.number_Order}: o cliente recebe o aviso de que você está indo buscar o produto.` : `O pedido #${r.dispatchTarget.number_Order} vai para "Em rota" e o cliente recebe o aviso de que a entrega está a caminho.`) : ''}
+                confirmText={r.dispatchTarget?.kind === 'COLETA' ? 'Sim, saí para buscar' : 'Sim, saí para entregar'}
                 icon={<Truck className="w-8 h-8 text-brand-400" />}
                 loading={r.busyId === r.dispatchTarget?.id}
                 onCancel={() => a.setDispatchTarget(null)}
@@ -256,15 +256,15 @@ export default function DeliveryPage() {
 
             <ConfirmAdminPopup
                 open={!!r.deliverTarget}
-                title="Confirmar entrega"
+                title={r.deliverTarget?.kind === 'COLETA' ? 'Confirmar coleta' : 'Confirmar entrega'}
                 description={r.deliverTarget ? `Pedido #${r.deliverTarget.number_Order} · ${addressLine(r.deliverTarget.address)}` : ''}
-                confirmText="Confirmar entrega"
+                confirmText={r.deliverTarget?.kind === 'COLETA' ? 'Confirmar coleta' : 'Confirmar entrega'}
                 confirmColor="green"
                 icon={<CheckCircle2 className="w-8 h-8 text-emerald-400" />}
                 requireReason
-                reasonLabel="Quem recebeu"
-                reasonPlaceholder="Nome de quem recebeu o pedido"
-                reasonErrorText="Informe o nome de quem recebeu (mínimo de 2 letras)."
+                reasonLabel={r.deliverTarget?.kind === 'COLETA' ? 'Quem entregou o produto' : 'Quem recebeu'}
+                reasonPlaceholder={r.deliverTarget?.kind === 'COLETA' ? 'Nome de quem entregou o produto da devolução' : 'Nome de quem recebeu o pedido'}
+                reasonErrorText={r.deliverTarget?.kind === 'COLETA' ? 'Informe o nome de quem entregou o produto (mínimo de 2 letras).' : 'Informe o nome de quem recebeu (mínimo de 2 letras).'}
                 minReasonLength={2}
                 maxReasonLength={100}
                 reasonRows={1}
@@ -600,7 +600,7 @@ function EarningRow({ entry, theme: t }: { entry: DeliveryEarningEntry; theme: D
                 <p className={`text-sm font-semibold ${t.txt}`}>
                     {entry.kind === 'DIA'
                         ? date?.toLocaleDateString('pt-BR', { weekday: 'long', day: '2-digit', month: '2-digit' })
-                        : `Pedido #${entry.orderNumber ?? entry.orderId}`}
+                        : `${entry.kind === 'COLETA' ? 'Coleta de devolução' : 'Pedido'} #${entry.orderNumber ?? entry.orderId}`}
                 </p>
                 <p className={`text-[11px] ${t.sub}`}>
                     {entry.kind === 'DIA'

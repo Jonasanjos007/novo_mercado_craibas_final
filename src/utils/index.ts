@@ -82,16 +82,46 @@ export const cupomStatusLabels: Record<string, string> = {
 /** Andamento da devolução (pedido entregue). */
 export const returnStatusLabels: Record<string, string> = {
   EM_ANALISE: 'Em análise de devolução',
-  AGUARDANDO_COLETA: 'Buscar produto',
-  DEVOLVIDO: 'Devolvido',
+  AGUARDANDO_COLETA: 'Coleta aprovada',
+  EM_COLETA: 'Saiu para coleta',
+  COLETADO: 'Produto coletado',
+  DEVOLVIDO: 'Devolvido e estornado',
   CANCELADA: 'Devolução cancelada',
 };
 
 export const returnStatusColors: Record<string, string> = {
   EM_ANALISE: 'bg-amber-50 text-amber-700 border border-amber-200',
   AGUARDANDO_COLETA: 'bg-blue-50 text-blue-700 border border-blue-200',
+  EM_COLETA: 'bg-violet-50 text-violet-700 border border-violet-200',
+  COLETADO: 'bg-cyan-50 text-cyan-700 border border-cyan-200',
   DEVOLVIDO: 'bg-green-50 text-green-700 border border-green-200',
   CANCELADA: 'bg-red-50 text-red-700 border border-red-200',
+};
+
+/** Etapas da devolução mostradas ao cliente (no lugar das etapas da entrega). */
+export const returnStatusSteps = ['EM_ANALISE', 'AGUARDANDO_COLETA', 'EM_COLETA', 'COLETADO', 'DEVOLVIDO'] as const;
+export const returnStepLabels: Record<string, string> = {
+  EM_ANALISE: 'Em análise',
+  AGUARDANDO_COLETA: 'Aprovada',
+  EM_COLETA: 'Buscando',
+  COLETADO: 'Coletado',
+  DEVOLVIDO: 'Estornado',
+};
+
+/** Devolução em andamento ou concluída: o produto não pode ser avaliado. */
+export const returnBlocksReview = (status?: string | null) => !!status && status !== 'CANCELADA';
+
+/** Pedido de cancelamento (pedido pago precisa da aprovação da loja). */
+export const cancelStatusLabels: Record<string, string> = {
+  SOLICITADO: 'Cancelamento em andamento',
+  RECUSADO: 'Cancelamento recusado',
+  APROVADO: 'Cancelamento aprovado',
+};
+
+export const cancelStatusColors: Record<string, string> = {
+  SOLICITADO: 'bg-amber-50 text-amber-700 border border-amber-200',
+  RECUSADO: 'bg-red-50 text-red-700 border border-red-200',
+  APROVADO: 'bg-green-50 text-green-700 border border-green-200',
 };
 
 /** Dias para pedir devolução depois da entrega (direito de arrependimento). */
@@ -445,4 +475,30 @@ export const configs: Record<string, {
     icon: BadgeX,
     label: "Estorno da baixa de pagamento do entregador",
   },
+  "PRODUTO COLETADO": {
+  text: "text-teal-400",
+  bg: "bg-teal-500/10",
+  border: "border-teal-500/20",
+  bar: "bg-teal-500",
+  icon: PackageCheck,
+  label: "Produto da devolução coletado",
+},
+
+"SAIU PARA COLETA": {
+  text: "text-sky-400",
+  bg: "bg-sky-500/10",
+  border: "border-sky-500/20",
+  bar: "bg-sky-500",
+  icon: Truck,
+  label: "Saiu para coleta",
+},
+
+"COLETA RETIRADA PARA BUSCAR": {
+  text: "text-indigo-400",
+  bg: "bg-indigo-500/10",
+  border: "border-indigo-500/20",
+  bar: "bg-indigo-500",
+  icon: PackageOpen,
+  label: "Coleta de devolução retirada pelo entregador",
+}
 };

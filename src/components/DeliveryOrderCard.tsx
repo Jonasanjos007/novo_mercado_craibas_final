@@ -15,6 +15,8 @@ import {
     Truck,
     UserRound,
     Undo2,
+    RotateCcw,
+    AlertTriangle,
 } from 'lucide-react';
 import { DeliveryOrder } from '../models/Delivery';
 import { formatPrice } from '../utils';
@@ -24,8 +26,9 @@ import {
     cityLine,
     formatRelative,
     isPaymentPending,
+    isPickup,
     mapsUrl,
-    statusMeta,
+    orderStatusMeta,
     telUrl,
     whatsappUrl,
 } from '../utils/delivery';
@@ -69,13 +72,17 @@ export default function DeliveryOrderCard({
 }: DeliveryOrderCardProps) {
     const [open, setOpen] = useState(false);
 
-    const status = statusMeta(order.order_Status);
+    const status = orderStatusMeta(order);
+    // Coleta de devolução: mesmo fluxo da entrega, com textos de "buscar o produto".
+    const pickup = isPickup(order);
     const isPreparing = order.order_Status === 'PREPARANDO';
     const isEnRoute = order.order_Status === 'SAIU_PARA_ENTREGA';
     const payPending = isPaymentPending(order);
 
     const tel = telUrl(order.customerPhone);
-    const whats = whatsappUrl(order.customerPhone, `Olá, ${order.customerName ?? ''}! Sou o entregador do pedido #${order.number_Order}.`);
+    const whats = whatsappUrl(order.customerPhone, pickup
+        ? `Olá, ${order.customerName ?? ''}! Sou da Mercado Craíbas e estou indo buscar o produto da devolução do pedido #${order.number_Order}.`
+        : `Olá, ${order.customerName ?? ''}! Sou o entregador do pedido #${order.number_Order}.`);
 
     const lockedByOther = showAssignee && order.assigneeType !== 'NONE' && !order.isMine;
 
@@ -83,7 +90,9 @@ export default function DeliveryOrderCard({
         ? formatRelative(order.deliveredAt)
         : isEnRoute
             ? `saiu ${formatRelative(order.dispatchedAt)}`
-            : `pedido ${formatRelative(order.insertDate)}`;
+            : pickup
+                ? `devolução pedida ${formatRelative(order.insertDate)}`
+                : `pedido ${formatRelative(order.insertDate)}`;
 
     return (
         <article
@@ -103,7 +112,7 @@ export default function DeliveryOrderCard({
                                 : 'bg-sky-500/10 text-sky-500'
                             }`}
                     >
-                        {readOnly ? <CheckCircle2 className="w-5 h-5" /> : isEnRoute ? <Truck className="w-5 h-5" /> : <Package className="w-5 h-5" />}
+                        {readOnly ? <CheckCircle2 className="w-5 h-5" /> : pickup ? <RotateCcw className="w-5 h-5" /> : isEnRoute ? <Truck className="w-5 h-5" /> : <Package className="w-5 h-5" />}
                     </div>
 
                     <div className="flex-1 min-w-0">
@@ -145,7 +154,7 @@ export default function DeliveryOrderCard({
                         {lockedByOther && (
                             <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl text-[11px] font-bold bg-violet-500/10 text-violet-500">
                                 <UserRound className="w-3.5 h-3.5" />
-                                {isEnRoute ? 'Sendo entregue por ' : 'Com '}
+                                {isEnRoute ? (pickup ? 'Buscando com ' : 'Sendo entregue por ') : 'Com '}
                                 {order.assigneeName ?? 'outro entregador'}
                             </span>
                         )}
@@ -176,8 +185,26 @@ export default function DeliveryOrderCard({
                     </div>
                 </div>
 
+                {/* ── coleta: o que buscar ── */}
+                {pickup && (
+                    <div className="mt-3 rounded-2xl px-3.5 py-2.5 text-xs border bg-amber-500/10 border-amber-500/20 text-amber-600">
+                        <p className="flex items-center gap-1.5 font-bold">
+                            <RotateCcw className="w-4 h-4 flex-shrink-0" /> Buscar o produto da devolução
+                        </p>
+                        {order.returnReason && <p className="mt-1 leading-relaxed opacity-90">Motivo do cliente: {order.returnReason}</p>}
+                    </div>
+                )}
+
+                {/* ── cliente pediu cancelamento ── */}
+                {!pickup && !readOnly && order.cancelRequested && (
+                    <div className="mt-3 flex items-start gap-2 rounded-2xl px-3.5 py-2.5 text-xs font-semibold border bg-red-500/10 border-red-500/20 text-red-500">
+                        <AlertTriangle className="w-4 h-4 flex-shrink-0 mt-0.5" />
+                        O cliente pediu o cancelamento. Aguarde a loja responder antes de sair para entrega.
+                    </div>
+                )}
+
                 {/* ── pagamento ── */}
-                {!readOnly && (
+                {!readOnly && !pickup && (
                     <div
                         className={`mt-3 flex items-center gap-2 rounded-2xl px-3.5 py-2.5 text-xs font-semibold border ${payPending
                             ? 'bg-amber-500/10 border-amber-500/20 text-amber-500'
@@ -196,7 +223,7 @@ export default function DeliveryOrderCard({
                 {readOnly && order.whoReceivedIt && (
                     <p className={`mt-3 text-xs flex items-center gap-1.5 ${t.txt2}`}>
                         <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" />
-                        Recebido por <strong className={t.txt}>{order.whoReceivedIt}</strong>
+                        {pickup ? 'Entregue por ' : 'Recebido por '}<strong className={t.txt}>{order.whoReceivedIt}</strong>
                     </p>
                 )}
 
@@ -208,7 +235,7 @@ export default function DeliveryOrderCard({
                             onClick={() => setOpen((v) => !v)}
                             className={`w-full flex items-center justify-between text-xs font-semibold ${t.txt2}`}
                         >
-                            <span>Conferir itens ({order.items.length})</span>
+                            <span>{pickup ? 'Itens a buscar' : 'Conferir itens'} ({order.items.length})</span>
                             <ChevronDown className={`w-4 h-4 transition-transform ${open ? 'rotate-180' : ''}`} />
                         </button>
 
@@ -274,7 +301,7 @@ export default function DeliveryOrderCard({
                                     }`}
                             >
                                 {busy ? <Loader2 className="w-4 h-4 animate-spin" /> : <Hand className="w-4 h-4" />}
-                                {lockedByOther ? 'Assumir este pedido' : 'Eu vou entregar'}
+                                {lockedByOther ? (pickup ? 'Assumir esta coleta' : 'Assumir este pedido') : (pickup ? 'Eu vou buscar' : 'Eu vou entregar')}
                             </button>
                         )}
 
@@ -285,7 +312,7 @@ export default function DeliveryOrderCard({
                                         type="button"
                                         disabled={busy}
                                         onClick={() => onRelease(order)}
-                                        title="Soltar pedido"
+                                        title={pickup ? 'Soltar coleta' : 'Soltar pedido'}
                                         className={`h-12 w-12 flex-shrink-0 rounded-2xl border flex items-center justify-center transition disabled:opacity-60 ${t.ghostBtn}`}
                                     >
                                         <Undo2 className="w-4 h-4" />
@@ -293,12 +320,12 @@ export default function DeliveryOrderCard({
                                 )}
                                 <button
                                     type="button"
-                                    disabled={busy}
+                                    disabled={busy || (!pickup && order.cancelRequested)}
                                     onClick={() => onDispatch(order)}
                                     className="flex-1 h-12 rounded-2xl bg-brand-500 hover:bg-brand-600 text-white text-sm font-bold flex items-center justify-center gap-2 shadow-brand transition active:scale-[0.99] disabled:opacity-60"
                                 >
                                     {busy ? <Loader2 className="w-4 h-4 animate-spin" /> : <Truck className="w-4 h-4" />}
-                                    Saiu para entrega
+                                    {pickup ? 'Saiu para coleta' : 'Saiu para entrega'}
                                 </button>
                             </div>
                         )}
@@ -311,7 +338,7 @@ export default function DeliveryOrderCard({
                                 className="w-full h-12 rounded-2xl bg-emerald-500 hover:bg-emerald-600 text-white text-sm font-bold flex items-center justify-center gap-2 shadow-lg shadow-emerald-500/25 transition active:scale-[0.99] disabled:opacity-60"
                             >
                                 {busy ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle2 className="w-4 h-4" />}
-                                Confirmar entrega
+                                {pickup ? 'Confirmar coleta' : 'Confirmar entrega'}
                             </button>
                         )}
                     </div>

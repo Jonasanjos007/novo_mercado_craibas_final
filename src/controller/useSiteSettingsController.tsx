@@ -10,6 +10,7 @@ import { UseProductStore } from "../store/UseProductStore";
 import { UseUserAdminStore } from "../storeAdmin/UseUserAdminStore";
 import { BaseRatesInterface, InfoSiteInterface } from "../models/User";
 import { TaxasBases } from "../models/SiteBases";
+import { formatPhoneInput, isValidEmail, isValidPhone } from "../utils/contact";
 
 type BrandsControllerReturn = {
     result: {
@@ -64,6 +65,8 @@ export const useSiteSettingsController = (): BrandsControllerReturn => {
                 storeName: BaseSiteInterface.storeName,
                 storeLogo: BaseSiteInterface.storeImage,
                 storeLogoIcone: BaseSiteInterface.storeImageIcone,
+                phoneSupport: formatPhoneInput(BaseSiteInterface.phoneSupport),
+                emailSupport: BaseSiteInterface.emailSupport ?? '',
             });
             setBaseRatesFormSite({
                 shippingCost: BaseSiteInterface.shippingCost,
@@ -87,6 +90,12 @@ export const useSiteSettingsController = (): BrandsControllerReturn => {
             if (!settingsFormSite?.storeLogoIcone && !settingsFormSite?.storeImageIconeFile) {
                 errors["storeLogoIcone"] = "Informe a Icone do site.";
             }
+            if (settingsFormSite?.phoneSupport && !isValidPhone(settingsFormSite.phoneSupport)) {
+                errors["phoneSupport"] = "Telefone inválido. Use DDD + número, ex.: (82) 99999-9999.";
+            }
+            if (settingsFormSite?.emailSupport && !isValidEmail(settingsFormSite.emailSupport)) {
+                errors["emailSupport"] = "Informe um e-mail válido.";
+            }
 
             setInfoErrors(errors);
 
@@ -96,6 +105,8 @@ export const useSiteSettingsController = (): BrandsControllerReturn => {
             const formData = new FormData();
 
             formData.append("StoreName", String(settingsFormSite?.storeName ?? ""));
+            if (settingsFormSite?.phoneSupport) formData.append("PhoneSupport", settingsFormSite.phoneSupport);
+            if (settingsFormSite?.emailSupport) formData.append("EmailSupport", settingsFormSite.emailSupport.trim());
 
             if (settingsFormSite?.storeImageFile) {
                 formData.append("StoreImage", settingsFormSite.storeImageFile);
@@ -115,6 +126,8 @@ export const useSiteSettingsController = (): BrandsControllerReturn => {
             }
 
             notify.success("success", "Informações salva com sucesso!");
+            // Atualiza nome, logo e contatos no restante do site.
+            await getBaseSiteAdmin();
         } finally {
             SetLoadingSentts(false);
         }

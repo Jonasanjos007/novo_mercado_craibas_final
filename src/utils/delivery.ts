@@ -18,7 +18,30 @@ export const deliveryStatusMeta: Record<string, { label: string; dot: string; ch
         dot: 'bg-emerald-400',
         chip: 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20',
     },
+    // Coleta de devolução (mesmos passos, sentido contrário)
+    COLETA_PREPARANDO: {
+        label: 'Coleta: buscar',
+        dot: 'bg-amber-400',
+        chip: 'bg-amber-500/10 text-amber-500 border-amber-500/20',
+    },
+    COLETA_SAIU_PARA_ENTREGA: {
+        label: 'Saiu p/ coleta',
+        dot: 'bg-violet-400',
+        chip: 'bg-violet-500/10 text-violet-500 border-violet-500/20',
+    },
+    COLETA_ENTREGUE: {
+        label: 'Coletado',
+        dot: 'bg-cyan-400',
+        chip: 'bg-cyan-500/10 text-cyan-500 border-cyan-500/20',
+    },
 };
+
+/** É a coleta de uma devolução (não uma entrega). */
+export const isPickup = (order: { kind?: string | null }) => order.kind === 'COLETA';
+
+/** Status com o texto certo para entrega ou coleta. */
+export const orderStatusMeta = (order: { kind?: string | null; order_Status: string }) =>
+    statusMeta(isPickup(order) ? `COLETA_${order.order_Status}` : order.order_Status);
 
 export const statusMeta = (status: string) =>
     deliveryStatusMeta[status] ?? {

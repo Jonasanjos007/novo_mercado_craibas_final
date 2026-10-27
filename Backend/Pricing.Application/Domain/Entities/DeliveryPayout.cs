@@ -58,5 +58,8 @@ namespace Mercado.Craibas.Application.Domain.Entities
         public int Deliveries { get; set; }
 
         public double Amount { get; set; }
+
+        /// <summary>true = item é a coleta de uma devolução (não a entrega do pedido).</summary>
+        public bool Is_Return_Pickup { get; set; }
     }
 }

@@ -7,6 +7,7 @@ import { UseAddressStore } from "../store/UseAddressStore";
 import { UseUserStore } from "../store/UseUserStore";
 import { UseCartStore } from "../store/UseCartStore";
 import { UseProductStore } from "../store/UseProductStore";
+import { UseOrderStore } from "../store/UseOrderStore";
 
 type BrandsControllerReturn = {
     result: {
@@ -19,6 +20,7 @@ type BrandsControllerReturn = {
 
 export const useBrandsController = (): BrandsControllerReturn => {
     const { loadProducts } = UseProductStore();
+    const { LoadCategory } = UseOrderStore();
     const notify = useNotification();
     const [Loading, SetLoading] = useState(false);
     useEffect(() => {
@@ -26,6 +28,8 @@ export const useBrandsController = (): BrandsControllerReturn => {
         const load = async () => {
             SetLoading(true);
             await GetListProducts();
+            // Categorias reais da loja (chips de filtro).
+            await LoadCategory();
             SetLoading(false);
         };
         load();

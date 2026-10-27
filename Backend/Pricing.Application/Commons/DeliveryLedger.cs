@@ -33,6 +33,7 @@ public sealed class DeliveryLedgerResult
 ///   Uma entrega fica coberta por um item "pedido" ou por um item "dia", nunca pelos dois.
 /// - Gorjeta desligada: nada fica pendente.
 /// - Entregas feitas pelo admin nunca contam (o pedido não tem Id_User_Delivery).
+/// - Coleta de devolução feita por entregador conta como uma entrega (item "COLETA").
 /// </summary>
 public static class DeliveryLedger
 {
@@ -121,6 +122,27 @@ public static class DeliveryLedger
             })
             .ToListAsync();
 
+        // Coletas de devolução feitas por entregadores (contam como entrega)
+        var pickupQuery = orders.AsNoTracking()
+            .Where(x => x.Return_Id_User_Delivery != null
+                        && x.Return_CollectedAt != null
+                        && (x.Return_Status == "COLETADO" || x.Return_Status == "DEVOLVIDO")
+                        && x.Isdelete != true);
+
+        if (onlyDeliveryId.HasValue)
+            pickupQuery = pickupQuery.Where(x => x.Return_Id_User_Delivery == onlyDeliveryId.Value);
+
+        var collected = await pickupQuery
+            .Select(x => new
+            {
+                x.Id,
+                x.Number_Order,
+                x.Total_Value_Order,
+                CollectedAt = x.Return_CollectedAt!.Value,
+                DeliveryId = x.Return_Id_User_Delivery!.Value
+            })
+            .ToListAsync();
+
         // Itens já pagos (baixas não estornadas)
         var itemQuery = payoutItems.AsNoTracking()
             .Where(x => x.DeliveryPayout.ReversedAt == null);
@@ -139,7 +161,8 @@ public static class DeliveryLedger
                 x.Amount,
                 x.Id_DeliveryPayout,
                 x.DeliveryPayout.PaidAt,
-                DeliveryId = x.DeliveryPayout.Id_User_Delivery
+                DeliveryId = x.DeliveryPayout.Id_User_Delivery,
+                x.Is_Return_Pickup
             })
             .ToListAsync();
 
@@ -153,7 +176,12 @@ public static class DeliveryLedger
             var myPaid = paidItems.Where(x => x.DeliveryId == rate.Id).ToList();
 
             var paidOrderIds = myPaid
-                .Where(x => x.Id_Order.HasValue)
+                .Where(x => x.Id_Order.HasValue && !x.Is_Return_Pickup)
+                .Select(x => x.Id_Order!.Value)
+                .ToHashSet();
+
+            var paidPickupIds = myPaid
+                .Where(x => x.Id_Order.HasValue && x.Is_Return_Pickup)
                 .Select(x => x.Id_Order!.Value)
                 .ToHashSet();
 
@@ -166,7 +194,7 @@ public static class DeliveryLedger
             {
                 ledger.Paid.Add(new DeliveryEarningEntryResponse
                 {
-                    Kind = item.Id_Order.HasValue ? "PEDIDO" : "DIA",
+                    Kind = item.Is_Return_Pickup ? "COLETA" : (item.Id_Order.HasValue ? "PEDIDO" : "DIA"),
                     OrderId = item.Id_Order,
                     OrderNumber = item.OrderNumber,
                     Date = item.ReferenceDate,
@@ -192,9 +220,21 @@ public static class DeliveryLedger
                             && (!countFrom.HasValue || x.DeliveredAt >= countFrom.Value))
                 .ToList();
 
+            var pendingPickups = collected
+                .Where(x => x.DeliveryId == rate.Id
+                            && !paidPickupIds.Contains(x.Id)
+                            && !paidDays.Contains(x.CollectedAt.Date)
+                            && (!countFrom.HasValue || x.CollectedAt >= countFrom.Value))
+                .ToList();
+
             if (settings.Mode == DeliveryPayModeEnum.POR_DIA)
             {
-                foreach (var day in pendingOrders.GroupBy(x => x.DeliveredAt.Date))
+                // Dia trabalhado = dia com entrega ou coleta
+                var days = pendingOrders.Select(x => x.DeliveredAt.Date)
+                    .Concat(pendingPickups.Select(x => x.CollectedAt.Date))
+                    .GroupBy(x => x);
+
+                foreach (var day in days)
                 {
                     ledger.Pending.Add(new DeliveryEarningEntryResponse
                     {
@@ -219,6 +259,20 @@ public static class DeliveryLedger
                         Deliveries = 1,
                         Amount = OrderAmount(settings, rate.CommissionDelivers, order.Total_Value_Order, order.Delivery_Commission),
                         CustomTip = order.Delivery_Commission.HasValue
+                    });
+                }
+
+                foreach (var pickup in pendingPickups)
+                {
+                    ledger.Pending.Add(new DeliveryEarningEntryResponse
+                    {
+                        Kind = "COLETA",
+                        OrderId = pickup.Id,
+                        OrderNumber = pickup.Number_Order,
+                        OrderTotal = pickup.Total_Value_Order,
+                        Date = pickup.CollectedAt,
+                        Deliveries = 1,
+                        Amount = OrderAmount(settings, rate.CommissionDelivers, pickup.Total_Value_Order, null)
                     });
                 }
             }

@@ -39,6 +39,8 @@ import {
     formatRelative,
     initials,
     statusMeta,
+    orderStatusMeta,
+    isPickup,
     toDate,
 } from '../utils/delivery';
 
@@ -232,7 +234,8 @@ function OrdersSection({ Controller, t }: { Controller: ControllerType; t: Theme
 function AssignCard({ order, Controller, t }: { order: DeliveryOrder; Controller: ControllerType; t: Theme }) {
     const r = Controller.result;
     const a = Controller.action;
-    const status = statusMeta(order.order_Status);
+    const status = orderStatusMeta(order);
+    const pickup = isPickup(order);
     const busy = r.assigningId === order.id;
     const isEnRoute = order.order_Status === 'SAIU_PARA_ENTREGA';
     const dark = t.dark;
@@ -256,6 +259,11 @@ function AssignCard({ order, Controller, t }: { order: DeliveryOrder; Controller
                         <span className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full border text-[10px] font-bold uppercase ${status.chip}`}>
                             <span className={`w-1.5 h-1.5 rounded-full ${status.dot}`} /> {status.label}
                         </span>
+                        {pickup && (
+                            <span className="inline-flex items-center px-2 py-0.5 rounded-full border text-[10px] font-bold uppercase bg-amber-500/10 text-amber-500 border-amber-500/20">
+                                Devolução
+                            </span>
+                        )}
                     </div>
                     <p className={`mt-1 text-xs truncate ${t.txt2}`}>{addressLine(order.address)}</p>
                     <p className={`text-[11px] ${t.sub}`}>
@@ -266,7 +274,7 @@ function AssignCard({ order, Controller, t }: { order: DeliveryOrder; Controller
             </div>
 
             <div className="mt-4 pl-1">
-                <label className={`block text-[10px] font-bold uppercase tracking-wider mb-1.5 ${t.sub}`}>Entregador</label>
+                <label className={`block text-[10px] font-bold uppercase tracking-wider mb-1.5 ${t.sub}`}>{pickup ? 'Quem vai buscar' : 'Entregador'}</label>
                 <div className="relative">
                     <UserRound className={`absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 ${t.sub}`} />
                     <select
@@ -315,7 +323,7 @@ function AssignCard({ order, Controller, t }: { order: DeliveryOrder; Controller
                     <p className="mt-2 text-[11px] text-violet-500">Este pedido está com o admin {order.assigneeName}. Escolha um entregador para trocar.</p>
                 )}
                 {isEnRoute && order.assigneeType === 'DELIVERY' && (
-                    <p className={`mt-2 text-[11px] ${t.sub}`}>Já saiu para entrega com {order.assigneeName}. Você pode trocar o entregador, mas não remover.</p>
+                    <p className={`mt-2 text-[11px] ${t.sub}`}>{pickup ? `Já saiu para coleta com ${order.assigneeName}.` : `Já saiu para entrega com ${order.assigneeName}.`} Você pode trocar o entregador, mas não remover.</p>
                 )}
             </div>
         </article>
@@ -844,7 +852,7 @@ function PayablesModal({ Controller, t }: { Controller: ControllerType; t: Theme
                                             <p className="text-sm font-semibold text-white">
                                                 {entry.kind === 'DIA'
                                                     ? date?.toLocaleDateString('pt-BR', { weekday: 'long', day: '2-digit', month: '2-digit' })
-                                                    : `Pedido #${entry.orderNumber}`}
+                                                    : `${entry.kind === 'COLETA' ? 'Coleta de devolução' : 'Pedido'} #${entry.orderNumber}`}
                                             </p>
                                             <p className="text-[11px] text-white/45">
                                                 {entry.kind === 'DIA'
@@ -1036,7 +1044,7 @@ function EntryLine({ entry, t }: { entry: DeliveryEarningEntry; t: Theme }) {
             <p className={`flex-1 text-xs ${t.txt2}`}>
                 {entry.kind === 'DIA'
                     ? `${date?.toLocaleDateString('pt-BR', { weekday: 'short', day: '2-digit', month: '2-digit' })} · ${entry.deliveries} entrega(s)`
-                    : `Pedido #${entry.orderNumber ?? entry.orderId} · ${date?.toLocaleDateString('pt-BR')}`}
+                    : `${entry.kind === 'COLETA' ? 'Coleta' : 'Pedido'} #${entry.orderNumber ?? entry.orderId} · ${date?.toLocaleDateString('pt-BR')}`}
             </p>
             <p className={`text-xs font-bold ${t.txt}`}>{formatPrice(entry.amount)}</p>
         </div>

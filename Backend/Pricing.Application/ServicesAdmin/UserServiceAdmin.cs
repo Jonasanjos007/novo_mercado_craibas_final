@@ -525,6 +525,33 @@ namespace Mercado.Craibas.Application.ServicesAdmin
                     return Result<bool>.Failure(Error.Failure("Informação Site", "Configuração do site não encontrada!"));
                 }
 
+                // Contatos da loja (telefone/WhatsApp e e-mail). Vazio = mantém o atual.
+                var telefoneAnterior = baseSite.PhoneSupport;
+                var emailAnterior = baseSite.EmailSupport;
+                var telefoneNovo = telefoneAnterior;
+                var emailNovo = emailAnterior;
+
+                if (!string.IsNullOrWhiteSpace(request.PhoneSupport))
+                {
+                    var digitos = new string(request.PhoneSupport.Where(char.IsDigit).ToArray());
+                    if (digitos.Length is 10 or 11) digitos = "55" + digitos;
+                    if (digitos.Length is < 12 or > 13 || !digitos.StartsWith("55"))
+                    {
+                        return Result<bool>.Failure(Error.Failure("Informação Site", "Telefone inválido. Use DDD + número, ex.: (82) 99999-9999."));
+                    }
+                    telefoneNovo = digitos;
+                }
+
+                if (!string.IsNullOrWhiteSpace(request.EmailSupport))
+                {
+                    var email = request.EmailSupport.Trim();
+                    if (email.Length > 150 || !System.Net.Mail.MailAddress.TryCreate(email, out var parsed) || parsed.Address != email || !email.Contains('.'))
+                    {
+                        return Result<bool>.Failure(Error.Failure("Informação Site", "E-mail de contato inválido."));
+                    }
+                    emailNovo = email.ToLowerInvariant();
+                }
+
                 // Guarda os valores anteriores antes da alteração
                 var nomeAnterior = baseSite.StoreName;
                 var imagemAnterior = baseSite.StoreImage;
@@ -618,6 +645,8 @@ namespace Mercado.Craibas.Application.ServicesAdmin
             { "StoreImageIcone", nomeImagemIcone },
             { "UpdateDate", DateTime.Now }
         };
+                if (telefoneNovo != null) fieldsSite["PhoneSupport"] = telefoneNovo;
+                if (emailNovo != null) fieldsSite["EmailSupport"] = emailNovo;
 
                 var updateSite = await _unitOfWorkAdmin.UpdateFieldsAsyncEntity<BaseSite>(
                     filters: new Dictionary<string, object>
@@ -651,6 +680,16 @@ namespace Mercado.Craibas.Application.ServicesAdmin
                     if (iconeAnterior != nomeImagemIcone)
                     {
                         alteracoes.Add($"Ícone da loja: '{iconeAnterior ?? "Nenhum"}' → '{nomeImagemIcone ?? "Nenhum"}'");
+                    }
+
+                    if (telefoneAnterior != telefoneNovo)
+                    {
+                        alteracoes.Add($"Telefone/WhatsApp: '{telefoneAnterior ?? "Nenhum"}' → '{telefoneNovo ?? "Nenhum"}'");
+                    }
+
+                    if (emailAnterior != emailNovo)
+                    {
+                        alteracoes.Add($"E-mail de contato: '{emailAnterior ?? "Nenhum"}' → '{emailNovo ?? "Nenhum"}'");
                     }
 
                     await _unitOfWorkAdmin.InsertAsyncReturnObjeto<Logs>(

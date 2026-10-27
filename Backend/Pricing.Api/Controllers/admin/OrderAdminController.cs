@@ -21,10 +21,6 @@ namespace Mercado.Api.Controllers.Admin
             _service = service;
             _afterSale = afterSale;
         }
-
-        // ───────────── Devoluções ─────────────
-
-        /// <summary>Pedidos de devolução. filter: open (padrão), all, EM_ANALISE, AGUARDANDO_COLETA, DEVOLVIDO, CANCELADA.</summary>
         [HttpGet("returns")]
         public async Task<IActionResult> GetReturns([FromQuery] string? filter = "open")
         {
@@ -32,14 +28,24 @@ namespace Mercado.Api.Controllers.Admin
             return result.ToActionResult();
         }
 
-        /// <summary>Muda o andamento da devolução (AGUARDANDO_COLETA, DEVOLVIDO ou CANCELADA).</summary>
         [HttpPost("returns/{orderId:int}/status")]
         public async Task<IActionResult> UpdateReturnStatus(int orderId, [FromBody] UpdateReturnStatusRequest request)
         {
             var result = await _afterSale.UpdateReturnStatusAsync(User.GetUserId(), orderId, request?.Status ?? "", request?.Note);
             return result.ToActionResult();
         }
-        // ───────────── Paginação (filtros aplicados no banco antes de paginar) ─────────────
+        [HttpGet("cancellations")]
+        public async Task<IActionResult> GetCancellations([FromQuery] string? filter = "open")
+        {
+            var result = await _afterSale.GetCancellationsAsync(filter);
+            return result.ToActionResult();
+        }
+        [HttpPost("cancellations/{orderId:int}/decision")]
+        public async Task<IActionResult> DecideCancellation(int orderId, [FromBody] CancelDecisionRequest request)
+        {
+            var result = await _afterSale.DecideCancellationAsync(User.GetUserId(), orderId, request?.Approve == true, request?.Note);
+            return result.ToActionResult();
+        }
 
         [Authorize(Roles = "ADMIN")]
         [HttpGet("paged")]

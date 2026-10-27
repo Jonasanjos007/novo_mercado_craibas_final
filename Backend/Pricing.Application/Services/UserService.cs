@@ -1205,8 +1205,10 @@ public class UserService : IUserService
             StoreName = BaseSite.StoreName,
             StoreImage = BaseSite.StoreImage,
             StoreImageIcone = BaseSite.StoreImageIcone,
-            ShippingCost = BaseTaxasSite.ShippingCost,
-            TimeframeBusinessDays = BaseTaxasSite.TimeframeBusinessDays
+            ShippingCost = BaseTaxasSite?.ShippingCost,
+            TimeframeBusinessDays = BaseTaxasSite?.TimeframeBusinessDays,
+            PhoneSupport = BaseSite.PhoneSupport,
+            EmailSupport = BaseSite.EmailSupport
 
         }
         );

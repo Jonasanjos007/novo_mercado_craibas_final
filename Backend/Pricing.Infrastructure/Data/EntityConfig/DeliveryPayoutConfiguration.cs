@@ -78,6 +78,10 @@ namespace Mercado.Craibas.Infrastructure.Data.EntityConfig
                 .OnDelete(DeleteBehavior.Restrict);
 
             builder.HasIndex(x => x.Id_Order);
+
+            builder.Property(x => x.Is_Return_Pickup)
+                .IsRequired()
+                .HasDefaultValue(false);
         }
     }
 }

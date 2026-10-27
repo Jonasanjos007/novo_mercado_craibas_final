@@ -52,10 +52,18 @@ export interface DeliveryOrder {
 
     /** Ganho do entregador (só com gorjeta ativa no modo por pedido). */
     earning?: number | null;
+
+    /** ENTREGA = levar o pedido; COLETA = buscar o produto de uma devolução. */
+    kind?: 'ENTREGA' | 'COLETA';
+    /** Coleta: motivo da devolução. */
+    returnReason?: string | null;
+    /** O cliente pediu o cancelamento e a loja ainda não respondeu. */
+    cancelRequested?: boolean;
 }
 
 export interface DeliveryEarningEntry {
-    kind: 'PEDIDO' | 'DIA';
+    /** PEDIDO = entrega; COLETA = coleta de devolução; DIA = dia trabalhado. */
+    kind: 'PEDIDO' | 'COLETA' | 'DIA';
     orderId?: number | null;
     orderNumber?: string | null;
     orderTotal?: number | null;
@@ -154,6 +162,8 @@ export interface DeliveryPayout {
 export interface CreateDeliveryPayout {
     deliveryId: number;
     orderIds: number[];
+    /** Coletas de devolução pagas (id do pedido). */
+    pickupOrderIds?: number[];
     workDates: string[];
     note?: string;
 }

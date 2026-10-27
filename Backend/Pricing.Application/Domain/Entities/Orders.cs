@@ -52,6 +52,15 @@ namespace Baldan.Pricing.Application.Domain.Entities
         public DateTime? Canceled_At { get; set; }
         /// <summary>Quem cancelou: CLIENTE ou ADMIN.</summary>
         public string? Canceled_By { get; set; }
+        /// <summary>
+        /// Pedido de cancelamento de pedido pago (precisa da aprovação do admin):
+        /// nulo = nenhum, SOLICITADO (em andamento), RECUSADO ou APROVADO.
+        /// </summary>
+        public string? Cancel_Status { get; set; }
+        public DateTime? Cancel_Requested_At { get; set; }
+        /// <summary>Resposta do admin (motivo da recusa ou observação da aprovação).</summary>
+        public string? Cancel_Admin_Note { get; set; }
+        public DateTime? Cancel_Decided_At { get; set; }
 
         // ── Devolução (direito de arrependimento: 7 dias após a entrega) ───────
         /// <summary>Nulo = sem devolução. EM_ANALISE, AGUARDANDO_COLETA, DEVOLVIDO ou CANCELADA.</summary>
@@ -61,6 +70,21 @@ namespace Baldan.Pricing.Application.Domain.Entities
         public DateTime? Return_Updated_At { get; set; }
         /// <summary>Observação do admin ao mudar a devolução (aparece para o cliente).</summary>
         public string? Return_Admin_Note { get; set; }
+
+        // ── Coleta da devolução (funciona como uma entrega, no sentido contrário) ──
+        /// <summary>Entregador que vai buscar o produto (conta no ganho dele).</summary>
+        public int? Return_Id_User_Delivery { get; set; }
+        public User_Delivery? Return_User_Delivery { get; set; }
+        /// <summary>Admin que vai buscar ele mesmo (não conta ganho).</summary>
+        public int? Return_Id_User_Admin_Delivery { get; set; }
+        public User_Admin? Return_User_Admin_Delivery { get; set; }
+        public DateTime? Return_AssignedAt { get; set; }
+        /// <summary>Quando saiu para buscar.</summary>
+        public DateTime? Return_DispatchedAt { get; set; }
+        /// <summary>Quando o produto foi coletado com o cliente.</summary>
+        public DateTime? Return_CollectedAt { get; set; }
+        /// <summary>Quem entregou o produto na coleta.</summary>
+        public string? Return_WhoHanded { get; set; }
         public ICollection<OrderLineItens> OrderLineItens { get; set; } = [];
         public ICollection<Coupon_Use> Coupon_Uses { get; set; } = [];
 
