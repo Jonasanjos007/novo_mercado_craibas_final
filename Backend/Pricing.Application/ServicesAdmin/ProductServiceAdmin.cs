@@ -91,7 +91,7 @@ namespace Mercado.Craibas.Application.ServicesAdmin
 
             if (Products == null || !Products.Any())
             {
-                return Result<List<ProductResponse>>.Failure(Error.Failure("Produtos","Produtos não encontrados!"));
+                return Result<List<ProductResponse>>.Failure(Error.Failure("Produtos", "Produtos não encontrados!"));
             }
 
             // Antes: 3 consultas por produto. Agora: 3 consultas no total, mesmo resultado.
@@ -175,7 +175,15 @@ namespace Mercado.Craibas.Application.ServicesAdmin
             var ids = Products.Select(x => x.Id).Distinct().ToList();
             var categoryIds = Products.Select(x => x.Id_Category).Distinct().ToList();
 
-            var allVariants = await _unitOfWorkAdmin.GetClassListAsyncWhere<Variante_Products>(x => ids.Contains(x.Id_Product) && x.Isdelete != true);
+            var allVariants = await _unitOfWorkAdmin.Query<Variante_Products>()
+                .Include(x => x.Atributos)
+                .Where(x => ids.Contains(x.Id_Product) && x.Isdelete != true)
+                .AsNoTracking()
+                .ToListAsync();
+            // Corta a volta (atributo -> variação) para não dar ciclo ao virar JSON.
+            foreach (var vv in allVariants)
+                foreach (var at in vv.Atributos)
+                    at.Variante = null;
             var allImages = await _unitOfWorkAdmin.GetClassListAsyncWhere<Imagens_Products>(x => ids.Contains(x.Id_Product) && x.Isdelete != true);
             var allCategories = await _unitOfWorkAdmin.GetClassListAsyncWhere<Product_Category>(x => categoryIds.Contains(x.Id) && x.Isdelete != true);
 
@@ -270,7 +278,7 @@ namespace Mercado.Craibas.Application.ServicesAdmin
                     Price_Unit = product.Price_Unit,
                     Origin_Price = product.Origin_Price,
                     Id_Category = product.Id_Category,
-                    Total_Stock = product.Total_Stock ?? 0,
+                    Total_Stock = SomaEstoque(product.Variants, product.Total_Stock),
                     Badge = product.Badge,
                     FreeShipping = false,
                     installments = product.installments,
@@ -309,24 +317,20 @@ namespace Mercado.Craibas.Application.ServicesAdmin
                     });
                 }
 
-                var InsertVariantsProduct = new Variante_Products();
-
                 foreach (var Variante in product.Variants)
                 {
-
-                    InsertVariantsProduct = new Variante_Products
+                    var (vName, vValue, vType) = VariantLabels(Variante);
+                    var insertedVar = await _unitOfWorkAdmin.InsertAsyncReturnObjeto(new Variante_Products
                     {
                         Id_Product = InsertProduct.Id,
-                        Name = Variante.Name,
-                        Value = Variante.Value,
-                        Type = Variante.Type,
+                        Name = vName,
+                        Value = vValue,
+                        Type = vType,
                         Stoke = Variante.Stoke ?? 0,
                         Price_Modifier = Variante.Price_Modifier,
                         InsertDate = DateTime.Now
-                    };
-
-                    await _unitOfWorkAdmin.InsertAsyncReturnObjeto(InsertVariantsProduct);
-
+                    });
+                    await SaveVariantAtributos(insertedVar.Id, Variante, replace: false);
                 }
                 return Result<bool>.Success(true);
             }
@@ -336,7 +340,48 @@ namespace Mercado.Craibas.Application.ServicesAdmin
             }
         }
 
-        public async Task<Result<bool>>PostEditProduct(ProductRequest product,int IdUser)
+        // Estoque do produto: soma de todas as variantes quando houver; senão, o valor informado.
+        private static int SomaEstoque(IEnumerable<Variante_ProductsRequest>? variantes, int? estoqueInformado)
+        {
+            var lista = variantes?.ToList();
+            if (lista is { Count: > 0 }) return lista.Sum(v => v.Stoke ?? 0);
+            return estoqueInformado ?? 0;
+        }
+
+        // Rótulos (Name/Value/Type) do SKU a partir dos atributos, quando vierem.
+        private static (string Name, string Value, string Type) VariantLabels(Variante_ProductsRequest v)
+        {
+            var atrs = v.Atributos?.Where(a => !string.IsNullOrWhiteSpace(a.Eixo) && !string.IsNullOrWhiteSpace(a.Valor)).ToList();
+            string Cut(string s, int n) => string.IsNullOrEmpty(s) ? s : (s.Length > n ? s.Substring(0, n) : s);
+            if (atrs != null && atrs.Count > 0)
+            {
+                var name = Cut((v.Name ?? atrs[0].Eixo ?? "").Trim(), 100);
+                var value = Cut((v.Value ?? atrs[0].Valor ?? "").Trim(), 100);
+                var type = Cut((v.Type ?? string.Join(" / ", atrs.Select(a => a.Valor))).Trim(), 50);
+                return (name, value, type);
+            }
+            return (Cut((v.Name ?? "").Trim(), 100), Cut((v.Value ?? "").Trim(), 100), Cut((v.Type ?? "").Trim(), 50));
+        }
+
+        // Regrava os eixos (atributos) de um SKU.
+        private async Task SaveVariantAtributos(int varianteId, Variante_ProductsRequest v, bool replace)
+        {
+            if (replace)
+                await _unitOfWorkAdmin.DeleteAllByColumnAsync<Variante_Atributos>("Id_Variante", varianteId);
+            var atrs = v.Atributos?.Where(a => !string.IsNullOrWhiteSpace(a.Eixo) && !string.IsNullOrWhiteSpace(a.Valor));
+            if (atrs == null) return;
+            foreach (var a in atrs)
+                await _unitOfWorkAdmin.InsertAsyncReturnObjeto(new Variante_Atributos
+                {
+                    Id_Variante = varianteId,
+                    Eixo = a.Eixo!.Trim(),
+                    Valor = a.Valor!.Trim(),
+                    InsertDate = DateTime.Now,
+                    Isdelete = false
+                });
+        }
+
+        public async Task<Result<bool>> PostEditProduct(ProductRequest product, int IdUser)
         {
             try
             {
@@ -375,7 +420,7 @@ namespace Mercado.Craibas.Application.ServicesAdmin
                 {
                     return Result<bool>.Failure(Error.Failure("Produto", "Tags do produto e obrigatório!"));
                 }
-                var produtoAtual = await _unitOfWorkAdmin.GetClassById<Product, int>(product.Id.Value,"Id");
+                var produtoAtual = await _unitOfWorkAdmin.GetClassById<Product, int>(product.Id.Value, "Id");
 
                 if (produtoAtual == null)
                 {
@@ -403,23 +448,23 @@ namespace Mercado.Craibas.Application.ServicesAdmin
                     foreach (var imagemDeleteId in product.RemovedImages)
                     {
                         // Busca a imagem antes de excluir
-                        var imagem = await _unitOfWorkAdmin.GetClassById<Imagens_Products,int>(imagemDeleteId, "Id");
+                        var imagem = await _unitOfWorkAdmin.GetClassById<Imagens_Products, int>(imagemDeleteId, "Id");
 
 
                         if (imagem != null)
                         {
 
-                       //      await _unitOfWorkAdmin.UpdateFieldsAsyncEntity<Imagens_Products>(filters: new Dictionary<string, object>
-                       // {
-                       //         { "Id", imagem.Id }
-                       // },
+                            //      await _unitOfWorkAdmin.UpdateFieldsAsyncEntity<Imagens_Products>(filters: new Dictionary<string, object>
+                            // {
+                            //         { "Id", imagem.Id }
+                            // },
 
-                       //fieldsToUpdate: new Dictionary<string, object>
-                       //{
-                            
-                       //      {"Isdelete",true},
-                       //      {"UpdateDate", DateTime.Now }
-                       // });
+                            //fieldsToUpdate: new Dictionary<string, object>
+                            //{
+
+                            //      {"Isdelete",true},
+                            //      {"UpdateDate", DateTime.Now }
+                            // });
                             var caminhoArquivo = Path.Combine(pastaDestinoImage, imagem.Url_Imagem);
 
                             if (File.Exists(caminhoArquivo))
@@ -436,17 +481,17 @@ namespace Mercado.Craibas.Application.ServicesAdmin
                 {
                     foreach (var VariantDeleteId in product.removedVariants)
                     {
-                      //  await _unitOfWorkAdmin.UpdateFieldsAsyncEntity<Variante_Products>(filters: new Dictionary<string, object>
-                      //  {
-                      //          { "Id", VariantDeleteId }
-                      //  },
+                        //  await _unitOfWorkAdmin.UpdateFieldsAsyncEntity<Variante_Products>(filters: new Dictionary<string, object>
+                        //  {
+                        //          { "Id", VariantDeleteId }
+                        //  },
 
-                      //fieldsToUpdate: new Dictionary<string, object>
-                      //{
+                        //fieldsToUpdate: new Dictionary<string, object>
+                        //{
 
-                      //       {"Isdelete",true},
-                      //       {"UpdateDate", DateTime.Now }
-                      // });
+                        //       {"Isdelete",true},
+                        //       {"UpdateDate", DateTime.Now }
+                        // });
                         await _unitOfWorkAdmin.DeleteAllByColumnAsync<Variante_Products>("Id", VariantDeleteId);
                     }
                 }
@@ -465,7 +510,7 @@ namespace Mercado.Craibas.Application.ServicesAdmin
                              {"Price_Unit",product.Price_Unit },
                              {"Origin_Price",product.Origin_Price},
                              {"Id_Category",product.Id_Category},
-                             {"Total_Stock",product.Total_Stock},
+                             {"Total_Stock",SomaEstoque(product.Variants, product.Total_Stock)},
                              {"Badge",product.Badge},
                              {"FreeShipping",false},
                              {"installments",product.installments},
@@ -519,41 +564,50 @@ namespace Mercado.Craibas.Application.ServicesAdmin
                 {
                     foreach (var Variante in product.Variants)
                     {
-                        if(Variante.New == true)
+                        if (Variante.New == true)
                         {
-                            await _unitOfWorkAdmin.InsertAsyncReturnObjeto(new Variante_Products
+                            var (nName, nValue, nType) = VariantLabels(Variante);
+                            var insertedEdit = await _unitOfWorkAdmin.InsertAsyncReturnObjeto(new Variante_Products
                             {
                                 Id_Product = product.Id ?? 0,
-                                Name = Variante.Name,
-                                Value = Variante.Value,
-                                Type = Variante.Type,
+                                Name = nName,
+                                Value = nValue,
+                                Type = nType,
                                 Stoke = Variante.Stoke ?? 0,
                                 Price_Modifier = Variante.Price_Modifier,
                                 InsertDate = DateTime.Now,
                                 Isdelete = false
                             });
+                            await SaveVariantAtributos(insertedEdit.Id, Variante, replace: false);
                         }
                         else
                         {
-                           await _unitOfWorkAdmin.UpdateFieldsAsyncEntity<Variante_Products>(filters: new Dictionary<string, object>
+                            var (uName, uValue, uType) = VariantLabels(Variante);
+                            await _unitOfWorkAdmin.UpdateFieldsAsyncEntity<Variante_Products>(filters: new Dictionary<string, object>
                         {
                                 { "Id", Variante.Id }
                         },
 
-                     fieldsToUpdate: new Dictionary<string, object>
-                     {
+                      fieldsToUpdate: new Dictionary<string, object>
+                      {
                              {"Id_Product",product.Id },
-                             {"Name",Variante.Name},
-                             {"Value",Variante.Value },
-                             {"Type",Variante.Type},
+                             {"Name",uName},
+                             {"Value",uValue },
+                             {"Type",uType},
                              {"Stoke",Variante.Stoke},
                              {"Price_Modifier",Variante.Price_Modifier},
                              {"UpdateDate", DateTime.Now }
-                      });
+                       });
+                            await SaveVariantAtributos(Variante.Id ?? 0, Variante, replace: true);
                         }
-                      
+
 
                     }
+
+                    // Produto reeditado com variantes: deixa de precisar de revisão de combinação.
+                    await _unitOfWorkAdmin.UpdateFieldsAsyncEntity<Product>(
+                        filters: new Dictionary<string, object> { { "Id", product.Id } },
+                        fieldsToUpdate: new Dictionary<string, object> { { "Needs_Variant_Review", false } });
                 }
                 var alteracoes = new List<string>();
 
@@ -582,9 +636,9 @@ namespace Mercado.Craibas.Application.ServicesAdmin
                     alteracoes.Add($"Categoria: {categoriaAnterior} → {product.Id_Category}");
                 }
 
-                if (estoqueAnterior != product.Total_Stock)
+                if (estoqueAnterior != SomaEstoque(product.Variants, product.Total_Stock))
                 {
-                    alteracoes.Add($"Estoque: {estoqueAnterior} → {product.Total_Stock}");
+                    alteracoes.Add($"Estoque: {estoqueAnterior} → {SomaEstoque(product.Variants, product.Total_Stock)}");
                 }
                 if (badgeAnterior != product.Badge)
                 {
@@ -683,7 +737,7 @@ namespace Mercado.Craibas.Application.ServicesAdmin
         {
             try
             {
-                if(Id_Product == 0)
+                if (Id_Product == 0)
                 {
                     return Result<bool>.Failure(Error.Failure("Id Usuario", "Erro Nunhum id selecionado!"));
                 }

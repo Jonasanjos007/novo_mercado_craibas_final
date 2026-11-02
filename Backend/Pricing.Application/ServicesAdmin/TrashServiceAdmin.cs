@@ -481,6 +481,11 @@ namespace Mercado.Craibas.Application.ServicesAdmin
                 case EntityTypeDelete.EmailVerification: return await _unitOfWorkAdmin.UpdateFieldsAsyncEntity<EmailVerification>(filter, fields);
                 case EntityTypeDelete.NotificationUser: return await _unitOfWorkAdmin.UpdateFieldsAsyncEntity<NotificationUser>(filter, fields);
                 case EntityTypeDelete.Customize: return await _unitOfWorkAdmin.UpdateFieldsAsyncEntity<Customize_Cliente>(filter, fields);
+
+                case EntityTypeDelete.Brinde:
+                    fields["Ativo"] = deleted ? false : SnapshotBool(record, "Ativo") ?? true;
+                    return await _unitOfWorkAdmin.UpdateFieldsAsyncEntity<Brinde>(filter, fields);
+
                 default: return false;
             }
         }
@@ -712,6 +717,7 @@ namespace Mercado.Craibas.Application.ServicesAdmin
             EntityTypeDelete.EmailVerification => "EMAIL_VERIFICATION",
             EntityTypeDelete.NotificationUser => "NOTIFICATION",
             EntityTypeDelete.Customize => "CUSTOMIZE",
+            EntityTypeDelete.Brinde => "BRINDE",
             _ => "OTHER"
         };
 
@@ -755,6 +761,7 @@ namespace Mercado.Craibas.Application.ServicesAdmin
             EntityTypeDelete.EmailVerification => "Verificação de e-mail",
             EntityTypeDelete.NotificationUser => "Notificação",
             EntityTypeDelete.Customize => "Personalização",
+            EntityTypeDelete.Brinde => "Brinde",
             _ => "Item"
         };
     }

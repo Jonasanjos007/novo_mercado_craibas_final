@@ -112,6 +112,15 @@ export const returnStepLabels: Record<string, string> = {
 export const returnBlocksReview = (status?: string | null) => !!status && status !== 'CANCELADA';
 
 /** Pedido de cancelamento (pedido pago precisa da aprovação da loja). */
+/** Forma de pagamento do pedido (Orders.Payment_terms) para exibir na tela. */
+export const paymentTermsLabels: Record<string, string> = {
+  pix: 'PIX',
+  credit: 'Cartão de crédito',
+  debit: 'Cartão de débito',
+};
+export const paymentTermsLabel = (terms?: string | null) =>
+  terms ? paymentTermsLabels[terms.trim().toLowerCase()] ?? terms : '';
+
 export const cancelStatusLabels: Record<string, string> = {
   SOLICITADO: 'Cancelamento em andamento',
   RECUSADO: 'Cancelamento recusado',

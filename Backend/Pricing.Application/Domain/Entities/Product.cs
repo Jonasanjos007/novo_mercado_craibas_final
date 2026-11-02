@@ -27,6 +27,8 @@ namespace Baldan.Pricing.Application.Domain.Entities
         public bool? Featured { get; set; }
         public  string? Cod_Cupom { get; set; }
         public  bool? Ativo { get; set; }
+        /// <summary>Produto de 2+ eixos vindo do modelo antigo: precisa recadastrar as combinações no admin.</summary>
+        public bool? Needs_Variant_Review { get; set; }
         public ICollection<Imagens_Products> Imagens_Products { get; set; } = [];
         public ICollection<Variante_Products> Variante_Products { get; set; } = [];
         public ICollection<Cart_Item> Cart_Items { get; set; } = [];

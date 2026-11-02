@@ -108,9 +108,42 @@ export const ProductPage = () => {
   const [quantity, setQuantity] = useState(1);
   const [wishlist, setWishlist] = useState(false);
   const [added, setAdded] = useState(false);
+  // Clicou numa opção esgotada: mostra aviso embaixo das variantes.
+  const [avisoEsgotado, setAvisoEsgotado] = useState(false);
   const [reviewPage, setReviewPage] = useState(0);
   const [selectedMedia, setSelectedMedia] = useState<MediaViewerState>(null);
   const mediaTouchStartRef = useRef<number | null>(null);
+  const variationsRef = useRef<HTMLDivElement>(null);
+  // Combinação (SKU) escolhida e disponibilidade de cada opção.
+  const selectedSku = action?.resolveVariation(selectedVariations);
+  // Valor de um eixo dentro de um SKU (modelo novo: atributos; modelo antigo: name/value).
+  const valorDoEixo = (sku: { atributos?: { eixo: string; valor: string }[]; name?: string; value?: string }, eixo: string) =>
+    sku.atributos?.length ? sku.atributos.find(a => a.eixo === eixo)?.valor : (sku.name === eixo ? sku.value : undefined);
+  // Existe alguma combinação (com ou sem estoque) que bata com essas escolhas?
+  const existeCombinacao = (escolhas: Record<string, string>) =>
+    (product?.variations ?? []).some(sku => Object.entries(escolhas).every(([eixo, v]) => valorDoEixo(sku, eixo) === v));
+  // Situação de uma opção considerando as OUTRAS escolhas já feitas:
+  // 'oculta' = essa combinação não existe (não aparece); 'esgotada' = existe mas sem estoque; 'disponivel'.
+  const statusOpcao = (ax: string, value: string): 'oculta' | 'esgotada' | 'disponivel' => {
+    const outras = Object.entries(selectedVariations).filter(([eixo]) => eixo !== ax);
+    const candidatos = (product?.variations ?? []).filter(sku =>
+      valorDoEixo(sku, ax) === value && outras.every(([eixo, v]) => valorDoEixo(sku, eixo) === v));
+    if (candidatos.length === 0) return 'oculta';
+    return candidatos.some(sku => (sku.stoke ?? 0) > 0) ? 'disponivel' : 'esgotada';
+  };
+  // Preço com o modificador da combinação escolhida (0 = sem acréscimo).
+  const acrescimo = selectedSku?.price_Modifier ?? 0;
+  const precoFinal = (product?.price_Unic ?? 0) + acrescimo;
+  // Nome da combinação escolhida (ex.: "Titânio Preto / 256GB").
+  const comboNome = selectedSku?.atributos?.length
+    ? selectedSku.atributos.map(a => a.valor).join(' / ')
+    : (selectedSku?.value ?? '');
+  const todosEixosEscolhidos = (result?.variationAxes ?? []).every(ax => !!selectedVariations[ax.name]);
+  const comboIndisponivel = todosEixosEscolhidos && (!selectedSku || (selectedSku.stoke ?? 0) <= 0);
+  // Produto sem nenhum estoque (todas as variantes zeradas, ou estoque total 0).
+  const produtoEsgotado = (product?.variations?.length ?? 0) > 0
+    ? product!.variations.every(v => (v.stoke ?? 0) <= 0)
+    : (product?.total_Stock ?? 0) <= 0;
   useEffect(() => {
     window.scrollTo({ top: 0, left: 0, behavior: 'auto' });
     setSelectedVariations({});
@@ -276,51 +309,124 @@ export const ProductPage = () => {
                   <span className="bg-rose-500 text-white text-xs font-display font-bold px-2 py-0.5 rounded-full">-{result?.discount}%</span>
                 </div>
               )}
-              <p className="font-display font-bold text-surface-900 text-4xl">{formatPrice(product.price_Unic)}</p>
+              <p className="font-display font-bold text-surface-900 text-4xl">{formatPrice(precoFinal)}</p>
+              {acrescimo > 0 && (
+                <p className="text-brand-600 font-body text-sm mt-1">
+                  {formatPrice(product.price_Unic)} + <strong>{formatPrice(acrescimo)}</strong>{comboNome ? ` ${comboNome}` : ''}
+                </p>
+              )}
               {product.installments && (
                 <p className="text-surface-500 font-body text-sm mt-1">
-                  em até <strong>{product.installments}x</strong> de <strong>{formatPrice(product.price_Unic / product.installments)}</strong> sem juros
+                  em até <strong>{product.installments}x</strong> de <strong>{formatPrice(precoFinal / product.installments)}</strong> sem juros
                 </p>
               )}
               <div className="flex items-center gap-2 mt-3 p-3 bg-green-50 rounded-xl border border-green-100">
                 <Zap className="w-4 h-4 text-green-600 shrink-0" />
                 <div>
-                  <span className="font-display font-bold text-green-700 text-base">{formatPrice(product.price_Unic * 0.95)}</span>
+                  <span className="font-display font-bold text-green-700 text-base">{formatPrice(precoFinal * 0.95)}</span>
                   <span className="text-green-600 font-body text-sm"> no PIX · 5% de desconto</span>
                 </div>
               </div>
             </div>
 
             {/* Variations */}
-            {result?.variationTypes.map(type => {
-              const options = product.variations.filter(v => v.name === type);
-              return (
-                <div key={type}>
-                  <p className="font-display font-semibold text-surface-800 text-sm mb-2">
-                    {type}: {selectedVariations[type] && <span className="text-brand-600 font-body font-normal">{selectedVariations[type]}</span>}
-                  </p>
-                  <div className="flex flex-wrap gap-2">
-                    {options.map(opt => (
-                      <button
-                        key={opt.id}
-                        onClick={() => setSelectedVariations(prev => ({ ...prev, [type]: opt.value }))}
-                        className={`px-3 py-1.5 rounded-xl text-sm font-body border-2 transition-all ${selectedVariations[type] === opt.value ? 'border-brand-500 bg-brand-50 text-brand-700 font-semibold' : 'border-surface-200 text-surface-600 hover:border-brand-300'} ${opt.stoke === 0 ? 'opacity-40 cursor-not-allowed line-through' : ''}`}
-                        disabled={opt.stoke === 0}
+            {result?.needsVariantReview ? (
+              <div ref={variationsRef} className="rounded-2xl border border-amber-200 bg-amber-50 p-4">
+                <p className="font-display font-bold text-amber-700 text-sm">Variações em atualização</p>
+                <p className="mt-1 text-xs font-body text-amber-600">Estamos reorganizando as opções deste produto. Em breve você poderá escolher a combinação e finalizar a compra.</p>
+              </div>
+            ) : produtoEsgotado ? (
+              <div ref={variationsRef} className="rounded-2xl border border-rose-200 bg-rose-50 p-4">
+                <p className="font-display font-bold text-rose-700 text-sm">Produto indisponível</p>
+                <p className="mt-1 text-xs font-body text-rose-600">Este produto está sem estoque no momento.</p>
+              </div>
+            ) : (
+              <div ref={variationsRef} className="space-y-5">
+                {result?.variationAxes.map(axis => {
+                  // Clicou em adicionar sem escolher este eixo: destaca e "dá uns pulos".
+                  const faltaEscolher = !!result.variationError && !selectedVariations[axis.name];
+                  return (
+                    <div key={axis.name}>
+                      <p className={`font-display font-semibold text-sm mb-2 transition-colors ${faltaEscolher ? 'text-rose-600' : 'text-surface-800'}`}>
+                        {axis.name}: {selectedVariations[axis.name] && <span className="text-brand-600 font-body font-normal">{selectedVariations[axis.name]}</span>}
+                      </p>
+                      <div
+                        // A key muda a cada tentativa falha e faz a animação tocar de novo.
+                        key={faltaEscolher ? `shake-${result.variationError}` : 'ok'}
+                        className={`flex flex-wrap gap-2 rounded-xl ${faltaEscolher ? 'animate-shake' : ''}`}
                       >
-                        {opt.value}
-                        {opt.price_Modifier && opt.price_Modifier > 0 ? ` (+${formatPrice(opt.price_Modifier)})` : ''}
-                      </button>
-                    ))}
-                  </div>
-                  {result.variationError && !selectedVariations[type] && (
-                    <p className="mt-1 text-xs font-body text-rose-500 flex items-center gap-1">
-                      <span className="w-1.5 h-1.5 bg-rose-500 rounded-full animate-ping"></span>
-                      Escolha uma opção
+                        {axis.options.map(value => {
+                          const status = statusOpcao(axis.name, value);
+                          // Combinação que não existe com as outras escolhas: nem aparece.
+                          if (status === 'oculta') return null;
+                          const selecionado = selectedVariations[axis.name] === value;
+                          const indisponivel = status === 'esgotada';
+                          return (
+                            <button
+                              key={value}
+                              onClick={() => {
+                                if (indisponivel && !selecionado) { setAvisoEsgotado(true); return; } // esgotada: só avisa
+                                setAvisoEsgotado(false);
+                                setSelectedVariations(prev => {
+                                  const next = { ...prev };
+                                  if (next[axis.name] === value) {
+                                    delete next[axis.name]; // clica de novo = desmarca
+                                  } else {
+                                    next[axis.name] = value; // troca livremente
+                                    // Mantém as outras escolhas só se ainda formarem uma combinação existente.
+                                    Object.keys(next).forEach(eixo => {
+                                      if (eixo === axis.name) return;
+                                      if (!existeCombinacao({ [axis.name]: value, [eixo]: next[eixo] })) delete next[eixo];
+                                    });
+                                  }
+                                  return next;
+                                });
+                              }}
+                              className={`px-3 py-1.5 rounded-xl text-sm font-body border-2 transition-all ${selecionado ? 'border-brand-500 bg-brand-50 text-brand-700 font-semibold' : faltaEscolher ? 'border-rose-400 text-rose-600 bg-rose-50' : 'border-surface-200 text-surface-600 hover:border-brand-300'} ${indisponivel && !selecionado ? 'opacity-40 cursor-not-allowed line-through' : ''}`}
+                            >
+                              {value}
+                            </button>
+                          );
+                        })}
+                      </div>
+                      {faltaEscolher && (
+                        <p className="mt-1.5 text-xs font-body font-semibold text-rose-500 flex items-center gap-1">
+                          <span className="w-1.5 h-1.5 bg-rose-500 rounded-full animate-ping"></span>
+                          Escolha uma opção de {axis.name.toLowerCase()}
+                        </p>
+                      )}
+                    </div>
+                  );
+                })}
+                {acrescimo > 0 && (
+                  <p className="text-xs font-body font-semibold text-brand-600">{formatPrice(product.price_Unic)} + {formatPrice(acrescimo)}{comboNome ? ` ${comboNome}` : ''}</p>
+                )}
+                {selectedSku && (selectedSku.stoke ?? 0) > 0 && (
+                  (selectedSku.stoke ?? 0) <= 5 ? (
+                    <p className="text-xs font-body font-bold text-amber-600">
+                      {(selectedSku.stoke ?? 0) === 1 ? 'Última unidade!' : 'Últimas unidades'} ({selectedSku.stoke} em estoque)
                     </p>
-                  )}
-                </div>
-              );
-            })}
+                  ) : (
+                    <p className="text-xs font-body text-surface-400">{selectedSku.stoke} em estoque para esta combinação</p>
+                  )
+                )}
+                {avisoEsgotado && (
+                  <p className="text-xs font-body font-semibold text-rose-500">Essa opção está esgotada. Escolha outra.</p>
+                )}
+                {comboIndisponivel && (
+                  <p className="text-xs font-body font-semibold text-rose-500">Essa combinação está indisponível. Escolha outra opção.</p>
+                )}
+                {Object.keys(selectedVariations).length > 0 && (
+                  <button
+                    type="button"
+                    onClick={() => setSelectedVariations({})}
+                    className="text-xs font-body text-surface-400 underline underline-offset-2 hover:text-surface-600"
+                  >
+                    Limpar seleção
+                  </button>
+                )}
+              </div>
+            )}
 
             {/* Quantity */}
             <div>
@@ -329,7 +435,7 @@ export const ProductPage = () => {
                 <div className="flex items-center border-2 border-surface-200 rounded-xl overflow-hidden">
                   <button onClick={() => setQuantity(q => Math.max(1, q - 1))} className="px-3 py-2.5 hover:bg-surface-100 text-surface-600 transition-colors font-display text-lg font-medium">−</button>
                   <span className="px-4 py-2.5 font-display font-bold text-surface-900 min-w-[50px] text-center">{quantity}</span>
-                  <button onClick={() => setQuantity(q => Math.min(product.total_Stock, q + 1))} className="px-3 py-2.5 hover:bg-surface-100 text-surface-600 transition-colors font-display text-lg font-medium">+</button>
+                  <button onClick={() => setQuantity(q => Math.max(1, Math.min(selectedSku ? (selectedSku.stoke ?? 0) : product.total_Stock, q + 1)))} className="px-3 py-2.5 hover:bg-surface-100 text-surface-600 transition-colors font-display text-lg font-medium">+</button>
                 </div>
                 <span className="text-surface-400 font-body text-sm">{product.total_Stock} disponíveis</span>
               </div>
@@ -338,13 +444,17 @@ export const ProductPage = () => {
             {/* Actions */}
             <div className="flex gap-3">
               <button
-                onClick={() => {
-                  if (action?.handleAddToCart(quantity, selectedVariations)) {
+                onClick={async () => {
+                  const ok = await action?.handleAddToCart(quantity, selectedVariations);
+                  if (ok) {
                     setAdded(true);
                     setTimeout(() => setAdded(false), 2000);
+                  } else {
+                    variationsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
                   }
                 }}
-                className={`flex-1 py-4 rounded-2xl font-display font-bold text-base flex items-center justify-center gap-2 transition-all ${added ? 'bg-green-500 text-white shadow-green-200' : 'bg-brand-500 hover:bg-brand-600 text-white shadow-brand hover:shadow-brand-lg'}`}
+                disabled={result?.needsVariantReview || comboIndisponivel || produtoEsgotado}
+                className={`flex-1 py-4 rounded-2xl font-display font-bold text-base flex items-center justify-center gap-2 transition-all ${result?.needsVariantReview || comboIndisponivel || produtoEsgotado ? 'bg-surface-200 text-surface-400 cursor-not-allowed' : added ? 'bg-green-500 text-white shadow-green-200' : 'bg-brand-500 hover:bg-brand-600 text-white shadow-brand hover:shadow-brand-lg'}`}
               >
                 {added ? <><Check className="w-5 h-5" /> Adicionado!</> : <><ShoppingCart className="w-5 h-5" /> Adicionar ao Carrinho</>}
               </button>
@@ -352,11 +462,14 @@ export const ProductPage = () => {
 
             {/* Buy now */}
             <button
-              onClick={() => {
-                if (action?.handleFinishbuy(quantity, selectedVariations)) {
+              onClick={async () => {
+                const ok = await action?.handleFinishbuy(quantity, selectedVariations);
+                if (!ok) {
+                  variationsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
                 }
               }}
-              className="w-full py-3.5 rounded-2xl border-2 border-surface-200 text-surface-700 font-display font-bold hover:border-brand-300 hover:text-brand-600 hover:bg-brand-50 transition-all flex items-center justify-center gap-2"
+              disabled={result?.needsVariantReview || comboIndisponivel || produtoEsgotado}
+              className={`w-full py-3.5 rounded-2xl border-2 font-display font-bold transition-all flex items-center justify-center gap-2 ${result?.needsVariantReview || comboIndisponivel || produtoEsgotado ? 'border-surface-200 text-surface-300 cursor-not-allowed' : 'border-surface-200 text-surface-700 hover:border-brand-300 hover:text-brand-600 hover:bg-brand-50'}`}
             >
               <Zap className="w-4 h-4" /> Comprar Agora
             </button>

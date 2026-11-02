@@ -1,8 +1,10 @@
-import { useEffect } from 'react';
-import { X, MapPin, CreditCard, Package, Calendar, Truck, ShoppingBag, Star } from 'lucide-react';
-import { formatPrice, orderStatusLabels, orderStatusColors, badgeLabels } from '../utils';
+import { useEffect, useState } from 'react';
+import { X, MapPin, CreditCard, Package, Calendar, Truck, ShoppingBag, Star, Gift } from 'lucide-react';
+import { formatPrice, paymentTermsLabel, orderStatusLabels, orderStatusColors, badgeLabels } from '../utils';
 import { useStore } from '../context/store';
 import { Order } from '../models/Order';
+import { useBrindeController } from '../controller/useBrindeController';
+import { BrindePedido } from '../models/Brinde';
 
 interface OrderQuickViewProps {
     order: Order | null;
@@ -23,7 +25,21 @@ export const OrderQuickView = ({ order, onClose }: OrderQuickViewProps) => {
         return () => window.removeEventListener('keydown', onKey);
     }, [onClose]);
 
+    const Brinde = useBrindeController();
+    const [brindePedido, setBrindePedido] = useState<BrindePedido | null>(null);
+    const [brindeTick, setBrindeTick] = useState(0);
+    const [atribuirId, setAtribuirId] = useState<number | ''>('');
+
+    useEffect(() => {
+        if (!order?.id_Order) return;
+        Brinde.action.getByOrder(order.id_Order).then(setBrindePedido);
+        Brinde.action.loadBrindes();
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [order?.id_Order, brindeTick]);
+
     if (!order) return null;
+
+    const brindesPendentes = (brindePedido?.brindes ?? []).filter(b => b.status === 'PENDENTE');
 
     // ── tema ──
     const dk = darkMode;
@@ -43,7 +59,7 @@ export const OrderQuickView = ({ order, onClose }: OrderQuickViewProps) => {
         {
             icon: <CreditCard className="w-4 h-4 text-brand-400" />,
             label: 'Pagamento',
-            value: order.payment_terms,
+            value: paymentTermsLabel(order.payment_terms),
         },
         {
             icon: <Package className="w-4 h-4 text-brand-400" />,
@@ -234,6 +250,85 @@ export const OrderQuickView = ({ order, onClose }: OrderQuickViewProps) => {
                                     </div>
                                 </div>
                             ))}
+                        </div>
+
+                        <div className="flex items-center gap-2 pt-2">
+                            <Gift className="w-4 h-4 text-brand-400" />
+                            <h3 className={`font-display font-bold text-sm uppercase tracking-wide ${sub}`}>Brindes</h3>
+                            {brindePedido?.primeira_Compra && (
+                                <span className="inline-flex text-[10px] font-black px-2.5 py-1 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">Primeira compra</span>
+                            )}
+                        </div>
+
+                        {brindesPendentes.length > 0 && (
+                            <div className="relative rounded-2xl border-2 border-amber-400/60 bg-gradient-to-r from-amber-500/15 to-brand-500/10 p-4">
+                                <div className="flex items-center gap-3">
+                                    <div className="w-11 h-11 rounded-xl bg-amber-400/20 flex items-center justify-center shrink-0">
+                                        <Gift className="w-6 h-6 text-amber-500 animate-bounce" />
+                                    </div>
+                                    <div className="min-w-0">
+                                        <p className="font-display font-black text-sm text-amber-500 flex items-center gap-2">
+                                            <span className="relative flex h-2 w-2">
+                                                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
+                                                <span className="relative inline-flex rounded-full h-2 w-2 bg-amber-500"></span>
+                                            </span>
+                                            Entregar brinde!
+                                        </p>
+                                        <p className={`text-xs truncate ${txt}`}>{brindesPendentes.map(b => b.nome_Brinde).join(', ')}</p>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+
+                        <div className={`rounded-2xl border p-4 space-y-3 ${bord} ${surf}`}>
+                            {(brindePedido?.brindes?.length ?? 0) === 0 ? (
+                                <p className={`text-xs ${sub}`}>Nenhum brinde para este cliente.</p>
+                            ) : (
+                                <div className="space-y-2">
+                                    {brindePedido!.brindes.map(b => (
+                                        <div key={b.id} className={`rounded-xl border p-3 flex items-center justify-between gap-2 ${bord}`}>
+                                            <div className="min-w-0">
+                                                <p className={`text-sm font-semibold truncate ${txt}`}>{b.nome_Brinde}</p>
+                                                <p className={`text-[11px] ${sub}`}>{b.origem === 'AUTOMATICO' ? 'Automático' : 'Manual'}{b.colecao ? ` · ${b.colecao}` : ''}</p>
+                                            </div>
+                                            {b.status === 'ENTREGUE' ? (
+                                                <span className="text-[10px] font-black px-2 py-1 rounded-full bg-emerald-500/10 text-emerald-400 whitespace-nowrap">Entregue</span>
+                                            ) : (
+                                                <button
+                                                    onClick={async () => { if (await Brinde.action.entregar(b.id)) setBrindeTick(t => t + 1); }}
+                                                    className="text-[11px] font-bold px-3 py-1.5 rounded-xl bg-brand-500 hover:bg-brand-600 text-white whitespace-nowrap"
+                                                >
+                                                    Entregar
+                                                </button>
+                                            )}
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+                            <div className="flex items-center gap-2 pt-1">
+                                <select
+                                    value={atribuirId}
+                                    onChange={e => setAtribuirId(e.target.value ? Number(e.target.value) : '')}
+                                    className={`flex-1 px-3 py-2 rounded-xl text-xs border outline-none ${dk ? 'bg-white/[0.04] border-white/10 text-white' : 'bg-white border-surface-200 text-surface-700'}`}
+                                >
+                                    <option value="">Atribuir brinde…</option>
+                                    {Brinde.result.brindes.filter(x => x.ativo && x.estoque > 0).map(x => (
+                                        <option key={x.id} value={x.id}>{x.nome}</option>
+                                    ))}
+                                </select>
+                                <button
+                                    disabled={!atribuirId || !brindePedido}
+                                    onClick={async () => {
+                                        if (atribuirId && brindePedido && await Brinde.action.atribuir({ id_Brinde: Number(atribuirId), id_User_Customer: brindePedido.id_User_Customer, id_Order: order.id_Order })) {
+                                            setAtribuirId('');
+                                            setBrindeTick(t => t + 1);
+                                        }
+                                    }}
+                                    className="text-[11px] font-bold px-3 py-2 rounded-xl bg-brand-500 hover:bg-brand-600 disabled:opacity-50 text-white"
+                                >
+                                    Dar
+                                </button>
+                            </div>
                         </div>
                     </div>
                 </div>

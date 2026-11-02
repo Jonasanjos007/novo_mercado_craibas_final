@@ -46,4 +46,12 @@ public sealed class MercadoPagoOptions
 
     public bool IsConfigured =>
         !string.IsNullOrWhiteSpace(AccessToken) && !string.IsNullOrWhiteSpace(PublicKey);
+
+    /// <summary>
+    /// Só considera o segredo do webhook configurado se for grande o bastante para ser real
+    /// (a assinatura secreta do Mercado Pago tem dezenas de caracteres). Assim um valor de
+    /// exemplo como "..." não faz o sistema rejeitar todos os webhooks verdadeiros.
+    /// </summary>
+    public bool HasWebhookSecret =>
+        !string.IsNullOrWhiteSpace(WebhookSecret) && WebhookSecret.Trim().Length >= 16;
 }

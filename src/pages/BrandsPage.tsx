@@ -14,11 +14,7 @@ import { UseUserAdminStore } from '../storeAdmin/UseUserAdminStore';
 import { getColorConfig } from '../types/Colors';
 import { Product } from '../models/Product';
 import { formatDiscount, formatPrice, RETURN_WINDOW_DAYS } from '../utils';
-
-/* ============================================================================
- * Achadinhos: vitrine montada só com dados reais da loja
- * (vendas, data de cadastro, desconto, avaliação, frete). Nada de número inventado.
- * ========================================================================== */
+import { UseCartStore } from '../store/UseCartStore';
 
 const SECTION_PAGE_SIZE = 10;
 const SECTION_EXPANDED_SIZE = 20;
@@ -186,7 +182,7 @@ export default function AchadinhosPage() {
   const { NameColorGlobal, ColorGlobalTema, ColorGlobalHover } = UseUserStore();
   const colorConfig = getColorConfig(NameColorGlobal);
   const accent = colorConfig.hex;
-
+  const { cart } = UseCartStore();
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<number | null>(null);
   const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({});
@@ -196,6 +192,8 @@ export default function AchadinhosPage() {
   const shippingCost = Number(BaseSiteInterface?.shippingCost) || 0;
 
   const allProducts = useMemo(() => (products ?? []).filter((p) => p.ativo !== false), [products]);
+  const [currentBannerIndex, setCurrentBannerIndex] = useState(0);
+
 
   // Categorias reais que têm produto.
   const categories = useMemo(
@@ -261,11 +259,6 @@ export default function AchadinhosPage() {
   // Banners só com promessas que a loja cumpre.
   const banners = useMemo<PromoBanner[]>(() => {
     const list: PromoBanner[] = [];
-    if (maxDiscount > 0) list.push({
-      id: 'ofertas', icon: Zap, eyebrow: 'Oferta relâmpago', title: `Até ${maxDiscount}% OFF`,
-      subtitle: 'Produtos selecionados com preço reduzido. O desconto já está no preço e vale enquanto durar o estoque.',
-      ctaLabel: 'Ver ofertas', gradient: 'from-red-600 via-orange-500 to-amber-400', onClick: () => navigate('/flash-sale'),
-    });
     list.push({
       id: 'entrega', icon: Truck, eyebrow: 'Feito em Craíbas',
       title: deliveryDays > 0 ? `Receba em até ${deliveryDays} ${deliveryDays === 1 ? 'dia útil' : 'dias úteis'}` : 'Entregue na sua porta',
@@ -281,7 +274,15 @@ export default function AchadinhosPage() {
     });
     return list;
   }, [maxDiscount, deliveryDays, shippingCost, navigate]);
+  useEffect(() => {
+    if (banners.length <= 1) return;
 
+    const interval = setInterval(() => {
+      setCurrentBannerIndex((prev) => (prev + 1) % banners.length);
+    }, 8000);
+
+    return () => clearInterval(interval);
+  }, [banners.length]);
   const marquee = useMemo(() => [
     ...(maxDiscount > 0 ? [{ icon: Zap, label: `Até ${maxDiscount}% OFF em produtos selecionados` }] : []),
     { icon: TrendingUp, label: 'Os mais vendidos da loja' },
@@ -462,12 +463,13 @@ export default function AchadinhosPage() {
           </div>
         ) : (
           <>
-            {/* ── SEÇÕES + BANNERS ── */}
-            {sections.map((section, index) => {
+            {/* SEÇÕES */}
+            {sections.map((section) => {
               const expanded = !!expandedSections[section.id];
-              const items = section.items.slice(0, expanded ? SECTION_EXPANDED_SIZE : SECTION_PAGE_SIZE);
-              // Um banner depois de cada duas seções, sem repetir.
-              const banner = index % 2 === 1 ? banners[Math.floor(index / 2)] : undefined;
+              const items = section.items.slice(
+                0,
+                expanded ? SECTION_EXPANDED_SIZE : SECTION_PAGE_SIZE
+              );
 
               return (
                 <div key={section.id}>
@@ -481,32 +483,44 @@ export default function AchadinhosPage() {
                         onViewAll={() => handleViewAll(section.id)}
                       />
                     </ScrollReveal>
+
                     <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 md:gap-4">
                       {items.map((product, i) => (
                         <ScrollReveal key={product.id ?? i} delayMs={(i % 5) * 50}>
-                          <div className="relative">
-                            {section.ranked && i < 3 && (
-                              <span
-                                className="pointer-events-none absolute top-2 right-2 z-10 flex h-8 w-8 items-center justify-center rounded-full font-display text-sm font-bold text-white shadow-strong"
-                                style={{ background: accent }}
-                              >
-                                {i + 1}º
-                              </span>
-                            )}
-                            <ProductCard product={product} compact />
-                          </div>
+                          <ProductCard product={product} compact />
                         </ScrollReveal>
                       ))}
                     </div>
                   </section>
-                  {banner && (
-                    <section className="py-4">
-                      <MegaPromoBanner banner={banner} />
-                    </section>
-                  )}
                 </div>
               );
             })}
+
+            {/* CARROSSEL ÚNICO */}
+            {banners.length > 0 && (
+              <section className="py-4">
+                <div className="relative w-full overflow-hidden">
+                  <MegaPromoBanner
+                    banner={banners[currentBannerIndex]}
+                  />
+                </div>
+
+                <div className="flex justify-center items-center gap-2 mt-3">
+                  {banners.map((item, index) => (
+                    <button
+                      key={item.id}
+                      type="button"
+                      onClick={() => setCurrentBannerIndex(index)}
+                      aria-label={`Ir para banner ${index + 1}`}
+                      className={`h-2 rounded-full transition-all duration-300 ${currentBannerIndex === index
+                          ? 'w-6 bg-brand-500'
+                          : 'w-2 bg-surface-300 hover:bg-brand-400'
+                        }`}
+                    />
+                  ))}
+                </div>
+              </section>
+            )}
 
             {/* ── VOCÊ PODE GOSTAR ── */}
             <section id="section-sugestoes" className="scroll-mt-24 mb-16 pt-6">

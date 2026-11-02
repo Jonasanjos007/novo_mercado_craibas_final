@@ -70,7 +70,15 @@ namespace Mercado.Craibas.Application.Services
 
             foreach (var Product in Products)
             {
-                var variants = await _unitOfWork.GetClassListAsyncWhere<Variante_Products>(x => x.Id_Product == Product.Id && x.Isdelete != true);
+                var variants = await _unitOfWork.Query<Variante_Products>()
+                    .Include(x => x.Atributos)
+                    .Where(x => x.Id_Product == Product.Id && x.Isdelete != true)
+                    .AsNoTracking()
+                    .ToListAsync();
+                // Corta a referência de volta (atributo -> variação) para não dar ciclo ao virar JSON.
+                foreach (var v in variants)
+                    foreach (var at in v.Atributos)
+                        at.Variante = null;
 
                 if(variants == null || !variants.Any())
                 {
@@ -304,7 +312,10 @@ namespace Mercado.Craibas.Application.Services
                 var ImageProductSelected = await _unitOfWork.GetClassListAsyncWhere<Imagens_Products>(x => x.Id_Product == ProductSelected.Id && x.Isdelete != true);
 
 
-                var Variants = await _unitOfWork.GetClassAsyncWhere<Variante_Products>(x => x.Id_Product == ProductSelected.Id && x.Isdelete != true && x.Id == ProductOne.Id_Variante);
+                var Variants = await _unitOfWork.Query<Variante_Products>()
+                    .Include(x => x.Atributos)
+                    .AsNoTracking()
+                    .FirstOrDefaultAsync(x => x.Id_Product == ProductSelected.Id && x.Isdelete != true && x.Id == ProductOne.Id_Variante);
 
                 if (Variants == null)
                 {
@@ -320,8 +331,15 @@ namespace Mercado.Craibas.Application.Services
                         Type = Variants.Type,
                         Stock = Variants.Stoke,
                         Price_Modifier = Variants.Price_Modifier,
-                        Id_Product = Variants.Id_Product
+                        Id_Product = Variants.Id_Product,
+                        // Eixos da combinação (Cor, Memória...) para o carrinho mostrar todos.
+                        Atributos = (Variants.Atributos ?? new List<Variante_Atributos>())
+                            .Select(a => new VariationAttributeResponse { Eixo = a.Eixo, Valor = a.Valor }).ToList()
                     };
+
+                var ProdutoResp = MapToResponse(ProductSelected, ImageProductSelected);
+                // Modificador de preço da variação entra no preço da linha (0 não muda nada).
+                ProdutoResp.Price_Unic = (ProdutoResp.Price_Unic ?? 0) + (CartVariant.Price_Modifier ?? 0);
 
                 CartProductList.Add(new CartItemResponse
                 {
@@ -329,7 +347,7 @@ namespace Mercado.Craibas.Application.Services
                     Id_Cart = Cart.Id,
                     Quantity = ProductOne.Quantity,
                     SelectedVariation = CartVariant,
-                    Product = MapToResponse(ProductSelected, ImageProductSelected)
+                    Product = ProdutoResp
 
 
                 });

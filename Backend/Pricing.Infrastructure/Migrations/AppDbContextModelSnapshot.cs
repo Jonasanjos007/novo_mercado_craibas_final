@@ -94,6 +94,121 @@ namespace Mercado.Craibas.Infrastructure.Migrations
                     b.ToTable("Address", (string)null);
                 });
 
+            modelBuilder.Entity("Baldan.Pricing.Application.Domain.Entities.Brinde", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<bool>("Ativo")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("Colecao")
+                        .HasMaxLength(150)
+                        .HasColumnType("nvarchar(150)");
+
+                    b.Property<DateTime?>("Data_Fim")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime?>("Data_Inicio")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Descricao")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<int>("Estoque")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Imagem")
+                        .HasMaxLength(300)
+                        .HasColumnType("nvarchar(300)");
+
+                    b.Property<DateTime>("InsertDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<bool?>("Isdelete")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("Nome")
+                        .IsRequired()
+                        .HasMaxLength(150)
+                        .HasColumnType("nvarchar(150)");
+
+                    b.Property<int?>("Quantidade_Compras")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime?>("UpdateDate")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Colecao");
+
+                    b.HasIndex("Quantidade_Compras");
+
+                    b.ToTable("Brinde", (string)null);
+                });
+
+            modelBuilder.Entity("Baldan.Pricing.Application.Domain.Entities.Brinde_Cliente", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime?>("Entregue_Em")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("Id_Brinde")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("Id_Order")
+                        .HasColumnType("int");
+
+                    b.Property<int>("Id_User_Customer")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("InsertDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<bool?>("Isdelete")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("Origem")
+                        .IsRequired()
+                        .HasMaxLength(30)
+                        .HasColumnType("nvarchar(30)");
+
+                    b.Property<string>("Quem_Entregou")
+                        .HasMaxLength(150)
+                        .HasColumnType("nvarchar(150)");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(30)
+                        .HasColumnType("nvarchar(30)");
+
+                    b.Property<DateTime?>("UpdateDate")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Id_Brinde");
+
+                    b.HasIndex("Id_Order");
+
+                    b.HasIndex("Status");
+
+                    b.HasIndex("Id_User_Customer", "Id_Brinde")
+                        .IsUnique();
+
+                    b.ToTable("Brinde_Cliente", (string)null);
+                });
+
             modelBuilder.Entity("Baldan.Pricing.Application.Domain.Entities.Cart", b =>
                 {
                     b.Property<int>("Id")
@@ -687,6 +802,9 @@ namespace Mercado.Craibas.Infrastructure.Migrations
                         .HasMaxLength(250)
                         .HasColumnType("nvarchar(250)");
 
+                    b.Property<bool?>("Needs_Variant_Review")
+                        .HasColumnType("bit");
+
                     b.Property<double>("Origin_Price")
                         .HasColumnType("float");
 
@@ -1023,6 +1141,43 @@ namespace Mercado.Craibas.Infrastructure.Migrations
                     b.HasKey("Id");
 
                     b.ToTable("User_Delivery", (string)null);
+                });
+
+            modelBuilder.Entity("Baldan.Pricing.Application.Domain.Entities.Variante_Atributos", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Eixo")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<int>("Id_Variante")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("InsertDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<bool?>("Isdelete")
+                        .HasColumnType("bit");
+
+                    b.Property<DateTime?>("UpdateDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Valor")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Id_Variante");
+
+                    b.ToTable("Variante_Atributos", (string)null);
                 });
 
             modelBuilder.Entity("Baldan.Pricing.Application.Domain.Entities.Variante_Products", b =>
@@ -1938,6 +2093,32 @@ namespace Mercado.Craibas.Infrastructure.Migrations
                     b.Navigation("User_Delivery");
                 });
 
+            modelBuilder.Entity("Baldan.Pricing.Application.Domain.Entities.Brinde_Cliente", b =>
+                {
+                    b.HasOne("Baldan.Pricing.Application.Domain.Entities.Brinde", "Brinde")
+                        .WithMany("Brinde_Clientes")
+                        .HasForeignKey("Id_Brinde")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Baldan.Pricing.Application.Domain.Entities.Orders", "Order")
+                        .WithMany()
+                        .HasForeignKey("Id_Order")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("Baldan.Pricing.Application.Domain.Entities.User_Customer", "User_Customer")
+                        .WithMany()
+                        .HasForeignKey("Id_User_Customer")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Brinde");
+
+                    b.Navigation("Order");
+
+                    b.Navigation("User_Customer");
+                });
+
             modelBuilder.Entity("Baldan.Pricing.Application.Domain.Entities.Cart", b =>
                 {
                     b.HasOne("Baldan.Pricing.Application.Domain.Entities.Cupom", "Cupom")
@@ -2132,6 +2313,17 @@ namespace Mercado.Craibas.Infrastructure.Migrations
                     b.Navigation("User_Customer");
                 });
 
+            modelBuilder.Entity("Baldan.Pricing.Application.Domain.Entities.Variante_Atributos", b =>
+                {
+                    b.HasOne("Baldan.Pricing.Application.Domain.Entities.Variante_Products", "Variante")
+                        .WithMany("Atributos")
+                        .HasForeignKey("Id_Variante")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Variante");
+                });
+
             modelBuilder.Entity("Baldan.Pricing.Application.Domain.Entities.Variante_Products", b =>
                 {
                     b.HasOne("Baldan.Pricing.Application.Domain.Entities.Product", "Product")
@@ -2286,6 +2478,11 @@ namespace Mercado.Craibas.Infrastructure.Migrations
                     b.Navigation("Orders");
                 });
 
+            modelBuilder.Entity("Baldan.Pricing.Application.Domain.Entities.Brinde", b =>
+                {
+                    b.Navigation("Brinde_Clientes");
+                });
+
             modelBuilder.Entity("Baldan.Pricing.Application.Domain.Entities.Cart", b =>
                 {
                     b.Navigation("Cart_Items");
@@ -2366,6 +2563,8 @@ namespace Mercado.Craibas.Infrastructure.Migrations
 
             modelBuilder.Entity("Baldan.Pricing.Application.Domain.Entities.Variante_Products", b =>
                 {
+                    b.Navigation("Atributos");
+
                     b.Navigation("Cart_Items");
                 });
 

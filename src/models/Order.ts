@@ -20,7 +20,7 @@ export enum Status_Pay {
     CONFIRMADO = "CONFIRMADO",
     PENDENTE = "PENDENTE"
 }
-export type AdminTab = 'dashboard' | 'notifications' | 'products' | 'categories' | 'orders' | 'promotions' | 'movements' | 'profile' | 'settings' | 'cartegories' | 'users' | 'bin' | 'mydeliveries' | 'deliverers';
+export type AdminTab = 'dashboard' | 'notifications' | 'products' | 'categories' | 'orders' | 'promotions' | 'brindes' | 'movements' | 'profile' | 'settings' | 'cartegories' | 'users' | 'bin' | 'mydeliveries' | 'deliverers';
 
 export interface Order {
     id_Order: number;

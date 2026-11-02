@@ -34,7 +34,7 @@ import {
   Upload
 } from 'lucide-react';
 import { useStore } from '../context/store';
-import { formatPrice, orderStatusLabels, orderStatusLabelsAtualize, orderStatusColors, categoryLabels, badgeLabels, badgeLabel, cupomStatusLabels, configs, returnStatusLabels, returnStatusColors, cancelStatusLabels, cancelStatusColors } from '../utils';
+import { formatPrice, paymentTermsLabel, orderStatusLabels, orderStatusLabelsAtualize, orderStatusColors, categoryLabels, badgeLabels, badgeLabel, cupomStatusLabels, configs, returnStatusLabels, returnStatusColors, cancelStatusLabels, cancelStatusColors } from '../utils';
 import { useAdminController } from '../controller/useAdminController';
 import { UseOrderStore } from '../store/UseOrderStore';
 import { UseOrderAdminStore } from '../storeAdmin/UseOrderAdminStore';
@@ -68,6 +68,8 @@ import AdminMyDeliveriesPage from '../components/AdminMyDeliveriesPage';
 import AdminDeliverersPage from '../components/AdminDeliverersPage';
 import { Bike } from 'lucide-react';
 import { useSiteSettingsController } from '../controller/useSiteSettingsController';
+import { useBrindeController } from '../controller/useBrindeController';
+import { Gift } from 'lucide-react';
 import AdminReturnsPanel from '../components/AdminReturnsPanel';
 import AdminCancellationsPanel from '../components/AdminCancellationsPanel';
 import { UseCancellationsAdminStore } from '../storeAdmin/UseCancellationsAdminStore';
@@ -94,6 +96,7 @@ export default function AdminPage() {
   const ControllerSettings = useSiteSettingsController();
 
   const Controller = useAdminController();
+  const Brinde = useBrindeController();
   const {
     ordersAdmin, logs, Category, LoadLogsAdmin,
     ordersQuery, ordersTotal, ordersLoading, ordersSummary, SetOrdersQuery,
@@ -135,6 +138,10 @@ export default function AdminPage() {
   const [expandedLogId, setExpandedLogId] = useState<number | null>(null);
   const [ProductCategoryFilter, setProductCategoryFilter] = useState('all');
   const [quickViewOrder, setQuickViewOrder] = useState<Order | null>(null);
+  const [brindePage, setBrindePage] = useState(1);
+  const [brindePageSize, setBrindePageSize] = useState(10);
+  const [entregaPage, setEntregaPage] = useState(1);
+  const [entregaPageSize, setEntregaPageSize] = useState(10);
   const [applicationScope, setApplicationScope] = useState<'store' | 'categories' | 'products'>('store');
   // const [editingCoupon, setEditingCoupon] = useState<Cupom | null>(null);
   const [selectedCoupon, setSelectedCoupon] = useState<CupomAdmin | null>(null);
@@ -689,6 +696,21 @@ export default function AdminPage() {
     if (tab === 'orders') { LoadReturns(); LoadCancellations(); }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tab]);
+
+  useEffect(() => {
+    if (tab === 'brindes') { Brinde.action.loadBrindes(); Brinde.action.loadEntregas(); }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tab]);
+
+  useEffect(() => {
+    const tp = Math.max(1, Math.ceil(Brinde.result.brindes.length / brindePageSize));
+    if (brindePage > tp) setBrindePage(tp);
+  }, [Brinde.result.brindes.length, brindePageSize, brindePage]);
+
+  useEffect(() => {
+    const tp = Math.max(1, Math.ceil(Brinde.result.entregas.length / entregaPageSize));
+    if (entregaPage > tp) setEntregaPage(tp);
+  }, [Brinde.result.entregas.length, entregaPageSize, entregaPage]);
   const bg = dk ? 'bg-[#0a0a0f]' : 'bg-[#f0f0f5]';
   const sidebar = dk ? 'bg-[#0d0d14] border-white/[0.06]' : 'bg-white border-surface-200';
   const card = dk ? 'bg-[#0d0d14] border-white/[0.06]' : 'bg-white border-surface-200';
@@ -749,6 +771,7 @@ export default function AdminPage() {
         { id: 'products', label: 'Produtos', icon: <Package className="w-4 h-4" />, badge: lowStock > 0 ? `${lowStock} baixo` : undefined, badgeRed: true },
         { id: 'cartegories', label: 'Categoria', icon: <FolderTree className="w-4 h-4" /> },
         { id: 'promotions', label: 'Promoções', icon: <Tag className="w-4 h-4" /> },
+        { id: 'brindes', label: 'Brindes', icon: <Gift className="w-4 h-4" /> },
         { id: 'movements', label: 'Movimentação', icon: <Activity className="w-4 h-4" />, badge: logsToday > 0 ? String(logsToday) : undefined, badgeRed: false },
         { id: 'users', label: 'Usuários', icon: <Users className="w-4 h-4" /> },
         { id: 'bin', label: 'Lixeira', icon: <Trash2 className="w-4 h-4" /> },
@@ -1715,16 +1738,22 @@ export default function AdminPage() {
 
                             {/* estoque */}
                             <td className="px-5 py-4">
-                              <span
-                                className={`text-sm font-bold ${p.total_Stock < 20
-                                  ? 'text-red-400'
-                                  : p.total_Stock < 50
-                                    ? 'text-amber-400'
-                                    : 'text-green-400'
-                                  }`}
-                              >
-                                {p.total_Stock}
-                              </span>
+                              {p.total_Stock <= 0 ? (
+                                <span className={`text-[11px] font-bold px-2 py-1 rounded-full ${dk ? 'bg-white/[0.06] text-red-400' : 'bg-surface-100 text-surface-400'}`}>
+                                  Fora de estoque
+                                </span>
+                              ) : (
+                                <span
+                                  className={`text-sm font-bold ${p.total_Stock < 20
+                                    ? 'text-red-400'
+                                    : p.total_Stock < 50
+                                      ? 'text-amber-400'
+                                      : 'text-green-400'
+                                    }`}
+                                >
+                                  {p.total_Stock}
+                                </span>
+                              )}
                             </td>
 
                             {/* vendidos */}
@@ -1862,16 +1891,22 @@ export default function AdminPage() {
                               Estoque
                             </p>
 
-                            <p
-                              className={`text-sm font-bold ${p.total_Stock < 20
-                                ? 'text-red-400'
-                                : p.total_Stock < 50
-                                  ? 'text-amber-400'
-                                  : 'text-green-400'
-                                }`}
-                            >
-                              {p.total_Stock}
-                            </p>
+                            {p.total_Stock <= 0 ? (
+                              <span className={`inline-block text-[11px] font-bold px-2 py-1 rounded-full ${dk ? 'bg-white/[0.06] text-white/50' : 'bg-surface-100 text-surface-400'}`}>
+                                Fora de estoque
+                              </span>
+                            ) : (
+                              <p
+                                className={`text-sm font-bold ${p.total_Stock < 20
+                                  ? 'text-red-400'
+                                  : p.total_Stock < 50
+                                    ? 'text-amber-400'
+                                    : 'text-green-400'
+                                  }`}
+                              >
+                                {p.total_Stock}
+                              </p>
+                            )}
                           </div>
 
                           <div>
@@ -3575,7 +3610,7 @@ export default function AdminPage() {
                             Pagamento
                           </p>
                           <p className={`text-xs font-black mt-2 ${txt}`}>
-                            {o.payment_terms}
+                            {paymentTermsLabel(o.payment_terms)}
                           </p>
                         </div>
                         <div className={`rounded-3xl border p-4 ${dk ? 'border-white/10 bg-white/[0.03]' : 'border-surface-200 bg-surface-50'}`}>
@@ -3848,7 +3883,234 @@ export default function AdminPage() {
             </div>
           )}
 
-          {/* ─── PROMOTIONS ─── */}
+          {tab === 'brindes' && (
+            <div className="space-y-6">
+              <div className={`relative overflow-hidden rounded-[28px] border backdrop-blur-2xl ${card}`}>
+                <div className="absolute inset-0 pointer-events-none overflow-hidden">
+                  <div className="absolute -top-24 right-0 w-72 h-72 bg-amber-500/10 blur-3xl rounded-full" />
+                  <div className="absolute bottom-0 left-0 w-52 h-52 bg-brand-500/10 blur-3xl rounded-full" />
+                </div>
+                <div className="relative z-10 p-4 md:p-6">
+                  <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
+                    <div className="flex items-center gap-3 min-w-0">
+                      <div className="w-12 h-12 rounded-2xl bg-amber-500/15 border border-amber-500/20 flex items-center justify-center shadow-lg shadow-amber-500/10 flex-shrink-0">
+                        <Gift className="w-5 h-5 text-amber-400" />
+                      </div>
+                      <div className="min-w-0">
+                        <h2 className={`font-display font-black text-lg md:text-xl truncate ${txt}`}>Brindes</h2>
+                        <p className={`text-xs md:text-sm mt-1 ${sub}`}>Premie clientes por nº de compras ou por período — a concessão é automática.</p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <div className="hidden sm:flex items-center gap-2">
+                        <div className={`px-3 py-2 rounded-2xl text-center min-w-[64px] ${dk ? 'bg-white/[0.04]' : 'bg-surface-50'}`}>
+                          <p className="text-base font-black text-emerald-500 leading-none">{Brinde.result.brindes.filter(b => b.ativo).length}</p>
+                          <p className={`text-[9px] mt-1 font-bold uppercase tracking-wider ${sub}`}>Ativos</p>
+                        </div>
+                        <div className={`px-3 py-2 rounded-2xl text-center min-w-[64px] ${dk ? 'bg-white/[0.04]' : 'bg-surface-50'}`}>
+                          <p className="text-base font-black text-amber-500 leading-none">{Brinde.result.brindes.reduce((s, b) => s + (b.total_Pendentes ?? 0), 0)}</p>
+                          <p className={`text-[9px] mt-1 font-bold uppercase tracking-wider ${sub}`}>Pendentes</p>
+                        </div>
+                        <div className={`px-3 py-2 rounded-2xl text-center min-w-[64px] ${dk ? 'bg-white/[0.04]' : 'bg-surface-50'}`}>
+                          <p className="text-base font-black text-brand-400 leading-none">{Brinde.result.brindes.reduce((s, b) => s + (b.total_Entregues ?? 0), 0)}</p>
+                          <p className={`text-[9px] mt-1 font-bold uppercase tracking-wider ${sub}`}>Entregues</p>
+                        </div>
+                      </div>
+                      <button onClick={Brinde.action.openCreate} className="flex items-center gap-2 px-4 py-2.5 bg-brand-500 hover:bg-brand-600 text-white rounded-2xl text-sm font-bold transition-all shadow-brand whitespace-nowrap">
+                        <Plus className="w-4 h-4" /> Novo brinde
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mt-6">
+                    {Brinde.result.brindes.length === 0 ? (
+                      <div className={`col-span-full flex flex-col items-center justify-center py-14 rounded-2xl border border-dashed ${dk ? 'border-white/10' : 'border-surface-200'}`}>
+                        <Gift className={`w-10 h-10 mb-3 ${sub}`} />
+                        <p className={`text-sm font-semibold ${txt}`}>Nenhum brinde cadastrado</p>
+                        <p className={`text-xs mt-1 ${sub}`}>Crie o primeiro e comece a premiar seus clientes.</p>
+                      </div>
+                    ) : Brinde.result.brindes.slice((brindePage - 1) * brindePageSize, brindePage * brindePageSize).map(b => (
+                      <div key={b.id} className={`group relative overflow-hidden rounded-2xl border p-4 transition-all hover:shadow-lg ${dk ? 'border-white/[0.08] bg-white/[0.02] hover:bg-white/[0.04]' : 'border-surface-200 bg-white hover:border-brand-200'} ${b.ativo ? '' : 'opacity-60'}`}>
+                        <div className="flex gap-3">
+                          <div className={`w-16 h-16 rounded-2xl overflow-hidden flex items-center justify-center shrink-0 ${dk ? 'bg-white/[0.05]' : 'bg-surface-100'}`}>
+                            {b.imagem ? <img src={`/Imagens/Brindes/${b.imagem}`} alt={b.nome} className="w-full h-full object-cover" /> : <Gift className="w-6 h-6 text-surface-400" />}
+                          </div>
+                          <div className="min-w-0 flex-1">
+                            <div className="flex items-start justify-between gap-2">
+                              <h4 className={`font-display font-bold text-sm truncate ${txt}`}>{b.nome}</h4>
+                              <span className={`shrink-0 text-[9px] font-black px-2 py-0.5 rounded-full ${b.ativo ? 'bg-emerald-500/10 text-emerald-500' : (dk ? 'bg-white/10 text-white/50' : 'bg-surface-200 text-surface-500')}`}>{b.ativo ? 'ATIVO' : 'INATIVO'}</span>
+                            </div>
+                            <div className="flex flex-wrap gap-1 mt-1.5">
+                              {b.colecao && <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-brand-500/10 text-brand-500">{b.colecao}</span>}
+                              {b.quantidade_Compras ? <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-500">{b.quantidade_Compras}ª compra</span> : null}
+                              {b.data_Inicio && b.data_Fim ? <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-violet-500/10 text-violet-500">Período</span> : null}
+                              {!b.quantidade_Compras && !(b.data_Inicio && b.data_Fim) ? <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${dk ? 'bg-white/[0.06] text-white/50' : 'bg-surface-100 text-surface-400'}`}>Só manual</span> : null}
+                            </div>
+                            {b.data_Inicio && b.data_Fim && <p className={`text-[10px] mt-1.5 ${sub}`}>{new Date(b.data_Inicio).toLocaleDateString('pt-BR')} – {new Date(b.data_Fim).toLocaleDateString('pt-BR')}</p>}
+                          </div>
+                        </div>
+                        <div className={`flex items-center justify-between mt-3 pt-3 border-t ${dk ? 'border-white/[0.06]' : 'border-surface-100'}`}>
+                          <span className={`text-xs font-bold ${b.estoque <= 0 ? 'text-rose-400' : (dk ? 'text-white/70' : 'text-surface-600')}`}>{b.estoque <= 0 ? 'Sem estoque' : `${b.estoque} em estoque`}</span>
+                          <span className={`text-[11px] ${sub}`}>{b.total_Entregues ?? 0} entreg. · {b.total_Pendentes ?? 0} pend.</span>
+                        </div>
+                        <div className="flex items-center gap-2 mt-3">
+                          <button onClick={() => Brinde.action.openEdit(b)} className={`flex-1 text-xs font-bold px-3 py-2 rounded-xl ${dk ? 'bg-white/[0.06] text-white/70 hover:bg-white/[0.10]' : 'bg-surface-100 text-surface-600 hover:bg-surface-200'}`}>Editar</button>
+                          <button onClick={() => Brinde.action.toggleActive(b.id)} className={`text-xs font-bold px-3 py-2 rounded-xl ${b.ativo ? 'bg-amber-500/15 text-amber-600' : 'bg-emerald-500/15 text-emerald-600'}`}>{b.ativo ? 'Desativar' : 'Ativar'}</button>
+                          <button onClick={() => Brinde.action.openDelete(b)} title="Excluir" className="text-xs font-bold px-3 py-2 rounded-xl bg-rose-500/15 text-rose-500 hover:bg-rose-500/25 transition-colors"><Trash2 className="w-4 h-4" /></button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                  {Brinde.result.brindes.length > 0 && (
+                    <div className={`mt-5 pt-4 border-t ${dk ? 'border-white/[0.06]' : 'border-surface-100'}`}>
+                      <PaginationFooter darkMode={dk} page={brindePage} pageSize={brindePageSize} total={Brinde.result.brindes.length} onPageChange={setBrindePage} onPageSizeChange={(size) => { setBrindePageSize(size); setBrindePage(1); }} />
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              <div className={`relative overflow-hidden rounded-[28px] border ${card}`}>
+                <div className="relative z-10 p-4 md:p-6">
+                  <div className="flex items-center justify-between mb-4 gap-3">
+                    <div className="flex items-center gap-3 min-w-0">
+                      <div className="w-10 h-10 rounded-2xl bg-brand-500/15 border border-brand-500/20 flex items-center justify-center shrink-0">
+                        <Gift className="w-4 h-4 text-brand-400" />
+                      </div>
+                      <div className="min-w-0">
+                        <h3 className={`font-display font-black text-base ${txt}`}>Entregas</h3>
+                        <p className={`text-[11px] ${sub}`}>Marque como entregue ao dar o brinde ao cliente</p>
+                      </div>
+                    </div>
+                    <select value={Brinde.result.filtroStatus} onChange={e => { Brinde.action.setFiltroStatus(e.target.value); Brinde.action.loadEntregas(e.target.value || undefined); }} className={`px-3 py-2 rounded-xl text-xs border outline-none ${inp}`}>
+                      <option value="">Todas</option>
+                      <option value="PENDENTE">Pendentes</option>
+                      <option value="ENTREGUE">Entregues</option>
+                    </select>
+                  </div>
+                  <div className="space-y-2">
+                    {Brinde.result.entregas.length === 0 ? (
+                      <div className={`flex flex-col items-center justify-center py-10 rounded-2xl border border-dashed ${dk ? 'border-white/10' : 'border-surface-200'}`}>
+                        <Gift className={`w-8 h-8 mb-2 ${sub}`} />
+                        <p className={`text-sm ${sub}`}>Nenhuma entrega ainda.</p>
+                      </div>
+                    ) : Brinde.result.entregas.slice((entregaPage - 1) * entregaPageSize, entregaPage * entregaPageSize).map(e => (
+                      <div key={e.id} className={`flex items-center gap-3 p-3 rounded-2xl ${dk ? 'bg-white/[0.03]' : 'bg-surface-50'}`}>
+                        <div className="w-9 h-9 rounded-xl bg-amber-500/15 flex items-center justify-center shrink-0">
+                          <Gift className="w-4 h-4 text-amber-500" />
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <p className={`text-sm font-semibold truncate ${txt}`}>{e.nome_Brinde} <span className={`font-normal ${sub}`}>→ {e.nome_Cliente}</span></p>
+                          <p className={`text-[11px] ${sub}`}>{e.origem === 'AUTOMATICO' ? 'Automático' : 'Manual'}{e.numero_Pedido ? ` · pedido #${e.numero_Pedido}` : ''}{e.quem_Entregou ? ` · por ${e.quem_Entregou}` : ''}</p>
+                        </div>
+                        {e.status === 'ENTREGUE' ? (
+                          <span className="text-[10px] font-black px-2.5 py-1 rounded-full bg-emerald-500/10 text-emerald-400 whitespace-nowrap">Entregue</span>
+                        ) : (
+                          <button onClick={async () => { if (await Brinde.action.entregar(e.id)) Brinde.action.loadEntregas(Brinde.result.filtroStatus || undefined); }} className="text-[11px] font-bold px-3 py-1.5 rounded-xl bg-brand-500 hover:bg-brand-600 text-white whitespace-nowrap">Entregar</button>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                  {Brinde.result.entregas.length > 0 && (
+                    <div className={`mt-4 pt-4 border-t ${dk ? 'border-white/[0.06]' : 'border-surface-100'}`}>
+                      <PaginationFooter darkMode={dk} page={entregaPage} pageSize={entregaPageSize} total={Brinde.result.entregas.length} onPageChange={setEntregaPage} onPageSizeChange={(size) => { setEntregaPageSize(size); setEntregaPage(1); }} />
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              <ConfirmAdminPopup
+                open={!!Brinde.result.deleteTarget}
+                title="Excluir brinde"
+                description={`Tem certeza que deseja excluir "${Brinde.result.deleteTarget?.nome ?? ''}"? Ele sai da listagem e deixa de ser concedido.`}
+                confirmText="Excluir"
+                cancelText="Cancelar"
+                confirmColor="red"
+                loading={Brinde.result.deleting}
+                requireReason
+                onConfirm={(reason) => { Brinde.action.handleDelete(reason); }}
+                onCancel={Brinde.action.closeDelete}
+              />
+
+              {Brinde.result.showModal && (
+                <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4" onClick={Brinde.action.closeModal}>
+                  <div className={`rounded-2xl border p-6 w-full max-w-md max-h-[85vh] overflow-y-auto shadow-2xl ${card}`} onClick={e => e.stopPropagation()}>
+                    <div className="flex items-center justify-between mb-5">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-2xl bg-amber-500/15 border border-amber-500/20 flex items-center justify-center">
+                          <Gift className="w-5 h-5 text-amber-500" />
+                        </div>
+                        <h3 className={`font-display font-bold text-lg ${txt}`}>{Brinde.result.editing ? 'Editar brinde' : 'Novo brinde'}</h3>
+                      </div>
+                      <button onClick={Brinde.action.closeModal} className={`p-2 rounded-xl ${dk ? 'hover:bg-white/[0.08] text-white/60' : 'hover:bg-surface-100 text-surface-500'}`}><X className="w-4 h-4" /></button>
+                    </div>
+                    <div className="space-y-4">
+                      <div className="flex items-center gap-3">
+                        <div className={`w-20 h-20 rounded-xl overflow-hidden flex items-center justify-center shrink-0 ${dk ? 'bg-white/[0.05]' : 'bg-surface-100'}`}>
+                          {Brinde.result.imagemPreview ? <img src={Brinde.result.imagemPreview} className="w-full h-full object-cover" /> : <Gift className="w-7 h-7 text-surface-400" />}
+                        </div>
+                        <div className="flex-1">
+                          <label className={`block text-xs font-bold uppercase mb-2 ${sub}`}>Imagem</label>
+                          <input type="file" accept="image/*" onChange={e => Brinde.action.onSelectImagem(e.target.files?.[0] ?? null)} className={`w-full text-xs ${sub}`} />
+                        </div>
+                      </div>
+                      <div>
+                        <label className={`block text-xs font-bold uppercase mb-2 ${sub}`}>Nome</label>
+                        <input value={Brinde.result.form.nome} onChange={e => Brinde.action.setForm(f => ({ ...f, nome: e.target.value }))} className={`w-full px-4 py-2.5 border rounded-xl text-sm outline-none ${inp}`} />
+                        {Brinde.result.errors.nome && <p className="mt-1 text-xs text-red-500">⚠ {Brinde.result.errors.nome}</p>}
+                      </div>
+                      <div>
+                        <label className={`block text-xs font-bold uppercase mb-2 ${sub}`}>Descrição</label>
+                        <input value={Brinde.result.form.descricao ?? ''} onChange={e => Brinde.action.setForm(f => ({ ...f, descricao: e.target.value }))} className={`w-full px-4 py-2.5 border rounded-xl text-sm outline-none ${inp}`} />
+                      </div>
+                      <div className="grid grid-cols-2 gap-3">
+                        <div>
+                          <label className={`block text-xs font-bold uppercase mb-2 ${sub}`}>Estoque</label>
+                          <input type="number" value={Brinde.result.form.estoque} onChange={e => Brinde.action.setForm(f => ({ ...f, estoque: Number(e.target.value) || 0 }))} className={`w-full px-4 py-2.5 border rounded-xl text-sm outline-none ${inp}`} />
+                          {Brinde.result.errors.estoque && <p className="mt-1 text-xs text-red-500">⚠ {Brinde.result.errors.estoque}</p>}
+                        </div>
+                        <div>
+                          <label className={`block text-xs font-bold uppercase mb-2 ${sub}`}>Compras p/ ganhar</label>
+                          <input type="number" placeholder="ex.: 1" value={Brinde.result.form.quantidade_Compras ?? ''} onChange={e => Brinde.action.setForm(f => ({ ...f, quantidade_Compras: e.target.value ? Number(e.target.value) : null }))} className={`w-full px-4 py-2.5 border rounded-xl text-sm outline-none ${inp}`} />
+                          {Brinde.result.errors.quantidade_Compras && <p className="mt-1 text-xs text-red-500">⚠ {Brinde.result.errors.quantidade_Compras}</p>}
+                        </div>
+                      </div>
+                      <div className={`rounded-xl border p-3 ${dk ? 'border-white/10 bg-white/[0.02]' : 'border-surface-200 bg-surface-50'}`}>
+                        <label className={`block text-xs font-bold uppercase mb-2 ${sub}`}>Período da promoção (opcional)</label>
+                        <div className="grid grid-cols-2 gap-3">
+                          <div>
+                            <label className={`block text-[10px] font-bold uppercase mb-1 ${sub}`}>Início</label>
+                            <input type="date" value={Brinde.result.form.data_Inicio ?? ''} onChange={e => Brinde.action.setForm(f => ({ ...f, data_Inicio: e.target.value || null }))} className={`w-full px-3 py-2 border rounded-xl text-sm outline-none ${inp}`} />
+                          </div>
+                          <div>
+                            <label className={`block text-[10px] font-bold uppercase mb-1 ${sub}`}>Fim</label>
+                            <input type="date" value={Brinde.result.form.data_Fim ?? ''} onChange={e => Brinde.action.setForm(f => ({ ...f, data_Fim: e.target.value || null }))} className={`w-full px-3 py-2 border rounded-xl text-sm outline-none ${inp}`} />
+                          </div>
+                        </div>
+                        {Brinde.result.errors.data && <p className="mt-1 text-xs text-red-500">⚠ {Brinde.result.errors.data}</p>}
+                        <p className={`text-[10px] mt-2 ${sub}`}>Quem comprar nesse período ganha o brinde automaticamente.</p>
+                      </div>
+                      <div>
+                        <label className={`block text-xs font-bold uppercase mb-2 ${sub}`}>Coleção (opcional)</label>
+                        <input value={Brinde.result.form.colecao ?? ''} onChange={e => Brinde.action.setForm(f => ({ ...f, colecao: e.target.value }))} className={`w-full px-4 py-2.5 border rounded-xl text-sm outline-none ${inp}`} />
+                      </div>
+                      <label className="flex items-center gap-2 text-sm cursor-pointer">
+                        <input type="checkbox" checked={Brinde.result.form.ativo} onChange={e => Brinde.action.setForm(f => ({ ...f, ativo: e.target.checked }))} />
+                        <span className={txt}>Ativo</span>
+                      </label>
+                      <p className={`text-[11px] ${sub}`}>Regras (pode usar uma ou as duas): <b>Compras p/ ganhar</b> = 1 é o brinde da 1ª compra (2, 3… para a coleção); <b>Período</b> premia quem comprar entre as datas. Sem nenhuma = só entrega manual.</p>
+                    </div>
+                    <div className={`pt-4 mt-4 border-t flex gap-3 ${dk ? 'border-white/10' : 'border-surface-200'}`}>
+                      <button onClick={Brinde.action.closeModal} className={`flex-1 py-2.5 rounded-xl text-sm font-bold ${dk ? 'bg-white/[0.06] text-white/60' : 'bg-surface-100 text-surface-500'}`}>Cancelar</button>
+                      <button onClick={Brinde.action.handleSave} disabled={Brinde.result.saving} className="flex-1 py-2.5 bg-brand-500 hover:bg-brand-600 disabled:opacity-70 text-white rounded-xl text-sm font-bold flex items-center justify-center gap-2">
+                        {Brinde.result.saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />} {Brinde.result.editing ? 'Salvar' : 'Criar'}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
           {/* ─── PROMOTIONS ─── */}
           {tab === 'promotions' && (
             <div className="space-y-6">
@@ -5617,7 +5879,7 @@ export default function AdminPage() {
                       <label className={`block text-xs font-bold uppercase tracking-wider mb-2 ${sub}`}>
                         {f.label}
                       </label>
-                      <input type={f.type} value={(Controller?.result.newProduct as any)[f.key] || ''} onChange={e => Controller?.action.setNewProduct(p => ({ ...p, [f.key]: Number(e.target.value) }))} className={`w-full px-4 py-2.5 border rounded-xl text-sm outline-none transition-colors ${inp}`} />
+                      <input type={f.type} disabled={f.key === 'total_Stock' && (Controller?.result.variantStockTotal ?? 0) > 0} value={f.key === 'total_Stock' && (Controller?.result.variantStockTotal ?? 0) > 0 ? Controller?.result.variantStockTotal : ((Controller?.result.newProduct as any)[f.key] || '')} onChange={e => Controller?.action.setNewProduct(p => ({ ...p, [f.key]: Number(e.target.value) }))} className={`w-full px-4 py-2.5 border rounded-xl text-sm outline-none transition-colors ${inp} ${f.key === 'total_Stock' && (Controller?.result.variantStockTotal ?? 0) > 0 ? 'opacity-60 cursor-not-allowed' : ''}`} />
                       {Controller?.result.errors.price_Unic && f.key == 'price_Unic' && (
                         <p className="mt-1 flex items-center gap-1 text-xs text-red-500">
                           ⚠ {Controller?.result.errors.price_Unic}
@@ -5922,166 +6184,124 @@ export default function AdminPage() {
             </div>
 
             <p className={`text-xs mb-4 ${sub}`}>
-              Adicione as variações disponíveis (cor, tamanho, tipo). Deixe em branco o que não se aplicar.
+              Defina os eixos (ex.: Cor, Memória) e cadastre cada combinação vendável com seu estoque e preço.
             </p>
 
+            {/* Eixos de variação: nome + valores possíveis */}
+            <div className={`rounded-2xl border p-4 mb-4 ${dk ? 'border-white/10 bg-white/[0.03]' : 'border-surface-200 bg-surface-50'}`}>
+              <div className="flex items-center justify-between mb-3">
+                <label className={`text-xs font-bold uppercase ${sub}`}>Eixos de variação</label>
+                <button onClick={Controller?.action.addVariantAxis} className="text-xs font-bold text-brand-500 hover:text-brand-600 flex items-center gap-1">
+                  <Plus className="w-3.5 h-3.5" /> Eixo
+                </button>
+              </div>
+              <div className="space-y-3">
+                {(Controller?.result.variantAxes || []).map((axis, ai) => (
+                  <div key={ai} className={`rounded-xl border p-3 ${dk ? 'border-white/10 bg-white/[0.02]' : 'border-surface-200 bg-white'}`}>
+                    <div className="flex items-center gap-2 mb-2">
+                      <input
+                        value={axis.name}
+                        onChange={(e) => Controller?.action.renameVariantAxis(ai, e.target.value)}
+                        placeholder={ai === 0 ? 'Nome do eixo (ex.: Cor)' : 'Nome do eixo (ex.: Memória)'}
+                        className={`flex-1 px-3 py-2 border rounded-xl text-sm font-semibold outline-none ${inp}`}
+                      />
+                      {(Controller?.result.variantAxes.length || 0) > 1 && (
+                        <button onClick={() => Controller?.action.removeVariantAxis(ai)} className="p-2 rounded-xl text-red-500 hover:bg-red-500/10" title="Remover eixo">
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      )}
+                    </div>
+                    <div className="flex flex-wrap items-center gap-2">
+                      {axis.values.map((val, vi) => (
+                        <div key={vi} className="flex items-center gap-1">
+                          <input
+                            value={val}
+                            onChange={(e) => Controller?.action.setAxisValue(ai, vi, e.target.value)}
+                            placeholder={ai === 0 ? 'Ex.: Titânio Azul' : 'Ex.: 128GB'}
+                            className={`w-36 px-3 py-1.5 border rounded-lg text-sm outline-none ${inp}`}
+                          />
+                          {axis.values.length > 1 && (
+                            <button onClick={() => Controller?.action.removeAxisValue(ai, vi)} className="p-1 rounded-lg text-red-400 hover:bg-red-500/10" title="Remover valor">
+                              <X className="w-3.5 h-3.5" />
+                            </button>
+                          )}
+                        </div>
+                      ))}
+                      <button onClick={() => Controller?.action.addAxisValue(ai)} className="text-xs font-bold text-brand-500 hover:text-brand-600 flex items-center gap-1 px-2 py-1.5">
+                        <Plus className="w-3.5 h-3.5" /> valor
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+              {Controller?.result.variantErrors["axes"] && (
+                <p className="mt-2 text-xs text-red-500">⚠ {Controller?.result.variantErrors["axes"]}</p>
+              )}
+            </div>
+
+            {/* Grade de combinações gerada automaticamente */}
             <div className="space-y-3">
-              {(Controller?.result.newProduct.variations || []).map((variant, index) => (
-                <div
-                  key={variant.id}
-                  className={`rounded-2xl border p-5 space-y-5 ${dk
-                    ? "border-white/10 bg-white/[0.03]"
-                    : "border-surface-200 bg-surface-50"
-                    }`}
-                >
-                  {/* Cabeçalho */}
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <h4 className={`font-semibold ${txt}`}>
-                        Variante {index + 1}
-                      </h4>
-                      <p className={`text-xs ${sub}`}>
-                        Configure os atributos desta variação.
-                      </p>
+              <div className="flex items-center justify-between">
+                <p className={`text-xs font-bold uppercase ${sub}`}>
+                  Combinações ({(Controller?.result.variantGrid || []).filter(c => c.ativo).length}/{(Controller?.result.variantGrid || []).length})
+                </p>
+                <p className={`text-xs font-bold ${txt}`}>Estoque total: {Controller?.result.variantStockTotal ?? 0}</p>
+              </div>
+              {(Controller?.result.variantGrid || []).map((combo) => {
+                const label = combo.cells.map((vi, ai) => (Controller?.result.variantAxes[ai]?.values[vi] || '—')).join(' · ');
+                return (
+                  <div key={combo.id} className={`rounded-2xl border p-4 ${dk ? 'border-white/10 bg-white/[0.03]' : 'border-surface-200 bg-surface-50'} ${combo.ativo ? '' : 'opacity-60'}`}>
+                    <div className="flex items-center justify-between gap-3">
+                      <div className="min-w-0">
+                        <h4 className={`font-semibold truncate ${txt}`}>{label || 'Combinação'}</h4>
+                        <p className={`text-xs ${sub}`}>{combo.ativo ? 'Vendida — informe estoque e preço' : 'Não vendida'}</p>
+                      </div>
+                      <button
+                        onClick={() => Controller?.action.toggleCombo(combo.id)}
+                        className={`shrink-0 px-3 py-1.5 rounded-xl text-xs font-bold border-2 transition-all ${combo.ativo ? 'border-brand-500 bg-brand-50 text-brand-700' : (dk ? 'border-white/15 text-white/50' : 'border-surface-300 text-surface-400')}`}
+                      >
+                        {combo.ativo ? 'Vende' : 'Não vende'}
+                      </button>
                     </div>
 
-                    <button
-                      onClick={() => Controller?.action.removeVariant(variant.id)}
-                      className="p-2 rounded-xl text-red-500 hover:bg-red-500/10 transition"
-                    >
-                      <Trash2 className="w-5 h-5" />
-                    </button>
-                  </div>
-
-                  {/* Tipo */}
-                  <div>
-                    <label className={`block text-xs font-bold uppercase mb-2 ${sub}`}>
-                      Tipo da Variante
-                    </label>
-
-                    <input
-                      value={variant.type || ""}
-                      onChange={(e) => {
-                        Controller?.action.updateVariant(variant.id, { type: e.target.value });
-
-                        Controller?.action.setVariantErrors(prev => ({
-                          ...prev,
-                          [`${index}.type`]: ""
-                        }));
-                      }}
-                      className={`w-full px-4 py-3 rounded-xl ${Controller?.result.variantErrors[`${index}.type `]
-                        ? "border-red-500"
-                        : inp
-                        } border rounded-xl text-sm outline-none ${inp}`}
-                    />
-
-                    {Controller?.result.variantErrors[`${index}.type`] && (
-                      <p className="mt-1 text-xs text-red-500">
-                        ⚠ {Controller?.result.variantErrors[`${index}.type`]}
-                      </p>
+                    {combo.ativo && (
+                      <div className="grid grid-cols-2 gap-4 mt-4">
+                        <div>
+                          <label className={`block text-xs font-bold uppercase mb-2 ${sub}`}>Estoque</label>
+                          <input
+                            type="text"
+                            value={combo.stoke}
+                            onChange={(e) => {
+                              Controller?.action.setComboField(combo.id, { stoke: Number(e.target.value) || 0 });
+                              Controller?.action.setVariantErrors(prev => ({ ...prev, [`${combo.id}.stoke`]: '' }));
+                            }}
+                            className={`w-full px-4 py-3 border rounded-xl text-sm outline-none ${inp}`}
+                          />
+                          {Controller?.result.variantErrors[`${combo.id}.stoke`] && (
+                            <p className="mt-1 text-xs text-red-500">⚠ {Controller?.result.variantErrors[`${combo.id}.stoke`]}</p>
+                          )}
+                        </div>
+                        <div>
+                          <label className={`block text-xs font-bold uppercase mb-2 ${sub}`}>Modificador de Preço</label>
+                          <input
+                            type="text"
+                            value={combo.price_Modifier}
+                            onChange={(e) => Controller?.action.setComboField(combo.id, { price_Modifier: Number(e.target.value) || 0 })}
+                            placeholder="+0,00"
+                            className={`w-full px-4 py-3 border rounded-xl text-sm outline-none ${inp}`}
+                          />
+                        </div>
+                      </div>
+                    )}
+                    {Controller?.result.variantErrors[`${combo.id}.a`] && (
+                      <p className="mt-2 text-xs text-red-500">⚠ {Controller?.result.variantErrors[`${combo.id}.a`]}</p>
                     )}
                   </div>
-
-                  {/* Nome + Valor */}
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <label className={`block text-xs font-bold uppercase mb-2 ${sub}`}>
-                        Nome
-                      </label>
-
-                      <input
-                        value={variant.name || ""}
-                        onChange={(e) =>
-                          Controller?.action.updateVariant(variant.id, {
-                            name: e.target.value,
-                          })
-                        }
-                        placeholder="Ex.: Azul"
-                        className={`w-full px-4 py-3 border rounded-xl text-sm outline-none ${inp}`}
-                      />
-                      {Controller?.result.variantErrors[`${index}.name`] && (
-                        <p className="mt-1 text-xs text-red-500">
-                          ⚠ {Controller?.result.variantErrors[`${index}.name`]}
-                        </p>
-                      )}
-                    </div>
-
-                    <div>
-                      <label className={`block text-xs font-bold uppercase mb-2 ${sub}`}>
-                        Valor
-                      </label>
-
-                      <input
-                        value={variant.value || ""}
-                        onChange={(e) =>
-                          Controller?.action.updateVariant(variant.id, {
-                            value: e.target.value,
-                          })
-                        }
-                        placeholder="Ex.: 256GB"
-                        className={`w-full px-4 py-3 border rounded-xl text-sm outline-none ${inp}`}
-                      />
-                      {Controller?.result.variantErrors[`${index}.value`] && (
-                        <p className="mt-1 text-xs text-red-500">
-                          ⚠ {Controller?.result.variantErrors[`${index}.value`]}
-                        </p>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Estoque + Preço */}
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <label className={`block text-xs font-bold uppercase mb-2 ${sub}`}>
-                        Estoque
-                      </label>
-
-                      <input
-                        type="text"
-                        aria-placeholder='123.45'
-                        value={variant.stoke}
-                        onChange={(e) =>
-                          Controller?.action.updateVariant(variant.id, {
-                            stoke: Number(e.target.value),
-                          })
-                        }
-                        className={`w-full px-4 py-3 border rounded-xl text-sm outline-none ${inp}`}
-                      />
-                      {Controller?.result.variantErrors[`${index}.stoke`] && (
-                        <p className="mt-1 text-xs text-red-500">
-                          ⚠ {Controller?.result.variantErrors[`${index}.stoke`]}
-                        </p>
-                      )}
-                    </div>
-
-                    <div>
-                      <label className={`block text-xs font-bold uppercase mb-2 ${sub}`}>
-                        Modificador de Preço
-                      </label>
-
-                      <input
-                        type="text"
-                        aria-placeholder='123.45'
-                        value={variant.price_Modifier}
-                        onChange={(e) =>
-                          Controller?.action.updateVariant(variant.id, {
-                            price_Modifier: Number(e.target.value),
-                          })
-                        }
-                        placeholder="+0,00"
-                        className={`w-full px-4 py-3 border rounded-xl text-sm outline-none ${inp}`}
-                      />
-                    </div>
-                  </div>
-                </div>
-              ))}
-
-              <button
-                onClick={Controller?.action.addVariant}
-                className={`w-full flex items-center justify-center gap-2 py-2.5 border-2 border-dashed rounded-xl text-sm font-medium ${dk ? 'border-white/15 text-white/60 hover:border-brand-500/50' : 'border-surface-200 text-surface-500 hover:border-brand-400'}`}
-              >
-                <Plus className="w-4 h-4" /> Adicionar variante
-              </button>
+                );
+              })}
+              {Controller?.result.variantErrors["list"] && (
+                <p className="text-xs text-red-500">⚠ {Controller?.result.variantErrors["list"]}</p>
+              )}
             </div>
 
             <div className={`pt-4 mt-4 border-t flex gap-3 ${bord}`}>

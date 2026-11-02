@@ -18,6 +18,7 @@ export type TrashEntityType =
     | 'EMAIL_VERIFICATION'
     | 'CUSTOMIZE'
     | 'ORDER_ITEM'
+    | 'BRINDE'
     | 'OTHER';
 
 export interface TrashItem {

@@ -209,10 +209,21 @@ public sealed class PaymentService : IPaymentService
             return Result<OrderPaymentResponse>.Failure(Error.Validation("Pagamento", "Dados do cartão incompletos. Preencha o formulário novamente."));
 
         var type = (request.Payment_Type_Id ?? "credit_card").Trim().ToLowerInvariant();
-        if (type is not ("credit_card" or "debit_card"))
+        if (type is not ("credit_card" or "debit_card" or "prepaid_card"))
             return Result<OrderPaymentResponse>.Failure(Error.Validation("Pagamento", "Tipo de cartão não aceito."));
 
-        var installments = type == "debit_card" ? 1 : request.Installments;
+        // Pré-pago (o Mercado Pago classifica assim vários cartões de débito, ex.: Elo) é cobrado como débito: à vista.
+        var isDebit = type is "debit_card" or "prepaid_card";
+
+        // Cliente escolheu "Débito" (ou "Crédito"): o cartão informado precisa ser desse tipo.
+        var chosen = (request.Card_Type ?? "").Trim().ToLowerInvariant();
+        if (chosen == "debit" && !isDebit)
+            return Result<OrderPaymentResponse>.Failure(Error.Validation("Pagamento", "Este cartão é de crédito. Use um cartão de débito ou escolha \"Crédito\"."));
+        if (chosen == "credit" && isDebit)
+            return Result<OrderPaymentResponse>.Failure(Error.Validation("Pagamento", "Este cartão é de débito. Use um cartão de crédito ou escolha \"Débito\"."));
+
+        // Débito é sempre à vista
+        var installments = isDebit ? 1 : request.Installments;
         if (installments < 1 || installments > Math.Clamp(_options.MaxInstallments, 1, 24))
             return Result<OrderPaymentResponse>.Failure(Error.Validation("Pagamento", "Número de parcelas inválido."));
 
@@ -233,7 +244,7 @@ public sealed class PaymentService : IPaymentService
         if (string.IsNullOrWhiteSpace(email))
             return Result<OrderPaymentResponse>.Failure(Error.Validation("Pagamento", "Informe o e-mail do pagador."));
 
-        var method = type == "debit_card" ? PaymentMethod.DebitCard : PaymentMethod.CreditCard;
+        var method = isDebit ? PaymentMethod.DebitCard : PaymentMethod.CreditCard;
         var tx = await InsertTransaction(order, userId, method, amount, installments);
 
         var mpRequest = new MpCreateOrderRequest
@@ -263,7 +274,8 @@ public sealed class PaymentService : IPaymentService
                             Id = request.Payment_Method_Id.Trim().ToLowerInvariant(),
                             Type = type,
                             Token = request.Token.Trim(),
-                            Installments = installments,
+                            // Pré-pago: o Mercado Pago não aceita o campo de parcelas (é sempre à vista).
+                            Installments = type == "prepaid_card" ? null : installments,
                         }
                     }
                 }
@@ -299,7 +311,7 @@ public sealed class PaymentService : IPaymentService
         tracked.Provider_Payment_Id = payment?.Id;
         tracked.Provider_Status = result.Order.Status;
         tracked.Provider_Status_Detail = MercadoPagoClient.Truncate(payment?.StatusDetail ?? result.Order.StatusDetail, 80);
-        await MarkOrderMethod(order.Id, "credit");
+        await MarkOrderMethod(order.Id, isDebit ? "debit" : "credit");
         await _unitOfWork.CommitAsync();
 
         // A transição (aprovado / recusado / em análise) faz a troca de status e os avisos.
@@ -327,7 +339,7 @@ public sealed class PaymentService : IPaymentService
         var type = (queryType ?? body?.Type ?? "").Trim().ToLowerInvariant();
         var dataId = !string.IsNullOrWhiteSpace(queryDataId) ? queryDataId.Trim() : body?.Data?.Id?.Trim();
 
-        if (!string.IsNullOrWhiteSpace(_options.WebhookSecret))
+        if (_options.HasWebhookSecret)
         {
             // A assinatura usa o data.id da URL (query). Sem ele, usa o do corpo.
             if (!MercadoPagoSignature.IsValid(signature, requestId, dataId, _options.WebhookSecret, _options.WebhookToleranceMinutes, DateTimeOffset.UtcNow))
@@ -338,7 +350,9 @@ public sealed class PaymentService : IPaymentService
         }
         else
         {
-            _logger.LogWarning("Webhook Mercado Pago recebido SEM validação de assinatura: configure MercadoPago:WebhookSecret.");
+            // Sem segredo real: não dá para validar a assinatura. Mesmo assim o pagamento NÃO é
+            // confirmado pelo corpo do webhook — logo abaixo o status é reconsultado no Mercado Pago.
+            _logger.LogWarning("Webhook Mercado Pago recebido SEM validação de assinatura: configure MercadoPago:WebhookSecret (assinatura secreta real).");
         }
 
         // Só tratamos o tópico "order" (API Orders). Outros tópicos: confirma o recebimento e ignora.
@@ -598,7 +612,7 @@ public sealed class PaymentService : IPaymentService
         }
 
         var now = DateTime.Now;
-        var payTerms = tx.Method == PaymentMethod.Pix ? "pix" : "credit";
+        var payTerms = tx.Method == PaymentMethod.Pix ? "pix" : tx.Method == PaymentMethod.DebitCard ? "debit" : "credit";
         var newOrderStatus = string.Equals(order.Order_Status, OrderPaymentValues.Pendente, StringComparison.OrdinalIgnoreCase) || string.IsNullOrEmpty(order.Order_Status)
             ? OrderPaymentValues.Confirmado
             : order.Order_Status;

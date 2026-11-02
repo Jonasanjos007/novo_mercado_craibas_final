@@ -16,6 +16,8 @@ namespace Baldan.Pricing.Application.Domain.Entities
         public int Stoke { get; set; }
         public double? Price_Modifier { get; set; }
         public ICollection<Cart_Item> Cart_Items { get; set; } = [];
+        /// <summary>Eixos desta variação (Cor, Memória...). Vazio = variação simples (1 eixo pelo Name/Value).</summary>
+        public ICollection<Variante_Atributos> Atributos { get; set; } = [];
 
     }
 }

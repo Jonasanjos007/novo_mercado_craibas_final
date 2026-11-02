@@ -65,7 +65,48 @@ public sealed class OrderStockService : IOrderStockService
         }
 
         _logger.LogInformation("Estoque baixado para o pedido {OrderId} ({Items} itens).", orderId, lines.Sum(x => x.Quantity));
+
+        try { await ConcederBrindesAsync(orderId); }
+        catch (Exception ex) { _logger.LogError(ex, "Falha ao conceder brindes do pedido {OrderId}.", orderId); }
+
         return true;
+    }
+
+    private async Task ConcederBrindesAsync(int orderId)
+    {
+        var idCliente = await _unitOfWork.Query<Orders>()
+            .Where(x => x.Id == orderId)
+            .Select(x => x.Id_User_Customer)
+            .FirstOrDefaultAsync();
+        if (idCliente is null) return;
+
+        var comprasConfirmadas = await _unitOfWork.Query<Orders>()
+            .CountAsync(x => x.Id_User_Customer == idCliente && x.Isdelete != true && x.Stock_Deducted_At != null);
+
+        var agora = DateTime.Now;
+        var brindesRegra = await _unitOfWork.Query<Brinde>()
+            .Where(x => x.Isdelete != true && x.Ativo && x.Estoque > 0 &&
+                ((x.Quantidade_Compras != null && x.Quantidade_Compras <= comprasConfirmadas) ||
+                 (x.Data_Inicio != null && x.Data_Fim != null && x.Data_Inicio <= agora && x.Data_Fim >= agora)))
+            .ToListAsync();
+
+        foreach (var brinde in brindesRegra)
+        {
+            var jaTem = await _unitOfWork.Query<Brinde_Cliente>()
+                .AnyAsync(x => x.Id_User_Customer == idCliente && x.Id_Brinde == brinde.Id && x.Isdelete != true);
+            if (jaTem) continue;
+
+            await _unitOfWork.InsertAsyncReturnId(new Brinde_Cliente
+            {
+                Id_Brinde = brinde.Id,
+                Id_User_Customer = idCliente.Value,
+                Id_Order = orderId,
+                Origem = "AUTOMATICO",
+                Status = "PENDENTE",
+                InsertDate = DateTime.Now,
+                Isdelete = false
+            });
+        }
     }
 
     public async Task<bool> RestockAsync(int orderId)

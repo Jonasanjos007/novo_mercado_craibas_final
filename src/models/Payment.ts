@@ -1,5 +1,8 @@
 /** Formas de pagamento aceitas no checkout (valor gravado em Orders.Payment_terms). */
-export type PaymentMethodChoice = 'pix' | 'credit';
+export type PaymentMethodChoice = 'pix' | 'credit' | 'debit';
+
+/** Tipo de cartão escolhido na tela (o formulário do Mercado Pago só aceita esse tipo). */
+export type CardType = 'credit' | 'debit';
 
 /** Status de uma tentativa de pagamento (Payment_Transactions.Status no servidor). */
 export type PaymentTransactionStatus =
@@ -71,6 +74,7 @@ export interface CardPaymentRequest {
     identification_Type?: string;
     identification_Number?: string;
     last_Four_Digits?: string;
+    card_Type?: CardType;
 }
 
 /** Intervalo da consulta automática enquanto o pagamento está em aberto. */

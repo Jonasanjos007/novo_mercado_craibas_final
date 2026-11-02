@@ -19,7 +19,7 @@ export type PaymentScreen = 'loading' | 'unavailable' | 'choose' | 'approved' | 
 
 type Params = {
     orderId: number;
-    /** Forma vinda do checkout (?method=pix|credit). */
+    /** Forma vinda do checkout (?method=pix|credit|debit). */
     initialMethod?: PaymentMethodChoice | null;
     /** Gera o PIX sozinho ao abrir (quando o cliente já escolheu PIX no checkout). */
     autoStartPix?: boolean;
@@ -72,8 +72,10 @@ export const usePaymentController = ({ orderId, initialMethod, autoStartPix }: P
                 previousStatusRef.current = payment.data.current?.status ?? null;
                 if (!initialMethod) {
                     const current = payment.data.current;
-                    const terms = current ? (current.method === 'PIX' ? 'pix' : 'credit') : payment.data.payment_Terms;
-                    setMethod(terms === 'credit' ? 'credit' : 'pix');
+                    const terms = current
+                        ? (current.method === 'PIX' ? 'pix' : current.method === 'DEBIT_CARD' ? 'debit' : 'credit')
+                        : payment.data.payment_Terms;
+                    setMethod(terms === 'credit' || terms === 'debit' ? terms : 'pix');
                 }
             }
             if (!cfg.success) setLoadError(prev => prev ?? 'Não foi possível carregar o pagamento.');
@@ -149,7 +151,7 @@ export const usePaymentController = ({ orderId, initialMethod, autoStartPix }: P
 
     const retryAfterRejection = () => {
         if (current) setDismissedResultId(current.id);
-        setMethod('credit');
+        setMethod(current?.method === 'DEBIT_CARD' ? 'debit' : 'credit');
     };
 
     const payWithPixInstead = () => {

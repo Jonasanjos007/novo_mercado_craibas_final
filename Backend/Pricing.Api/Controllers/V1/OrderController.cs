@@ -23,6 +23,14 @@ public class OrderController : ControllerBase
         _afterSale = afterSale;
     }
 
+    [Authorize(Roles = "CLIENTE")]
+    [HttpGet("GetMeusBrindes")]
+    public async Task<IActionResult> GetMeusBrindes()
+    {
+        var result = await _service.GetMeusBrindes(User.GetUserId());
+        return result.ToActionResult();
+    }
+
     /// <summary>Cliente cancela o próprio pedido (PENDENTE ou CONFIRMADO; pago = estorno automático).</summary>
     [Authorize(Roles = "CLIENTE")]
     [HttpPost("{orderId:int}/cancel")]

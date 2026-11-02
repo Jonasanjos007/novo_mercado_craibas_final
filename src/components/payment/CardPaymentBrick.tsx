@@ -1,6 +1,6 @@
 import { useEffect, useId, useRef, useState } from 'react';
 import { AlertCircle, Loader2 } from 'lucide-react';
-import { CardPaymentRequest } from '../../models/Payment';
+import { CardPaymentRequest, CardType } from '../../models/Payment';
 
 /** SDK oficial do Mercado Pago (formulário de cartão seguro: o número do cartão nunca passa pelo nosso servidor). */
 const MP_SDK_URL = 'https://sdk.mercadopago.com/js/v2';
@@ -43,6 +43,8 @@ type Props = {
     maxInstallments: number;
     payerEmail?: string;
     accentHex: string;
+    /** Só cartão de crédito ou só débito (sem informar, aceita os dois). */
+    cardType?: CardType;
     /** Deve lançar erro quando o pagamento não foi processado (o Brick libera o botão de novo). */
     onSubmit: (request: Omit<CardPaymentRequest, 'id_Order'>) => Promise<void>;
 };
@@ -57,7 +59,7 @@ type BrickFormData = {
 type BrickAdditionalData = { paymentTypeId?: string; lastFourDigits?: string } | undefined;
 
 /** Card Payment Brick do Mercado Pago, com as cores do site. */
-export default function CardPaymentBrick({ publicKey, amount, maxInstallments, payerEmail, accentHex, onSubmit }: Props) {
+export default function CardPaymentBrick({ publicKey, amount, maxInstallments, payerEmail, accentHex, cardType, onSubmit }: Props) {
     const containerId = `card-brick-${useId().replace(/[^a-zA-Z0-9]/g, '')}`;
     const [status, setStatus] = useState<'loading' | 'ready' | 'error'>('loading');
     const [retryKey, setRetryKey] = useState(0);
@@ -79,7 +81,15 @@ export default function CardPaymentBrick({ publicKey, amount, maxInstallments, p
                         payer: payerEmail ? { email: payerEmail } : undefined,
                     },
                     customization: {
-                        paymentMethods: { maxInstallments },
+                        paymentMethods: {
+                            // Débito é sempre à vista
+                            maxInstallments: cardType === 'debit' ? 1 : maxInstallments,
+                            // Mostra só o tipo escolhido. Pré-pago entra no Débito: o Mercado Pago
+                            // classifica assim vários cartões de débito (ex.: Elo) e ele é cobrado à vista.
+                            ...(cardType ? {
+                                types: { excluded: cardType === 'debit' ? ['credit_card'] : ['debit_card', 'prepaid_card'] },
+                            } : {}),
+                        },
                         visual: {
                             hideFormTitle: true,
                             style: {
@@ -109,6 +119,7 @@ export default function CardPaymentBrick({ publicKey, amount, maxInstallments, p
                                 identification_Type: formData.payer?.identification?.type,
                                 identification_Number: formData.payer?.identification?.number,
                                 last_Four_Digits: additionalData?.lastFourDigits,
+                                card_Type: cardType,
                             }),
                     },
                 });
@@ -126,7 +137,7 @@ export default function CardPaymentBrick({ publicKey, amount, maxInstallments, p
             try { controller?.unmount(); } catch { /* já desmontado */ }
         };
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [publicKey, amount, maxInstallments, retryKey]);
+    }, [publicKey, amount, maxInstallments, cardType, retryKey]);
 
     return (
         <div className="relative">

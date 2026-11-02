@@ -146,8 +146,8 @@ public class OrderService : IOrderService
             // O total cobrado vem do carrinho calculado aqui (preços do banco, cupom e frete),
             // o mesmo cálculo que a tela mostra. Se o valor enviado for diferente, o pedido é recusado.
             var paymentTerms = (Order.Payment_terms ?? "").Trim().ToLowerInvariant();
-            if (paymentTerms != "pix" && paymentTerms != "credit")
-                return Result<OrderCreatedResponse>.Failure(Error.Validation("Pagamento", "Escolha PIX ou cartão para continuar."));
+            if (paymentTerms != "pix" && paymentTerms != "credit" && paymentTerms != "debit")
+                return Result<OrderCreatedResponse>.Failure(Error.Validation("Pagamento", "Escolha PIX, crédito ou débito para continuar."));
 
             if (Order.Address == null || Order.Address.Id <= 0)
                 return Result<OrderCreatedResponse>.Failure(Error.Validation("Pedido", "Escolha o endereço de entrega."));
@@ -1065,6 +1065,36 @@ public class OrderService : IOrderService
         {
             return Result<RatingResponse>.Failure(Error.Failure("Avaliação", "Não foi possível carregar a avaliação."));
         }
+    }
+
+    public async Task<Result<List<BrindeClienteResponse>>> GetMeusBrindes(int idCliente)
+    {
+        var lista = await _unitOfWork.Query<Brinde_Cliente>()
+            .Where(x => x.Id_User_Customer == idCliente && x.Isdelete != true)
+            .Include(x => x.Brinde)
+            .Include(x => x.Order)
+            .AsNoTracking()
+            .OrderByDescending(x => x.InsertDate)
+            .Select(x => new BrindeClienteResponse
+            {
+                Id = x.Id,
+                Id_Brinde = x.Id_Brinde,
+                Nome_Brinde = x.Brinde.Nome,
+                Imagem_Brinde = x.Brinde.Imagem,
+                Colecao = x.Brinde.Colecao,
+                Id_User_Customer = x.Id_User_Customer,
+                Nome_Cliente = "",
+                Id_Order = x.Id_Order,
+                Numero_Pedido = x.Order != null ? x.Order.Number_Order : null,
+                Origem = x.Origem,
+                Status = x.Status,
+                Entregue_Em = x.Entregue_Em,
+                Quem_Entregou = x.Quem_Entregou,
+                InsertDate = x.InsertDate
+            })
+            .ToListAsync();
+
+        return Result<List<BrindeClienteResponse>>.Success(lista);
     }
 
 }

@@ -2,7 +2,7 @@
 import { ChevronLeft, Lock, ChevronDown, User, Package, Heart, LayoutDashboard, LogOut } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useStore } from '../context/store';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { UseUserStore } from '../store/UseUserStore';
 import { getColorConfig } from '../types/Colors';
 import { useAuthStore } from '../context/AuthContext';
@@ -26,6 +26,7 @@ export default function Headerpages({
     const navigate = useNavigate();
     const { BaseSiteInterface, getBaseSiteAdmin } = UseUserAdminStore()
     const [userMenuOpen, setUserMenuOpen] = useState(false);
+    const userMenuRef = useRef<HTMLDivElement>(null);
     const colorConfig = getColorConfig(NameColorGlobal);
 
     const handleBack = () => {
@@ -38,6 +39,22 @@ export default function Headerpages({
         };
         load();
     }, []);
+    useEffect(() => {
+  const handleClickOutside = (event: MouseEvent) => {
+    if (
+      userMenuRef.current &&
+      !userMenuRef.current.contains(event.target as Node)
+    ) {
+      setUserMenuOpen(false);
+    }
+  };
+
+  document.addEventListener('mousedown', handleClickOutside);
+
+  return () => {
+    document.removeEventListener('mousedown', handleClickOutside);
+  };
+}, []);
     return (
         <header
             className="sticky top-0 z-50 shadow-strong border-b border-surface-800"
@@ -104,10 +121,25 @@ export default function Headerpages({
                 {/* Direita: usuário ou compra segura */}
                 <div className="w-28 flex justify-end">
                     {user ? (
-                        <div className="relative">
-                            <button onClick={() => setUserMenuOpen(!userMenuOpen)} className="flex items-center gap-2 px-3 py-2 rounded-xl text-surface-300 hover:text-white hover:bg-surface-800 transition-all">
-                                <div className={`w-7 h-7 rounded-full bg-gradient-to-br ${ColorGlobalTema} flex items-center justify-center`}><span className="text-white text-xs font-bold">{user.name[0]}</span></div>
-                                <span className="hidden md:block text-sm font-body max-w-[80px] truncate">{user.name.split(' ')[0]}</span>
+                        <div ref={userMenuRef} className="relative">
+                            <button
+                                onClick={() => setUserMenuOpen(!userMenuOpen)}
+                                className="flex items-center gap-2 px-3 py-2 rounded-xl text-surface-300 hover:text-white hover:bg-surface-800 transition-all"
+                            >
+                                <div className={`w-7 h-7 rounded-full ${ColorGlobalTema} flex items-center justify-center overflow-hidden`}>
+                                    {user.avatar ? (
+                                        <img src={`/Imagens/Usuarios/${user.avatar}`} alt={user.name} className="w-full h-full object-cover" />
+                                    ) : (
+                                        <span className="text-white text-xs font-bold">
+                                            {user.name[0]}
+                                        </span>
+                                    )}
+                                </div>
+
+                                <span className="hidden md:block text-sm font-body max-w-[80px] truncate">
+                                    {user.name.split(' ')[0]}
+                                </span>
+
                                 <ChevronDown className="w-3 h-3 hidden md:block" />
                             </button>
                             {userMenuOpen && (

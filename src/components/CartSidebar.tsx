@@ -80,7 +80,14 @@ export default function CartSidebar() {
                 <div className="flex-1 min-w-0">
                   <h4 className="text-sm font-body font-medium text-surface-800 line-clamp-2 leading-tight">{item.product?.name}</h4>
                   {item.selectedVariation && (
-                    <p className="text-xs text-surface-400 font-body mt-0.5">{item.selectedVariation.name}: {item.selectedVariation.value}</p>
+                    <p className="text-xs text-surface-400 font-body mt-0.5">
+                      {item.selectedVariation.atributos?.length
+                        ? item.selectedVariation.atributos.map(a => `${a.eixo}: ${a.valor}`).join(', ')
+                        : `${item.selectedVariation.name}: ${item.selectedVariation.value}`}
+                    </p>
+                  )}
+                  {(item.selectedVariation?.price_Modifier ?? 0) > 0 && (
+                    <p className="text-[11px] text-brand-600 font-body mt-0.5">{formatPrice((item.product?.price_Unic ?? 0) - (item.selectedVariation!.price_Modifier ?? 0))} + {formatPrice(item.selectedVariation!.price_Modifier!)} {item.selectedVariation!.atributos?.length ? item.selectedVariation!.atributos.map(a => a.valor).join(' / ') : item.selectedVariation!.value}</p>
                   )}
                   <div className="flex items-center justify-between mt-2">
                     <span className="font-display font-bold text-surface-900 text-sm">{formatPrice(item.product?.price_Unic || 0)}</span>

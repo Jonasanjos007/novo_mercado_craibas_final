@@ -3,7 +3,9 @@ import {
   ChevronLeft, ChevronRight, Flame, Star, Zap, Shield, Truck,
   RefreshCw, Heart, TrendingUp, Award, ArrowRight,
   Sparkles, ShoppingBag, Percent, Package,
-  User, Ticket, Copy, Check, LayoutGrid
+  User, Ticket, Copy, Check, LayoutGrid,
+  MessageCircle,
+  Instagram
 } from 'lucide-react';
 import { useStore } from '../context/store';
 import { PROMOTIONS } from '../data/products';
@@ -816,31 +818,7 @@ export default function HomePage() {
 
           </div>
         </section>s
-        {/* ── BRANDS SHOWCASE ── */}
-        <section className="mb-10">
-          <h2 className="font-display font-bold text-surface-900 text-xl tracking-tight mb-5 text-center">
-            Marcas que Você Ama
-          </h2>
-          <div className="grid grid-cols-3 md:grid-cols-6 gap-3">
-            {[
-              { name: 'Apple', emoji: '🍎', bg: 'bg-gray-50', border: 'border-gray-200' },
-              { name: 'Samsung', emoji: '📱', bg: 'bg-blue-50', border: 'border-blue-100' },
-              { name: 'Stanley', emoji: '🧊', bg: 'bg-green-50', border: 'border-green-100' },
-              { name: 'JBL', emoji: '🎧', bg: 'bg-orange-50', border: 'border-orange-100' },
-              { name: 'Sony', emoji: '🎮', bg: 'bg-purple-50', border: 'border-purple-100' },
-              { name: 'Outros', emoji: '✨', bg: 'bg-brand-50', border: 'border-brand-100' },
-            ].map((brand, i) => (
-              <button
-                key={i}
-                onClick={() => navigate('/brands')}
-                className={`${brand.bg} border ${brand.border} rounded-2xl p-4 flex flex-col items-center gap-2 hover:shadow-medium hover:-translate-y-0.5 transition-all`}
-              >
-                <span className="text-2xl">{brand.emoji}</span>
-                <span className="font-display font-bold text-surface-700 text-xs">{brand.name}</span>
-              </button>
-            ))}
-          </div>
-        </section>
+
 
         {/* ── WHY US ── */}
         <section className="mb-12">
@@ -867,10 +845,10 @@ export default function HomePage() {
               </div>
               <div className="grid grid-cols-2 gap-3">
                 {[
-                  { icon: <Package className="w-5 h-5" />, title: '500+', sub: 'Produtos', color: 'text-blue-400', bg: 'bg-blue-500/10' },
-                  { icon: <ShoppingBag className="w-5 h-5" />, title: '10K+', sub: 'Pedidos', color: 'text-green-400', bg: 'bg-green-500/10' },
+                  { icon: <Package className="w-5 h-5" />, title: `${products.length}+`, sub: 'Produtos', color: 'text-blue-400', bg: 'bg-blue-500/10' },
+                  { icon: <ShoppingBag className="w-5 h-5" />, title: '+', sub: 'Pedidos', color: 'text-green-400', bg: 'bg-green-500/10' },
                   { icon: <Star className="w-5 h-5 fill-amber-400" />, title: '4.9', sub: 'Avaliação', color: 'text-amber-400', bg: 'bg-amber-500/10' },
-                  { icon: <Heart className="w-5 h-5 fill-red-400/30" />, title: '3K+', sub: 'Clientes', color: 'text-red-400', bg: 'bg-red-500/10' },
+                  { icon: <Heart className="w-5 h-5 fill-red-400/30" />, title: '300+', sub: 'Clientes', color: 'text-red-400', bg: 'bg-red-500/10' },
                 ].map((s, i) => (
                   <div key={i} className="bg-white/[0.04] border border-white/[0.06] rounded-2xl p-4">
                     <div className={`w-9 h-9 rounded-xl ${s.bg} flex items-center justify-center ${s.color} mb-3`}>
@@ -904,12 +882,27 @@ export default function HomePage() {
               <p className="text-surface-500 font-body text-xs leading-relaxed mb-4 max-w-[220px]">
                 O marketplace local com os melhores preços, produtos originais e entrega rápida para toda a região.
               </p>
-              <div className="flex gap-2">
-                {['📱', '💬', '📸'].map((emoji, i) => (
-                  <button key={i} className={`w-8 h-8 rounded-xl bg-surface-800 ${ColorGlobalHover} flex items-center justify-center text-sm transition-all`}>
-                    {emoji}
-                  </button>
-                ))}
+
+              <div className="flex items-center gap-4">
+                <a
+                  href="https://api.whatsapp.com/send/?phone=5519993466756&text=Ol%C3%A1%21+Vim+pelo+site+do+Mercado+Craibas+e+gostaria+de+falar+com+voc%C3%AAs.&type=phone_number&app_absent=0"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  aria-label="WhatsApp"
+                  className="text-surface-500 hover:text-brand-500 hover:scale-110 transition-all duration-300"
+                >
+                  <MessageCircle size={21} />
+                </a>
+
+                <a
+                  href="https://www.instagram.com/mercado_craibas?psln=NTVuaTMyZzB4dnFp&utm_source=qr"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  aria-label="Instagram"
+                  className="text-surface-500 hover:text-brand-500 hover:scale-110 transition-all duration-300"
+                >
+                  <Instagram size={21} />
+                </a>
               </div>
             </div>
 
@@ -962,10 +955,10 @@ export default function HomePage() {
 
           <div className="border-t border-surface-800 pt-6 flex flex-col md:flex-row items-center justify-between gap-3">
             <p className="text-surface-600 font-body text-xs">
-              © 2026 Mercado Craibas · CNPJ 00.000.000/0001-00 · Craibas, AL
+              © 2026 Mercado Craibas · Craibas, AL
             </p>
             <div className="flex items-center gap-2 flex-wrap justify-center">
-              {['PIX', 'Visa', 'Mastercard', 'Elo', 'Boleto', 'Amex'].map(m => (
+              {['PIX', 'Visa', 'Mastercard', 'Elo'].map(m => (
                 <span key={m} className="px-2.5 py-1 bg-surface-800 rounded-lg text-surface-400 font-body text-[10px] font-semibold">
                   {m}
                 </span>
@@ -979,16 +972,6 @@ export default function HomePage() {
         message="Carregando Produtos"
         subMessage="Carregando os melhores produtos para você"
       />
-      {/* <GlobalMessageModal
-        open={true}
-        type="promotion"
-        title="🔥 Cupom exclusivo pra você"
-        message="Use o código BEMVINDO10 e ganhe 10% de desconto na primeira compra."
-        buttonText="Agora não"
-        actionText="Usar cupom"
-        onAction={() => { handleCopyCoupon('BEMVINDO10'); setShowPromo(false); }}
-        onClose={() => setShowPromo(false)}
-      /> */}
 
     </div>
   );

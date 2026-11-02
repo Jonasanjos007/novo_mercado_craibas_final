@@ -17,6 +17,14 @@ namespace Mercado.Craibas.Application.DTOs.Requests
         public int? Stoke { get; set; }
         public double? Price_Modifier { get; set; }
         public bool? New { get; set; } = false;
+        /// <summary>Eixos desta combinação (ex.: Cor=Preto, Memória=128GB). Vazio = variação simples.</summary>
+        public List<VarianteAtributoRequest>? Atributos { get; set; }
 
+    }
+
+    public class VarianteAtributoRequest
+    {
+        public string? Eixo { get; set; }
+        public string? Valor { get; set; }
     }
 }

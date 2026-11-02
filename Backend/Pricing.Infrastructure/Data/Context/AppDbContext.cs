@@ -1,4 +1,4 @@
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using System.Collections.Generic;
 
 namespace Mercado.Craibas.Infrastructure.Data.Context;
@@ -27,6 +27,7 @@ public class AppDbContext : DbContext
     public DbSet<User_Customer> User_Customer => Set<User_Customer>();
     public DbSet<User_Delivery> User_Delivery => Set<User_Delivery>();
     public DbSet<Variante_Products> Variante_Products => Set<Variante_Products>();
+    public DbSet<Variante_Atributos> Variante_Atributos => Set<Variante_Atributos>();
     public DbSet<BaseRates> BaseRates => Set<BaseRates>();
     public DbSet<Coupon_Category> Coupon_Category => Set<Coupon_Category>();
     public DbSet<Coupon_Product> Coupon_Product => Set<Coupon_Product>();
@@ -39,6 +40,8 @@ public class AppDbContext : DbContext
     public DbSet<DeliveryPayout> DeliveryPayouts => Set<DeliveryPayout>();
     public DbSet<DeliveryPayoutItem> DeliveryPayoutItems => Set<DeliveryPayoutItem>();
     public DbSet<Payment_Transactions> Payment_Transactions => Set<Payment_Transactions>();
+    public DbSet<Brinde> Brinde => Set<Brinde>();
+    public DbSet<Brinde_Cliente> Brinde_Cliente => Set<Brinde_Cliente>();
 
 
     public AppDbContext(DbContextOptions<AppDbContext> options)

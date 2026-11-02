@@ -5,8 +5,21 @@ import { OrderSave, Order, RatingResponse } from "../models/Order";
 import { Product } from "../models/Product";
 import { makeResult, Result } from "../utils/Result";
 import { OrderCreated } from "../models/Payment";
+import { BrindeCliente } from "../models/Brinde";
 
 export const OrderService = {
+    GetMeusBrindes: async (): Promise<Result<BrindeCliente[]>> => {
+        try {
+            const response = await api.get("/v1/order/GetMeusBrindes");
+            const { success, data, error } = response.data;
+            if (!success) {
+                return makeResult(false, [], error);
+            }
+            return makeResult(true, data || [], error);
+        } catch (err: any) {
+            return makeResult(false, [], err.response?.data);
+        }
+    },
     GetCupomSearch: async (): Promise<Result<Cupom[]>> => {
         try {
             const response = await api.get("/v1/cupom/GetAllCupom");

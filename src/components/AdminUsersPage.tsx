@@ -71,6 +71,8 @@ export default function AdminUsersPage({
         role: '',
         Activ: false
     });
+    console.log("selectedUser",selectedUser)
+    console.log("userLogs",userLogs)
     const [showPurchases, setShowPurchases] = useState(false);
     const [showAddress, setShowAddress] = useState(false);
     // const [selectedAddress, setSelectedAddress] = useState<any>(null);
@@ -87,6 +89,7 @@ export default function AdminUsersPage({
 
     // Logs do usuário aberto: busca só os dele no servidor
     const selectedUserId = selectedUser?.id;
+    console.log("selectedUserId",selectedUserId)
     useEffect(() => {
         if (selectedUserId === undefined) { setUserLogs([]); return; }
         let cancelled = false;
@@ -562,14 +565,19 @@ export default function AdminUsersPage({
                                                     className={` group border-b ${cardBorder} last:border-0 ${rowHover} transition-colors`}
                                                 >
                                                     {/* USER */}
-
                                                     <td className="px-6 py-4">
                                                         <div className="flex items-center gap-3">
                                                             <div
-                                                                className={` w-11 h-11 rounded-xl flex items-center justify-center font-bold text-sm shrink-0 ${config.avatar}`}
+                                                                className={`w-11 h-11 rounded-xl flex items-center justify-center font-bold text-sm shrink-0 overflow-hidden ${config.avatar}`}
                                                             >
-                                                                {getInitials(
-                                                                    user.name || ""
+                                                                {user.avatar ? (
+                                                                    <img
+                                                                        src={`/Imagens/Usuarios/${user.avatar}`}
+                                                                        alt={user.name || "Usuário"}
+                                                                        className="w-full h-full object-cover"
+                                                                    />
+                                                                ) : (
+                                                                    getInitials(user.name || "")
                                                                 )}
                                                             </div>
                                                             <div className="min-w-0">
@@ -688,7 +696,7 @@ export default function AdminUsersPage({
                                                                         Visualizar perfil
                                                                     </button>
 
-                                                                    <button
+                                                                    {/* <button
                                                                         type="button"
                                                                         onClick={() =>
                                                                             Controller?.action.setOpenMenu(
@@ -699,7 +707,7 @@ export default function AdminUsersPage({
                                                                     >
                                                                         <Pencil className="w-4 h-4" />
                                                                         Editar usuário
-                                                                    </button>
+                                                                    </button> */}
 
                                                                     <button
                                                                         type="button"
@@ -1058,7 +1066,7 @@ export default function AdminUsersPage({
                                         </p>
 
                                         <p className={` text-xs font-semibold mt-1 ${secondaryText}`}>
-                                            {new Date(selectedUser.insert_Date).toLocaleDateString("pt-BR")}
+                                            {new Date(selectedUser.insert_Date).toLocaleDateString("pt-BR")  ?? 'Não informado'}
 
                                         </p>
                                     </div>
@@ -1069,7 +1077,7 @@ export default function AdminUsersPage({
                                         </p>
 
                                         <p className={`text-xs font-semibold mt-1 ${secondaryText} `} >
-                                            {LastAccessLog.insertDate
+                                            {LastAccessLog?.insertDate
                                                 ? new Date(LastAccessLog.insertDate).toLocaleString('pt-BR', {
                                                     day: '2-digit',
                                                     month: '2-digit',

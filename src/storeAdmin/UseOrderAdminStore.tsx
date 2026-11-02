@@ -186,7 +186,10 @@ export const UseOrderAdminStore = create<OrderState>((set, get) => ({
         return makeResult(true, true);
     },
 
-    GetLogsByUser: (userId: number) => OrderServiceAdmin.GetLogsByUser(userId),
+    GetLogsByUser: (userId: number) => {
+        console.log("GetLogsByUser", userId)
+        return OrderServiceAdmin.GetLogsByUser(userId);
+    },
 
     LoadLogsSummary: async () => {
         const result = await OrderServiceAdmin.GetLogsSummary();

@@ -19,6 +19,11 @@ import { UseUserAdminStore } from "../storeAdmin/UseUserAdminStore";
 import { getMensagemWhatsApp } from "../utils";
 import { UseNotificationAdmin } from "../storeAdmin/UseNotificationAdmin";
 
+/** Eixo de variação com seu nome e a lista de valores possíveis (ex.: Cor -> [Azul, Preto]). */
+export type VariantAxis = { name: string; values: string[] };
+/** Célula da grade de combinações (produto cartesiano dos eixos). */
+export type GridCombo = { id: number; cells: number[]; stoke: number; price_Modifier: number; ativo: boolean; dbId?: number };
+
 type AdminControllerReturn = {
     result: {
         Loading: boolean;
@@ -27,6 +32,12 @@ type AdminControllerReturn = {
         currentMonthOrdersCount: number;
         newProduct: Partial<ProductAdmin>;
         variantErrors: Record<string, string>;
+        /** Eixos de variação (nome + valores) do produto no cadastro. */
+        variantAxes: VariantAxis[];
+        /** Grade de combinações (produto cartesiano dos eixos). */
+        variantGrid: GridCombo[];
+        /** Soma do estoque das combinações ativas. */
+        variantStockTotal: number;
         errors: Record<string, string>;
         cuponsErrors: Record<string, string>;
         modalStep: number;
@@ -116,9 +127,14 @@ type AdminControllerReturn = {
         //Metodos
         handleImageSelect: (e: React.ChangeEvent<HTMLInputElement>) => void;
         removeImage: (index: number) => void;
-        addVariant: () => void;
-        updateVariant: (id: number, patch: Partial<ProductVariation>) => void;
-        removeVariant: (id: number) => void;
+        addVariantAxis: () => void;
+        removeVariantAxis: (axisIndex: number) => void;
+        renameVariantAxis: (axisIndex: number, nome: string) => void;
+        addAxisValue: (axisIndex: number) => void;
+        removeAxisValue: (axisIndex: number, valueIndex: number) => void;
+        setAxisValue: (axisIndex: number, valueIndex: number, valor: string) => void;
+        setComboField: (comboId: number, patch: { stoke?: number; price_Modifier?: number }) => void;
+        toggleCombo: (comboId: number) => void;
         handleSaveProduct: () => void;
         handleDeleteProduct: (reason?: string) => void;
         handleEditeProduct: () => void;
@@ -196,6 +212,65 @@ export const useAdminController = (): AdminControllerReturn => {
     const [newProduct, setNewProduct] = useState<Partial<ProductAdmin>>({});
 
     const [variantErrors, setVariantErrors] = useState<Record<string, string>>({});
+    // Eixos (nome + valores) e a grade de combinações gerada automaticamente.
+    const [variantAxes, setVariantAxes] = useState<VariantAxis[]>([{ name: '', values: [''] }]);
+    const [variantGrid, setVariantGrid] = useState<GridCombo[]>([]);
+    const [originalVariantIds, setOriginalVariantIds] = useState<number[]>([]);
+
+    // Produto cartesiano dos índices de valores de cada eixo.
+    const cartesian = (axes: VariantAxis[]): number[][] => {
+        if (!axes.length) return [];
+        return axes.reduce<number[][]>((acc, ax) => {
+            const idxs = ax.values.map((_, i) => i);
+            if (!idxs.length) return [];
+            return acc.flatMap(tuple => idxs.map(i => [...tuple, i]));
+        }, [[]]);
+    };
+
+    // Regera a grade a partir dos eixos, preservando estoque/preço/ativo das combinações iguais.
+    const regenGrid = (axes: VariantAxis[], old: GridCombo[]): GridCombo[] =>
+        cartesian(axes).map(cells => {
+            const antigo = old.find(c => c.cells.length === cells.length && c.cells.every((v, i) => v === cells[i]));
+            return antigo
+                ? { ...antigo, cells }
+                : { id: Math.floor(Math.random() * 1e9), cells, stoke: 0, price_Modifier: 0, ativo: true };
+        });
+
+    const addVariantAxis = () => {
+        const novos = [...variantAxes, { name: '', values: [''] }];
+        setVariantAxes(novos);
+        setVariantGrid(regenGrid(novos, variantGrid.map(c => ({ ...c, cells: [...c.cells, 0] }))));
+    };
+    const removeVariantAxis = (axisIndex: number) => {
+        if (variantAxes.length <= 1) return; // mantém ao menos um eixo
+        const novos = variantAxes.filter((_, i) => i !== axisIndex);
+        setVariantAxes(novos);
+        const colapsado = variantGrid.map(c => ({ ...c, cells: c.cells.filter((_, i) => i !== axisIndex) }));
+        setVariantGrid(regenGrid(novos, colapsado));
+    };
+    const renameVariantAxis = (axisIndex: number, nome: string) =>
+        setVariantAxes(variantAxes.map((a, i) => i === axisIndex ? { ...a, name: nome } : a));
+    const addAxisValue = (axisIndex: number) => {
+        const novos = variantAxes.map((a, i) => i === axisIndex ? { ...a, values: [...a.values, ''] } : a);
+        setVariantAxes(novos);
+        setVariantGrid(regenGrid(novos, variantGrid));
+    };
+    const removeAxisValue = (axisIndex: number, valueIndex: number) => {
+        const ax = variantAxes[axisIndex];
+        if (!ax || ax.values.length <= 1) return; // mantém ao menos um valor por eixo
+        const novos = variantAxes.map((a, i) => i === axisIndex ? { ...a, values: a.values.filter((_, vi) => vi !== valueIndex) } : a);
+        setVariantAxes(novos);
+        const remapado = variantGrid
+            .filter(c => c.cells[axisIndex] !== valueIndex)
+            .map(c => ({ ...c, cells: c.cells.map((v, i) => (i === axisIndex && v > valueIndex) ? v - 1 : v) }));
+        setVariantGrid(regenGrid(novos, remapado));
+    };
+    const setAxisValue = (axisIndex: number, valueIndex: number, valor: string) =>
+        setVariantAxes(variantAxes.map((a, i) => i === axisIndex ? { ...a, values: a.values.map((v, vi) => vi === valueIndex ? valor : v) } : a));
+    const setComboField = (comboId: number, patch: { stoke?: number; price_Modifier?: number }) =>
+        setVariantGrid(variantGrid.map(c => c.id === comboId ? { ...c, ...patch } : c));
+    const toggleCombo = (comboId: number) =>
+        setVariantGrid(variantGrid.map(c => c.id === comboId ? { ...c, ativo: !c.ativo } : c));
     const [cuponsErrors, setCuponsErrors] = useState<Record<string, string>>({});
     const [showCouponModal, setShowCouponModal] = useState(false);
     const [showCouponModalActive, setShowCouponModalActive] = useState(false);
@@ -203,6 +278,39 @@ export const useAdminController = (): AdminControllerReturn => {
 
     const [errors, setErrors] = useState<Record<string, string>>({});
     const [showProductModal, setShowProductModal] = useState(false);
+
+    // Ao abrir o cadastro: deriva eixos (nome + valores) e monta a grade de combinações.
+    useEffect(() => {
+        if (!showProductModal) return;
+        const vs = newProduct.variations ?? [];
+        // Normaliza produto antigo de 1 eixo (name/value) para atributos.
+        const norm = vs.map(v => ({
+            ...v,
+            atributos: v.atributos?.length ? v.atributos : (v.name ? [{ eixo: v.name, valor: v.value }] : []),
+        }));
+        // Deriva eixos: nome e valores distintos por posição.
+        const eixosTmp: VariantAxis[] = [];
+        norm.forEach(v => (v.atributos ?? []).forEach((a, i) => {
+            if (!eixosTmp[i]) eixosTmp[i] = { name: a.eixo, values: [] };
+            if (a.valor && !eixosTmp[i].values.includes(a.valor)) eixosTmp[i].values.push(a.valor);
+        }));
+        const eixos: VariantAxis[] = eixosTmp.length
+            ? eixosTmp.map(a => ({ name: a.name, values: a.values.length ? a.values : [''] }))
+            : [{ name: '', values: [''] }];
+        // Monta a grade cheia; ativa as combinações que já existem no produto.
+        const grade = regenGrid(eixos, []).map(c => {
+            const existente = norm.find(v => (v.atributos ?? []).length === c.cells.length
+                && (v.atributos ?? []).every((a, i) => a.valor === eixos[i].values[c.cells[i]]));
+            return existente
+                ? { ...c, stoke: existente.stoke ?? 0, price_Modifier: existente.price_Modifier ?? 0, ativo: true, dbId: (existente.id && existente.id < 1e9) ? existente.id : undefined }
+                : { ...c, ativo: norm.length === 0 }; // produto novo: começa tudo ativo; edição: só o que existe
+        });
+        setVariantAxes(eixos);
+        setVariantGrid(grade);
+        setOriginalVariantIds(norm.map(v => v.id).filter(id => !!id && id < 1e9) as number[]);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [showProductModal]);
+
     const [showDeleteModal, setShowDeleteModal] = useState(false);
     const [SaveEditeLoading, setSaveEditeLoading] = useState(false);
     const [showDeleteModalCupom, setshowDeleteModalCupom] = useState(false);
@@ -678,24 +786,21 @@ console.log("cancelados", cancelados);
         setSaveEditeLoading(true);
         const errors: Record<string, string> = {};
 
-        if (!newProduct.variations?.length) {
-            errors["list"] = "Adicione pelo menos uma variante.";
+        const ativos = variantGrid.filter(c => c.ativo);
+        if (variantAxes.some(a => !a.name.trim())) {
+            errors["axes"] = "Dê um nome para cada eixo (ex.: Cor, Memória).";
+        } else if (variantAxes.some(a => a.values.every(v => !v.trim()))) {
+            errors["axes"] = "Cada eixo precisa de ao menos um valor (ex.: 64GB).";
+        }
+        if (!ativos.length) {
+            errors["list"] = "Marque ao menos uma combinação como vendida.";
         } else {
-            newProduct.variations.forEach((variant, index) => {
-                if (!variant.type?.trim()) {
-                    errors[`${index}.type`] = "Informe o tipo.";
+            ativos.forEach(c => {
+                if (c.cells.some((vi, ai) => !variantAxes[ai]?.values[vi]?.trim())) {
+                    errors[`${c.id}.a`] = "Preencha o valor de cada eixo.";
                 }
-
-                if (!variant.name?.trim()) {
-                    errors[`${index}.name`] = "Informe o nome.";
-                }
-
-                if (!variant.value?.trim()) {
-                    errors[`${index}.value`] = "Informe o valor.";
-                }
-
-                if (variant.stoke <= 0) {
-                    errors[`${index}.stoke`] = "Informe um estoque válido.";
+                if ((c.stoke ?? 0) <= 0) {
+                    errors[`${c.id}.stoke`] = "Informe um estoque válido.";
                 }
             });
         }
@@ -703,6 +808,8 @@ console.log("cancelados", cancelados);
         setVariantErrors(errors);
 
         if (Object.keys(errors).length > 0) {
+            setSaveEditeLoading(false); // libera o botão e avisa o que faltou
+            notify.error("Revise as variantes", errors["axes"] || errors["list"] || "Preencha os valores, o estoque e os eixos de cada combinação.");
             return;
         }
 
@@ -714,7 +821,7 @@ console.log("cancelados", cancelados);
         formData.append("Description", newProduct.description ?? "");
         formData.append("Price_Unit", String(newProduct.price_Unic ?? 0));
         formData.append("Origin_Price", String(newProduct.origin_Price ?? 0));
-        formData.append("Total_Stock", String(newProduct.total_Stock ?? 0));
+        formData.append("Total_Stock", String(variantGrid.filter(c => c.ativo).reduce((s, c) => s + (Number(c.stoke) || 0), 0)));
         formData.append("Id_Category", String(newProduct.id_category ?? 0));
         formData.append("Badge", newProduct.badge ?? "");
         formData.append("Tags", newProduct.tags ?? "");
@@ -725,14 +832,14 @@ console.log("cancelados", cancelados);
         formData.append("ShowBanner", String(newProduct.showBanner ?? false));
 
 
-        // Variações
-        newProduct.variations?.forEach((v, index) => {
-            formData.append(`Variants[${index}].Type`, v.type);
-            formData.append(`Variants[${index}].Name`, v.name);
-            formData.append(`Variants[${index}].Value`, v.value);
-            formData.append(`Variants[${index}].Stoke`, String(v.stoke));
-            formData.append(`Variants[${index}].Price_Modifier`, String(v.price_Modifier ?? 0));
-
+        // Variações (combinações marcadas como vendidas)
+        variantGrid.filter(c => c.ativo).forEach((c, index) => {
+            formData.append(`Variants[${index}].Stoke`, String(c.stoke));
+            formData.append(`Variants[${index}].Price_Modifier`, String(c.price_Modifier ?? 0));
+            variantAxes.forEach((ax, ai) => {
+                formData.append(`Variants[${index}].Atributos[${ai}].Eixo`, ax.name ?? '');
+                formData.append(`Variants[${index}].Atributos[${ai}].Valor`, ax.values[c.cells[ai]] ?? '');
+            });
         });
         // Imagens
         newProduct.imagens?.forEach((img, index) => {
@@ -773,24 +880,21 @@ console.log("cancelados", cancelados);
     const handleEditeProduct = async () => {
         const errors: Record<string, string> = {};
         setSaveEditeLoading(true);
-        if (!newProduct.variations?.length) {
-            errors["list"] = "Adicione pelo menos uma variante.";
+        const ativos = variantGrid.filter(c => c.ativo);
+        if (variantAxes.some(a => !a.name.trim())) {
+            errors["axes"] = "Dê um nome para cada eixo (ex.: Cor, Memória).";
+        } else if (variantAxes.some(a => a.values.every(v => !v.trim()))) {
+            errors["axes"] = "Cada eixo precisa de ao menos um valor (ex.: 64GB).";
+        }
+        if (!ativos.length) {
+            errors["list"] = "Marque ao menos uma combinação como vendida.";
         } else {
-            newProduct.variations.forEach((variant, index) => {
-                if (!variant.type?.trim()) {
-                    errors[`${index}.type`] = "Informe o tipo.";
+            ativos.forEach(c => {
+                if (c.cells.some((vi, ai) => !variantAxes[ai]?.values[vi]?.trim())) {
+                    errors[`${c.id}.a`] = "Preencha o valor de cada eixo.";
                 }
-
-                if (!variant.name?.trim()) {
-                    errors[`${index}.name`] = "Informe o nome.";
-                }
-
-                if (!variant.value?.trim()) {
-                    errors[`${index}.value`] = "Informe o valor.";
-                }
-
-                if (variant.stoke <= 0) {
-                    errors[`${index}.stoke`] = "Informe um estoque válido.";
+                if ((c.stoke ?? 0) <= 0) {
+                    errors[`${c.id}.stoke`] = "Informe um estoque válido.";
                 }
             });
         }
@@ -798,6 +902,8 @@ console.log("cancelados", cancelados);
         setVariantErrors(errors);
 
         if (Object.keys(errors).length > 0) {
+            setSaveEditeLoading(false); // libera o botão e avisa o que faltou
+            notify.error("Revise as variantes", errors["axes"] || errors["list"] || "Preencha os valores, o estoque e os eixos de cada combinação.");
             return;
         }
 
@@ -809,7 +915,7 @@ console.log("cancelados", cancelados);
         formData.append("Description", newProduct.description ?? "");
         formData.append("Price_Unit", String(newProduct.price_Unic ?? 0));
         formData.append("Origin_Price", String(newProduct.origin_Price ?? 0));
-        formData.append("Total_Stock", String(newProduct.total_Stock ?? 0));
+        formData.append("Total_Stock", String(variantGrid.filter(c => c.ativo).reduce((s, c) => s + (Number(c.stoke) || 0), 0)));
         formData.append("Id_Category", String(newProduct.id_category ?? 0));
         formData.append("Badge", newProduct.badge ?? "");
         formData.append("Tags", newProduct.tags ?? "");
@@ -820,17 +926,18 @@ console.log("cancelados", cancelados);
         formData.append("ShowBanner", String(newProduct.showBanner ?? false));
 
 
-        // Variações
-        newProduct.variations?.forEach((v, index) => {
-            formData.append(`Variants[${index}].Id`, String(v.id ?? 0));
+        // Variações (combinações vendidas): existentes atualizam, novas inserem
+        const ativosEdit = variantGrid.filter(c => c.ativo);
+        ativosEdit.forEach((c, index) => {
+            formData.append(`Variants[${index}].Id`, String(c.dbId ?? 0));
             formData.append(`Variants[${index}].Id_Product`, String(newProduct.id));
-            formData.append(`Variants[${index}].Type`, v.type);
-            formData.append(`Variants[${index}].New`, String(v.new ?? false));
-            formData.append(`Variants[${index}].Name`, v.name);
-            formData.append(`Variants[${index}].Value`, v.value);
-            formData.append(`Variants[${index}].Stoke`, String(v.stoke));
-            formData.append(`Variants[${index}].Price_Modifier`, String(v.price_Modifier ?? 0));
-
+            formData.append(`Variants[${index}].New`, String(!c.dbId));
+            formData.append(`Variants[${index}].Stoke`, String(c.stoke));
+            formData.append(`Variants[${index}].Price_Modifier`, String(c.price_Modifier ?? 0));
+            variantAxes.forEach((ax, ai) => {
+                formData.append(`Variants[${index}].Atributos[${ai}].Eixo`, ax.name ?? '');
+                formData.append(`Variants[${index}].Atributos[${ai}].Valor`, ax.values[c.cells[ai]] ?? '');
+            });
         });
         // Imagens
         newProduct.imagens?.forEach((img, index) => {
@@ -846,9 +953,8 @@ console.log("cancelados", cancelados);
             formData.append("RemovedImages", id.toString());
         });
 
-        removedVariants.forEach(id => {
-            formData.append("removedVariants", id.toString());
-        });
+        const ativosIds = new Set(ativosEdit.map(c => c.dbId).filter(Boolean) as number[]);
+        originalVariantIds.filter(id => !ativosIds.has(id)).forEach(id => formData.append("removedVariants", id.toString()));
 
         // console.log("formData", formData)
         // for (const [key, value] of formData.entries()) {
@@ -916,45 +1022,6 @@ console.log("cancelados", cancelados);
 
         setLightboxImage(null);
     };
-    const addVariant = () => {
-        setNewProduct((p) => ({
-            ...p,
-            variations: [
-                ...(p.variations || []),
-                {
-                    id: Math.floor(Math.random() * 1000000000),
-                    name: "",
-                    value: "",
-                    type: "",
-                    stoke: 0,
-                    price_Modifier: 0,
-                    new: true
-                },
-            ],
-        }));
-    };
-
-    const updateVariant = (id: number, patch: Partial<ProductVariation>) => {
-        setNewProduct((p) => ({
-            ...p,
-            variations: (p.variations || []).map((v) =>
-                v.id === id ? { ...v, ...patch } : v
-            ),
-        }));
-    };
-
-    const removeVariant = (id: number) => {
-        setNewProduct((p) => ({
-            ...p,
-            variations: (p.variations || []).filter((v) => v.id !== id),
-        }));
-
-        if (editingProduct) {
-            setRemovedVariants(old => [...new Set([...old, Number(id)])]);
-        }
-
-    };
-
     const handleDeleteProduct = async (reason?: string) => {
 
         if (!reason || reason.trim().length < 5) {
@@ -1476,6 +1543,9 @@ console.log("cancelados", cancelados);
         }
     };
 
+    // Estoque total do produto = soma das combinações ativas.
+    const variantStockTotal = variantGrid.filter(c => c.ativo).reduce((s, c) => s + (Number(c.stoke) || 0), 0);
+
     return {
         result: {
             Loading,
@@ -1483,6 +1553,9 @@ console.log("cancelados", cancelados);
             currentMonthOrdersCount,
             newProduct,
             variantErrors,
+            variantAxes,
+            variantGrid,
+            variantStockTotal,
             errors,
             modalStep,
             lightboxImage,
@@ -1531,9 +1604,14 @@ console.log("cancelados", cancelados);
             setModalStep,
             handleImageSelect,
             removeImage,
-            addVariant,
-            updateVariant,
-            removeVariant,
+            addVariantAxis,
+            removeVariantAxis,
+            renameVariantAxis,
+            addAxisValue,
+            removeAxisValue,
+            setAxisValue,
+            setComboField,
+            toggleCombo,
             setLightboxImage,
             handleNext,
             handleSaveProduct,
@@ -1585,5 +1663,3 @@ console.log("cancelados", cancelados);
         }
     }
 }
-
-

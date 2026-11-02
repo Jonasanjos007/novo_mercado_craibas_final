@@ -29,7 +29,7 @@ import { Calendar, Hash } from 'lucide-react';
 import { useStore } from '../context/store';
 import OrderAfterSaleActions, { OrderAfterSalePopups, ReturnProgress } from '../components/OrderAfterSaleActions';
 import { useOrderAfterSaleController } from '../controller/useOrderAfterSaleController';
-import { badgeColors, badgeLabels, formatPrice, orderStatusLabels, orderStatusColors, orderStatusSteps, returnBlocksReview, returnStatusLabels } from '../utils';
+import { badgeColors, badgeLabels, formatPrice, paymentTermsLabel, orderStatusLabels, orderStatusColors, orderStatusSteps, returnBlocksReview, returnStatusLabels } from '../utils';
 import { RotateCcw as ReturnIcon } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import ProfileCard from '../components/ProfileCard';
@@ -1296,7 +1296,7 @@ export default function ProfilePage() {
                           <CreditCard className="w-4 h-4 text-surface-400 mt-0.5 shrink-0" />
                           <div>
                             <p className="text-[10px] text-surface-400 font-body">Pagamento</p>
-                            <p className="text-sm font-bold text-surface-900">{selectedOrder.payment_terms}</p>
+                            <p className="text-sm font-bold text-surface-900">{paymentTermsLabel(selectedOrder.payment_terms)}</p>
                           </div>
                         </div>
                       )}

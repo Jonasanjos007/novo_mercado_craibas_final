@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { CreditCard, Smartphone, FileText, ChevronRight, Check, MapPin, ShoppingBag, Zap, ArrowLeft, Lock, Pencil, Ticket, X, BadgeCheck, Package, Truck, Mail, TicketPercent, AlertTriangle, Info, Clock, Bell, Receipt, Home } from 'lucide-react';
+import { CreditCard, Wallet, Smartphone, FileText, ChevronRight, Check, MapPin, ShoppingBag, Zap, ArrowLeft, Lock, Pencil, Ticket, X, BadgeCheck, Package, Truck, Mail, TicketPercent, AlertTriangle, Info, Clock, Bell, Receipt, Home } from 'lucide-react';
 import { useStore } from '../context/store';
 import { formatPrice } from '../utils';
 import { useNavigate } from 'react-router-dom';
@@ -24,20 +24,16 @@ import ConfirmPopup from '../components/ConfirmPopup';
 export default function CheckoutPage() {
   const Controller = useCheckoutController();
   const navigate = useNavigate();
-  const { setCartOpen } = UseCartStore();
   const { navigateTo } = UseRouteStore();
   const { cart } = UseCartStore();
   const { address } = UseAddressStore();
   const { Cupons } = UseOrderStore();
   const cupomSelecionado = Cupons.find(c => c.id === cart.id_Cupom) ?? null;
-  const { user, ColorGlobalTema, ColorGlobalText, ColorGlobalHoverText, NameColorGlobal } = UseUserStore();
+  const { user, ColorGlobalTema, ColorGlobalText, NameColorGlobal } = UseUserStore();
   const [selectedAddress, setSelectedAddress] = useState(true);
-  const [cardData, setCardData] = useState({ number: '', name: '', expiry: '', cvv: '' });
   const [coupon, setCoupon] = useState(String);
   const colorConfig = getColorConfig(NameColorGlobal);
-  const [openCouponModal, setOpenCouponModal] = useState(false);
   const [OpenAlert, setOpenAlert] = useState(false);
-  const [selectedCouponTed, setSelectedCouponTed] = useState<Cupom | null>(null);
   const [showCoupon, setShowCoupon] = useState(false);
   const [openCouponDetails, setOpenCouponDetails] = useState(false);
   const [openCouponConfirm, setopenCouponConfirm] = useState(false);
@@ -127,6 +123,11 @@ export default function CheckoutPage() {
         label: 'Cartão de crédito',
         icon: <CreditCard className="w-5 h-5" />,
         hint: 'A operadora do cartão confirma o pagamento em instantes.',
+      },
+      debit: {
+        label: 'Cartão de débito',
+        icon: <Wallet className="w-5 h-5" />,
+        hint: 'Pagamento à vista, confirmado em instantes pelo banco.',
       },
       boleto: {
         label: 'Boleto bancário',
@@ -329,6 +330,9 @@ export default function CheckoutPage() {
                         {item.quantity}x {formatPrice(item.price_Unic || 0)}
                         {item.variations?.name ? ` · ${item.variations.name}: ${item.variations.value}` : ''}
                       </p>
+                      {(item.variations?.price_Modifier ?? 0) > 0 && (
+                        <p className="text-[11px] text-brand-600">{formatPrice((item.price_Unic ?? 0) - (item.variations!.price_Modifier ?? 0))} + {formatPrice(item.variations!.price_Modifier!)} {item.variations!.value}</p>
+                      )}
                     </div>
                     <span className="text-sm font-display font-bold text-surface-900 shrink-0">
                       {formatPrice((item.price_Unic || 0) * (item.quantity || 0))}
@@ -636,15 +640,16 @@ export default function CheckoutPage() {
                 <h2 className="font-display font-bold text-surface-900 text-lg">Forma de Pagamento</h2>
               </div>
 
-              <div className="grid grid-cols-2 gap-3 mb-5">
+              <div className="grid grid-cols-3 gap-2 sm:gap-3 mb-5">
                 {([
                   { id: 'pix', icon: <Zap className="w-5 h-5" />, label: 'PIX', sub: '5% OFF', accent: 'green' },
-                  { id: 'credit', icon: <CreditCard className="w-5 h-5" />, label: 'Cartão', sub: 'Parcelado', accent: 'blue' },
+                  { id: 'credit', icon: <CreditCard className="w-5 h-5" />, label: 'Crédito', sub: 'Parcelado', accent: 'blue' },
+                  { id: 'debit', icon: <Wallet className="w-5 h-5" />, label: 'Débito', sub: 'À vista', accent: 'blue' },
                 ] as const).map(opt => (
                   <button
                     key={opt.id}
                     onClick={() => Controller?.action.setPayment(opt.id)}
-                    className={`flex flex-col items-center gap-2 p-4 rounded-2xl border-2 transition-all ${Controller?.result.payment === opt.id ? `border-${ColorGlobalTema.slice(3)} ${ColorGlobalTema.slice(0, -4)}-50` : 'border-surface-200 hover:border-surface-300'}`}
+                    className={`flex flex-col items-center gap-2 px-2 py-3 sm:p-4 rounded-2xl border-2 transition-all ${Controller?.result.payment === opt.id ? `border-${ColorGlobalTema.slice(3)} ${ColorGlobalTema.slice(0, -4)}-50` : 'border-surface-200 hover:border-surface-300'}`}
                   >
                     <div className={`${Controller?.result.payment === opt.id ? `${ColorGlobalText}` : 'text-surface-400'}`}>{opt.icon}</div>
                     <span className={`font-display font-bold text-sm ${Controller?.result.payment === opt.id ? `${ColorGlobalText}` : 'text-surface-600'}`}>{opt.label}</span>
@@ -673,16 +678,18 @@ export default function CheckoutPage() {
                 </div>
               )}
 
-              {Controller?.result.payment === 'credit' && (
+              {(Controller?.result.payment === 'credit' || Controller?.result.payment === 'debit') && (
                 <div className="rounded-2xl border border-surface-100 bg-surface-50/70 p-5 animate-fade-in">
                   <div className="flex items-start gap-3">
                     <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0" style={{ color: colorConfig.hex, backgroundColor: `${colorConfig.hex}14` }}>
                       <Lock className="w-5 h-5" />
                     </div>
                     <div className="min-w-0">
-                      <p className="font-display font-bold text-surface-900">Cartão de crédito ou débito</p>
+                      <p className="font-display font-bold text-surface-900">{Controller?.result.payment === 'debit' ? 'Cartão de débito' : 'Cartão de crédito'}</p>
                       <p className="text-sm text-surface-500 mt-0.5">
-                        Na próxima tela você preenche o cartão no formulário seguro do Mercado Pago e escolhe as parcelas. Os dados do cartão não ficam salvos no site.
+                        {Controller?.result.payment === 'debit'
+                          ? 'Na próxima tela você preenche o cartão de débito no formulário seguro do Mercado Pago. O pagamento é à vista. Os dados do cartão não ficam salvos no site.'
+                          : 'Na próxima tela você preenche o cartão no formulário seguro do Mercado Pago e escolhe as parcelas. Os dados do cartão não ficam salvos no site.'}
                       </p>
                     </div>
                   </div>
@@ -732,6 +739,9 @@ export default function CheckoutPage() {
                     <div className="flex-1 min-w-0">
                       <p className="font-body text-sm text-surface-800 font-medium line-clamp-1">{item.product?.name}</p>
                       {item.selectedVariation && <p className="text-xs text-surface-400 font-body">{item.selectedVariation.value}</p>}
+                      {(item.selectedVariation?.price_Modifier ?? 0) > 0 && (
+                        <p className="text-[11px] text-brand-600 font-body mt-0.5">{formatPrice((item.product?.price_Unic ?? 0) - (item.selectedVariation!.price_Modifier ?? 0))} + {formatPrice(item.selectedVariation!.price_Modifier!)} {item.selectedVariation!.value}</p>
+                      )}
                       <p className="text-xs text-surface-500 font-body mt-0.5">Qtd: {item.quantity}</p>
                     </div>
                     <div className="flex flex-col items-end">

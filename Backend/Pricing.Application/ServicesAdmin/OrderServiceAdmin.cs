@@ -146,9 +146,13 @@ namespace Mercado.Craibas.Application.ServicesAdmin
 
             var query = _unitOfWorkAdmin.Query<Orders>().AsNoTracking();
 
-            var term = search ?? string.Empty;
-            if (term.Length > 0)
-                query = query.Where(x => x.Id.ToString().Contains(term));
+            var term = Paging.Term(search);
+            if (term != null)
+                query = query.Where(x =>
+                    x.Id.ToString().Contains(term)
+                    || (x.Number_Order != null && x.Number_Order.Contains(term))
+                    || (x.User_Customer != null && x.User_Customer.Name != null && x.User_Customer.Name.Contains(term))
+                    || (x.User_Customer != null && x.User_Customer.Email != null && x.User_Customer.Email.Contains(term)));
 
             if (!string.IsNullOrEmpty(status) && status != "all")
                 query = query.Where(x => EF.Functions.Collate(x.Order_Status, Paging.ExactCollation) == status);

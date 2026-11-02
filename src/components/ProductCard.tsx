@@ -25,7 +25,9 @@ export default function ProductCard({ product, compact = false }: ProductCardPro
   const isFavorite = favorites.some(
     favorite => Number(favorite.id_Product) === Number(product.id)
   );
-
+  const produtoEsgotado = (product?.variations?.length ?? 0) > 0
+    ? product!.variations.every(v => (v.stoke ?? 0) <= 0)
+    : (product?.total_Stock ?? 0) <= 0;
   const handleySaveFavorites = async (event: React.MouseEvent<HTMLButtonElement>, IdProduct: number) => {
     event.stopPropagation();
     if (IdProduct == 0) {
@@ -66,8 +68,13 @@ export default function ProductCard({ product, compact = false }: ProductCardPro
     >
       <div className="relative overflow-hidden bg-surface-50">
         <div className={`${compact ? 'aspect-square' : 'aspect-[4/3]'} relative`}>
-          <img src={`/Imagens/Produtos/${product.imagens[0]?.url_Imagem}`} alt={product.name} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" loading="lazy" />
+          <img src={`/Imagens/Produtos/${product.imagens[0]?.url_Imagem}`} alt={product.name} className={`w-full h-full object-cover transition-transform duration-500 group-hover:scale-105 ${produtoEsgotado ? 'grayscale opacity-60' : ''}`} loading="lazy" />
           <div className="absolute inset-0 bg-gradient-to-t from-black/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+          {produtoEsgotado && (
+            <div className="absolute inset-0 flex items-center justify-center">
+              <span className="bg-rose-500/95 text-white text-xs font-display font-bold px-3 py-1.5 rounded-full shadow-lg">Indisponível</span>
+            </div>
+          )}
         </div>
         <div className="absolute top-2 left-2 flex flex-col gap-1">
           {product.badge && <span className={`${badgeColors[product.badge]} text-white text-[10px] font-display font-bold px-2 py-0.5 rounded-full`}>{badgeLabels[product.badge]}</span>}
@@ -81,8 +88,10 @@ export default function ProductCard({ product, compact = false }: ProductCardPro
         {/* Quick actions */}
         <div className="absolute bottom-2 right-2 flex gap-1.5  transition-all duration-200">
           <button
-            onClick={() => navigate(`/product/${product.id}`)}
-            className="w-7 h-7 bg-brand-500 hover:bg-brand-600 text-white rounded-xl flex items-center justify-center shadow-brand">
+            onClick={(event) => { event.stopPropagation(); if (!produtoEsgotado) navigate(`/product/${product.id}`); }}
+            disabled={produtoEsgotado}
+            title={produtoEsgotado ? 'Produto indisponível' : 'Ver produto'}
+            className={`w-7 h-7 rounded-xl flex items-center justify-center shadow-brand ${produtoEsgotado ? 'bg-surface-300 text-surface-500 cursor-not-allowed' : 'bg-brand-500 hover:bg-brand-600 text-white'}`}>
             <ShoppingCart className="w-3 h-3" />
           </button>
           {isFavorite ? (

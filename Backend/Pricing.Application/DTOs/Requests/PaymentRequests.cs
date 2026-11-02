@@ -20,6 +20,8 @@ namespace Mercado.Craibas.Application.DTOs.Requests
         public string Payment_Method_Id { get; set; } = "";
         /// <summary>additionalData.paymentTypeId: credit_card ou debit_card</summary>
         public string? Payment_Type_Id { get; set; }
+        /// <summary>Forma escolhida pelo cliente na tela: "credit" ou "debit". Vazio = aceita os dois (como antes).</summary>
+        public string? Card_Type { get; set; }
         public int Installments { get; set; } = 1;
         public string? Payer_Email { get; set; }
         public string? Identification_Type { get; set; }

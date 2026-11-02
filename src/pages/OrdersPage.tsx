@@ -1,6 +1,6 @@
 import { Package, MapPin, ChevronRight, ArrowLeft, Hash, Calendar, CreditCard, BadgePercent, ShoppingCart, X, Ticket, TicketPercent, ShoppingBag, Star, Loader2, Clock, PackageCheck, UserCheck, RotateCcw } from 'lucide-react';
 import { useStore } from '../context/store';
-import { formatPrice, orderStatusLabels, orderStatusColors, orderStatusSteps, returnBlocksReview, returnStatusLabels } from '../utils';
+import { formatPrice, paymentTermsLabel, orderStatusLabels, orderStatusColors, orderStatusSteps, returnBlocksReview, returnStatusLabels } from '../utils';
 import { useNavigate } from 'react-router-dom';
 import { UseUserStore } from '../store/UseUserStore';
 import { UseOrderStore } from '../store/UseOrderStore';
@@ -16,6 +16,9 @@ import Loading from '../components/Loading';
 import ProductReviewModal from '../components/ProductReviewModal';
 import ProductReviewDetailsModal from '../components/ProductReviewDetailsModal';
 import { ProductSaveOrder } from '../models/Product';
+import { OrderService } from '../service/OrderService';
+import { BrindeCliente } from '../models/Brinde';
+import { Gift } from 'lucide-react';
 
 export default function OrdersPage() {
   const Controller = useOrdersController();
@@ -50,6 +53,18 @@ export default function OrdersPage() {
   };
   const [statusFilter, setStatusFilter] = useState("TODOS");
   const filteredOrders = statusFilter === "TODOS" ? orders : orders.filter(o => o.order_Status === statusFilter);
+
+  const [premios, setPremios] = useState<Record<number, BrindeCliente[]>>({});
+  useEffect(() => {
+    let ativo = true;
+    OrderService.GetMeusBrindes().then(r => {
+      if (!ativo || !r.success) return;
+      const mapa: Record<number, BrindeCliente[]> = {};
+      (r.data || []).forEach(b => { if (b.id_Order) (mapa[b.id_Order] ??= []).push(b); });
+      setPremios(mapa);
+    });
+    return () => { ativo = false; };
+  }, [orders.length]);
 
   const filters = [
     { label: "Todos", value: "TODOS" },
@@ -204,6 +219,7 @@ export default function OrdersPage() {
             const isPending = order.status_Pay === "PENDENTE";
             const cupomSelecionado = Cupons.find(c => c.id === order.id_Cupom) ?? null;
             const progress = statusIdx / (orderStatusSteps.length - 1);
+            const premio = premios[order.id_Order] ?? [];
             return (
               <div
                 key={order.id_Order}
@@ -222,6 +238,29 @@ export default function OrdersPage() {
                     : colorConfig.class
                     }`}
                 />
+
+                {premio.length > 0 && (
+                  <div className="relative overflow-hidden mx-4 sm:mx-5 mt-4 rounded-2xl border-2 border-amber-300 bg-gradient-to-r from-amber-50 via-amber-100 to-rose-50 p-3 sm:p-4">
+                    <div className="absolute -right-6 -top-6 w-20 h-20 rounded-full bg-amber-300/30 animate-pulse" />
+                    <div className="relative flex items-center gap-3">
+                      <div className="w-11 h-11 rounded-2xl bg-amber-400/30 flex items-center justify-center shrink-0">
+                        <Gift className="w-6 h-6 text-amber-600 animate-bounce" />
+                      </div>
+                      <div className="min-w-0">
+                        <p className="font-display font-black text-sm text-amber-700 flex items-center gap-2">
+                          <span className="relative flex h-2 w-2">
+                            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
+                            <span className="relative inline-flex rounded-full h-2 w-2 bg-amber-500"></span>
+                          </span>
+                          Pedido premiado!
+                        </p>
+                        <p className="text-xs text-amber-800/90 font-medium mt-0.5">
+                          Você ganhou {premio.length > 1 ? `${premio.length} brindes` : 'um brinde'} — vem junto com seu pedido
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                )}
 
                 {/* Header */}
                 <div className="border-b border-surface-100 p-4 sm:p-5">
@@ -891,7 +930,7 @@ export default function OrdersPage() {
                       <CreditCard className="w-4 h-4 text-surface-400 mt-0.5 shrink-0" />
                       <div>
                         <p className="text-[10px] text-surface-400 font-body">Pagamento</p>
-                        <p className="text-sm font-bold text-surface-900">{selectedOrder.payment_terms}</p>
+                        <p className="text-sm font-bold text-surface-900">{paymentTermsLabel(selectedOrder.payment_terms)}</p>
                       </div>
                     </div>
                   )}

@@ -21,7 +21,7 @@ type CheckoutControllerReturn = {
         AddressStandard: Address | undefined;
         discount: number | 0;
         finalTotal: number;
-        payment: 'pix' | 'credit' | 'boleto';
+        payment: 'pix' | 'credit' | 'debit' | 'boleto';
         total: number;
         shipping: number;
         paymentDiscount: number;
@@ -32,7 +32,7 @@ type CheckoutControllerReturn = {
     };
     action: {
         setDiscount: React.Dispatch<React.SetStateAction<0 | number>>;
-        setPayment: React.Dispatch<React.SetStateAction<'pix' | 'credit' | 'boleto'>>;
+        setPayment: React.Dispatch<React.SetStateAction<'pix' | 'credit' | 'debit' | 'boleto'>>;
         setSelectedCoupon: React.Dispatch<React.SetStateAction<Cupom | null>>;
         setLoading: React.Dispatch<React.SetStateAction<boolean>>;
         handlePlaceOrder: () => Promise<void>;
@@ -41,7 +41,7 @@ type CheckoutControllerReturn = {
         setStep: React.Dispatch<React.SetStateAction<Step>>;
     }
 };
-type PaymentMethod = 'pix' | 'credit' | 'boleto';
+type PaymentMethod = 'pix' | 'credit' | 'debit' | 'boleto';
 type Step = 'Endereço' | 'Pagamento' | 'Checkout' | 'success';
 
 export const useCheckoutController = (): CheckoutControllerReturn => {
@@ -165,7 +165,7 @@ export const useCheckoutController = (): CheckoutControllerReturn => {
         }
 
         notify.success("Pedido realizado", payment === 'pix' ? "Agora é só pagar o PIX." : "Agora é só informar o cartão.");
-        navigate(`/payment/${created.id_Order}?method=${payment === 'pix' ? 'pix' : 'credit'}${payment === 'pix' ? '&auto=1' : ''}`, { replace: true });
+        navigate(`/payment/${created.id_Order}?method=${payment === 'pix' ? 'pix' : payment === 'debit' ? 'debit' : 'credit'}${payment === 'pix' ? '&auto=1' : ''}`, { replace: true });
     };
 
     const handleApllyCupom = async (CodCupom: string) => {

@@ -1,7 +1,7 @@
 import { useEffect } from 'react';
 import { ArrowRight, CheckCircle2, Clock, Hand, Loader2, MapPin, MessageCircle, PackageCheck, PackageX, RotateCcw, Truck, UserRound, XCircle } from 'lucide-react';
 import { OrderReturnAdmin, ReturnStatus } from '../models/Order';
-import { formatPrice, returnStatusColors, returnStatusLabels } from '../utils';
+import { formatPrice, paymentTermsLabel, returnStatusColors, returnStatusLabels } from '../utils';
 import { useAdminReturnsController, whatsAppReturnLink } from '../controller/useAdminReturnsController';
 import { ReturnsFilter } from '../adminService/ReturnsServiceAdmin';
 import ConfirmAdminPopup from './ConfirmAdminPopup';
@@ -196,7 +196,7 @@ function ReturnCard({ order: o, dk, classes, onAction, onOpenDeliveries }: {
                         {o.first_Product}{o.items > 1 ? ` + ${o.items - 1} item(s)` : ''}
                     </p>
                     <p className={`text-[11px] font-semibold mt-0.5 ${txt2}`}>
-                        {formatPrice(o.total_Value_Order)} <span className={`font-normal ${sub}`}>· {o.payment_terms}</span>
+                        {formatPrice(o.total_Value_Order)} <span className={`font-normal ${sub}`}>· {paymentTermsLabel(o.payment_terms)}</span>
                     </p>
                 </div>
             </div>

@@ -34,6 +34,7 @@ import {
     UserCog,
     Loader2,
     RefreshCw,
+    Gift,
 } from 'lucide-react';
 import { TrashEntityType, TrashItem } from '../models/TrashItem';
 import { useTrashAdminController } from '../controller/useTrashAdminController';
@@ -192,6 +193,13 @@ const entityConfig: Record<
         icon: Link2,
         className:
             'bg-rose-50 text-rose-700 dark:bg-rose-500/10 dark:text-rose-400',
+    },
+
+    BRINDE: {
+        label: 'Brinde',
+        icon: Gift,
+        className:
+            'bg-amber-50 text-amber-700 dark:bg-amber-500/10 dark:text-amber-400',
     },
 
     OTHER: {

@@ -11,6 +11,8 @@ export interface Product {
     review_Count: number;
     count_Sold: number;
     variations: ProductVariation[];
+    /** Produto de 2+ eixos vindo do modelo antigo: precisa recadastrar combinações no admin. */
+    needs_Variant_Review?: boolean;
     total_Stock: number;
     badge?: string;
     freeShipping: boolean;
@@ -37,6 +39,8 @@ export interface ProductAdmin {
     review_Count: number;
     count_Sold: number;
     variations: ProductVariation[];
+    /** Produto de 2+ eixos vindo do modelo antigo: precisa recadastrar combinações no admin. */
+    needs_Variant_Review?: boolean;
     total_Stock: number;
     badge?: string;
     freeShipping: boolean;
@@ -67,6 +71,10 @@ export interface ProductSaveOrder {
     evaluated?: boolean
 
 }
+export interface VariationAttribute {
+    eixo: string;
+    valor: string;
+}
 export interface ProductVariation {
     id: number;
     id_Product?: number;
@@ -75,7 +83,11 @@ export interface ProductVariation {
     type: string;
     stoke: number;
     price_Modifier?: number;
+    /** Eixos desta variação/SKU (ex.: Cor=Preto, Memória=128GB). Vazio = variação simples (1 eixo). */
+    atributos?: VariationAttribute[];
     new?: boolean;
+    /** Edição no admin (grade): se esta combinação é vendida. undefined = vendida. */
+    ativo?: boolean;
 }
 export type ProductCategory = 'eletronicos' | 'garrafas' | 'acessorios' | 'virais';
 

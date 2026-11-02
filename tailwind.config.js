@@ -50,9 +50,15 @@ export default {
         float: "float 4s ease-in-out infinite",
         shimmer: "shimmer 2s infinite",
         "scale-in": "scaleIn 0.2s ease-out",
+        shake: "shake 0.45s cubic-bezier(.36,.07,.19,.97) both",
       },
 
       keyframes: {
+        shake: {
+          "0%, 100%": { transform: "translateX(0)" },
+          "15%, 55%": { transform: "translateX(-7px)" },
+          "35%, 75%": { transform: "translateX(7px)" },
+        },
         fadeIn: {
           from: { opacity: 0 },
           to: { opacity: 1 },

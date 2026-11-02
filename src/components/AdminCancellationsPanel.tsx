@@ -1,7 +1,7 @@
 import { useEffect } from 'react';
 import { CheckCircle2, Clock, Loader2, MapPin, MessageCircle, PackageX, ShieldCheck, Truck, XCircle } from 'lucide-react';
 import { OrderCancelAdmin } from '../models/Order';
-import { cancelStatusColors, cancelStatusLabels, formatPrice, orderStatusColors, orderStatusLabels } from '../utils';
+import { cancelStatusColors, cancelStatusLabels, formatPrice, paymentTermsLabel, orderStatusColors, orderStatusLabels } from '../utils';
 import { useAdminCancellationsController, whatsAppCancelLink } from '../controller/useAdminCancellationsController';
 import { CancellationsFilter } from '../adminService/CancellationsServiceAdmin';
 import ConfirmAdminPopup from './ConfirmAdminPopup';
@@ -144,7 +144,7 @@ export default function AdminCancellationsPanel({ darkMode = false }: { darkMode
                                             {item.first_Product}{item.items > 1 ? ` + ${item.items - 1} item(s)` : ''}
                                         </p>
                                         <p className={`text-[11px] font-semibold mt-0.5 ${txt2}`}>
-                                            {formatPrice(item.total_Value_Order)} <span className={`font-normal ${sub}`}>· {item.payment_terms}</span>
+                                            {formatPrice(item.total_Value_Order)} <span className={`font-normal ${sub}`}>· {paymentTermsLabel(item.payment_terms)}</span>
                                         </p>
                                     </div>
                                 </div>

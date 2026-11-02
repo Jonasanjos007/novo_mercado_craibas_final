@@ -1,6 +1,6 @@
 import { useEffect } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
-import { CreditCard, Loader2, Lock, Receipt, ShieldCheck, Zap } from 'lucide-react';
+import { CreditCard, Loader2, Lock, Receipt, ShieldCheck, Wallet, Zap } from 'lucide-react';
 import Headerpages from '../components/Headerpages';
 import CardPaymentBrick from '../components/payment/CardPaymentBrick';
 import PixPaymentPanel from '../components/payment/PixPaymentPanel';
@@ -20,7 +20,7 @@ export default function PaymentPage() {
     const accentHex = getColorConfig(NameColorGlobal).hex;
 
     const methodParam = searchParams.get('method');
-    const initialMethod: PaymentMethodChoice | null = methodParam === 'pix' || methodParam === 'credit' ? methodParam : null;
+    const initialMethod: PaymentMethodChoice | null = methodParam === 'pix' || methodParam === 'credit' || methodParam === 'debit' ? methodParam : null;
 
     const Controller = usePaymentController({
         orderId: Number(orderId) || 0,
@@ -96,10 +96,11 @@ export default function PaymentPage() {
                                 <h2 className="font-display font-bold text-surface-900 text-lg">Como você quer pagar?</h2>
                             </div>
 
-                            <div className="grid grid-cols-2 gap-3 mb-6" role="tablist" aria-label="Forma de pagamento">
+                            <div className="grid grid-cols-3 gap-2 sm:gap-3 mb-6" role="tablist" aria-label="Forma de pagamento">
                                 {([
                                     { id: 'pix', icon: <Zap className="w-5 h-5" />, label: 'PIX', sub: pixDiscount ? `${config.pixDiscountPercent}% OFF · aprovação na hora` : 'Aprovação na hora' },
-                                    { id: 'credit', icon: <CreditCard className="w-5 h-5" />, label: 'Cartão', sub: config.maxInstallments > 1 ? `Crédito em até ${config.maxInstallments}x ou débito` : 'Crédito ou débito' },
+                                    { id: 'credit', icon: <CreditCard className="w-5 h-5" />, label: 'Crédito', sub: config.maxInstallments > 1 ? `Em até ${config.maxInstallments}x` : 'À vista' },
+                                    { id: 'debit', icon: <Wallet className="w-5 h-5" />, label: 'Débito', sub: 'À vista' },
                                 ] as const).map(opt => {
                                     const active = method === opt.id;
                                     return (
@@ -110,7 +111,7 @@ export default function PaymentPage() {
                                             aria-selected={active}
                                             disabled={Controller.result.submittingCard}
                                             onClick={() => Controller.action.setMethod(opt.id)}
-                                            className={`flex flex-col items-center gap-1.5 p-4 rounded-2xl border-2 transition-all ${active ? '' : 'border-surface-200 hover:border-surface-300'}`}
+                                            className={`flex flex-col items-center gap-1.5 px-2 py-3 sm:p-4 rounded-2xl border-2 transition-all ${active ? '' : 'border-surface-200 hover:border-surface-300'}`}
                                             style={active ? { borderColor: accentHex, backgroundColor: `${accentHex}0D` } : undefined}
                                         >
                                             <span style={{ color: active ? accentHex : undefined }} className={active ? '' : 'text-surface-400'}>{opt.icon}</span>
@@ -142,7 +143,14 @@ export default function PaymentPage() {
                                             Você tem um PIX aberto para este pedido. Se pagar com cartão, o PIX é cancelado automaticamente.
                                         </p>
                                     )}
+                                    <p className="mb-4 text-xs text-surface-500">
+                                        {method === 'debit'
+                                            ? 'Pague à vista com cartão de débito. O valor sai na hora da sua conta.'
+                                            : 'Use um cartão de crédito. Você escolhe as parcelas no formulário.'}
+                                    </p>
                                     <CardPaymentBrick
+                                        key={method}
+                                        cardType={method === 'debit' ? 'debit' : 'credit'}
                                         publicKey={config.publicKey}
                                         amount={orderPayment.card_Amount}
                                         maxInstallments={config.maxInstallments}
