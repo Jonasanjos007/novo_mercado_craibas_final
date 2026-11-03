@@ -26,6 +26,8 @@ namespace Mercado.Craibas.Application.Domain.Enums
         EmailVerification,
         NotificationUser,
         Customize,
-        Brinde
+        Brinde,
+        Despesa,
+        Banner
     }
 }

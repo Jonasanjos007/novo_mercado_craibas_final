@@ -374,6 +374,8 @@ namespace Pricing.Api
             builder.Services.AddScoped<IOrderAdminService, OrderServiceAdmin>();
             builder.Services.AddScoped<ICupomAdminService, CupomServiceAdmin>();
             builder.Services.AddScoped<IBrindeAdminService, BrindeServiceAdmin>();
+            builder.Services.AddScoped<IFinancasAdminService, FinancasServiceAdmin>();
+            builder.Services.AddScoped<IBannerAdminService, BannerServiceAdmin>();
             builder.Services.AddScoped<IProductService, ProductService>();
             builder.Services.AddScoped<IProductRepository, ProductRepository>();
             builder.Services.AddScoped<IOrderService, OrderService>();

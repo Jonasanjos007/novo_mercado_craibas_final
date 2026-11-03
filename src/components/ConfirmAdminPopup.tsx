@@ -31,6 +31,9 @@ interface ConfirmAdminPopupProps {
     icon?: ReactNode;
 
     confirmColor?: "brand" | "red" | "green";
+
+    /** Renderiza no tema claro (padrão: escuro, usado no admin). */
+    light?: boolean;
 }
 
 export default function ConfirmAdminPopup({
@@ -49,6 +52,8 @@ export default function ConfirmAdminPopup({
     icon,
 
     confirmColor = "brand",
+
+    light = false,
 
     requireReason = false,
     reasonLabel = "Motivo da exclusão",
@@ -90,10 +95,23 @@ export default function ConfirmAdminPopup({
             "bg-green-500 hover:bg-green-600 shadow-lg shadow-green-500/30",
     };
 
+    const panelC = light ? "border-surface-200 bg-white" : "border-white/10 bg-[#0b0b0d]";
+    const titleC = light ? "text-surface-900" : "text-white";
+    const descC = light ? "text-surface-500" : "text-white/60";
+    const labelC = light ? "text-surface-500" : "text-white/50";
+    const counterC = light ? "text-surface-400" : "text-white/30";
+    const textareaC = light
+        ? "bg-surface-50 text-surface-800 placeholder:text-surface-400 focus:bg-surface-100"
+        : "bg-white/[0.04] text-white placeholder:text-white/25 focus:bg-white/[0.06]";
+    const textareaBorderC = light ? "border-surface-200 focus:border-brand-500/60" : "border-white/10 focus:border-brand-500/60";
+    const cancelC = light
+        ? "border-surface-200 bg-surface-50 hover:bg-surface-100 text-surface-700"
+        : "border-white/10 bg-white/[0.04] hover:bg-white/[0.08] text-white";
+
     return (
         <div className="fixed inset-0 z-[999999] flex items-center justify-center bg-black/70 backdrop-blur-md p-4">
 
-            <div className="relative w-full max-w-lg overflow-hidden rounded-[30px] border border-white/10 bg-[#0b0b0d] shadow-2xl">
+            <div className={`relative w-full max-w-lg overflow-hidden rounded-[30px] border shadow-2xl ${panelC}`}>
 
                 {/* Glow */}
                 <div className="absolute -top-24 -right-24 w-64 h-64 rounded-full bg-brand-500/10 blur-3xl" />
@@ -108,11 +126,11 @@ export default function ConfirmAdminPopup({
                     </div>
 
                     {/* Texto */}
-                    <h2 className="text-2xl font-black text-white">
+                    <h2 className={`text-2xl font-black ${titleC}`}>
                         {title}
                     </h2>
 
-                    <p className="mt-3 text-sm leading-7 text-white/60">
+                    <p className={`mt-3 text-sm leading-7 ${descC}`}>
                         {description}
                     </p>
 
@@ -120,10 +138,10 @@ export default function ConfirmAdminPopup({
                     {requireReason && (
                         <div className="mt-6">
                             <label className="flex items-center justify-between mb-2">
-                                <span className="text-xs font-bold uppercase tracking-widest text-white/50">
+                                <span className={`text-xs font-bold uppercase tracking-widest ${labelC}`}>
                                     {reasonLabel} <span className="text-red-400">*</span>
                                 </span>
-                                <span className={`text-[11px] ${reason.length > maxReasonLength ? "text-red-400" : "text-white/30"}`}>
+                                <span className={`text-[11px] ${reason.length > maxReasonLength ? "text-red-400" : counterC}`}>
                                     {reason.length}/{maxReasonLength}
                                 </span>
                             </label>
@@ -137,9 +155,9 @@ export default function ConfirmAdminPopup({
                                 onChange={(e) => setReason(e.target.value)}
                                 onBlur={() => setTouched(true)}
                                 placeholder={reasonPlaceholder}
-                                className={`w-full resize-none rounded-2xl border bg-white/[0.04] px-4 py-3 text-sm text-white placeholder:text-white/25 outline-none transition-all focus:bg-white/[0.06] disabled:opacity-60 ${touched && !reasonValid
+                                className={`w-full resize-none rounded-2xl border px-4 py-3 text-sm outline-none transition-all disabled:opacity-60 ${textareaC} ${touched && !reasonValid
                                     ? "border-red-500/60 focus:border-red-500"
-                                    : "border-white/10 focus:border-brand-500/60"
+                                    : textareaBorderC
                                     }`}
                             />
 
@@ -157,7 +175,7 @@ export default function ConfirmAdminPopup({
                         <button
                             disabled={loading}
                             onClick={onCancel}
-                            className="flex-1 h-12 rounded-2xl border border-white/10 bg-white/[0.04] hover:bg-white/[0.08] text-white font-semibold transition-all disabled:opacity-50"
+                            className={`flex-1 h-12 rounded-2xl border font-semibold transition-all disabled:opacity-50 ${cancelC}`}
                         >
                             {cancelText}
                         </button>

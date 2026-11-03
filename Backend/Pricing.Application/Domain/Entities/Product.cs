@@ -13,6 +13,7 @@ namespace Baldan.Pricing.Application.Domain.Entities
         public string? Description { get; set; }
         public double Price_Unit { get; set; }
         public double Origin_Price { get; set; }
+        public double? Preco_Custo { get; set; }
         public int Id_Category { get; set; }
         public Product_Category Product_Category { get; set; }
         public double? Rating { get; set; }

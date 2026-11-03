@@ -23,5 +23,6 @@ namespace Baldan.Pricing.Application.Domain.Entities
         public bool Evaluated { get; set; }
         public double Price_Unit { get; set; }
         public double? Discont { get; set; }
+        public double? Custo_Unitario { get; set; }
     }
 }

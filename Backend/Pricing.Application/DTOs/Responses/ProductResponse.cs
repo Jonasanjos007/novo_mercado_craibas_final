@@ -10,6 +10,7 @@ public class ProductResponse
     public string? Description { get; set; } = default!;
     public double? Price_Unic { get; set; } = default!;
     public double? Origin_Price { get; set; } = default!;
+    public double? Preco_Custo { get; set; }
     public List<Imagens_Products?> Imagens { get; set; } = default!;
     public int? Id_category { get; set; } = default!;
     public double? Count_Rating { get; set; } = default!;

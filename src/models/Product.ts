@@ -6,6 +6,7 @@ export interface Product {
     description: string;
     price_Unic: number;
     origin_Price?: number;
+    preco_Custo?: number | null;
     imagens: Imagens_Products[];
     id_category: number;
     review_Count: number;
@@ -33,6 +34,7 @@ export interface ProductAdmin {
     description: string;
     price_Unic: number;
     origin_Price?: number;
+    preco_Custo?: number | null;
     imagens: Imagens_Products[];
     id_category: number;
     rating: number;

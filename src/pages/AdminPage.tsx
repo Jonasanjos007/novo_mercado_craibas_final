@@ -36,6 +36,7 @@ import {
 import { useStore } from '../context/store';
 import { formatPrice, paymentTermsLabel, orderStatusLabels, orderStatusLabelsAtualize, orderStatusColors, categoryLabels, badgeLabels, badgeLabel, cupomStatusLabels, configs, returnStatusLabels, returnStatusColors, cancelStatusLabels, cancelStatusColors } from '../utils';
 import { useAdminController } from '../controller/useAdminController';
+import { FinancasServiceAdmin } from '../adminService/FinancasServiceAdmin';
 import { UseOrderStore } from '../store/UseOrderStore';
 import { UseOrderAdminStore } from '../storeAdmin/UseOrderAdminStore';
 import Loading from '../components/AdminPageLoading';
@@ -69,7 +70,9 @@ import AdminDeliverersPage from '../components/AdminDeliverersPage';
 import { Bike } from 'lucide-react';
 import { useSiteSettingsController } from '../controller/useSiteSettingsController';
 import { useBrindeController } from '../controller/useBrindeController';
-import { Gift } from 'lucide-react';
+import { useFinancasController } from '../controller/useFinancasController';
+import { useBannerController } from '../controller/useBannerController';
+import { Gift, Wallet } from 'lucide-react';
 import AdminReturnsPanel from '../components/AdminReturnsPanel';
 import AdminCancellationsPanel from '../components/AdminCancellationsPanel';
 import { UseCancellationsAdminStore } from '../storeAdmin/UseCancellationsAdminStore';
@@ -97,6 +100,8 @@ export default function AdminPage() {
 
   const Controller = useAdminController();
   const Brinde = useBrindeController();
+  const Financas = useFinancasController();
+  const BannerCtrl = useBannerController();
   const {
     ordersAdmin, logs, Category, LoadLogsAdmin,
     ordersQuery, ordersTotal, ordersLoading, ordersSummary, SetOrdersQuery,
@@ -577,7 +582,37 @@ export default function AdminPage() {
   });
 
   const ordersData = [8, 12, 10, 15, 13, 17, Math.max(1, orders.length)];
-  const viewsData = [120, 180, 150, 220, 195, 260, 310];
+  const [grossProfitByKey, setGrossProfitByKey] = useState<Record<string, number>>({});
+  useEffect(() => {
+    let ativo = true;
+    (async () => {
+      const agora = new Date();
+      const anos = Array.from(new Set([agora.getFullYear(), new Date(agora.getFullYear(), agora.getMonth() - 5, 1).getFullYear()]));
+      const mapa: Record<string, number> = {};
+      for (const a of anos) {
+        const r = await FinancasServiceAdmin.GetSerieMensal(a);
+        if (r.success) (r.data || []).forEach(s => { mapa[`${s.ano}-${s.mes}`] = (s.lucro_Liquido ?? 0) + (s.gastos ?? 0); });
+      }
+      if (ativo) setGrossProfitByKey(mapa);
+    })();
+    return () => { ativo = false; };
+  }, []);
+
+  const grossProfitSerie = (() => {
+    const agora = new Date();
+    const serie: { month: string; total: number; percentage: number; difference: number }[] = [];
+    for (let i = 5; i >= 0; i--) {
+      const d = new Date(agora.getFullYear(), agora.getMonth() - i, 1);
+      serie.push({ month: d.toLocaleString('pt-BR', { month: 'short' }), total: grossProfitByKey[`${d.getFullYear()}-${d.getMonth() + 1}`] ?? 0, percentage: 0, difference: 0 });
+    }
+    serie.forEach((item, idx) => {
+      if (idx === 0) return;
+      const prev = serie[idx - 1];
+      item.difference = item.total - prev.total;
+      item.percentage = prev.total === 0 ? (item.total > 0 ? 100 : 0) : Number((((item.total - prev.total) / prev.total) * 100).toFixed(2));
+    });
+    return serie;
+  })();
   const orderDonut = [
     { value: 40, color: '#22c55e', label: 'Entregues' },
     { value: 20, color: '#f97316', label: 'Ativos' },
@@ -703,6 +738,12 @@ export default function AdminPage() {
   }, [tab]);
 
   useEffect(() => {
+    if (tab === 'financas') { Financas.action.loadTudo(Financas.result.ano, Financas.result.mes); }
+    if (tab === 'settings') { BannerCtrl.action.load(); }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tab]);
+
+  useEffect(() => {
     const tp = Math.max(1, Math.ceil(Brinde.result.brindes.length / brindePageSize));
     if (brindePage > tp) setBrindePage(tp);
   }, [Brinde.result.brindes.length, brindePageSize, brindePage]);
@@ -772,6 +813,7 @@ export default function AdminPage() {
         { id: 'cartegories', label: 'Categoria', icon: <FolderTree className="w-4 h-4" /> },
         { id: 'promotions', label: 'Promoções', icon: <Tag className="w-4 h-4" /> },
         { id: 'brindes', label: 'Brindes', icon: <Gift className="w-4 h-4" /> },
+        { id: 'financas', label: 'Finanças', icon: <Wallet className="w-4 h-4" /> },
         { id: 'movements', label: 'Movimentação', icon: <Activity className="w-4 h-4" />, badge: logsToday > 0 ? String(logsToday) : undefined, badgeRed: false },
         { id: 'users', label: 'Usuários', icon: <Users className="w-4 h-4" /> },
         { id: 'bin', label: 'Lixeira', icon: <Trash2 className="w-4 h-4" /> },
@@ -883,15 +925,17 @@ export default function AdminPage() {
       ValueR$_Number: false
     },
     {
-      label: "Pedidos Entregues",
-      value: pendingOrders,
-      icon: <Truck className="w-5 h-5" />,
-      color: "#f59e0b",
-      change: "-3.1%",
-      up: false,
-      data: viewsData,
-      labels: revenueLabels,
-      ValueR$_Number: false
+      label: "Lucro Bruto do Mês Atual",
+      value: formatPrice(grossProfitSerie.slice(-1)[0]?.total ?? 0),
+      icon: <TrendingUp className="w-5 h-5" />,
+      color: "#0ea5e9",
+      change: grossProfitSerie.slice(-1)[0]?.percentage ? `${grossProfitSerie.slice(-1)[0].percentage > 0 ? '+' : ''}${grossProfitSerie.slice(-1)[0].percentage.toFixed(1)}%` : '+0%',
+      up: (grossProfitSerie.slice(-1)[0]?.percentage ?? 0) >= 0,
+      data: grossProfitSerie.map(x => x.total),
+      labels: grossProfitSerie.map(x => x.month),
+      percentages: grossProfitSerie.map(x => x.percentage),
+      differences: grossProfitSerie.map(x => x.difference),
+      ValueR$_Number: true
     },
     {
       label: "Movimentação do Sistema Mês Atual",
@@ -1632,6 +1676,7 @@ export default function AdminPage() {
                           'Produto',
                           'Categoria',
                           'Preço',
+                          'Custo',
                           'Promoção',
                           'Estoque',
                           'Vendidos',
@@ -1665,6 +1710,7 @@ export default function AdminPage() {
                           <tr
                             key={p.id}
                             className={`border-b last:border-0 ${bord} ${rowH} transition-colors`}
+                            title={`ID: ${p.id} | Vendidos: ${p.count_Sold.toLocaleString('pt-BR')} | Estoque: ${p.total_Stock} | Nome: ${p.name}`}
                           >
                             {/* produto */}
                             <td className="px-5 py-4">
@@ -1713,6 +1759,18 @@ export default function AdminPage() {
                                 >
                                   {formatPrice(p.origin_Price!)}
                                 </p>
+                              )}
+                            </td>
+
+                            {/* custo */}
+                            <td className="px-5 py-4">
+                              {p.preco_Custo != null ? (
+                                <>
+                                  <p className={`text-sm font-bold ${dk ? 'text-white/70' : 'text-surface-600'}`}>{formatPrice(p.preco_Custo)}</p>
+                                  <p className={`text-[10px] font-bold ${(p.price_Unic - p.preco_Custo) >= 0 ? 'text-emerald-500' : 'text-rose-500'}`}>{(p.price_Unic - p.preco_Custo) >= 0 ? '+' : ''}{formatPrice(p.price_Unic - p.preco_Custo)}</p>
+                                </>
+                              ) : (
+                                <span className={`text-xs ${sub}`}>—</span>
                               )}
                             </td>
 
@@ -4111,6 +4169,227 @@ export default function AdminPage() {
             </div>
           )}
 
+          {tab === 'financas' && (
+            <div className="space-y-6">
+              <div className={`relative overflow-hidden rounded-[28px] border backdrop-blur-2xl ${card}`}>
+                <div className="absolute inset-0 pointer-events-none overflow-hidden">
+                  <div className="absolute -top-24 right-0 w-72 h-72 bg-emerald-500/10 blur-3xl rounded-full" />
+                  <div className="absolute bottom-0 left-0 w-52 h-52 bg-brand-500/10 blur-3xl rounded-full" />
+                </div>
+                <div className="relative z-10 p-4 md:p-6">
+                  <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
+                    <div className="flex items-center gap-3 min-w-0">
+                      <div className="w-12 h-12 rounded-2xl bg-emerald-500/15 border border-emerald-500/20 flex items-center justify-center shadow-lg shadow-emerald-500/10 flex-shrink-0">
+                        <Wallet className="w-5 h-5 text-emerald-400" />
+                      </div>
+                      <div className="min-w-0">
+                        <h2 className={`font-display font-black text-lg md:text-xl truncate ${txt}`}>Finanças</h2>
+                        <p className={`text-xs md:text-sm mt-1 ${sub}`}>Lucro = receita − custo − gastos. O frete é somado à parte. Conta só vendas pagas/confirmadas.</p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <div className={`flex items-center gap-1 rounded-2xl border p-1 ${dk ? 'border-white/10 bg-white/[0.04]' : 'border-surface-200 bg-surface-50'}`}>
+                        <button onClick={() => { const m = Financas.result.mes === 1 ? 12 : Financas.result.mes - 1; const a = Financas.result.mes === 1 ? Financas.result.ano - 1 : Financas.result.ano; Financas.action.mudarMes(a, m); }} className={`w-8 h-8 rounded-xl flex items-center justify-center ${dk ? 'hover:bg-white/[0.08] text-white/70' : 'hover:bg-surface-200 text-surface-600'}`}>‹</button>
+                        <span className={`text-sm font-bold px-2 min-w-[130px] text-center ${txt}`}>{['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'][Financas.result.mes - 1]} {Financas.result.ano}</span>
+                        <button onClick={() => { const m = Financas.result.mes === 12 ? 1 : Financas.result.mes + 1; const a = Financas.result.mes === 12 ? Financas.result.ano + 1 : Financas.result.ano; Financas.action.mudarMes(a, m); }} className={`w-8 h-8 rounded-xl flex items-center justify-center ${dk ? 'hover:bg-white/[0.08] text-white/70' : 'hover:bg-surface-200 text-surface-600'}`}>›</button>
+                      </div>
+                      <button onClick={Financas.action.openCreate} className="flex items-center gap-2 px-4 py-2.5 bg-brand-500 hover:bg-brand-600 text-white rounded-2xl text-sm font-bold transition-all shadow-brand whitespace-nowrap">
+                        <Plus className="w-4 h-4" /> Novo gasto
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-3 mt-6">
+                    {[
+                      { label: 'Receita produtos', value: Financas.result.resumo?.receita_Total ?? 0, color: 'text-brand-400', var: Financas.result.resumo?.variacao_Receita_Percentual, hint: 'vendas, já com desconto' },
+                      { label: 'Frete à parte', value: Financas.result.resumo?.receita_Frete ?? 0, color: 'text-sky-400', hint: 'somado fora do lucro' },
+                      { label: 'Custo produtos', value: Financas.result.resumo?.custo_Produtos ?? 0, color: 'text-amber-500', hint: 'o que você pagou' },
+                      { label: 'Gastos do mês', value: Financas.result.resumo?.gastos ?? 0, color: 'text-rose-400', hint: 'despesas lançadas' },
+                      { label: 'Lucro líquido', value: Financas.result.resumo?.lucro_Liquido ?? 0, color: (Financas.result.resumo?.lucro_Liquido ?? 0) >= 0 ? 'text-emerald-500' : 'text-rose-500', var: Financas.result.resumo?.variacao_Lucro_Percentual, hint: 'receita − custo − gastos', destaque: true },
+                      { label: 'Margem', value: Financas.result.resumo?.margem_Percentual ?? 0, color: 'text-violet-400', isPct: true, hint: 'lucro ÷ receita' },
+                    ].map((cardItem, i) => (
+                      <div key={i} className={`rounded-2xl border p-4 flex flex-col ${cardItem.destaque ? (dk ? 'border-emerald-500/30 bg-emerald-500/[0.06]' : 'border-emerald-200 bg-emerald-50') : (dk ? 'border-white/[0.08] bg-white/[0.02]' : 'border-surface-200 bg-white')}`}>
+                        <p className={`text-[10px] font-bold uppercase tracking-wider ${sub}`}>{cardItem.label}</p>
+                        <p className={`text-lg font-black mt-1 leading-tight ${cardItem.color}`}>{cardItem.isPct ? `${(cardItem.value).toFixed(1)}%` : formatPrice(cardItem.value)}</p>
+                        {cardItem.var != null ? (
+                          <p className={`text-[10px] font-bold mt-1 flex items-center gap-1 ${cardItem.var >= 0 ? 'text-emerald-500' : 'text-rose-500'}`}>
+                            {cardItem.var >= 0 ? <TrendingUp className="w-3 h-3" /> : <TrendingDown className="w-3 h-3" />}
+                            {Math.abs(cardItem.var).toFixed(1)}% vs mês anterior
+                          </p>
+                        ) : (
+                          <p className={`text-[10px] mt-1 ${sub}`}>{cardItem.hint}</p>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+
+                  <div className={`mt-4 rounded-2xl border p-4 md:p-5 ${dk ? 'border-white/[0.08] bg-white/[0.02]' : 'border-surface-200 bg-surface-50'}`}>
+                    <div className="flex items-center justify-between gap-3 mb-5 flex-wrap">
+                      <p className={`text-xs font-bold uppercase tracking-wider ${sub}`}>Receita e lucro por mês · {Financas.result.ano}</p>
+                      <div className="flex items-center gap-4">
+                        <span className={`text-[10px] flex items-center gap-1.5 ${sub}`}><span className="w-2.5 h-2.5 rounded-sm bg-gradient-to-t from-brand-600 to-brand-400" /> Receita produtos</span>
+                        <span className={`text-[10px] flex items-center gap-1.5 ${sub}`}><span className="w-2.5 h-2.5 rounded-sm bg-gradient-to-t from-emerald-600 to-emerald-400" /> Lucro líquido</span>
+                      </div>
+                    </div>
+                    {(() => {
+                      const serie = Financas.result.serie;
+                      const max = Math.max(1, ...serie.map(s => Math.max(s.receita, Math.abs(s.lucro_Liquido))));
+                      return (
+                        <div className="flex items-end gap-1 md:gap-1.5 h-48">
+                          {serie.map((s) => {
+                            const atual = s.mes === Financas.result.mes;
+                            return (
+                              <div key={s.mes} className={`group relative flex-1 flex flex-col items-center justify-end h-full rounded-lg transition-colors ${atual ? (dk ? 'bg-white/[0.05]' : 'bg-white shadow-sm') : ''}`}>
+                                <div className="w-full flex items-end justify-center gap-1 h-full px-0.5 pt-6">
+                                  <div className="w-[42%] rounded-t-md bg-gradient-to-t from-brand-600 to-brand-400 transition-all duration-300" style={{ height: `${Math.max(2, (s.receita / max) * 100)}%` }} />
+                                  <div className={`w-[42%] rounded-t-md transition-all duration-300 bg-gradient-to-t ${s.lucro_Liquido >= 0 ? 'from-emerald-600 to-emerald-400' : 'from-rose-600 to-rose-400'}`} style={{ height: `${Math.max(2, (Math.abs(s.lucro_Liquido) / max) * 100)}%` }} />
+                                </div>
+                                <div className={`pointer-events-none absolute top-0 left-1/2 -translate-x-1/2 z-20 hidden group-hover:flex flex-col items-center whitespace-nowrap rounded-lg px-2.5 py-1.5 text-[10px] font-bold shadow-xl ${dk ? 'bg-black/90 text-white border border-white/10' : 'bg-white text-surface-700 border border-surface-200'}`}>
+                                  <span>{['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'][s.mes - 1]}</span>
+                                  <span className="text-brand-400">Receita {formatPrice(s.receita)}</span>
+                                  <span className={s.lucro_Liquido >= 0 ? 'text-emerald-500' : 'text-rose-500'}>Lucro {formatPrice(s.lucro_Liquido)}</span>
+                                </div>
+                                <span className={`mt-1.5 text-[9px] ${atual ? 'font-black text-brand-400' : sub}`}>{s.label}</span>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      );
+                    })()}
+                  </div>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <div className={`relative overflow-hidden rounded-[28px] border ${card}`}>
+                  <div className="relative z-10 p-4 md:p-6">
+                    <div className="flex items-center justify-between mb-4">
+                      <h3 className={`font-display font-black text-base ${txt}`}>Gastos do mês</h3>
+                      <span className={`text-sm font-black text-rose-400`}>{formatPrice(Financas.result.resumo?.gastos ?? 0)}</span>
+                    </div>
+                    <div className="space-y-2">
+                      {Financas.result.despesas.length === 0 ? (
+                        <div className={`flex flex-col items-center justify-center py-10 rounded-2xl border border-dashed ${dk ? 'border-white/10' : 'border-surface-200'}`}>
+                          <Wallet className={`w-8 h-8 mb-2 ${sub}`} />
+                          <p className={`text-sm ${sub}`}>Nenhum gasto neste mês.</p>
+                        </div>
+                      ) : Financas.result.despesas.map(d => (
+                        <div key={d.id} className={`flex items-center gap-3 p-3 rounded-2xl ${dk ? 'bg-white/[0.03]' : 'bg-surface-50'}`}>
+                          <div className="min-w-0 flex-1">
+                            <p className={`text-sm font-semibold truncate ${txt}`}>{d.descricao}</p>
+                            <p className={`text-[11px] ${sub}`}>{d.categoria || 'Sem categoria'} · {new Date(d.data).toLocaleDateString('pt-BR')}{d.nome_Admin ? ` · ${d.nome_Admin}` : ''}</p>
+                          </div>
+                          <span className={`text-sm font-bold text-rose-400 whitespace-nowrap`}>- {formatPrice(d.valor)}</span>
+                          <div className="flex items-center gap-1">
+                            <button onClick={() => Financas.action.openEdit(d)} className={`p-2 rounded-xl ${dk ? 'bg-white/[0.06] text-white/70 hover:bg-white/[0.10]' : 'bg-surface-100 text-surface-600 hover:bg-surface-200'}`}><Edit3 className="w-3.5 h-3.5" /></button>
+                            <button onClick={() => Financas.action.openDelete(d)} className="p-2 rounded-xl bg-rose-500/15 text-rose-500 hover:bg-rose-500/25"><Trash2 className="w-3.5 h-3.5" /></button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+
+                <div className={`relative overflow-hidden rounded-[28px] border ${card}`}>
+                  <div className="relative z-10 p-4 md:p-6">
+                    <div className="mb-4">
+                      <div className="flex items-center justify-between">
+                        <h3 className={`font-display font-black text-base ${txt}`}>Produtos mais lucrativos</h3>
+                        <span className={`text-[11px] ${sub}`}>no mês</span>
+                      </div>
+                      <p className={`text-[11px] mt-1 ${sub}`}>Lucro = receita dos vendidos − custo. Do maior para o menor.</p>
+                    </div>
+                    <div className="space-y-2">
+                      {Financas.result.topProdutos.length === 0 ? (
+                        <div className={`flex flex-col items-center justify-center py-10 rounded-2xl border border-dashed ${dk ? 'border-white/10' : 'border-surface-200'}`}>
+                          <TrendingUp className={`w-8 h-8 mb-2 ${sub}`} />
+                          <p className={`text-sm ${sub}`}>Sem vendas neste mês.</p>
+                        </div>
+                      ) : Financas.result.topProdutos.map((p, i) => (
+                        <div key={p.id_Product} className={`flex items-center gap-3 p-3 rounded-2xl ${dk ? 'bg-white/[0.03]' : 'bg-surface-50'}`}>
+                          <span className={`w-6 h-6 rounded-lg flex items-center justify-center text-[11px] font-black shrink-0 ${i < 3 ? 'bg-emerald-500/15 text-emerald-500' : (dk ? 'bg-white/[0.06] text-white/50' : 'bg-surface-200 text-surface-500')}`}>{i + 1}</span>
+                          <div className="min-w-0 flex-1">
+                            <p className={`text-sm font-semibold truncate ${txt}`}>{p.nome}</p>
+                            <div className={`flex items-center gap-x-3 gap-y-0.5 flex-wrap text-[11px] mt-0.5 ${sub}`}>
+                              <span><b className={txt}>{p.quantidade_Vendida}</b> un</span>
+                              <span>Receita <b className="text-brand-400">{formatPrice(p.receita)}</b></span>
+                              <span>Custo <b className="text-amber-500">{formatPrice(p.custo)}</b></span>
+                            </div>
+                          </div>
+                          <div className="text-right shrink-0">
+                            <p className={`text-sm font-black leading-tight ${p.lucro >= 0 ? 'text-emerald-500' : 'text-rose-500'}`}>{formatPrice(p.lucro)}</p>
+                            <p className={`text-[10px] ${sub}`}>margem {p.margem_Percentual.toFixed(0)}%</p>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <ConfirmAdminPopup
+                open={!!Financas.result.deleteTarget}
+                title="Excluir gasto"
+                description={`Tem certeza que deseja excluir "${Financas.result.deleteTarget?.descricao ?? ''}"? Ele vai para a Lixeira.`}
+                confirmText="Excluir"
+                cancelText="Cancelar"
+                confirmColor="red"
+                loading={Financas.result.deleting}
+                requireReason
+                onConfirm={(reason) => { Financas.action.handleDelete(reason); }}
+                onCancel={Financas.action.closeDelete}
+              />
+
+              {Financas.result.showModal && (
+                <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4" onClick={Financas.action.closeModal}>
+                  <div className={`rounded-2xl border p-6 w-full max-w-md max-h-[85vh] overflow-y-auto shadow-2xl ${card}`} onClick={e => e.stopPropagation()}>
+                    <div className="flex items-center justify-between mb-5">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-2xl bg-rose-500/15 border border-rose-500/20 flex items-center justify-center">
+                          <Wallet className="w-5 h-5 text-rose-500" />
+                        </div>
+                        <h3 className={`font-display font-bold text-lg ${txt}`}>{Financas.result.editing ? 'Editar gasto' : 'Novo gasto'}</h3>
+                      </div>
+                      <button onClick={Financas.action.closeModal} className={`p-2 rounded-xl ${dk ? 'hover:bg-white/[0.08] text-white/60' : 'hover:bg-surface-100 text-surface-500'}`}><X className="w-4 h-4" /></button>
+                    </div>
+                    <div className="space-y-4">
+                      <div>
+                        <label className={`block text-xs font-bold uppercase mb-2 ${sub}`}>Descrição</label>
+                        <input value={Financas.result.form.descricao} onChange={e => Financas.action.setForm(f => ({ ...f, descricao: e.target.value }))} className={`w-full px-4 py-2.5 border rounded-xl text-sm outline-none ${inp}`} />
+                        {Financas.result.errors.descricao && <p className="mt-1 text-xs text-red-500">⚠ {Financas.result.errors.descricao}</p>}
+                      </div>
+                      <div className="grid grid-cols-2 gap-3">
+                        <div>
+                          <label className={`block text-xs font-bold uppercase mb-2 ${sub}`}>Valor (R$)</label>
+                          <input type="number" value={Financas.result.form.valor || ''} onChange={e => Financas.action.setForm(f => ({ ...f, valor: Number(e.target.value) || 0 }))} className={`w-full px-4 py-2.5 border rounded-xl text-sm outline-none ${inp}`} />
+                          {Financas.result.errors.valor && <p className="mt-1 text-xs text-red-500">⚠ {Financas.result.errors.valor}</p>}
+                        </div>
+                        <div>
+                          <label className={`block text-xs font-bold uppercase mb-2 ${sub}`}>Data</label>
+                          <input type="date" value={Financas.result.form.data} onChange={e => Financas.action.setForm(f => ({ ...f, data: e.target.value }))} className={`w-full px-4 py-2.5 border rounded-xl text-sm outline-none ${inp}`} />
+                          {Financas.result.errors.data && <p className="mt-1 text-xs text-red-500">⚠ {Financas.result.errors.data}</p>}
+                        </div>
+                      </div>
+                      <div>
+                        <label className={`block text-xs font-bold uppercase mb-2 ${sub}`}>Categoria</label>
+                        <input list="categorias-despesa" value={Financas.result.form.categoria ?? ''} onChange={e => Financas.action.setForm(f => ({ ...f, categoria: e.target.value }))} placeholder="Ex.: Aluguel, Fornecedor…" className={`w-full px-4 py-2.5 border rounded-xl text-sm outline-none ${inp}`} />
+                        <datalist id="categorias-despesa">
+                          {Financas.result.categorias.map(c => <option key={c} value={c} />)}
+                        </datalist>
+                      </div>
+                    </div>
+                    <div className={`pt-4 mt-4 border-t flex gap-3 ${dk ? 'border-white/10' : 'border-surface-200'}`}>
+                      <button onClick={Financas.action.closeModal} className={`flex-1 py-2.5 rounded-xl text-sm font-bold ${dk ? 'bg-white/[0.06] text-white/60' : 'bg-surface-100 text-surface-500'}`}>Cancelar</button>
+                      <button onClick={Financas.action.handleSave} disabled={Financas.result.saving} className="flex-1 py-2.5 bg-brand-500 hover:bg-brand-600 disabled:opacity-70 text-white rounded-xl text-sm font-bold flex items-center justify-center gap-2">
+                        {Financas.result.saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />} {Financas.result.editing ? 'Salvar' : 'Lançar'}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
           {/* ─── PROMOTIONS ─── */}
           {tab === 'promotions' && (
             <div className="space-y-6">
@@ -5712,7 +5991,7 @@ export default function AdminPage() {
               </div>
 
 
-              {/* ================= SEGURANÇA ================= */}
+              {/* ================= SEGURANÇA =================
               <div className={`rounded-2xl border p-6 ${card}`}>
 
                 <h3
@@ -5724,14 +6003,8 @@ export default function AdminPage() {
 
                 <div className="space-y-3">
 
-                  {/* 2FA */}
-                  <div
-                    className={`
-            flex items-center justify-between
-            p-4 rounded-xl
-            ${dk ? "bg-white/[0.04]" : "bg-surface-50"}
-          `}
-                  >
+                
+                  <div className={`flex items-center justify-between p-4 rounded-xl ${dk ? "bg-white/[0.04]" : "bg-surface-50"}`}>
                     <div>
                       <p className={`font-medium text-sm ${txt}`}>
                         2FA
@@ -5758,7 +6031,7 @@ export default function AdminPage() {
                     </button>
                   </div>
 
-                  {/* TIMEOUT */}
+                
                   <div
                     className={`
             flex items-center justify-between
@@ -5789,11 +6062,11 @@ export default function AdminPage() {
                   </div>
 
                 </div>
-              </div>
+              </div> */}
 
 
               {/* BOTÃO FINAL */}
-              <button
+              {/* <button
                 onClick={() => true}
                 className="
         px-6 py-2.5
@@ -5808,7 +6081,143 @@ export default function AdminPage() {
               >
                 <Check className="w-4 h-4" />
                 Salvar Configurações
-              </button>
+              </button> */}
+
+              {/* ================= BANNERS DA HOME ================= */}
+              <div className={`rounded-2xl border p-6 ${card}`}>
+                <div className="flex items-center justify-between gap-3 mb-1 flex-wrap ">
+                  <h3 className={`font-display font-bold flex items-center gap-2 ${txt}`}>
+                    <ImagePlus className="w-4 h-4 text-brand-400" />
+                    Banners da Home
+                  </h3>
+                  <button onClick={BannerCtrl.action.openCreate} className="inline-flex items-center gap-2 px-4 py-2.5 bg-brand-500 hover:bg-brand-600 text-white rounded-xl text-sm font-bold transition-all shadow-brand">
+                    <Plus className="w-4 h-4" /> Novo banner
+                  </button>
+                </div>
+                <p className={`text-xs mb-5 mt-4 ${sub}`}>Aparecem no topo da home. Com mais de um, troca automaticamente a cada 8s. Use data de início/fim ou desative para controlar quando aparece.</p>
+
+                {BannerCtrl.result.banners.length === 0 ? (
+                  <div className={`flex flex-col items-center justify-center py-10 rounded-2xl border border-dashed ${dk ? 'border-white/10' : 'border-surface-200'}`}>
+                    <ImagePlus className={`w-8 h-8 mb-2 ${sub}`} />
+                    <p className={`text-sm ${sub}`}>Nenhum banner cadastrado.</p>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    {BannerCtrl.result.banners.map(b => {
+                      const agora = new Date();
+                      const ini = b.data_Inicio ? new Date(b.data_Inicio) : null;
+                      const fim = b.data_Fim ? new Date(b.data_Fim) : null;
+                      const noPeriodo = (!ini || ini <= agora) && (!fim || fim >= agora);
+                      const aparecendo = b.ativo && noPeriodo;
+                      return (
+                        <div key={b.id} className={`rounded-2xl border overflow-hidden ${dk ? 'border-white/[0.08] bg-white/[0.02]' : 'border-surface-200 bg-white'}`}>
+                          <div className="relative aspect-[16/7] bg-surface-100 overflow-hidden">
+                            <img src={`/Imagens/Banners/${b.imagem}`} alt={`Banner ${b.id}`} className="absolute inset-0 h-full w-full object-cover" />
+                            <span className={`absolute top-2 left-2 px-2 py-0.5 rounded-lg text-[10px] font-bold ${aparecendo ? 'bg-emerald-500 text-white' : 'bg-black/60 text-white'}`}>{aparecendo ? 'Aparecendo' : (b.ativo ? 'Fora do período' : 'Inativo')}</span>
+                          </div>
+                          <div className="p-3">
+                            <div className={`flex items-center flex-wrap gap-x-3 gap-y-0.5 text-[11px] ${sub}`}>
+                              <span>Ordem <b className={txt}>{b.ordem}</b></span>
+                              {b.link ? <span className="truncate max-w-[180px]">Link: {b.link}</span> : <span>Sem link</span>}
+                            </div>
+                            <p className={`text-[11px] mt-0.5 ${sub}`}>
+                              {b.data_Inicio || b.data_Fim
+                                ? `${b.data_Inicio ? new Date(b.data_Inicio).toLocaleDateString('pt-BR') : '—'} até ${b.data_Fim ? new Date(b.data_Fim).toLocaleDateString('pt-BR') : '—'}`
+                                : 'Sem período definido'}
+                            </p>
+                            <div className="flex items-center gap-2 mt-3">
+                              <button onClick={() => BannerCtrl.action.toggleActive(b)} className={`inline-flex items-center gap-1 px-3 py-1.5 rounded-xl text-xs font-bold ${b.ativo ? 'bg-emerald-500/15 text-emerald-500' : (dk ? 'bg-white/[0.06] text-white/60' : 'bg-surface-100 text-surface-500')}`}>
+                                {b.ativo ? <ToggleRight className="w-4 h-4" /> : <ToggleLeft className="w-4 h-4" />} {b.ativo ? 'Ativo' : 'Inativo'}
+                              </button>
+                              <button onClick={() => BannerCtrl.action.openEdit(b)} className={`p-2 rounded-xl ${dk ? 'bg-white/[0.06] text-white/70 hover:bg-white/[0.10]' : 'bg-surface-100 text-surface-600 hover:bg-surface-200'}`}><Edit3 className="w-3.5 h-3.5" /></button>
+                              <button onClick={() => BannerCtrl.action.openDelete(b)} className="p-2 rounded-xl bg-rose-500/15 text-rose-500 hover:bg-rose-500/25"><Trash2 className="w-3.5 h-3.5" /></button>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+
+              {BannerCtrl.result.showModal && (
+                <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4" onClick={BannerCtrl.action.closeModal}>
+                  <div className={`rounded-2xl border p-6 w-full max-w-lg max-h-[88vh] overflow-y-auto shadow-2xl ${card}`} onClick={e => e.stopPropagation()}>
+                    <div className="flex items-center justify-between mb-5">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-2xl bg-brand-500/15 border border-brand-500/20 flex items-center justify-center">
+                          <ImagePlus className="w-5 h-5 text-brand-400" />
+                        </div>
+                        <h3 className={`font-display font-bold text-lg ${txt}`}>{BannerCtrl.result.editing ? 'Editar banner' : 'Novo banner'}</h3>
+                      </div>
+                      <button onClick={BannerCtrl.action.closeModal} className={`p-2 rounded-xl ${dk ? 'hover:bg-white/[0.08] text-white/60' : 'hover:bg-surface-100 text-surface-500'}`}><X className="w-4 h-4" /></button>
+                    </div>
+                    <div className="space-y-4">
+                      <div>
+                        <label className={`block text-xs font-bold uppercase mb-2 ${sub}`}>Imagem do banner</label>
+                        <div className={`relative aspect-[16/7] rounded-xl overflow-hidden border border-dashed ${dk ? 'border-white/15 bg-white/[0.03]' : 'border-surface-300 bg-surface-50'}`}>
+                          {BannerCtrl.result.imagemPreview ? (
+                            <img src={BannerCtrl.result.imagemPreview} alt="preview" className="absolute inset-0 h-full w-full object-cover" />
+                          ) : (
+                            <div className="absolute inset-0 flex flex-col items-center justify-center">
+                              <Upload className={`w-7 h-7 mb-1 ${sub}`} />
+                              <span className={`text-xs ${sub}`}>Clique para enviar (proporção 16:7)</span>
+                            </div>
+                          )}
+                          <input type="file" accept="image/*" onChange={e => BannerCtrl.action.onSelectImagem(e.target.files?.[0] ?? null)} className="absolute inset-0 opacity-0 cursor-pointer" />
+                        </div>
+                        {BannerCtrl.result.errors.imagem && <p className="mt-1 text-xs text-red-500">⚠ {BannerCtrl.result.errors.imagem}</p>}
+                      </div>
+                      <div>
+                        <label className={`block text-xs font-bold uppercase mb-2 ${sub}`}>Link ao clicar (opcional)</label>
+                        <input value={BannerCtrl.result.form.link} onChange={e => BannerCtrl.action.setForm(f => ({ ...f, link: e.target.value }))} placeholder="https://… ou /categoria/…" className={`w-full px-4 py-2.5 border rounded-xl text-sm outline-none ${inp}`} />
+                      </div>
+                      <div className="grid grid-cols-2 gap-3">
+                        <div>
+                          <label className={`block text-xs font-bold uppercase mb-2 ${sub}`}>Ordem</label>
+                          <input type="number" value={BannerCtrl.result.form.ordem || 0} onChange={e => BannerCtrl.action.setForm(f => ({ ...f, ordem: Number(e.target.value) || 0 }))} className={`w-full px-4 py-2.5 border rounded-xl text-sm outline-none ${inp}`} />
+                        </div>
+                        <div>
+                          <label className={`block text-xs font-bold uppercase mb-2 ${sub}`}>Status</label>
+                          <button type="button" onClick={() => BannerCtrl.action.setForm(f => ({ ...f, ativo: !f.ativo }))} className={`w-full px-4 py-2.5 rounded-xl text-sm font-bold inline-flex items-center justify-center gap-2 ${BannerCtrl.result.form.ativo ? 'bg-emerald-500/15 text-emerald-500' : (dk ? 'bg-white/[0.06] text-white/60' : 'bg-surface-100 text-surface-500')}`}>
+                            {BannerCtrl.result.form.ativo ? <ToggleRight className="w-4 h-4" /> : <ToggleLeft className="w-4 h-4" />} {BannerCtrl.result.form.ativo ? 'Ativo' : 'Inativo'}
+                          </button>
+                        </div>
+                      </div>
+                      <div className="grid grid-cols-2 gap-3">
+                        <div>
+                          <label className={`block text-xs font-bold uppercase mb-2 ${sub}`}>Início (opcional)</label>
+                          <input type="date" value={BannerCtrl.result.form.data_Inicio} onChange={e => BannerCtrl.action.setForm(f => ({ ...f, data_Inicio: e.target.value }))} className={`w-full px-4 py-2.5 border rounded-xl text-sm outline-none ${inp}`} />
+                        </div>
+                        <div>
+                          <label className={`block text-xs font-bold uppercase mb-2 ${sub}`}>Fim (opcional)</label>
+                          <input type="date" value={BannerCtrl.result.form.data_Fim} onChange={e => BannerCtrl.action.setForm(f => ({ ...f, data_Fim: e.target.value }))} className={`w-full px-4 py-2.5 border rounded-xl text-sm outline-none ${inp}`} />
+                          {BannerCtrl.result.errors.data_Fim && <p className="mt-1 text-xs text-red-500">⚠ {BannerCtrl.result.errors.data_Fim}</p>}
+                        </div>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-3 mt-6">
+                      <button onClick={BannerCtrl.action.closeModal} className={`flex-1 px-4 py-2.5 rounded-xl text-sm font-bold ${dk ? 'bg-white/[0.06] text-white/70 hover:bg-white/[0.10]' : 'bg-surface-100 text-surface-600 hover:bg-surface-200'}`}>Cancelar</button>
+                      <button onClick={BannerCtrl.action.handleSave} disabled={BannerCtrl.result.saving} className="flex-1 px-4 py-2.5 rounded-xl text-sm font-bold bg-brand-500 hover:bg-brand-600 text-white inline-flex items-center justify-center gap-2 disabled:opacity-60">
+                        {BannerCtrl.result.saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />} Salvar
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              <ConfirmAdminPopup
+                open={!!BannerCtrl.result.deleteTarget}
+                title="Excluir banner"
+                description="Tem certeza que deseja excluir este banner? Ele vai para a Lixeira."
+                confirmText="Excluir"
+                cancelText="Cancelar"
+                confirmColor="red"
+                loading={BannerCtrl.result.deleting}
+                requireReason
+                onConfirm={(reason) => { BannerCtrl.action.handleDelete(reason); }}
+                onCancel={BannerCtrl.action.closeDelete}
+              />
 
             </div>
           )}
@@ -5874,6 +6283,7 @@ export default function AdminPage() {
                 {[
                   { label: 'Preço (R$)', key: 'price_Unic', type: 'number' },
                   { label: 'Preço Original (R$)', key: 'origin_Price', type: 'number' },
+                  { label: 'Custo (R$)', key: 'preco_Custo', type: 'number' },
                   { label: 'Estoque', key: 'total_Stock', type: 'number' }].map(f => (
                     <div key={f.key}>
                       <label className={`block text-xs font-bold uppercase tracking-wider mb-2 ${sub}`}>

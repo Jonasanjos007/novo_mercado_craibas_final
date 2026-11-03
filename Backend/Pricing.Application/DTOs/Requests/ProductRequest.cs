@@ -15,6 +15,7 @@ namespace Mercado.Craibas.Application.DTOs.Requests
         public string? Description { get; set; }
         public double Price_Unit { get; set; }
         public double Origin_Price { get; set; }
+        public double? Preco_Custo { get; set; }
         public int Id_Category { get; set; }
         public double? Rating { get; set; }
         public int? ReviewCount { get; set; }

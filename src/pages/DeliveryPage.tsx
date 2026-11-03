@@ -244,6 +244,7 @@ export default function DeliveryPage() {
 
             {/* ───────────── POPUPS ───────────── */}
             <ConfirmAdminPopup
+                light={!r.dark}
                 open={!!r.dispatchTarget}
                 title={r.dispatchTarget?.kind === 'COLETA' ? 'Saiu para coleta?' : 'Saiu para entrega?'}
                 description={r.dispatchTarget ? (r.dispatchTarget.kind === 'COLETA' ? `Coleta da devolução #${r.dispatchTarget.number_Order}: o cliente recebe o aviso de que você está indo buscar o produto.` : `O pedido #${r.dispatchTarget.number_Order} vai para "Em rota" e o cliente recebe o aviso de que a entrega está a caminho.`) : ''}
@@ -255,6 +256,7 @@ export default function DeliveryPage() {
             />
 
             <ConfirmAdminPopup
+                light={!r.dark}
                 open={!!r.deliverTarget}
                 title={r.deliverTarget?.kind === 'COLETA' ? 'Confirmar coleta' : 'Confirmar entrega'}
                 description={r.deliverTarget ? `Pedido #${r.deliverTarget.number_Order} · ${addressLine(r.deliverTarget.address)}` : ''}
@@ -274,6 +276,7 @@ export default function DeliveryPage() {
             />
 
             <ConfirmAdminPopup
+                light={!r.dark}
                 open={r.logoutOpen}
                 title="Sair da conta?"
                 description="Você vai precisar entrar de novo para ver suas entregas."
@@ -630,6 +633,17 @@ function ProfileTab({ Controller, theme: t }: { Controller: ControllerType; them
 
     const [showPassword, setShowPassword] = useState(false);
 
+    const newPwd = r.passwordForm.newPassword ?? '';
+    const confirmPwd = r.passwordForm.confirmPassword ?? '';
+    const pwRules = {
+        minLength: newPwd.length >= 8,
+        uppercase: /[A-Z]/.test(newPwd),
+        lowercase: /[a-z]/.test(newPwd),
+        number: /[0-9]/.test(newPwd),
+        special: /[^A-Za-z0-9]/.test(newPwd),
+        match: confirmPwd.length > 0 && newPwd === confirmPwd,
+    };
+
     const preview = useMemo(() => (r.avatarFile ? URL.createObjectURL(r.avatarFile) : null), [r.avatarFile]);
     useEffect(() => () => {
         if (preview) URL.revokeObjectURL(preview);
@@ -762,6 +776,29 @@ function ProfileTab({ Controller, theme: t }: { Controller: ControllerType; them
                     ))}
                 </div>
 
+                <div className={`mt-4 rounded-2xl p-4 ${t.soft}`}>
+                    <p className={`text-xs font-bold mb-2.5 ${t.txt2}`}>Sua nova senha deve conter:</p>
+                    <div className="space-y-1.5">
+                        {([
+                            ['minLength', 'Pelo menos 8 caracteres'],
+                            ['uppercase', 'Pelo menos 1 letra maiúscula'],
+                            ['lowercase', 'Pelo menos 1 letra minúscula'],
+                            ['number', 'Pelo menos 1 número'],
+                            ['special', 'Pelo menos 1 caractere especial'],
+                            ['match', 'As senhas coincidem'],
+                        ] as const).map(([key, label]) => {
+                            const ok = pwRules[key];
+                            const touched = key === 'match' ? confirmPwd.length > 0 : newPwd.length > 0;
+                            return (
+                                <p key={key} className={`text-xs flex items-center gap-1.5 transition-colors ${ok ? 'text-emerald-500' : touched ? 'text-red-400' : t.sub}`}>
+                                    <span className="inline-block w-3.5 text-center">{ok ? '✓' : touched ? '✕' : '•'}</span>
+                                    {label}
+                                </p>
+                            );
+                        })}
+                    </div>
+                </div>
+
                 <button
                     type="button"
                     onClick={a.changePassword}
@@ -803,7 +840,7 @@ function ProfileTab({ Controller, theme: t }: { Controller: ControllerType; them
                 <p className={`flex items-center gap-2 text-xs font-bold uppercase tracking-wider mb-3 px-1 ${t.sub}`}>
                     <Sparkles className="w-3.5 h-3.5" /> Segurança da conta
                 </p>
-                <ConnectedDevices />
+                <ConnectedDevices dark={t.dark} />
             </section>
         </div>
     );

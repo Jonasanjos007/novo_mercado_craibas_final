@@ -20,6 +20,9 @@ import { UseUserStore } from '../store/UseUserStore';
 import { getColorConfig } from '../types/Colors';
 import { UseOrderStore } from '../store/UseOrderStore';
 import { UseCupomAdminStore } from '../storeAdmin/UseCupomAdminStore';
+import { BannerService } from '../service/BannerService';
+import { Banner } from '../models/Banner';
+import { getActiveFlashOffer } from '../utils/flashOffer';
 
 function useCountdown(endDate?: string | null) {
   const [timeLeft, setTimeLeft] = useState({ h: '00', m: '00', s: '00' });
@@ -60,11 +63,24 @@ export default function HomePage() {
   const [activeTab, setActiveTab] = useState<'featured' | 'new' | 'bestsellers'>('featured');
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
   const [copiedCode, setCopiedCode] = useState<string | null>(null);
+  const [siteBanners, setSiteBanners] = useState<Banner[]>([]);
+  const [siteBannerIndex, setSiteBannerIndex] = useState(0);
+  useEffect(() => {
+    let ativo = true;
+    BannerService.GetBannersAtivos().then(r => { if (ativo && r.success) setSiteBanners(r.data || []); });
+    return () => { ativo = false; };
+  }, []);
+  useEffect(() => {
+    if (siteBanners.length < 2) return;
+    const t = window.setInterval(() => setSiteBannerIndex(c => (c + 1) % siteBanners.length), 8000);
+    return () => window.clearInterval(t);
+  }, [siteBanners.length]);
   const { NameColorGlobal, ColorGlobalTema, ColorGlobalHover, ColorGlobalText, ColorGlobalHoverText } = UseUserStore();
   const colorConfig = getColorConfig(NameColorGlobal);
   const featured = products.filter(p => p.featured);
   const viral = products.filter(p => p.badge === 'viral');
   const Show_Flash_Offer = Cupons.filter(p => p.show_Flash_Offer === true);
+  const flashAtivo = !!getActiveFlashOffer(Cupons);
   const offers = products.filter(p => p.badge === 'oferta' || (p.origin_Price && p.origin_Price > p.price_Unic));
   const newProducts = products.filter(p => p.badge === 'novo');
   const bestsellers = [...products].sort((a, b) => b.count_Sold - a.count_Sold).slice(0, 8);
@@ -156,39 +172,6 @@ export default function HomePage() {
   return (
 
     <div className="min-h-screen bg-[#f5f5f7]">
-      {flashOffer?.date_Start && flashOffer?.date_end &&
-        Date.now() >= new Date(flashOffer.date_Start).getTime() &&
-        Date.now() <= new Date(flashOffer.date_end).getTime() && (
-          <div
-            className={`bg-gradient-to-r ${ColorGlobalTema} px-3 py-2 overflow-hidden relative`}
-          >
-            <div
-              className="flex flex-wrap md:flex-nowrap items-center justify-center gap-x-2 gap-y-1 text-[10px] sm:text-xs text-center text-white font-body font-semibold tracking-wide animate-pulse-soft"
-            >
-              <span className="w-full md:w-auto">
-                🔥 {Show_Flash_Offer[0]?.description || 'OFERTA RELÂMPAGO'} — USE:{' '}
-                <strong>{Show_Flash_Offer[0]?.cod_Cupom}</strong>
-              </span>
-
-              <span className="hidden md:block">·</span>
-
-              <span className="whitespace-nowrap">
-                Pode usar acima de R${' '}
-                {Number(
-                  Show_Flash_Offer[0]?.minimum_Value ?? 0
-                ).toFixed(2)}
-              </span>
-
-              <span className="hidden md:block">·</span>
-
-              <span className="whitespace-nowrap">
-                {(Show_Flash_Offer[0]?.quantity_Uses ?? 0) -
-                  (Show_Flash_Offer[0]?.quantity_Used ?? 0)}{' '}
-                cupons disponíveis
-              </span>
-            </div>
-          </div>
-        )}
       <section className="relative h-[380px] md:h-[480px] bg-[#09090b] overflow-hidden">
         {BANNER_SLIDE.map((slide, i) => (
           <div
@@ -230,12 +213,14 @@ export default function HomePage() {
                     >
                       Ver Produto <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
                     </button>
-                    <button
-                      onClick={() => navigate(`/flash-sale`)}
-                      className="px-6 py-3 bg-white/10 text-white font-display font-semibold rounded-2xl hover:bg-white/20 transition-all backdrop-blur-sm border border-white/20 text-sm"
-                    >
-                      Ver Ofertas
-                    </button>
+                    {flashAtivo && (
+                      <button
+                        onClick={() => navigate(`/flash-sale`)}
+                        className="px-6 py-3 bg-white/10 text-white font-display font-semibold rounded-2xl hover:bg-white/20 transition-all backdrop-blur-sm border border-white/20 text-sm"
+                      >
+                        Ver Ofertas
+                      </button>
+                    )}
                   </div>
                 </div>
               </div>
@@ -273,39 +258,6 @@ export default function HomePage() {
           </span>
         </div>
       </section>
-
-      {/* ── FLASH SALE BANNER ── */}
-      {flashOffer?.date_Start && flashOffer?.date_end &&
-        Date.now() >= new Date(flashOffer.date_Start).getTime() &&
-        Date.now() <= new Date(flashOffer.date_end).getTime() && (
-          <section className="bg-gradient-to-r from-[#09090b] to-[#18181b] border-b border-white/5">
-            <div className="max-w-7xl mx-auto px-4 py-4 flex items-center gap-4 flex-wrap justify-between">
-              <div className="flex items-center gap-3">
-                <div style={{ background: `${colorConfig.hex}22` }} className={`w-10 h-10 rounded-xl ${ColorGlobalTema}/20 flex items-center justify-center`}>
-                  <Zap style={{ fill: `${colorConfig.hex}` }} className={`w-5 h-5 ${ColorGlobalText}`} />
-                </div>
-                <div>
-                  <p className="font-display font-bold text-white text-sm">Oferta Relâmpago</p>
-                  <p className="text-white/40 text-xs">Preços por tempo limitado</p>
-                </div>
-              </div>
-              <div className="flex items-center gap-2">
-                <span className="text-white/40 text-xs font-body">Termina em:</span>
-                {[countdown.h, countdown.m, countdown.s].map((v, i) => (
-                  <span key={i} className="flex items-center gap-1">
-                    <span className={`${ColorGlobalTema} text-white font-display font-bold text-sm px-2.5 py-1.5 rounded-xl min-w-[36px] text-center`}>
-                      {v}
-                    </span>
-                    {i < 2 && <span className={`${ColorGlobalText} font-bold`}>:</span>}
-                  </span>
-                ))}
-              </div>
-              <button onClick={() => navigate('/flash-sale')} className={`flex items-center gap-2 px-5 py-2 ${ColorGlobalTema} ${ColorGlobalHover} text-white font-display font-bold text-sm rounded-xl transition-all `} style={{ boxShadow: `0 4px 12px  ${colorConfig.hex}` }}>
-                Ver Todas <ArrowRight className="w-3.5 h-3.5" />
-              </button>
-            </div>
-          </section>
-        )}
 
       {/* ── TRUST BAR ── */}
       {/* <section className="bg-white border-b border-surface-100 shadow-soft">
@@ -383,81 +335,58 @@ export default function HomePage() {
             CUPONS — em formato de ticket, com cópia
             de código com um toque e feedback visual
         ══════════════════════════════════════════════ */}
-        {flashOffer?.date_Start && flashOffer?.date_end &&
-          Date.now() >= new Date(flashOffer.date_Start).getTime() &&
-          Date.now() <= new Date(flashOffer.date_end).getTime() && (
-            // Oferta relâmpago
-
-
-            <section className="py-6">
-              <div className="flex items-center gap-2.5 mb-4">
-                <div className="w-8 h-8 rounded-xl bg-red-500/10 flex items-center justify-center">
-                  <Ticket className="w-4 h-4 text-red-500" />
-                </div>
-                <div>
-                  <h2 className="font-display font-bold text-surface-900 text-lg tracking-tight">Cupom Ralâmpago Para Você</h2>
-                  <p className="text-surface-400 text-[11px] font-body">Toque para copiar o código</p>
-                </div>
+        {siteBanners.length > 0 && (
+          <section className="py-6">
+            <div className="flex items-center gap-2.5 mb-4">
+              <div className="w-8 h-8 rounded-xl flex items-center justify-center" style={{ background: `${colorConfig.hex}1a` }}>
+                <Sparkles className="w-4 h-4" style={{ color: colorConfig.hex }} />
               </div>
-
-              <div className="w-full md:max-w-3xl md:mx-auto">
-                <button
-                  onClick={() => handleCopyCoupon(flashOffer.cod_Cupom ?? '')}
-                  className="relative flex w-full overflow-hidden rounded-2xl text-left group hover:-translate-y-0.5 transition-all"
-                  style={{
-                    background: 'linear-gradient(135deg, #1e1e2e, #2d1b69)',
-                  }}
-                >
-                  <div className="absolute -top-4 -right-4 w-20 h-20 rounded-full bg-white/5" />
-
-                  <div className="flex w-20 shrink-0 flex-col items-center justify-center gap-1.5 border-r border-dashed border-white/15 px-2 py-4">
-                    <Ticket className="w-5 h-5 text-brand-400" />
-
-                    <span className="text-brand-400 text-[9px] font-black uppercase tracking-widest text-center leading-tight">
-                      {flashOffer.name_Cupom}
-                    </span>
-                  </div>
-
-                  <div className="min-w-0 flex-1 p-4">
-                    <h4 className="font-display font-bold text-white text-sm leading-tight line-clamp-2">
-                      {flashOffer.description}
-                    </h4>
-
-                    <p className="text-white/40 text-[10px] font-body mt-1.5">
-                      {flashOffer.minimum_Value
-                        ? `Mín. ${formatPrice(flashOffer.minimum_Value)}`
-                        : 'Sem valor mínimo'}
-                    </p>
-
-                    <div
-                      className={`mt-3 flex items-center justify-between rounded-xl border px-3 py-2 transition-all ${copiedCode === flashOffer.cod_Cupom
-                        ? 'border-emerald-500/40 bg-emerald-500/10'
-                        : 'border-brand-500/30 bg-brand-500/10 group-hover:bg-brand-500/20'
-                        }`}
-                    >
-                      <span
-                        className={`font-display font-bold text-xs tracking-widest ${copiedCode === flashOffer.cod_Cupom
-                          ? 'text-emerald-400'
-                          : 'text-brand-400'
-                          }`}
-                      >
-                        {flashOffer.cod_Cupom}
-                      </span>
-
-                      {copiedCode === flashOffer.cod_Cupom ? (
-                        <span className="flex items-center gap-1 text-emerald-400 text-[10px] font-bold">
-                          <Check className="w-3.5 h-3.5" />
-                          Copiado
-                        </span>
-                      ) : (
-                        <Copy className="w-3.5 h-3.5 text-brand-400" />
-                      )}
-                    </div>
-                  </div>
-                </button>
+              <div>
+                <h2 className="font-display font-bold text-surface-900 text-lg md:text-xl tracking-tight">Destaques</h2>
+                <p className="text-surface-400 text-[11px] md:text-xs font-body">Ofertas e novidades selecionadas pra você</p>
               </div>
-            </section>
-          )}
+            </div>
+            <div className="relative aspect-[16/7] overflow-hidden rounded-2xl bg-surface-100 shadow-md sm:rounded-3xl">
+              {siteBanners.map((b, index) => (
+                b.link ? (
+                  <a
+                    key={`${b.id}-${index}`}
+                    href={b.link}
+                    target={b.link.startsWith('http') ? '_blank' : undefined}
+                    rel="noreferrer"
+                    className={`absolute inset-0 transition-opacity duration-700 ${index === siteBannerIndex ? 'opacity-100 z-10' : 'opacity-0'}`}
+                  >
+                    <img src={`/Imagens/Banners/${b.imagem}`} alt={`Banner ${index + 1}`} className="absolute inset-0 h-full w-full object-cover" />
+                  </a>
+                ) : (
+                  <img
+                    key={`${b.id}-${index}`}
+                    src={`/Imagens/Banners/${b.imagem}`}
+                    alt={`Banner ${index + 1}`}
+                    className={`absolute inset-0 h-full w-full object-cover transition-opacity duration-700 ${index === siteBannerIndex ? 'opacity-100' : 'opacity-0'}`}
+                  />
+                )
+              ))}
+              <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/25 via-transparent to-transparent" />
+
+              {siteBanners.length > 1 && (
+                <>
+                  <button aria-label="Banner anterior" onClick={() => setSiteBannerIndex(c => (c - 1 + siteBanners.length) % siteBanners.length)} className="absolute left-2 top-1/2 z-20 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-full bg-black/25 text-white backdrop-blur-sm transition hover:bg-black/45 sm:h-10 sm:w-10">
+                    <ChevronLeft className="h-4 w-4 sm:h-5 sm:w-5" />
+                  </button>
+                  <button aria-label="Próximo banner" onClick={() => setSiteBannerIndex(c => (c + 1) % siteBanners.length)} className="absolute right-2 top-1/2 z-20 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-full bg-black/25 text-white backdrop-blur-sm transition hover:bg-black/45 sm:h-10 sm:w-10">
+                    <ChevronRight className="h-4 w-4 sm:h-5 sm:w-5" />
+                  </button>
+                  <div className="absolute bottom-3 left-1/2 z-20 flex -translate-x-1/2 gap-1.5">
+                    {siteBanners.map((_, index) => (
+                      <button key={index} aria-label={`Mostrar banner ${index + 1}`} onClick={() => setSiteBannerIndex(index)} className={`h-1.5 rounded-full transition-all ${index === siteBannerIndex ? 'w-7 bg-white' : 'w-2 bg-white/50'}`} />
+                    ))}
+                  </div>
+                </>
+              )}
+            </div>
+          </section>
+        )}
 
 
         {/* ══════════════════════════════════════════════
@@ -668,6 +597,8 @@ export default function HomePage() {
         <section className="my-10">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 [perspective:1200px]">
 
+            {flashAtivo && (
+            <>
             {/* Flash Sale */}
             <div
               onClick={() => navigate('/flash-sale')}
@@ -758,6 +689,8 @@ export default function HomePage() {
         "
               />
             </div>
+            </>
+            )}
 
             {/* Brands */}
             <div
@@ -917,7 +850,7 @@ export default function HomePage() {
               },
               {
                 title: 'Navegação', links: [
-                  { label: 'Ofertas Relâmpago', action: () => navigateTo('flash-sale') },
+                  ...(flashAtivo ? [{ label: 'Ofertas Relâmpago', action: () => navigateTo('flash-sale') }] : []),
                   { label: 'Marcas Premium', action: () => navigateTo('brands') },
                   { label: 'Lista de Desejos', action: () => navigateTo('wishlist') },
                   { label: 'Meus Pedidos', action: () => navigateTo('orders') },

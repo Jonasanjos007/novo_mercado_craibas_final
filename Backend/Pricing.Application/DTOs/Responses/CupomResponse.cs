@@ -20,5 +20,7 @@ namespace Mercado.Craibas.Application.DTOs.Responses
         public DateTime? Date_Start { get; set; }
         public bool Show_Flash_Offer { get; set; }
         public DateTime? Date_end { get; set; }
+        public List<int> ProductIds { get; set; } = new List<int>();
+        public List<int> CategoryIds { get; set; } = new List<int>();
     }
 }

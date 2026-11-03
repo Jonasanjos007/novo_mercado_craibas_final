@@ -94,6 +94,56 @@ namespace Mercado.Craibas.Infrastructure.Migrations
                     b.ToTable("Address", (string)null);
                 });
 
+            modelBuilder.Entity("Baldan.Pricing.Application.Domain.Entities.Banner", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<bool>("Ativo")
+                        .HasColumnType("bit");
+
+                    b.Property<DateTime?>("Data_Fim")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime?>("Data_Inicio")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int?>("Id_User_Admin")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Imagem")
+                        .IsRequired()
+                        .HasMaxLength(300)
+                        .HasColumnType("nvarchar(300)");
+
+                    b.Property<DateTime>("InsertDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<bool?>("Isdelete")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("Link")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<int>("Ordem")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime?>("UpdateDate")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Ativo");
+
+                    b.HasIndex("Ordem");
+
+                    b.ToTable("Banner", (string)null);
+                });
+
             modelBuilder.Entity("Baldan.Pricing.Application.Domain.Entities.Brinde", b =>
                 {
                     b.Property<int>("Id")
@@ -468,6 +518,50 @@ namespace Mercado.Craibas.Infrastructure.Migrations
                     b.ToTable("Customize_Delivery", (string)null);
                 });
 
+            modelBuilder.Entity("Baldan.Pricing.Application.Domain.Entities.Despesa", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Categoria")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<DateTime>("Data")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Descricao")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<int?>("Id_User_Admin")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("InsertDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<bool?>("Isdelete")
+                        .HasColumnType("bit");
+
+                    b.Property<DateTime?>("UpdateDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<double>("Valor")
+                        .HasColumnType("float");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Categoria");
+
+                    b.HasIndex("Data");
+
+                    b.ToTable("Despesa", (string)null);
+                });
+
             modelBuilder.Entity("Baldan.Pricing.Application.Domain.Entities.Imagens_Products", b =>
                 {
                     b.Property<int>("Id")
@@ -507,6 +601,9 @@ namespace Mercado.Craibas.Infrastructure.Migrations
                         .HasColumnType("int");
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<double?>("Custo_Unitario")
+                        .HasColumnType("float");
 
                     b.Property<double?>("Discont")
                         .HasColumnType("float");
@@ -806,6 +903,9 @@ namespace Mercado.Craibas.Infrastructure.Migrations
                         .HasColumnType("bit");
 
                     b.Property<double>("Origin_Price")
+                        .HasColumnType("float");
+
+                    b.Property<double?>("Preco_Custo")
                         .HasColumnType("float");
 
                     b.Property<double>("Price_Unit")

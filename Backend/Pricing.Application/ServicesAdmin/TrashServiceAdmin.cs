@@ -486,6 +486,11 @@ namespace Mercado.Craibas.Application.ServicesAdmin
                     fields["Ativo"] = deleted ? false : SnapshotBool(record, "Ativo") ?? true;
                     return await _unitOfWorkAdmin.UpdateFieldsAsyncEntity<Brinde>(filter, fields);
 
+                case EntityTypeDelete.Despesa:
+                    return await _unitOfWorkAdmin.UpdateFieldsAsyncEntity<Despesa>(filter, fields);
+                case EntityTypeDelete.Banner:
+                    return await _unitOfWorkAdmin.UpdateFieldsAsyncEntity<Banner>(filter, fields);
+
                 default: return false;
             }
         }
@@ -718,6 +723,8 @@ namespace Mercado.Craibas.Application.ServicesAdmin
             EntityTypeDelete.NotificationUser => "NOTIFICATION",
             EntityTypeDelete.Customize => "CUSTOMIZE",
             EntityTypeDelete.Brinde => "BRINDE",
+            EntityTypeDelete.Despesa => "DESPESA",
+            EntityTypeDelete.Banner => "BANNER",
             _ => "OTHER"
         };
 
@@ -762,6 +769,8 @@ namespace Mercado.Craibas.Application.ServicesAdmin
             EntityTypeDelete.NotificationUser => "Notificação",
             EntityTypeDelete.Customize => "Personalização",
             EntityTypeDelete.Brinde => "Brinde",
+            EntityTypeDelete.Despesa => "Despesa",
+            EntityTypeDelete.Banner => "Banner",
             _ => "Item"
         };
     }

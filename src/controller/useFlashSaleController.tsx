@@ -23,7 +23,7 @@ export const useFlashSaleController = (): FlashSaleControllerReturn => {
     const { LoadCategory, LoadCupons } = UseOrderStore();
 
     const notify = useNotification();
-    const [Loading, SetLoading] = useState(false);
+    const [Loading, SetLoading] = useState(true);
     useEffect(() => {
 
         const load = async () => {

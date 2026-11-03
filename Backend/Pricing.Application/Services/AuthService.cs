@@ -460,6 +460,39 @@ public class AuthService : IAuthService
             return Result<LoginResponse>.Failure(AuthErrors.UserInactive);
         }
 
+        var limiteAcesso = DateTime.Now.AddHours(-1);
+
+        var acessoRecente = await _unitOfWork.GetClassAsyncWhere<Logs>(
+            x => x.Id_User == user.Id && x.Tipo == "ACESSO" && x.Isdelete != true && x.InsertDate >= limiteAcesso);
+
+        if (acessoRecente is null)
+        {
+            var nomeAcesso = string.Join(" ", (user.Name ?? string.Empty).Split(' ', StringSplitOptions.RemoveEmptyEntries).Take(2));
+
+            var mensagemAcesso = user.Role.ToString() switch
+            {
+                "ADMIN" => "Acessou a Home Admin",
+                "CLIENTE" => "Acessou a Home Cliente",
+                "DELIVERY" => "Acessou a Home Delivery",
+                _ => "Acessou o sistema"
+            };
+
+            await _useService.SaveLogUser(
+                new LogRequest
+                {
+                    Id_User = user.Id,
+                    Log = mensagemAcesso,
+                    Tipo = "ACESSO",
+                    Nivel = user.Role.ToString(),
+                    Acao = $"{nomeAcesso} acessou o sistema",
+                    Info = $"Acessou o sistema em {DateTime.Now:dd/MM/yyyy HH:mm:ss}",
+                    InsertDate = DateTime.UtcNow
+                },
+                null);
+
+            await _unitOfWork.CommitAsync();
+        }
+
         // Rotaciona o Refresh Token somente desta sessão
         var newRefreshToken = _tokenService.GenerateRefreshToken();
 

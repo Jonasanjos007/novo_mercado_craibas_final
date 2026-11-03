@@ -74,12 +74,22 @@ export default function FlashSalePage() {
   const offerActive = !!flashOffer && !countdown.done;
   const usesLeft = flashOffer?.quantity_Uses != null ? Math.max(0, (flashOffer.quantity_Uses ?? 0) - (flashOffer.quantity_Used ?? 0)) : null;
 
-  // Produtos em oferta de verdade: preço atual menor que o preço original.
-  const saleProducts = useMemo(
-    () => products.filter((p) => p.ativo !== false && p.origin_Price && p.origin_Price > p.price_Unic),
-    [products],
-  );
-  const discountOf = (p: (typeof saleProducts)[number]) => formatDiscount(p.origin_Price!, p.price_Unic);
+  // A página só existe quando há um cupom relâmpago ativo. Sem cupom ativo, volta pra home.
+  useEffect(() => {
+    if (!Controller?.result?.Loading && !flashOffer) {
+      navigate('/', { replace: true });
+    }
+  }, [Controller?.result?.Loading, flashOffer, navigate]);
+
+  // Somente os produtos vinculados ao cupom relâmpago ativo (por produto ou por categoria).
+  const saleProducts = useMemo(() => {
+    if (!flashOffer) return [];
+    const pids = new Set((flashOffer.productIds ?? []).map(Number));
+    const cids = new Set((flashOffer.categoryIds ?? []).map(Number));
+    if (pids.size === 0 && cids.size === 0) return [];
+    return products.filter((p) => p.ativo !== false && (pids.has(Number(p.id)) || cids.has(Number(p.id_category))));
+  }, [products, flashOffer]);
+  const discountOf = (p: (typeof saleProducts)[number]) => (p.origin_Price && p.origin_Price > p.price_Unic ? formatDiscount(p.origin_Price, p.price_Unic) : 0);
   const maxDiscount = useMemo(() => saleProducts.reduce((max, p) => Math.max(max, discountOf(p)), 0), [saleProducts]);
 
   // Só categorias que têm produto em oferta, com a quantidade.
@@ -115,6 +125,14 @@ export default function FlashSalePage() {
     `flex items-center gap-2 h-10 px-4 rounded-2xl whitespace-nowrap border text-sm font-display font-semibold transition-all flex-shrink-0 ${active
       ? `${ColorGlobalTema} border-transparent text-white`
       : 'bg-white border-surface-200 text-surface-600 hover:border-surface-300 hover:text-surface-900'}`;
+
+  if (!flashOffer) {
+    return (
+      <div className="min-h-screen bg-[#f5f5f7]">
+        <Loading loading={true} message="Carregando ofertas" subMessage="Buscando os melhores preços para você" />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-[#f5f5f7]">

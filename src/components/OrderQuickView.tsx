@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { X, MapPin, CreditCard, Package, Calendar, Truck, ShoppingBag, Star, Gift } from 'lucide-react';
-import { formatPrice, paymentTermsLabel, orderStatusLabels, orderStatusColors, badgeLabels } from '../utils';
+import { formatPrice, paymentTermsLabel, orderStatusLabels, orderStatusColors, badgeLabels, returnStatusLabels, cancelStatusLabels } from '../utils';
 import { useStore } from '../context/store';
 import { Order } from '../models/Order';
 import { useBrindeController } from '../controller/useBrindeController';
@@ -80,6 +80,21 @@ export const OrderQuickView = ({ order, onClose }: OrderQuickViewProps) => {
                 ? new Date(order.estimated_Delivery_Date).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' })
                 : '—',
         },
+        ...(order.customerDeliveryDate ? [{
+            icon: <Calendar className="w-4 h-4 text-brand-400" />,
+            label: 'Entregue em',
+            value: new Date(order.customerDeliveryDate).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }),
+        }] : []),
+        ...(order.deliveryName ? [{
+            icon: <Truck className="w-4 h-4 text-brand-400" />,
+            label: 'Entregador',
+            value: `${order.deliveryName}${order.deliveryAssigneeType === 'ADMIN' ? ' (Admin)' : ''}`,
+        }] : []),
+        ...(order.whoReceivedIt ? [{
+            icon: <Package className="w-4 h-4 text-brand-400" />,
+            label: 'Recebido por',
+            value: order.whoReceivedIt,
+        }] : []),
     ];
 
     return (
@@ -184,11 +199,17 @@ export const OrderQuickView = ({ order, onClose }: OrderQuickViewProps) => {
                                                         <Star className="w-3 h-3 fill-amber-400 text-amber-400" /> {item.Count_Rating}
                                                     </span>
                                                 )}
-                                                {item.variations && (
+                                                {item.variations?.atributos && item.variations.atributos.length > 0 ? (
+                                                    item.variations.atributos.map((a, ai) => (
+                                                        <span key={ai} className="text-[10px] font-bold px-2 py-1 rounded-full bg-blue-500/10 text-blue-400 border border-blue-500/20">
+                                                            {a.eixo}: {a.valor}
+                                                        </span>
+                                                    ))
+                                                ) : item.variations ? (
                                                     <span className="text-[10px] font-bold px-2 py-1 rounded-full bg-blue-500/10 text-blue-400 border border-blue-500/20">
                                                         {item.variations.name}: {item.variations.value}
                                                     </span>
-                                                )}
+                                                ) : null}
                                             </div>
                                         </div>
                                     </div>
@@ -232,6 +253,12 @@ export const OrderQuickView = ({ order, onClose }: OrderQuickViewProps) => {
                                     <span className="text-sm font-semibold text-rose-400">-{formatPrice(discountValue)}</span>
                                 </div>
                             )}
+                            <div className="flex items-center justify-between">
+                                <span className={`text-xs ${txt2}`}>Frete</span>
+                                <span className={`text-sm font-semibold ${order.shippingCost ? txt : 'text-emerald-400'}`}>
+                                    {order.shippingCost ? formatPrice(order.shippingCost) : 'Grátis'}
+                                </span>
+                            </div>
                             <div className={`flex items-center justify-between pt-3 border-t ${bord}`}>
                                 <span className={`text-sm font-bold ${txt}`}>Total</span>
                                 <span className="text-lg font-black text-brand-400">{formatPrice(order.total_Value_Order)}</span>
@@ -251,6 +278,32 @@ export const OrderQuickView = ({ order, onClose }: OrderQuickViewProps) => {
                                 </div>
                             ))}
                         </div>
+
+                        {(order.cancel_Status || order.cancel_Reason || order.return_Status || order.canceled_At) && (
+                            <div className={`rounded-2xl border p-4 space-y-2 ${bord} ${surf}`}>
+                                <h3 className={`font-display font-bold text-sm uppercase tracking-wide ${sub}`}>Cancelamento / Devolução</h3>
+                                {order.cancel_Status && (
+                                    <div className="flex items-center justify-between gap-2">
+                                        <span className={`text-xs ${txt2}`}>Pedido de cancelamento</span>
+                                        <span className="text-xs font-bold text-rose-400">{cancelStatusLabels[order.cancel_Status] ?? order.cancel_Status}</span>
+                                    </div>
+                                )}
+                                {order.canceled_At && (
+                                    <div className="flex items-center justify-between gap-2">
+                                        <span className={`text-xs ${txt2}`}>Cancelado em</span>
+                                        <span className={`text-xs font-semibold text-right ${txt}`}>{new Date(order.canceled_At).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })}{order.canceled_By ? ` · ${order.canceled_By}` : ''}</span>
+                                    </div>
+                                )}
+                                {order.cancel_Reason && <p className={`text-xs ${sub}`}>Motivo: <span className={txt}>{order.cancel_Reason}</span></p>}
+                                {order.return_Status && (
+                                    <div className="flex items-center justify-between gap-2">
+                                        <span className={`text-xs ${txt2}`}>Devolução</span>
+                                        <span className="text-xs font-bold text-amber-400">{returnStatusLabels[order.return_Status] ?? order.return_Status}</span>
+                                    </div>
+                                )}
+                                {order.return_Reason && <p className={`text-xs ${sub}`}>Motivo devolução: <span className={txt}>{order.return_Reason}</span></p>}
+                            </div>
+                        )}
 
                         <div className="flex items-center gap-2 pt-2">
                             <Gift className="w-4 h-4 text-brand-400" />

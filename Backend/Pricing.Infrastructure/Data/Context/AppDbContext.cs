@@ -42,6 +42,8 @@ public class AppDbContext : DbContext
     public DbSet<Payment_Transactions> Payment_Transactions => Set<Payment_Transactions>();
     public DbSet<Brinde> Brinde => Set<Brinde>();
     public DbSet<Brinde_Cliente> Brinde_Cliente => Set<Brinde_Cliente>();
+    public DbSet<Despesa> Despesa => Set<Despesa>();
+    public DbSet<Banner> Banner => Set<Banner>();
 
 
     public AppDbContext(DbContextOptions<AppDbContext> options)

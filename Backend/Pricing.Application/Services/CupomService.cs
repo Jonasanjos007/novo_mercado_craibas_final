@@ -38,10 +38,25 @@ namespace Mercado.Craibas.Application.Services
                 {
                     return Result<List<CupomResponse>>.Success(ListCupons);
                 }
+
+                var cupomIds = Cupons.Select(c => c.Id).ToList();
+
+                var vinculosProdutos = await _unitOfWork.Query<Coupon_Product>()
+                    .Where(x => cupomIds.Contains(x.Id_Cupom) && x.Isdelete != true)
+                    .Select(x => new { x.Id_Cupom, x.Id_Product })
+                    .ToListAsync();
+
+                var vinculosCategorias = await _unitOfWork.Query<Coupon_Category>()
+                    .Where(x => cupomIds.Contains(x.Id_Cupom) && x.Isdelete != true && x.Id_Category != null)
+                    .Select(x => new { x.Id_Cupom, x.Id_Category })
+                    .ToListAsync();
+
                 foreach (var Cupom in Cupons)
                 {
                     ListCupons.Add(new CupomResponse
                     {
+                        ProductIds = vinculosProdutos.Where(v => v.Id_Cupom == Cupom.Id).Select(v => v.Id_Product).ToList(),
+                        CategoryIds = vinculosCategorias.Where(v => v.Id_Cupom == Cupom.Id).Select(v => v.Id_Category!.Value).ToList(),
                         Id = Cupom.Id,
                         Name_Cupom = Cupom.Name_Cupom,
                         Cod_Cupom = Cupom.Cod_Cupom,

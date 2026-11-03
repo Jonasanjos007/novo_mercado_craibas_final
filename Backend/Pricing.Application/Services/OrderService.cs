@@ -264,6 +264,12 @@ public class OrderService : IOrderService
             }
             var InsertOrderLineItens = new OrderLineItens();
             // Segurança: itens gravados a partir do carrinho do servidor (antes vinham da tela).
+            var idsProdutosVenda = serverCart.Value.CartItensProduct.Select(c => c.Product.Id).Distinct().ToList();
+            var custosProdutos = await _unitOfWork.Query<Product>()
+                .Where(p => idsProdutosVenda.Contains(p.Id))
+                .Select(p => new { p.Id, p.Preco_Custo })
+                .ToDictionaryAsync(p => p.Id, p => p.Preco_Custo);
+
             foreach (var CartLine in serverCart.Value.CartItensProduct)
             {
                 var priceUnic = CartLine.Product.Price_Unic ?? 0;
@@ -283,6 +289,7 @@ public class OrderService : IOrderService
                     Price_Unit = priceUnic,
                     Evaluated = false,
                     Discont = (originPrice - priceUnic) * CartLine.Quantity,
+                    Custo_Unitario = custosProdutos.TryGetValue(CartLine.Product.Id, out var custoUn) ? custoUn : null,
                     Isdelete = false
                 };
 

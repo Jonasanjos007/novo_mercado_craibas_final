@@ -214,9 +214,7 @@ export default function DeliveryOrderCard({
                         <Banknote className="w-4 h-4 flex-shrink-0" />
                         <span className="flex-1">
                             {payPending ? 'Cobrar na entrega' : 'Pagamento confirmado'}
-                            {order.payment_terms ? ` · ${paymentTermsLabel(order.payment_terms)}` : ''}
                         </span>
-                        <span className="font-display font-bold text-sm">{formatPrice(order.total_Value_Order)}</span>
                     </div>
                 )}
 

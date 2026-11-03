@@ -19,6 +19,8 @@ export type TrashEntityType =
     | 'CUSTOMIZE'
     | 'ORDER_ITEM'
     | 'BRINDE'
+    | 'DESPESA'
+    | 'BANNER'
     | 'OTHER';
 
 export interface TrashItem {

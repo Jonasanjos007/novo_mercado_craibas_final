@@ -35,6 +35,7 @@ import {
     Loader2,
     RefreshCw,
     Gift,
+    Wallet,
 } from 'lucide-react';
 import { TrashEntityType, TrashItem } from '../models/TrashItem';
 import { useTrashAdminController } from '../controller/useTrashAdminController';
@@ -200,6 +201,20 @@ const entityConfig: Record<
         icon: Gift,
         className:
             'bg-amber-50 text-amber-700 dark:bg-amber-500/10 dark:text-amber-400',
+    },
+
+    DESPESA: {
+        label: 'Despesa',
+        icon: Wallet,
+        className:
+            'bg-rose-50 text-rose-700 dark:bg-rose-500/10 dark:text-rose-400',
+    },
+
+    BANNER: {
+        label: 'Banner',
+        icon: ImageIcon,
+        className:
+            'bg-sky-50 text-sky-700 dark:bg-sky-500/10 dark:text-sky-400',
     },
 
     OTHER: {
